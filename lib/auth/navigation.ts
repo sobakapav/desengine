@@ -4,14 +4,14 @@ function getAuthUrl() {
 }
 
 /** URL endpoint'а подготовки проходной страницы авторизации */
+// TODO Адрес endpoint'а захардкожен, нехорошо, переписать
+// ? А верифицирующий endpoint так не используется?
 function getAuthPrepareUrl(returnTo: string) {
   return `/api/auth/prepare?returnTo=${encodeURIComponent(returnTo)}`
 }
 
-
-
-
-function normalizePathname(pathname: string): string {
+/** Отрезаем последний слеш (чистое занудство) */
+function skipLastSlash(pathname: string): string {
   if (pathname.length > 1 && pathname.endsWith("/")) {
     return pathname.slice(0, -1)
   }
@@ -19,14 +19,17 @@ function normalizePathname(pathname: string): string {
   return pathname
 }
 
-// TODO Нужна вообще?
-export function isProtectedPath(pathname: string) {
-  const normalized = normalizePathname(pathname)
+/** Требуется ли проверка доступа для этого URL */
+// TODO Адреса захардкожены, подкаталоги не предусмотрены — точно нужно переписать!
+export function isProtectedUrl(pathname: string) {
+  const normalized = skipLastSlash(pathname)
   return normalized != "/auth"
-    && normalized != "/config"
+    && normalized != "/system"
 }
 
-export function sanitizeReturnPath(pathname: string | null | undefined) {
+/** Сбрасываем подозрительные URL в null */
+// ? Может быть, это в системную навигацию, а не сюда?
+function sanitizeUrl(pathname: string | null | undefined) {
   if (!pathname || typeof pathname !== "string") {
     return null
   }
@@ -39,9 +42,9 @@ export function sanitizeReturnPath(pathname: string | null | undefined) {
     return null
   }
 
-  const normalized = normalizePathname(pathname)
+  const normalized = skipLastSlash(pathname)
 
-  if (!isProtectedPath(normalized)) {
+  if (!isProtectedUrl(normalized)) {
     return null
   }
 
@@ -50,5 +53,6 @@ export function sanitizeReturnPath(pathname: string | null | undefined) {
 
 export {
     getAuthUrl,
-    getAuthPrepareUrl
+    getAuthPrepareUrl,
+    sanitizeUrl
 }

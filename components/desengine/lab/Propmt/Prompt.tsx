@@ -5,8 +5,8 @@ import { useState } from "react";
 import { BaseProps } from "@/components/desengine/system/Base";
 import { Button } from "@/components/ui/button";
 import { formatPromptHistoryTimestamp } from "@/lib/prompt/history";
-import type { TaskData, TaskListItem } from "@/lib/system/types";
-import { taskWorkbenchFiles } from "@/lib/system/client";
+import { TaskData, TaskListItem } from "@/lib/task/types";
+import { taskWorkbenchFiles } from "@/lib/config/client";
 
 type PromptProps = BaseProps & {
     taskItem: TaskListItem;

@@ -19,7 +19,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { taskWorkbenchFiles } from "@/lib/system/client";
+import { taskWorkbenchFiles } from "@/lib/config/client";
 import { applyFileContentChange } from "@/lib/lab/editor";
 
 type SaveErrorItem = {

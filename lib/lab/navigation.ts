@@ -1,14 +1,20 @@
-/** Лабораторные адреса */
+/**
+ * Лабораторные адреса
+ */
+
+import { getDefaultCodeScreen } from "./editor"
 
 /** Корневой адрес для всех лабораторий */
 function getLabRootUrl() {
   return `/lab`
 }
 
-/** URL к конкретной лаборатории (задача с точностью до экрана) */
+/** URL к конкретной лаборатории (+ код) */
 function getLabUrl(taskId: string, screen?: string | null) {
-  const labRootUrl = getLabRootUrl();
-  if (!screen || screen === DEFAULT_TASK_SCREEN) {
+  const labRootUrl = getLabRootUrl()
+  const defaultCodeScreen = getDefaultCodeScreen()
+
+  if (!screen || screen === defaultCodeScreen) {
     return `${labRootUrl}/${encodeURIComponent(taskId)}`
   }
 

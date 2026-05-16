@@ -1,6 +1,6 @@
 ## 1. URL-карта и маршрутные контракты
 
-- [x] 1.1 Зафиксировать каноническую top-level URL-карту: `/`, `/tasks`, `/levels`, `/auth`, `/config`, `/help`
+- [x] 1.1 Зафиксировать каноническую top-level URL-карту: `/`, `/tasks`, `/levels`, `/auth`, `/system`, `/help`
 - [x] 1.2 Зафиксировать path-based схему для задачи: `/tasks/<taskId>` и `/tasks/<taskId>/<screen>`
 - [x] 1.3 Зафиксировать отдельный маршрут `/tasks/<taskId>/next` для перехода между уровнями
 - [x] 1.4 Зафиксировать path-based схему для уровней: `/levels` и `/levels/<levelId>`
