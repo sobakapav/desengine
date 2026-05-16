@@ -3,11 +3,11 @@ import { NextResponse } from "next/server"
 
 import { shouldUseSecureCookies } from "@/lib/auth/control"
 import { ACCESS_RETURN_PATH_COOKIE_NAME } from "@/lib/auth/server"
-import { getAuthUrl, sanitizeReturnPath } from "@/lib/system/navigation"
+import { getAuthUrl, sanitizeUrl } from "@/lib/auth/navigation"
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  const returnTo = sanitizeReturnPath(url.searchParams.get("returnTo"))
+  const returnTo = sanitizeUrl(url.searchParams.get("returnTo"))
   const cookieStore = await cookies()
 
   if (!returnTo) {

@@ -39,7 +39,7 @@
 - `/tasks`
 - `/levels`
 - `/auth`
-- `/config`
+- `/system`
 - `/help`
 
 Именно эти top-level адреса SHALL составлять левую часть глобального `Navigation`.

@@ -94,7 +94,7 @@ DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3000 npm
 
 Текущий smoke-набор живёт в `test/e2e/route-smoke.spec.ts`:
 
-- публичные маршруты `/auth` и `/config` должны открываться без допуска;
+- публичные маршруты `/auth` и `/system` должны открываться без допуска;
 - защищённый `/` без допуска должен переводить на `/auth`;
 - `/tasks`, `/levels`, task entry и level entry уже перечислены как обязательный набор, но временно skipped, пока параллельный runtime-переезд task/user schema не стабилизирован.
 

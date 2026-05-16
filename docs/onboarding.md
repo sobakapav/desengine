@@ -9,7 +9,7 @@
 
 ## Роль документа
 
-Этот файл углубляет [INSTALL.md](../INSTALL.md) и [UPDATE.md](../UPDATE.md), фиксируя канонический контракт для локального каталога `/onboarding`, его внешнего источника, автоматической синхронизации и ручного обновления через `/config`.
+Этот файл углубляет [INSTALL.md](../INSTALL.md) и [UPDATE.md](../UPDATE.md), фиксируя канонический контракт для локального каталога `/onboarding`, его внешнего источника, автоматической синхронизации и ручного обновления через `/system`.
 
 ## Что считается каноническим источником
 
@@ -37,7 +37,7 @@ ONBOARDING_REPO_URL=https://github.com/sobakapav/desengine-onboarding.git
 ## Как вручную обновить `/onboarding`
 
 1. Убедитесь, что в `desengine.config.txt` задан `ONBOARDING_REPO_URL`.
-2. Запустите приложение и откройте [http://localhost:3000/config](http://localhost:3000/config).
+2. Запустите приложение и откройте [http://localhost:3000/system](http://localhost:3000/system).
 3. Нажмите кнопку `Обновить onboarding`.
 4. Дождитесь завершения операции и повторно проверьте блок диагностики onboarding-контента.
 

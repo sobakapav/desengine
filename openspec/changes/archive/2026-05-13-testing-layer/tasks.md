@@ -89,7 +89,7 @@
 
 Фактическая проверка P2 от 2026-05-13:
 
-- Добавлен `test/unit/p2-source-contracts.test.ts` для static/source-contract покрытия документации, admin tools, локального onboarding-flow, `/config` onboarding update, shell Navigation и render-boundary инвариантов.
+- Добавлен `test/unit/p2-source-contracts.test.ts` для static/source-contract покрытия документации, admin tools, локального onboarding-flow, `/system` onboarding update, shell Navigation и render-boundary инвариантов.
 - `admin-tools` — `4/4 scenarios`, ready.
 - `external-local-onboarding` — `7/7 scenarios`, ready.
 - `component-file-set` — `5/5 scenarios`, ready.
@@ -114,7 +114,7 @@
 - `npm run test:e2e` теперь запускает `playwright test -c playwright.e2e.config.ts`.
 - E2E web-server стартует `next dev` на `127.0.0.1:3410`; live/provider env в тестовом процессе очищается, чтобы команда не зависела от реальных ключей и внешних сервисов.
 - Добавлен `test/e2e/fixtures/smoke-fixture.ts`: минимальный route-набор и snapshot helper для каталога `user/`.
-- Добавлен `test/e2e/route-smoke.spec.ts`: активные smoke-сценарии проверяют `/auth`, `/config` и redirect `/` → `/auth` без допуска.
+- Добавлен `test/e2e/route-smoke.spec.ts`: активные smoke-сценарии проверяют `/auth`, `/system` и redirect `/` → `/auth` без допуска.
 - `/tasks`, `/levels`, task entry и level entry уже перечислены в smoke-наборе, но временно `skip` с явной причиной: текущий параллельный runtime-переезд task/user schema ещё ломает компиляцию этих маршрутов (`TaskProgressSchema is not defined`). Это не считается блокером тестового слоя.
 - UI-состояния остаются зоной `test:storybook`, а e2e ограничен сквозными route smoke.
 - `npm run test:e2e` — проходит, 3 active tests passed, 4 skipped.

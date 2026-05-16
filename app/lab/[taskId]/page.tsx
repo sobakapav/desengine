@@ -2,9 +2,9 @@ import { notFound, redirect } from "next/navigation"
 
 import { Lab } from "@/components/desengine/lab/LabScreen"
 import { requireAccessOrRedirect } from "@/lib/auth/server"
-import { getLabRootUrl, getLabUrl } from "@/lib/lab/navigation"
-import { getDefaultTaskScreen, isAccessibleTaskScreen } from "@/lib/system/navigation"
+import { getLabUrl } from "@/lib/lab/navigation"
 import { getLevelOverview, getTaskLabContext, getTaskListItemById, isTaskStarted, readTaskData } from "@/lib/system/server"
+import { getDefaultCodeScreen, isAccessibleCodeScreen } from "@/lib/lab/editor"
 
 type Params = {
   taskId: string
@@ -46,13 +46,13 @@ export default async function LabTaskPage({
 
   const labContext = await getTaskLabContext(taskItem)
   const allowedScreens = labContext?.editableFileIds ?? []
-  const defaultScreen = getDefaultTaskScreen()
+  const defaultScreen = getDefaultCodeScreen()
 
   if (allowedScreens.length === 0) {
     notFound()
   }
 
-  if (!isAccessibleTaskScreen(defaultScreen, allowedScreens)) {
+  if (!isAccessibleCodeScreen(defaultScreen, allowedScreens)) {
     redirect(getLabUrl(taskId, allowedScreens[0]))
   }
 

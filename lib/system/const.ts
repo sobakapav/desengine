@@ -3,6 +3,13 @@
   * В основном нужны для настройки типов.
   */
 
+/** Статусы пользовательской авторизации */
+const AUTH_STATES = [
+  "valid",
+  "missing",
+  "expired",
+] as const
+
 /** Статусы системных ресурсов */
 const RESOURCE_STATES = [
   "ready",
@@ -37,6 +44,7 @@ const LLM_PROVIDER_IDS = [
 
 
 export {
+  AUTH_STATES,
   RESOURCE_STATES,
   RESOURCE_IDS,
   USER_ROLES,
