@@ -4,12 +4,12 @@
   "uncoveredCapabilities": {
     "navigation": {
       "priority": "P2",
-      "reason": "Покрыты общий Navigation, правые контакты и top-level URL map; нужен отдельный follow-up на левую часть Navigation, где текущий runtime ещё не показывает весь контракт `/auth`, `/config`, `/help` как canonical labels.",
+      "reason": "Покрыты общий Navigation, правые контакты и top-level URL map; нужен отдельный follow-up на левую часть Navigation, где текущий runtime ещё не показывает весь контракт `/auth`, `/system`, `/help` как canonical labels.",
       "targetStage": "5.4"
     },
     "onboarding-repo": {
       "priority": "P2",
-      "reason": "Покрыто ручное обновление с `/config`; нужен follow-up на runtime-чтение канонического `ONBOARDING_REPO_URL`, потому что часть server-кода всё ещё ссылается на legacy `DESENGINE_ONBOARDING_REPO_URL`.",
+      "reason": "Покрыто ручное обновление с `/system`; нужен follow-up на runtime-чтение канонического `ONBOARDING_REPO_URL`, потому что часть server-кода всё ещё ссылается на legacy `DESENGINE_ONBOARDING_REPO_URL`.",
       "targetStage": "runtime-follow-up"
     },
     "ui-foundation": {

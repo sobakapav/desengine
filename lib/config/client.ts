@@ -6,4 +6,8 @@ import { appConfigSource } from "@/lib/config/app"
 // Если понадобится tasksRoot на клиенте, добавим отдельный контракт.
 const appConfigClient = appConfigSource as AppConfig
 
-export const taskWorkbenchFiles = appConfigClient.taskWorkbenchFiles
+const taskWorkbenchFiles = appConfigClient.taskWorkbenchFiles
+
+export {
+    taskWorkbenchFiles
+}

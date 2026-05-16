@@ -1,3 +1,4 @@
+import { AuthState } from "../auth/types"
 import { getLlmStatus } from "../llm/server"
 import { Instruction, Resource } from "../system/types"
 
@@ -6,14 +7,14 @@ type SystemStatusModel = {
   items: Resource[]
   instructions: Instruction[]
   allowlistConfigured: boolean
-  authState: "valid" | "missing" | "expired"
+  authState: AuthState
   hasAccess: boolean
   onboardingRepoConfigured: boolean
-  onboardingSyncState: "missing" | "unconfirmed" | "synced"
+  onboardingSyncState: string
   readyForProtectedLab: boolean
 }
 
 
-export {
+export type {
   SystemStatusModel
 }

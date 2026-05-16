@@ -5,7 +5,7 @@ import Link from "next/link"
 import { getLevelsRootUrl } from "@/lib/level/navigation"
 import { getLabRootUrl } from "@/lib/lab/navigation"
 import { getTasksRootUrl } from "@/lib/task/navigation"
-import { getConfigUrl } from "@/lib/config/navigation"
+import { getSystemUrl } from "@/lib/config/navigation"
 import { getHelpRootUrl } from "@/lib/help/navigation"
 
 const navigationLinks = [
@@ -13,7 +13,7 @@ const navigationLinks = [
   { href: getLabRootUrl(), label: "лаборатория" },
   { href: getLevelsRootUrl(), label: "уровни" },
   { href: getTasksRootUrl(), label: "задачи" },
-  { href: getConfigUrl(), label: "настройки" },
+  { href: getSystemUrl(), label: "система" },
   { href: getHelpRootUrl(), label: "справка" },
 ] as const
 

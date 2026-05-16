@@ -123,7 +123,7 @@ DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3000 npm
 
 Текущий route smoke:
 
-- `/auth` и `/config` открываются без допуска;
+- `/auth` и `/system` открываются без допуска;
 - `/` без допуска переводит на `/auth`;
 - `/tasks`, `/levels`, task entry и level entry перечислены в наборе, но временно skipped до стабилизации параллельного runtime-переезда task/user schema.
 

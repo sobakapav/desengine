@@ -1,3 +1,8 @@
+/**
+ * Очень разные статусные настройки
+ */
+ // TODO Нужно рефакторить
+
 import "server-only"
 
 import {
@@ -107,17 +112,17 @@ export async function getSystemStatusModel(): Promise<SystemStatusModel> {
     label: "Доступ в лабораторию",
     state: hasAccess ? "ready" : authState === "expired" ? "warning" : "blocked",
     summary: hasAccess
-      ? "Допуск уже выдан"
+      ? "Доступ есть, можно решать задачи"
       : authState === "expired"
-        ? "Допуск истёк"
-        : "Допуск ещё не выдан",
+        ? "Нужно ввести email ещё раз."
+        : "Чтобы войти в лабораторию, введите email.",
     detail: hasAccess
-      ? "Можно открыть защищённую часть лаборатории."
+      ? "Можно решать задачи."
       : authState === "expired"
-        ? "Нужно снова пройти allowlist-проверку на `/auth`, чтобы открыть защищённую часть лаборатории."
+        ? "Чтобы войти в лабораторию, введите email ещё раз."
       : accessConfig.isConfigured
-        ? "Введите email из allowlist, чтобы открыть задачи и рабочую часть лаборатории."
-        : "Сначала администратор должен настроить allowlist, после этого пользователь сможет пройти допуск.",
+        ? "Нужно ввести email."
+        : "У вас не настроена система входа. Пожалуйста, напишите в поддержку.",
   })
 
   if (!hasAccess && accessConfig.isConfigured) {
@@ -282,7 +287,7 @@ export async function getSystemStatusModel(): Promise<SystemStatusModel> {
       id: "onboarding-content",
       actor: "admin",
       text: onboardingRepoUrl
-        ? "Система пытается синхронизировать `/onboarding` автоматически. Если статус не меняется, используйте `Обновить onboarding` на `/config` или `npm run smoke`."
+        ? "Система пытается синхронизировать `/onboarding` автоматически. Если статус не меняется, используйте `Обновить onboarding` на `/system` или `npm run smoke`."
         : "Сначала задайте `ONBOARDING_REPO_URL` в `desengine.config.txt`, затем запустите повторную синхронизацию `/onboarding`.",
     })
   }

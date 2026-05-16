@@ -15,11 +15,10 @@ import {
   verifyAccessSessionValue,
 } from "@/lib/auth/control"
 import { getTasksRootUrl } from "../task/navigation"
-import { getAuthPrepareUrl, getAuthUrl, sanitizeReturnPath } from "./navigation"
+import { getAuthPrepareUrl, getAuthUrl, sanitizeUrl } from "./navigation"
+import { AuthState } from "./types"
 
 const ACCESS_RETURN_PATH_COOKIE_NAME = "desengine-return-path"
-
-type AccessSessionState = "valid" | "missing" | "expired"
 
 localConfig.loadLocalConfig()
 
@@ -96,7 +95,7 @@ async function getVerifiedAccessSession(): Promise<VerifiedAccessSession | null>
   return verifyAccessSessionValue(cookieValue, salt)
 }
 
-async function getAccessSessionState(): Promise<AccessSessionState> {
+async function getAccessSessionState(): Promise<AuthState> {
   const verification = await getVerifiedAccessSession()
 
   if (!verification) {
@@ -122,20 +121,21 @@ async function createAccessCookieValue(email: string): Promise<string> {
 async function consumeReturnPathCookie() {
   const cookieStore = await cookies()
   const rawValue = cookieStore.get(ACCESS_RETURN_PATH_COOKIE_NAME)?.value
-  const safePath = sanitizeReturnPath(rawValue)
+  const safePath = sanitizeUrl(rawValue)
 
   cookieStore.delete(ACCESS_RETURN_PATH_COOKIE_NAME)
 
   return safePath ?? getTasksRootUrl()
 }
 
+/** Основной gate: пропускает, только если есть доступ */
 async function requireAccessOrRedirect(pathname: string) {
   if ((await getAccessSessionState()) === "valid") {
     return
   }
 
-  const safePath = sanitizeReturnPath(pathname)
-  redirect(safePath ? getAuthPrepareUrl(safePath) : getAuthUrl())
+  const safeUrl = sanitizeUrl(pathname)
+  redirect(safeUrl ? getAuthPrepareUrl(safeUrl) : getAuthUrl())
 }
 
 async function requireAccessOrUnauthorizedResponse() {

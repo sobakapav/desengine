@@ -3,7 +3,7 @@
 Сейчас product-shell интерфейс уже частично имеет общую основу:
 - `app/globals.css` задаёт базовые токены и глобальные browser-level правила;
 - `components/desengine/Base/Base.styles.ts` и `components/desengine/Code/styles.ts` содержат локальные наборы Tailwind-строк;
-- страницы вроде `app/config/page.tsx`, `app/help/page.tsx`, `app/levels/page.tsx` и shell-компоненты вроде `components/desengine/OnboardingUpdateCard.tsx` напрямую несут на себе крупные наборы Tailwind-классов.
+- страницы вроде `app/system/page.tsx`, `app/help/page.tsx`, `app/levels/page.tsx` и shell-компоненты вроде `components/desengine/OnboardingUpdateCard.tsx` напрямую несут на себе крупные наборы Tailwind-классов.
 
 Это создаёт типичный промежуточный режим: Tailwind уже используется как основная система стилизации, но ещё не выделен единый semantic-слой интерфейса инструмента. В результате:
 - визуально близкие оболочечные паттерны повторяются с небольшими вариациями;
@@ -68,7 +68,7 @@
 ## Implementation Inventory
 
 По итогам инвентаризации в текущем product-shell контуре повторялись следующие паттерны:
-- page shell: `main` + центрирующий контейнер `max-w-6xl` для `/auth`, `/config`, `/help`, `/levels`, `/tasks`;
+- page shell: `main` + центрирующий контейнер `max-w-6xl` для `/auth`, `/system`, `/help`, `/levels`, `/tasks`;
 - primary surface: крупная градиентная оболочка страницы с одинаковой рамкой, radius и shadow;
 - split surface: двухколоночная оболочка для допуска и системной диагностики;
 - page header: eyebrow, title group, description и link row;
@@ -93,7 +93,7 @@
 
 - Зафиксировать канонический путь единого product-shell stylesheet.
 - Проинвентаризировать повторяющиеся shell-паттерны в `app/**` и `components/desengine/**`.
-- Отдельно отметить паттерны, которые уже повторяются на страницах `/config`, `/help`, `/levels`, `/tasks`.
+- Отдельно отметить паттерны, которые уже повторяются на страницах `/system`, `/help`, `/levels`, `/tasks`.
 - Отделить действительно общие элементы от одноразовых визуальных решений.
 - Проверить, что миграция не затрагивает `/onboarding/**`, `/user/**` и генерируемые рабочие файлы.
 - Зафиксировать правила review: когда стиль обязан идти в общий файл, а когда допустимо оставить его локально.

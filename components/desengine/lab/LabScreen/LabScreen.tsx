@@ -5,7 +5,7 @@ import type { LevelOverview as LevelOverviewData } from "@/lib/level/types"
 import type { TaskCheckResult as TaskCheckResultData, TaskData, TaskListItem, TaskTransition } from "@/lib/task/types";
 
 /** Функции */
-import { createTaskCheckPath, createTaskDonePath, } from "@/lib/system/navigation";
+import { createTaskCheckPath, createTaskDonePath, } from "@/lib/task/navigation";
 
 /** Пропсы */
 import { LabProps } from "./props"

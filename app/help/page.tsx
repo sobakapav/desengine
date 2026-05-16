@@ -5,7 +5,7 @@ import { getLabRootUrl } from "@/lib/lab/navigation"
 import { getLevelsRootUrl } from "@/lib/level/navigation"
 import { getTasksRootUrl } from "@/lib/task/navigation"
 import { getAuthUrl } from "@/lib/auth/navigation"
-import { getConfigUrl } from "@/lib/config/navigation"
+import { getSystemUrl } from "@/lib/config/navigation"
 
 const helpCards = [
   {
@@ -35,7 +35,7 @@ const helpCards = [
   {
     title: "5. Проверить настройки",
     text: "Если что-то не работает, на странице конфигурации видны сетевые проверки и инструкции для пользователя и администратора.",
-    href: getConfigUrl(),
+    href: getSystemUrl(),
     label: "Dashboard настроек",
   },
 ]

@@ -5,10 +5,6 @@ import { getLevelsRootUrl } from "@/lib/level/navigation"
 
 export default async function LevelsPage() {
   await requireAccessOrRedirect(getLevelsRootUrl())
-
   const overviews = await getAllLevelOverviews()
-
-  return (
-    <LevelsScreen overviews={overviews} />
-  )
+  return (<LevelsScreen overviews={overviews} />)
 }

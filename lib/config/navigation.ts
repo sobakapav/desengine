@@ -1,8 +1,8 @@
 /** URL dashboard'а конфигурации */
-function getConfigUrl() {
-  return "/config"
+function getSystemUrl() {
+  return "/system"
 }
 
 export {
-    getConfigUrl,
+    getSystemUrl,
 }
