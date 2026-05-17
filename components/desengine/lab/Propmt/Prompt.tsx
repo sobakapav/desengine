@@ -6,7 +6,7 @@ import { BaseProps } from "@/components/desengine/system/Base";
 import { Button } from "@/components/ui/button";
 import { formatPromptHistoryTimestamp } from "@/lib/prompt/history";
 import { TaskData, TaskListItem } from "@/lib/task/types";
-import { taskWorkbenchFiles } from "@/lib/config/client";
+import { taskWorkbenchFiles } from "@/lib/system/config/client";
 
 type PromptProps = BaseProps & {
     taskItem: TaskListItem;

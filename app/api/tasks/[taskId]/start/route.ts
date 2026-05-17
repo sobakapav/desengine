@@ -14,7 +14,7 @@ import {
   readTaskData,
 } from "@/lib/system/server"
 import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
-import { appConfig } from "@/lib/config/server"
+import { appConfig } from "@/lib/system/config/server"
 import { runStructuredLlmRequest, toLlmErrorResponse } from "@/lib/llm/server"
 import { readLevelIteratePrompt, readLevelStartPrompt, readPrompt } from "@/lib/prompt/server"
 import {

@@ -3,7 +3,7 @@ import "server-only"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { checkAllowlistMarkerReachability } from "@/lib/auth/allowlist"
-import localConfig from "../config/local.cjs"
+import localConfig from "../system/config/local.cjs"
 
 import {
   ACCESS_COOKIE_NAME,

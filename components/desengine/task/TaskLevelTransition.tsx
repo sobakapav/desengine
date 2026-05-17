@@ -3,7 +3,7 @@
 import { MarkdownContent } from "@/components/desengine/system/MarkdownContent";
 import { Button } from "@/components/ui/button";
 import { OutRender } from "@/components/desengine/lab/InOut/OutRender/OutRender";
-import type { TaskTransition } from "@/lib/system/types";
+import type { TaskTransition } from "@/lib/task/types";
 import { getLevelAssetPath } from "@/lib/level/navigation";
 
 type TaskLevelTransitionProps = {

@@ -1,6 +1,6 @@
 /** Работа с редактором кода (в том числе адреса экранов) */
 
-import { appConfigSource } from "@/lib/config/app"
+import { appConfigSource } from "@/lib/system/config/app"
 
 /**
  * Сохранение изменённого файла

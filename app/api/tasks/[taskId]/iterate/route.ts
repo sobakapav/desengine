@@ -14,7 +14,7 @@ import {
   registerPromptForCurrentLevel,
 } from "@/lib/system/server"
 import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
-import { appConfig } from "@/lib/config/server"
+import { appConfig } from "@/lib/system/config/server"
 import { runStructuredLlmRequest, toLlmErrorResponse } from "@/lib/llm/server"
 import { formatPromptHistoryTimestamp, TEACHING_COST_PER_ITERATION_CENTS } from "@/lib/prompt/history"
 import { readLevelIteratePrompt, readPrompt } from "@/lib/prompt/server"

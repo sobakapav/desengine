@@ -33,6 +33,9 @@ describe("route-level access guards", () => {
       "app/lab/page.tsx",
       "app/levels/page.tsx",
       "app/help/page.tsx",
+      "app/help/[helpId]/page.tsx",
+      "app/help/error/page.tsx",
+      "app/help/mermaid/[mermaidId]/page.tsx",
       "app/lab/[taskId]/page.tsx",
       "app/lab/[taskId]/[screen]/page.tsx",
       "app/lab/[taskId]/check/page.tsx",
@@ -45,6 +48,18 @@ describe("route-level access guards", () => {
       const source = fs.readFileSync(path.join(process.cwd(), filePath), "utf8")
 
       expect(source, filePath).toContain("requireAccessOrRedirect")
+    }
+  })
+
+  it("защищённые route handlers используют unauthorized response guard", () => {
+    const routeFiles = [
+      "app/help/images/[imgId]/route.ts",
+    ]
+
+    for (const filePath of routeFiles) {
+      const source = fs.readFileSync(path.join(process.cwd(), filePath), "utf8")
+
+      expect(source, filePath).toContain("requireAccessOrUnauthorizedResponse")
     }
   })
 

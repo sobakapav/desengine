@@ -5,7 +5,7 @@ import Link from "next/link"
 import { getLevelsRootUrl } from "@/lib/level/navigation"
 import { getLabRootUrl } from "@/lib/lab/navigation"
 import { getTasksRootUrl } from "@/lib/task/navigation"
-import { getSystemUrl } from "@/lib/config/navigation"
+import { getSystemUrl } from "@/lib/system/navigation"
 import { getHelpRootUrl } from "@/lib/help/navigation"
 
 const navigationLinks = [

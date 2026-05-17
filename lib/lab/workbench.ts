@@ -96,7 +96,7 @@ import "server-only"
 
 import { access, rm } from "node:fs/promises"
 
-import { appConfig } from "@/lib/config/server"
+import { appConfig } from "@/lib/system/config/server"
 import { getUserTaskFilePath } from "@/lib/user/server"
 
 type WorkbenchFile = (typeof appConfig.taskWorkbenchFiles)[number]

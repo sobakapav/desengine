@@ -24,9 +24,9 @@ const RESOURCE_IDS = [
   "llm-network",
   "allowlist-config",
   "allowlist-network",
+  "access-session",
   "onboarding-config",
   "onboarding-content",
-  "access-session",
 ] as const
 
 /** Роли пользователей в системе */

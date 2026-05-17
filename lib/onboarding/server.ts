@@ -3,8 +3,8 @@ import "server-only"
 import { access, readFile, readdir, writeFile } from "node:fs/promises"
 import path from "node:path"
 
-import { appConfig } from "@/lib/config/server"
-import localConfig from "@/lib/config/local.cjs"
+import { appConfig } from "@/lib/system/config/server"
+import localConfig from "@/lib/system/config/local.cjs"
 import {
   resolveOnboardingSyncState,
   type OnboardingSourceMarker,

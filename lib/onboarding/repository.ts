@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises"
 
-import { appConfig } from "@/lib/config/server"
+import { appConfig } from "@/lib/system/config/server"
 import { TEACHING_COST_PER_ITERATION_CENTS } from "@/lib/prompt/history"
 import { getLevelEditableWorkbenchFiles } from "@/lib/lab/workbench"
 import {

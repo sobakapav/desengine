@@ -1,0 +1,257 @@
+[
+  {
+    "id": "access-session",
+    "label": "Доступ в лабораторию",
+    "conditions": {
+      "valid": {
+        "state": "ready",
+        "summary": "Доступ есть, можно решать задачи",
+        "detail": "Заходите на страницу лаборатории — [там-то вас задачи и ждут](/lab). И информация о вашем прогрессе тоже."
+      },
+      "expired": {
+        "state": "warning",
+        "summary": "Сейчас доступа нет — видимо, срок истёк",
+        "detail": "Чтобы войти в лабораторию, введите email ещё раз на [странице авторизации](/auth)."
+      },
+      "missingConfigured": {
+        "state": "blocked",
+        "summary": "Пока доступа нет",
+        "detail": "Чтобы войти в лабораторию, введите email на [странице авторизации](/auth)."
+      },
+      "missingUnconfigured": {
+        "state": "blocked",
+        "summary": "Система входа не настроена",
+        "detail": "Пожалуйста, напишите в поддержку: [edu@eduhund.ru](mailto:edu@eduhund.ru)"
+      }
+    },
+    "instructions": {
+      "expired": {
+        "actor": "user",
+        "text": "Предыдущий допуск истёк. Повторно введите email на [странице авторизации](/auth), чтобы открыть задачи и рабочую часть лаборатории."
+      },
+      "missingConfigured": {
+        "actor": "user",
+        "text": "введите email на [странице авторизации](/auth), чтобы открыть задачи и рабочую часть лаборатории."
+      }
+    }
+  },
+  {
+    "id": "local-config-file",
+    "label": "Файл с настройками",
+    "conditions": {
+      "legacyEnv": {
+        "state": "warning",
+        "summary": "Обнаружен устаревший `.env.local`",
+        "detail": "Используйте только `desengine.config.txt`. Старый `.env.local` создаёт двусмысленность и может незаметно переопределять настройки."
+      },
+      "ready": {
+        "state": "ready",
+        "summary": "Файл с настройками найден",
+        "detail": "Локальная конфигурация лежит в файле `desengine.config.txt`. Можете в него заглянуть, если хотите."
+      },
+      "missing": {
+        "state": "blocked",
+        "summary": "Файл с настройками не найден",
+        "detail": "Создайте файл `desengine.config.txt` из файла `desengine.config-example.txt`. Некоторые поля там заполнены, другие нужно указать самостоятельно."
+      }
+    },
+    "instructions": {
+      "legacyEnv": {
+        "actor": "admin",
+        "text": "Перенесите настройки в `desengine.config.txt` и после этого удалите `.env.local`, чтобы исправить ситуацию."
+      },
+      "missing": {
+        "actor": "admin",
+        "text": "Создайте файл `desengine.config.txt` из файла `desengine.config-example.txt`. Некоторые поля там заполнены, другие нужно указать самостоятельно."
+      }
+    }
+  },
+  {
+    "id": "llm-config",
+    "label": "{{providerLabel}} API",
+    "conditions": {
+      "ready": {
+        "state": "ready",
+        "summary": "{{providerLabel}}: настройки готовы",
+        "detail": "{{availabilityMessage}}"
+      },
+      "incomplete": {
+        "state": "blocked",
+        "summary": "{{providerLabel}}: настройки не полны",
+        "detail": "{{availabilityMessage}}"
+      }
+    },
+    "instructions": {
+      "incomplete": {
+        "actor": "admin",
+        "text": "Проверьте настройки активного LLM API `{{activeProvider}}` в `desengine.config.txt`.{{missingEnvVarsText}}"
+      }
+    }
+  },
+  {
+    "id": "llm-network",
+    "label": "Связь с {{providerLabel}}",
+    "conditions": {
+      "ready": {
+        "state": "ready",
+        "summary": "{{providerLabel}} API доступен",
+        "detail": "Удалённый сервис отвечает кодом {{status}}, как и должно быть."
+      },
+      "rejected": {
+        "state": "warning",
+        "summary": "{{providerLabel}} API доступен, но запрос отклонён",
+        "detail": "Удалённый сервис отвечает кодом {{status}}. Сеть работает, но конфигурацию или права нужно проверить."
+      },
+      "unexpected": {
+        "state": "warning",
+        "summary": "{{providerLabel}} API отвечает нестандартно",
+        "detail": "Удалённый сервис отвечает кодом {{status}}. Доступность есть, но конфигурацию лучше проверить."
+      },
+      "unavailable": {
+        "state": "warning",
+        "summary": "{{providerLabel}} API недоступен по сети",
+        "detail": "Не удалось обратиться к {{providerLabel}} API: {{message}}. Возможно, нужны другие три полезные буквы."
+      },
+      "skipped": {
+        "state": "blocked",
+        "summary": "Проверка не выполнялась",
+        "detail": "Сначала нужно задать ключ активного LLM API `{{activeProvider}}` в файле `desengine.config.txt`."
+      }
+    },
+    "instructions": {
+      "unavailable": {
+        "actor": "admin",
+        "text": "Проверьте сетевой доступ до {{providerLabel}} API с вашего компьютера. После этого возвращайтесь сюда."
+      }
+    }
+  },
+  {
+    "id": "allowlist-config",
+    "label": "Проверка доступа",
+    "conditions": {
+      "ready": {
+        "state": "ready",
+        "summary": "Схема проверки настроена",
+        "detail": "Базовый URL и salt заданы. Всё в порядке."
+      },
+      "missing": {
+        "state": "blocked",
+        "summary": "Схема проверки не настроена не настроен",
+        "detail": "Нужно указать `ALLOWLIST_BASE_URL` и `ALLOWLIST_SALT` в `desengine.config.txt`. Обычно они уже правильно настроены в `dedengine.config-text.txt`. Если вы взяли эти настройки, а они не работают — пожалуйста, напишите нам: [edu@eduhund.ru](mailto:edu@eduhund.ru)"
+      }
+    },
+    "instructions": {
+      "missing": {
+        "actor": "admin",
+        "text": "Задайте `ALLOWLIST_BASE_URL` и `ALLOWLIST_SALT`, чтобы пользователи могли получить допуск в лабораторию."
+      }
+    }
+  },
+  {
+    "id": "allowlist-network",
+    "label": "Связь с сервером проверки доступа",
+    "conditions": {
+      "ready": {
+        "state": "ready",
+        "summary": "Сервер проверки доступа в порядке",
+        "detail": "Сервер проверки доступа отвечает кодом 200. Так и должно быть."
+      },
+      "rejected": {
+        "state": "warning",
+        "summary": "Сервер проверки доступа существует, но отвечает странно",
+        "detail": "Базовый URL сервера отвечает кодом {{status}}. Попросите нас проверить настройки на стороне сервера."
+      },
+      "notFound": {
+        "state": "warning",
+        "summary": "Сервер проверки доступа сообщает об ошибке",
+        "detail": "Попросите нас проверить настройки на стороне сервера."
+      },
+      "unexpected": {
+        "state": "warning",
+        "summary": "Сервер проверки доступа отвечает необычно",
+        "detail": "Сервер проверки доступа отвечает кодом {{status}}. Так быть не должно. Напишите нам, пожалуйста, о том, что видите."
+      },
+      "unavailable": {
+        "state": "warning",
+        "summary": "Сервер проверки доступа не отвечает",
+        "detail": "Вот сообщение об ошибке: {{message}}. Мы бы хотели о нём узнать — напишите нам об этом, пожалуйста."
+      },
+      "skipped": {
+        "state": "blocked",
+        "summary": "Проверки не было",
+        "detail": "Сначала нужно настроить параметр `ALLOWLIST_BASE_URL`. Сделайте это, пожалуйста. В файле `desengine.config-example.txt` лежит подходящее значение."
+      }
+    },
+    "instructions": {
+      "rejected": {
+        "actor": "admin",
+        "text": "Базовый URL allowlist должен отвечать `200`. Проверьте корневой маршрут публикации или добавьте health-entry для `ALLOWLIST_BASE_URL`."
+      },
+      "notFound": {
+        "actor": "admin",
+        "text": "Базовый URL allowlist должен отвечать `200`. Проверьте корневой маршрут публикации или добавьте health-entry для `ALLOWLIST_BASE_URL`."
+      },
+      "unexpected": {
+        "actor": "admin",
+        "text": "Базовый URL allowlist должен отвечать `200`. Проверьте корневой маршрут публикации или добавьте health-entry для `ALLOWLIST_BASE_URL`."
+      },
+      "unavailable": {
+        "actor": "admin",
+        "text": "Проверьте доступность удалённого allowlist-хранилища и корректность `ALLOWLIST_BASE_URL`."
+      }
+    }
+  },
+  {
+    "id": "onboarding-config",
+    "label": "Хранилище задач",
+    "conditions": {
+      "ready": {
+        "state": "ready",
+        "summary": "Адрес хранилища задач задан",
+        "detail": "Используется значение `ONBOARDING_REPO_URL`: {{repoUrl}}."
+      },
+      "missing": {
+        "state": "blocked",
+        "summary": "Адрес хранилища задач не задан",
+        "detail": "Добавьте `ONBOARDING_REPO_URL` в `desengine.config.txt`, чтобы система знала, где брать задачи и описания уровней."
+      }
+    },
+    "instructions": {
+      "missing": {
+        "actor": "admin",
+        "text": "Добавьте `ONBOARDING_REPO_URL` в `desengine.config.txt`, чтобы система знала, где брать задачи и описания уровней."
+      }
+    }
+  },
+  {
+    "id": "onboarding-content",
+    "label": "Актуальность набора задач",
+    "conditions": {
+      "synced": {
+        "state": "ready",
+        "summary": "{{summary}}",
+        "detail": "{{detail}}{{legacyPathsText}}"
+      },
+      "missing": {
+        "state": "blocked",
+        "summary": "{{summary}}",
+        "detail": "{{detail}}{{legacyPathsText}}"
+      },
+      "unconfirmed": {
+        "state": "warning",
+        "summary": "{{summary}}",
+        "detail": "{{detail}}{{legacyPathsText}}"
+      }
+    },
+    "instructions": {
+      "missing": {
+        "actor": "admin",
+        "text": "{{syncInstruction}}"
+      },
+      "unconfirmed": {
+        "actor": "admin",
+        "text": "{{syncInstruction}}"
+      }
+    }
+  }
+]

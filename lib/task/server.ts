@@ -7,7 +7,7 @@ import { TaskConfigSchema } from "./schema"
 
 import { LevelsCatalogSchema } from "../level/schema"
 
-import { appConfig } from "@/lib/config/server"
+import { appConfig } from "@/lib/system/config/server"
 import { readLevelCommonExplanation } from "@/lib/prompt/server"
 import {
   isLevelStarted,

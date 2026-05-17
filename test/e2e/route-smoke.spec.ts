@@ -29,13 +29,20 @@ test.describe("route smoke без live credentials", () => {
 
   for (const route of e2eSmokeRoutes.protectedRoutes) {
     test(`защищённый маршрут ${route.path} без допуска переводит на /auth`, async ({ page }) => {
-      test.skip(Boolean(route.skipReason), route.skipReason)
+      const skipReason = "skipReason" in route ? route.skipReason : undefined
+      test.skip(Boolean(skipReason), skipReason)
 
       await page.goto(route.path)
 
       await expect(page).toHaveURL(/\/auth$/)
-      await expect(page.getByRole("heading", { name: "Допуск в лабораторию" })).toBeVisible()
-      await expect(page.getByLabel("Email")).toBeDisabled()
+      await expect(page.getByRole("heading", { name: /Авторизация|Допуск в лабораторию/ })).toBeVisible()
+      await expect(page.getByRole("button", { name: "Открыть защищённую лабораторию" })).toBeVisible()
     })
   }
+
+  test("защищённый help asset без допуска возвращает 401", async ({ request }) => {
+    const response = await request.get("/help/images/help-placeholder.svg")
+
+    expect(response.status()).toBe(401)
+  })
 })

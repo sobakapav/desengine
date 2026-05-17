@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/tabs";
 import { TabsStyles } from "./styles"
 import { isEditorSaveHotkey } from "@/lib/lab/editor";
-import { taskWorkbenchFiles } from "@/lib/config/client";
+import { taskWorkbenchFiles } from "@/lib/system/config/client";
 
 function Code({
   id,

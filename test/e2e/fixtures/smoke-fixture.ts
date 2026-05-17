@@ -25,6 +25,10 @@ export const e2eSmokeRoutes = {
       skipReason:
         "Временно ожидает завершения runtime-переезда task/user schema; e2e route smoke не должен блокировать этот runtime change.",
     },
+    { path: "/help" },
+    { path: "/help/start" },
+    { path: "/help/error" },
+    { path: "/help/mermaid/help-flow" },
   ],
 } as const
 

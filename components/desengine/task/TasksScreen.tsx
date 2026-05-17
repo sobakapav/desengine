@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
-import type { TaskListItem } from "@/lib/system/types"
+import type { TaskListItem } from "@/lib/task/types"
 
 import { TaskItemList } from "./TaskCard"
 

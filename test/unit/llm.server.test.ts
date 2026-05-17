@@ -118,7 +118,7 @@ describe("Google Gemini adapter", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
 
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     expect(url).toBe("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent")
     expect(init.method).toBe("POST")
     expect(init.headers).toMatchObject({
@@ -247,7 +247,7 @@ describe("Google Gemini adapter", () => {
       schema: { type: "object" },
     })
 
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     expect(init.signal).toBeUndefined()
   })
 
@@ -286,7 +286,7 @@ describe("Google Gemini adapter", () => {
 
     expect(timeoutSpy).toHaveBeenCalledWith(1234)
 
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     expect(init.signal).toBeInstanceOf(AbortSignal)
   })
 
@@ -460,7 +460,7 @@ describe("Google Gemini adapter", () => {
       },
     })
 
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     expect(url).toBe("https://api.deepseek.example/chat/completions")
     expect(init.headers).toMatchObject({
       authorization: "Bearer test-deepseek-key",

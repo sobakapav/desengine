@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import type { LevelOverviewTaskItem } from "@/lib/system/types";
+import type { LevelOverviewTaskItem } from "@/lib/level/types";
 import { getLabUrl } from "@/lib/lab/navigation";
 
 type LevelTaskCardProps = {

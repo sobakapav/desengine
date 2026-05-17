@@ -6,7 +6,7 @@ import os from "node:os"
 import path from "node:path"
 import { promisify } from "node:util"
 
-import { appConfig } from "@/lib/config/server"
+import { appConfig } from "@/lib/system/config/server"
 import {
   getConfiguredOnboardingRepoUrl,
   validateOnboardingLayout,

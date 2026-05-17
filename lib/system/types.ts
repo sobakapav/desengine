@@ -31,7 +31,7 @@ type UserRole =
 /** Инструкция */
 // ? Может, в help?
 type Instruction = {
-  id: string
+  id: ResourceId
   actor: UserRole
   text: string
 }

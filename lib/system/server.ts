@@ -1,6 +1,6 @@
 import "server-only"
 
-import { appConfig } from "@/lib/config/server"
+import { appConfig } from "@/lib/system/config/server"
 import {
   appendPromptHistory,
   isTaskStarted,

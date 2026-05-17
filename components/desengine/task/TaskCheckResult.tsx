@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import type { TaskCheckResult, TaskTransition } from "@/lib/system/types";
+import type { TaskCheckResult, TaskTransition } from "@/lib/task/types";
 
 type TaskCheckResultProps = {
   result: TaskCheckResult;
