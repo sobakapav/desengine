@@ -6,29 +6,25 @@ import { useRouter } from "next/navigation"
 import { getTasksRootUrl } from "@/lib/task/navigation"
 import { Instruction, Resource } from "@/lib/system/types"
 import { ResourceCardList } from "./ResourceCardList"
-import { AuthScreen } from "../auth/AuthScreen"
 import { AuthState } from "@/lib/auth/types"
-import AuthForm from "../auth/AuthForm"
-import ScreenSummary from "./ScreenSummary"
+import { ResourceRemediationControl } from "./ResourceRemediationControl"
 
-type ConfigScreenProps = {
+type SystemScreenProps = {
   authState: AuthState
   configured: boolean
   resources: Resource[]
   instructions: Instruction[]
 }
 
-export function ConfigScreen({
+export function SystemScreen({
   authState,
   configured,
   resources,
-  instructions }: ConfigScreenProps) {
+  instructions }: SystemScreenProps) {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [error, setError] = useState("")
   const [isPending, startTransition] = useTransition()
-  const hasAccess = authState === "valid"
-
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError("")
@@ -75,6 +71,20 @@ export function ConfigScreen({
             <ResourceCardList
               resources={resources}
               instructions={instructions}
+              renderRemediationControl={(resource) => {
+                return (
+                  <ResourceRemediationControl
+                    email={email}
+                    error={error}
+                    isPending={isPending}
+                    authState={authState}
+                    configured={configured}
+                    onEmailChange={setEmail}
+                    handleSubmit={handleSubmit}
+                    resource={resource}
+                  />
+                )
+              }}
             />
           </div>
         </section>

@@ -6,6 +6,7 @@ import {
   USER_ROLES,
   LLM_PROVIDER_IDS,
 } from "./const"
+import type { OnboardingSyncState } from "@/lib/onboarding/status"
 
 /** Cтатус системного ресурса */
 type ResourceState =
@@ -15,6 +16,25 @@ type ResourceState =
 type ResourceId =
   (typeof RESOURCE_IDS)[number]
 
+/** Контрол исправления статуса, который можно показать прямо в карточке ресурса */
+type ResourceRemediationControl =
+  | {
+      kind: "auth-form"
+    }
+  | {
+      kind: "onboarding-update"
+      canUpdate: boolean
+      detail: string
+      syncState: OnboardingSyncState
+    }
+  | {
+      kind: "system-update"
+      canUpdate: boolean
+      currentVersion: string | null
+      detail: string
+      latestVersion: string | null
+    }
+
 /** Системный ресурс */
 type Resource = {
   id: ResourceId
@@ -22,6 +42,7 @@ type Resource = {
   state: ResourceState
   summary: string
   detail: string
+  remediationControl?: ResourceRemediationControl
 }
 
 /** Роль пользователя в системе */
@@ -44,6 +65,7 @@ type LlmProviderId =
 export type {
   ResourceState,
   ResourceId,
+  ResourceRemediationControl,
   Resource,
   UserRole,
   Instruction,

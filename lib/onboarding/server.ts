@@ -46,7 +46,7 @@ async function pathExists(targetPath: string) {
 
 export function getConfiguredOnboardingRepoUrl() {
   localConfig.loadLocalConfig()
-  return process.env.DESENGINE_ONBOARDING_REPO_URL?.trim() ?? ""
+  return process.env.ONBOARDING_REPO_URL?.trim() ?? ""
 }
 
 function getOnboardingSourceMarkerPath(root = appConfig.onboardingRoot) {
@@ -218,7 +218,7 @@ export async function getOnboardingSyncStatus(): Promise<OnboardingSyncStatus> {
       tone: "warning",
       summary: "Источник onboarding-контента не подтверждён",
       detail:
-        "Каталог `/onboarding` найден, но для него нет подтверждённого маркера синхронизации. Такой каталог нужно пересинхронизировать из `DESENGINE_ONBOARDING_REPO_URL`.",
+        "Каталог `/onboarding` найден, но для него нет подтверждённого маркера синхронизации. Такой каталог нужно пересинхронизировать из `ONBOARDING_REPO_URL`.",
       missingPaths: [],
       legacyPaths,
       configuredRepoUrl,
@@ -233,7 +233,7 @@ export async function getOnboardingSyncStatus(): Promise<OnboardingSyncStatus> {
       tone: "warning",
       summary: "Источник onboarding-контента не подтверждён",
       detail:
-        "Для локального `/onboarding` найден маркер синхронизации, но в `desengine.config.txt` не задан `DESENGINE_ONBOARDING_REPO_URL`, поэтому канонический источник нельзя подтвердить.",
+        "Для локального `/onboarding` найден маркер синхронизации, но в `desengine.config.txt` не задан `ONBOARDING_REPO_URL`, поэтому канонический источник нельзя подтвердить.",
       missingPaths: [],
       legacyPaths,
       configuredRepoUrl,
@@ -265,7 +265,7 @@ export async function getOnboardingSyncStatus(): Promise<OnboardingSyncStatus> {
       tone: "warning",
       summary: "Источник onboarding-контента не подтверждён",
       detail:
-        "Не удалось подтвердить маркер синхронизации `/onboarding`. Выполните повторную синхронизацию из `DESENGINE_ONBOARDING_REPO_URL`.",
+        "Не удалось подтвердить маркер синхронизации `/onboarding`. Выполните повторную синхронизацию из `ONBOARDING_REPO_URL`.",
       missingPaths: [],
       legacyPaths,
       configuredRepoUrl,
