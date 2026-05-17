@@ -10,6 +10,15 @@
 // @openSpec  - "Нерелизное Git-состояние не блокирует систему"
 // @openSpec  - "Разработчик запускает unit-проверку статусов ресурсов"
 // @openSpec  - "Разработчик запускает traceability-проверку"
+// @openSpec capability: access-control
+// @openSpec scenarios:
+// @openSpec  - "Диагностика показывает статус allowlist"
+// @openSpec capability: llm
+// @openSpec scenarios:
+// @openSpec  - "Диагностика показывает статус LLM-конфигурации"
+// @openSpec capability: external-local-onboarding
+// @openSpec scenarios:
+// @openSpec  - "Диагностика показывает статус onboarding"
 
 import { describe, expect, it } from "vitest"
 
@@ -57,6 +66,38 @@ describe("resource status resolver", () => {
     expect(resolved.instruction?.actor).toBe("admin")
     expect(resolved.instruction?.text).toContain("openai")
     expect(resolved.instruction?.text).toContain("OPENAI_API_KEY")
+  })
+
+  it("использует конфигурацию текстов для LLM, allowlist и onboarding ресурсов", () => {
+    const llm = resolveResourceStatus({
+      id: "llm-config",
+      condition: "ready",
+      values: {
+        availabilityMessage: "DeepSeek настроен",
+        providerLabel: "DeepSeek",
+      },
+    })
+    const allowlist = resolveResourceStatus({
+      id: "allowlist-network",
+      condition: "notFound",
+    })
+    const onboarding = resolveResourceStatus({
+      id: "onboarding-content",
+      condition: "unconfirmed",
+      values: {
+        detail: "Источник onboarding-контента не подтверждён.",
+        legacyPathsText: "",
+        summary: "Источник onboarding-контента не подтверждён",
+        syncInstruction: "Обновите onboarding.",
+      },
+    })
+
+    expect(llm.resource.summary).toBe("DeepSeek: настройки готовы")
+    expect(llm.resource.detail).toBe("DeepSeek настроен")
+    expect(allowlist.resource.summary).toBe("Сервер проверки доступа сообщает об ошибке")
+    expect(allowlist.instruction?.text).toContain("Базовый URL allowlist")
+    expect(onboarding.resource.summary).toBe("Источник onboarding-контента не подтверждён")
+    expect(onboarding.instruction?.text).toBe("Обновите onboarding.")
   })
 
   it("подставляет переменные шаблона", () => {

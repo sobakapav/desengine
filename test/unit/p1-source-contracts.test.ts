@@ -137,7 +137,7 @@ describe("P1 source contracts", () => {
 
   it("user progress читается и пишется только через user-owned progress storage", () => {
     const source = readProjectFile("lib", "task", "server.ts")
-    const configSchema = readProjectFile("lib", "config", "schema.ts")
+    const configSchema = readProjectFile("lib", "system", "schema.ts")
 
     expect(configSchema).toContain('userRoot = value.userRoot ?? "user"')
     expect(configSchema).toContain("userProgressFile")

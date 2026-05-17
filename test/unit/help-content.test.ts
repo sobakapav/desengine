@@ -1,3 +1,18 @@
+// @openSpec capability: help-content
+// @openSpec scenarios:
+// @openSpec  - "Пользователь открывает каталог справки"
+// @openSpec  - "Система выбирает заголовок ссылки"
+// @openSpec  - "Markdown-файл не содержит H1"
+// @openSpec  - "Каталог сортирует страницы"
+// @openSpec  - "Пользователь открывает существующую help-страницу"
+// @openSpec  - "Пользователь открывает отсутствующую help-страницу"
+// @openSpec  - "Пользователь открывает help-страницу с небезопасным ID"
+// @openSpec  - "Markdown ссылается на картинку help"
+// @openSpec  - "Пользователь запрашивает отсутствующую help-картинку"
+// @openSpec  - "Пользователь открывает Mermaid-страницу help"
+// @openSpec  - "Пользователь открывает отсутствующую Mermaid-страницу help"
+// @openSpec  - "Пользователь попадает на страницу ошибки help"
+
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -75,6 +90,7 @@ describe("help content", () => {
         id: "alpha",
         title: "Альфа",
       })
+      await expect(readHelpMarkdownPage("missing", fixture.helpRoot)).resolves.toBeNull()
       await expect(readHelpMarkdownPage("../alpha", fixture.helpRoot)).resolves.toBeNull()
       expect(isSafeHelpId("error")).toBe(false)
     } finally {
@@ -89,6 +105,7 @@ describe("help content", () => {
       await expect(readHelpImageAsset("demo.png", fixture.imagesRoot)).resolves.toMatchObject({
         contentType: "image/png",
       })
+      await expect(readHelpImageAsset("missing.png", fixture.imagesRoot)).resolves.toBeNull()
       await expect(readHelpImageAsset("../demo.png", fixture.imagesRoot)).resolves.toBeNull()
       await expect(readHelpMermaidSource("flow", fixture.mermaidRoot)).resolves.toMatchObject({
         content: "graph TD\n  A --> B\n",
@@ -98,6 +115,7 @@ describe("help content", () => {
       await expect(readHelpMermaidSource("flow.mmd", fixture.mermaidRoot)).resolves.toMatchObject({
         id: "flow",
       })
+      await expect(readHelpMermaidSource("missing", fixture.mermaidRoot)).resolves.toBeNull()
       await expect(readHelpMermaidSource("../flow", fixture.mermaidRoot)).resolves.toBeNull()
       expect(isSafeAssetId("demo.png")).toBe(true)
       expect(isSafeAssetId("..demo.png")).toBe(false)
@@ -112,5 +130,12 @@ describe("help content", () => {
     expect(createHelpImageUrl("demo.png")).toBe("/help/images/demo.png")
     expect(createHelpMermaidUrl("flow")).toBe("/help/mermaid/flow")
   })
-})
 
+  it("страница ошибки help объясняет проблему и ведёт обратно в справку", () => {
+    const source = fs.readFileSync(path.join(process.cwd(), "app/help/error/page.tsx"), "utf8")
+
+    expect(source).toContain("Страница справки недоступна")
+    expect(source).toContain("Вернуться к справке")
+    expect(source).toContain("getHelpRootUrl")
+  })
+})

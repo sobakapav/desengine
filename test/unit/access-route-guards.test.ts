@@ -2,6 +2,8 @@
 // @openSpec scenarios:
 // @openSpec  - "Защищённая страница открывается через route-файл"
 // @openSpec  - "UI-компонент рендерится внутри защищённого маршрута"
+// @openSpec  - "Пользователь без доступа открывает help-страницу"
+// @openSpec  - "Браузер без доступа запрашивает help asset"
 
 import fs from "node:fs"
 import path from "node:path"
