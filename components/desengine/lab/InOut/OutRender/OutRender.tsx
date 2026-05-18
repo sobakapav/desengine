@@ -1,9 +1,11 @@
 "use client";
 
-import React, { type ErrorInfo, useEffect, useMemo, useState } from "react";
-import { OutRenderProps } from "./props";
+import { SandpackPreview, SandpackProvider } from "@codesandbox/sandpack-react/unstyled";
+import { useEffect, useMemo, useState } from "react";
 
-type PreviewComponent = React.ComponentType<Record<string, unknown>>;
+import type { SandpackPreviewPayload } from "@/lib/lab/sandpack-preview";
+
+import { OutRenderProps } from "./props";
 
 function getErrorMessage(error: unknown, fallbackMessage: string) {
     return error instanceof Error && error.message ? error.message : fallbackMessage;
@@ -18,46 +20,12 @@ function PreviewErrorNotice({ message }: { message: string }) {
     );
 }
 
-type PreviewRenderBoundaryProps = {
-    children: React.ReactNode;
-};
-
-type PreviewRenderBoundaryState = {
-    errorMessage: string | null;
-};
-
-class PreviewRenderBoundary extends React.Component<PreviewRenderBoundaryProps, PreviewRenderBoundaryState> {
-    state: PreviewRenderBoundaryState = {
-        errorMessage: null,
-    };
-
-    static getDerivedStateFromError(error: unknown): PreviewRenderBoundaryState {
-        return {
-            errorMessage: getErrorMessage(error, "Ошибка React-рендера"),
-        };
-    }
-
-    componentDidCatch(error: unknown, errorInfo: ErrorInfo) {
-        console.error("Preview render failed", error);
-        console.error(errorInfo.componentStack);
-    }
-
-    render() {
-        if (this.state.errorMessage) {
-            return <PreviewErrorNotice message={this.state.errorMessage} />;
-        }
-
-        return this.props.children;
-    }
-}
-
 function OutRender({ task, started, reloadKey, startStatus }: OutRenderProps) {
     const [error, setError] = useState<string>("");
-    const [Component, setComponent] = useState<PreviewComponent | null>(null);
-    const [props, setProps] = useState<Record<string, unknown>>({});
+    const [previewPayload, setPreviewPayload] = useState<SandpackPreviewPayload | null>(null);
 
     const moduleUrl = useMemo(
-        () => `/api/tasks/${task}/module?v=${reloadKey}`,
+        () => `/api/tasks/${task}/sandpack?v=${reloadKey}`,
         [task, reloadKey],
     );
 
@@ -66,8 +34,7 @@ function OutRender({ task, started, reloadKey, startStatus }: OutRenderProps) {
 
         async function load() {
             setError("");
-            setComponent(null);
-            setProps({});
+            setPreviewPayload(null);
 
             if (!started) return;
 
@@ -76,25 +43,11 @@ function OutRender({ task, started, reloadKey, startStatus }: OutRenderProps) {
                 const data = await res.json().catch(() => null);
 
                 if (!res.ok || !data?.ok) {
-                    throw new Error(data?.error || "Ошибка загрузки модуля");
+                    throw new Error(data?.error || "Ошибка загрузки предпросмотра");
                 }
-
-                const js = String(data.module || "");
-                const exportsObj: Record<string, unknown> = {};
-                const moduleObj: { exports: unknown } = { exports: exportsObj };
-                const fn = new Function("React", "module", "exports", js);
-                fn(React, moduleObj, exportsObj);
 
                 if (cancelled) return;
-
-                const moduleExports = moduleObj.exports as { default?: unknown } | undefined;
-                const maybe = moduleExports?.default || exportsObj.default || moduleObj.exports;
-                if (typeof maybe !== "function") {
-                    throw new Error("Component.tsx не экспортирует React-компонент по умолчанию");
-                }
-
-                setComponent(() => maybe as PreviewComponent);
-                setProps((data.props && typeof data.props === "object") ? data.props : {});
+                setPreviewPayload(data as SandpackPreviewPayload);
             } catch (e) {
                 if (cancelled) return;
                 setError(getErrorMessage(e, "Ошибка загрузки превью"));
@@ -118,10 +71,49 @@ function OutRender({ task, started, reloadKey, startStatus }: OutRenderProps) {
                 <div className="min-h-32 overflow-hidden">
                     {error ? (
                         <PreviewErrorNotice message={error} />
-                    ) : Component ? (
-                        <PreviewRenderBoundary key={moduleUrl}>
-                            <Component {...props} />
-                        </PreviewRenderBoundary>
+                    ) : previewPayload ? (
+                        <SandpackProvider
+                            key={moduleUrl}
+                            template="react-ts"
+                            theme={{
+
+    colors: {
+
+      surface1: "#ffffff",
+
+      surface2: "#ffffff",
+
+      surface3: "#ffffff",
+
+    },
+
+  }}
+                            files={previewPayload.files}
+                            customSetup={previewPayload.customSetup}
+                            options={{
+                                ...previewPayload.options,
+                                autorun: true,
+                                autoReload: true,
+                                bundlerTimeOut: 180000,
+                                initMode: "immediate",
+                                recompileMode: "immediate",
+                            }}
+                        >
+                            <SandpackPreview
+                                showNavigator={false}
+                                showOpenInCodeSandbox={false}
+                                showOpenNewtab={false}
+                                showRefreshButton={false}
+                                showRestartButton={false}
+                                showSandpackErrorOverlay
+                                style={{
+                                    minHeight: 128,
+                                    overflow: "hidden",
+                                    background: "#ffffff",
+                                    height: "100%",
+                                }}
+                            />
+                        </SandpackProvider>
                     ) : (
                         <p className="text-muted-foreground">Загрузка рендера…</p>
                     )}

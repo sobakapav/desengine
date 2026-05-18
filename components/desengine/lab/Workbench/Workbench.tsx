@@ -484,7 +484,7 @@ function Workbench({
                                 disabled={completePending || resetPending || !canCompleteCurrentLevel}
                                 onClick={handleCheck}
                             >
-                                {completePending ? "Проверка…" : "Я закончил"}
+                                {completePending ? "Проверка…" : "Проверить результат"}
                             </Button>
                         </div>
                     </div>
