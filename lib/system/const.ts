@@ -25,6 +25,7 @@ const RESOURCE_IDS = [
   "allowlist-config",
   "allowlist-network",
   "access-session",
+  "system-release",
   "onboarding-config",
   "onboarding-content",
 ] as const

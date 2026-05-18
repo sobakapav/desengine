@@ -75,6 +75,13 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-2.5-flash
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+CLAUDE_API_KEY=
+CLAUDE_MODEL=claude-haiku-4-5
+CLAUDE_BASE_URL=https://api.anthropic.com/v1
+CLAUDE_MAX_TOKENS=4096
+ZAI_API_KEY=
+ZAI_MODEL=glm-5v-turbo
+ZAI_BASE_URL=https://api.z.ai/api/paas/v4
 ALLOWLIST_BASE_URL=https://example.com/allowlist/
 ALLOWLIST_SALT=replace-with-random-secret
 ONBOARDING_REPO_URL=https://example.com/desengine-onboarding.git
@@ -87,6 +94,8 @@ ONBOARDING_REPO_URL=https://example.com/desengine-onboarding.git
 - OpenAI: [docs/openai.md](docs/openai.md)
 - DeepSeek: [docs/deepseek.md](docs/deepseek.md)
 - Google Gemini: [docs/gemini.md](docs/gemini.md)
+- Claude: [docs/claude.md](docs/claude.md)
+- Z.AI: [docs/zai.md](docs/zai.md)
 - allowlist: [docs/access-control.md](docs/access-control.md)
 - onboarding: [docs/onboarding.md](docs/onboarding.md)
 
@@ -138,7 +147,7 @@ npm run smoke
 
 - allowlist: [docs/access-control.md](docs/access-control.md)
 - onboarding: [docs/onboarding.md](docs/onboarding.md)
-- LLM-провайдеры: [docs/openai.md](docs/openai.md), [docs/deepseek.md](docs/deepseek.md), [docs/gemini.md](docs/gemini.md)
+- LLM-провайдеры: [docs/openai.md](docs/openai.md), [docs/deepseek.md](docs/deepseek.md), [docs/gemini.md](docs/gemini.md), [docs/claude.md](docs/claude.md), [docs/zai.md](docs/zai.md)
 - platform notes: [docs/platform-notes.md](docs/platform-notes.md)
 
 ## Протокол пользовательского прогона

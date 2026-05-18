@@ -7,10 +7,16 @@ import {
 } from "@/lib/auth/server"
 import { getLlmStatus } from "@/lib/llm/server"
 import { getOnboardingSyncStatus } from "@/lib/onboarding/server"
+import {
+  getAccessSessionRemediationControl,
+  getOnboardingContentRemediationControl,
+  getSystemReleaseRemediationControl,
+} from "@/lib/system/resources/remediation"
 import { updateOnboardingFromConfig } from "@/lib/onboarding/update"
+import { getSystemReleaseStatus } from "@/lib/system/release"
 import { resolveResourceStatus } from "@/lib/system/resources/publicstate"
 import type { ResourceStatesModel } from "@/lib/system/resources/types"
-import type { Instruction, Resource, ResourceId } from "@/lib/system/types"
+import type { Instruction, Resource, ResourceId, ResourceRemediationControl } from "@/lib/system/types"
 import localConfig from "@/lib/system/config/local.cjs"
 
 localConfig.loadLocalConfig()
@@ -32,6 +38,7 @@ type ResourceCollector = {
     id: ResourceId,
     condition: string,
     values?: Parameters<typeof resolveResourceStatus>[0]["values"],
+    remediationControl?: ResourceRemediationControl,
   ) => void
 }
 
@@ -42,9 +49,12 @@ function createResourceCollector(): ResourceCollector {
   return {
     items,
     instructions,
-    add(id, condition, values) {
+    add(id, condition, values, remediationControl) {
       const resolved = resolveResourceStatus({ id, condition, values })
-      items.push(resolved.resource)
+      items.push({
+        ...resolved.resource,
+        ...(remediationControl ? { remediationControl } : {}),
+      })
 
       if (resolved.instruction) {
         instructions.push(resolved.instruction)
@@ -54,7 +64,7 @@ function createResourceCollector(): ResourceCollector {
 }
 
 function getOnboardingRepoUrl() {
-  return process.env.ONBOARDING_REPO_URL?.trim() ?? process.env.DESENGINE_ONBOARDING_REPO_URL?.trim() ?? ""
+  return process.env.ONBOARDING_REPO_URL?.trim() ?? ""
 }
 
 function getHttpCondition(status: number) {
@@ -154,12 +164,17 @@ function getOnboardingSyncInstruction(onboardingRepoUrl: string) {
     : "Сначала задайте `ONBOARDING_REPO_URL` в `desengine.config.txt`, затем запустите повторную синхронизацию `/onboarding`."
 }
 
+function getReleaseVersionText(version: string | null) {
+  return version ?? "нет точного релизного тега"
+}
+
 export async function getResourceStates(): Promise<ResourceStatesModel> {
   const onboardingRepoUrl = getOnboardingRepoUrl()
-  const [llmStatus, authState, onboardingContent] = await Promise.all([
+  const [llmStatus, authState, onboardingContent, systemRelease] = await Promise.all([
     getLlmStatus(),
     getAccessSessionState(),
     getOnboardingStatusWithAutoSync(),
+    getSystemReleaseStatus(),
   ])
   const hasAccess = authState === "valid"
   const accessConfig = getAccessControlConfig()
@@ -173,12 +188,25 @@ export async function getResourceStates(): Promise<ResourceStatesModel> {
     onboardingContent.legacyPaths.length > 0
       ? ` Legacy-каталоги ${onboardingContent.legacyPaths.join(", ")} не используются как fallback.`
       : ""
+  const onboardingDetail = `${onboardingContent.detail}${legacyPathsText}`
 
   resources.add("access-session", getAccessCondition({
     authState,
     accessConfigured: accessConfig.isConfigured,
+  }), undefined, getAccessSessionRemediationControl({
+    authState,
+    accessConfigured: accessConfig.isConfigured,
   }))
   resources.add("local-config-file", getLocalConfigCondition(localConfigState))
+  resources.add("system-release", systemRelease.condition, {
+    branch: systemRelease.branch,
+    currentVersion: getReleaseVersionText(systemRelease.currentVersion),
+    latestVersion: systemRelease.latestVersion ?? "неизвестен",
+    message: systemRelease.message,
+    nearestVersion: systemRelease.nearestVersion ?? "не найден",
+    remoteUrl: systemRelease.remoteUrl ?? "origin не настроен",
+    updateSafety: systemRelease.updateSafety,
+  }, getSystemReleaseRemediationControl(systemRelease))
   resources.add("llm-config", llmStatus.ready ? "ready" : "incomplete", {
     activeProvider: llmStatus.config.activeProvider,
     availabilityMessage: llmStatus.availability.message,
@@ -241,7 +269,11 @@ export async function getResourceStates(): Promise<ResourceStatesModel> {
     legacyPathsText,
     summary: onboardingContent.summary,
     syncInstruction: getOnboardingSyncInstruction(onboardingRepoUrl),
-  })
+  }, getOnboardingContentRemediationControl({
+    detail: onboardingDetail,
+    repoConfigured: Boolean(onboardingRepoUrl),
+    syncState: onboardingContent.state,
+  }))
 
   return {
     llmStatus,

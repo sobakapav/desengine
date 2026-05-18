@@ -69,6 +69,8 @@ npm run admin:tasks:import -- --variants-root=... --base-root=...
 - [docs/openai.md](docs/openai.md) — настройка OpenAI как активного LLM-провайдера.
 - [docs/deepseek.md](docs/deepseek.md) — настройка DeepSeek как активного LLM-провайдера.
 - [docs/gemini.md](docs/gemini.md) — настройка Gemini как активного LLM-провайдера.
+- [docs/claude.md](docs/claude.md) — настройка Claude как активного LLM-провайдера.
+- [docs/zai.md](docs/zai.md) — настройка Z.AI как активного LLM-провайдера.
 - [docs/platform-notes.md](docs/platform-notes.md) — platform-specific примечания и общие ограничения по среде.
 - [tools/README.md](tools/README.md) — канонический каталог административных утилит и `npm run ...` команд.
 - [docs/release-notes-2026-05-07.md](docs/release-notes-2026-05-07.md) — исторические release notes, а не инструкция первого запуска.

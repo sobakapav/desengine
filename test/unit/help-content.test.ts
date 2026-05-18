@@ -1,23 +1,32 @@
+// @openSpec capability: help-content
+// @openSpec scenarios:
+// @openSpec  - "Пользователь открывает каталог справки"
+// @openSpec  - "Система выбирает заголовок ссылки"
+// @openSpec  - "Markdown-файл не содержит H1"
+// @openSpec  - "Каталог сортирует страницы"
+// @openSpec  - "Пользователь открывает существующую help-страницу"
+// @openSpec  - "Пользователь открывает отсутствующую help-страницу"
+// @openSpec  - "Пользователь открывает help-страницу с небезопасным ID"
+// @openSpec  - "Markdown ссылается на картинку help"
+// @openSpec  - "Пользователь запрашивает отсутствующую help-картинку"
+// @openSpec  - "Пользователь открывает Mermaid-страницу help"
+// @openSpec  - "Пользователь открывает отсутствующую Mermaid-страницу help"
+// @openSpec  - "Пользователь попадает на страницу ошибки help"
+
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
-import {
-  isSafeAssetId,
-  isSafeHelpId,
-  listHelpPages,
-  readHelpImageAsset,
-  readHelpMarkdownPage,
-  readHelpMermaidSource,
-} from "@/lib/help/content"
 import {
   createHelpImageUrl,
   createHelpMermaidUrl,
   createHelpPageUrl,
   getHelpErrorUrl,
 } from "@/lib/help/navigation"
+
+type HelpContentModule = typeof import("@/lib/help/content")
 
 function createHelpFixture() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "desengine-help-"))
@@ -38,6 +47,19 @@ function createHelpFixture() {
     helpRoot,
     imagesRoot,
     mermaidRoot,
+    root,
+  }
+}
+
+async function importHelpContentForRoot(root: string): Promise<HelpContentModule> {
+  vi.resetModules()
+
+  const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(root)
+
+  try {
+    return await import("@/lib/help/content")
+  } finally {
+    cwdSpy.mockRestore()
   }
 }
 
@@ -46,7 +68,8 @@ describe("help content", () => {
     const fixture = createHelpFixture()
 
     try {
-      const pages = await listHelpPages(fixture.helpRoot)
+      const { listHelpPages } = await importHelpContentForRoot(fixture.root)
+      const pages = await listHelpPages()
 
       expect(pages).toEqual([
         {
@@ -69,13 +92,16 @@ describe("help content", () => {
     const fixture = createHelpFixture()
 
     try {
-      await expect(readHelpMarkdownPage("alpha", fixture.helpRoot)).resolves.toMatchObject({
+      const { isSafeHelpId, readHelpMarkdownPage } = await importHelpContentForRoot(fixture.root)
+
+      await expect(readHelpMarkdownPage("alpha")).resolves.toMatchObject({
         content: "# Альфа\n\nТекст.\n",
         href: "/help/alpha",
         id: "alpha",
         title: "Альфа",
       })
-      await expect(readHelpMarkdownPage("../alpha", fixture.helpRoot)).resolves.toBeNull()
+      await expect(readHelpMarkdownPage("missing")).resolves.toBeNull()
+      await expect(readHelpMarkdownPage("../alpha")).resolves.toBeNull()
       expect(isSafeHelpId("error")).toBe(false)
     } finally {
       fixture.cleanup()
@@ -86,19 +112,27 @@ describe("help content", () => {
     const fixture = createHelpFixture()
 
     try {
-      await expect(readHelpImageAsset("demo.png", fixture.imagesRoot)).resolves.toMatchObject({
+      const {
+        isSafeAssetId,
+        readHelpImageAsset,
+        readHelpMermaidSource,
+      } = await importHelpContentForRoot(fixture.root)
+
+      await expect(readHelpImageAsset("demo.png")).resolves.toMatchObject({
         contentType: "image/png",
       })
-      await expect(readHelpImageAsset("../demo.png", fixture.imagesRoot)).resolves.toBeNull()
-      await expect(readHelpMermaidSource("flow", fixture.mermaidRoot)).resolves.toMatchObject({
+      await expect(readHelpImageAsset("missing.png")).resolves.toBeNull()
+      await expect(readHelpImageAsset("../demo.png")).resolves.toBeNull()
+      await expect(readHelpMermaidSource("flow")).resolves.toMatchObject({
         content: "graph TD\n  A --> B\n",
         href: "/help/mermaid/flow",
         id: "flow",
       })
-      await expect(readHelpMermaidSource("flow.mmd", fixture.mermaidRoot)).resolves.toMatchObject({
+      await expect(readHelpMermaidSource("flow.mmd")).resolves.toMatchObject({
         id: "flow",
       })
-      await expect(readHelpMermaidSource("../flow", fixture.mermaidRoot)).resolves.toBeNull()
+      await expect(readHelpMermaidSource("missing")).resolves.toBeNull()
+      await expect(readHelpMermaidSource("../flow")).resolves.toBeNull()
       expect(isSafeAssetId("demo.png")).toBe(true)
       expect(isSafeAssetId("..demo.png")).toBe(false)
     } finally {
@@ -112,5 +146,12 @@ describe("help content", () => {
     expect(createHelpImageUrl("demo.png")).toBe("/help/images/demo.png")
     expect(createHelpMermaidUrl("flow")).toBe("/help/mermaid/flow")
   })
-})
 
+  it("страница ошибки help объясняет проблему и ведёт обратно в справку", () => {
+    const source = fs.readFileSync(path.join(process.cwd(), "app/help/error/page.tsx"), "utf8")
+
+    expect(source).toContain("Страница справки недоступна")
+    expect(source).toContain("Вернуться к справке")
+    expect(source).toContain("getHelpRootUrl")
+  })
+})

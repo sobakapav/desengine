@@ -1,14 +1,17 @@
 import { Resource } from "@/lib/system/types"
 import { BaseProps } from "./Base"
 import { ResourceStateBullet } from "./ResourceStateBullet"
+import type { ReactNode } from "react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
 type ResourceCardProps = BaseProps & {
-    resource: Resource,
+    children?: ReactNode
+    resource: Resource
 }
 
 function ResourceCard({
+    children,
     resource
 } : ResourceCardProps) {
     return (
@@ -21,6 +24,13 @@ function ResourceCard({
 
             <div />
             <ResourceMarkdown text={resource.detail} />
+
+            {children ? (
+              <>
+                <div />
+                <div className="min-w-0">{children}</div>
+              </>
+            ) : null}
         </div>
     )
 }

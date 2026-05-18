@@ -7,7 +7,7 @@ import { getTasksRootUrl } from "@/lib/task/navigation"
 import { Instruction, Resource } from "@/lib/system/types"
 import { ResourceCardList } from "../system/ResourceCardList"
 import ScreenSummary from "../system/ScreenSummary"
-import AuthForm from "./AuthForm"
+import { ResourceRemediationControl } from "../system/ResourceRemediationControl"
 import { AuthState } from "@/lib/auth/types"
 
 type AuthScreenProps = {
@@ -63,20 +63,25 @@ function AuthScreen({
             title="Авторизация"
             description="Введите, пожалуйста, свой email"
           />
-          <AuthForm
-            email={email}
-            error={error}
-            isPending={isPending}
-            authState={authState}
-            configured={configured}
-            onEmailChange={setEmail}
-            handleSubmit={handleSubmit}
-          />
         </div>
         <div className="flex-1">
           <ResourceCardList
             resources={resources}
             instructions={instructions}
+            renderRemediationControl={(resource) => {
+              return (
+                <ResourceRemediationControl
+                  email={email}
+                  error={error}
+                  isPending={isPending}
+                  authState={authState}
+                  configured={configured}
+                  onEmailChange={setEmail}
+                  handleSubmit={handleSubmit}
+                  resource={resource}
+                />
+              )
+            }}
           />
         </div>
       </section>

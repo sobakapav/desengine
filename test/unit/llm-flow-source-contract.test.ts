@@ -5,8 +5,14 @@
 // @openSpec  - "В каталоге лаборатории остался legacy-конфиг"
 // @openSpec  - "Система выполняет start для уровня"
 // @openSpec  - "Система выполняет iterate prompt lookup для уровня"
+// @openSpec  - "Система выполняет checking prompt lookup для уровня"
+// @openSpec  - "Hidden prompt проверки уровня отсутствует"
 // @openSpec  - "Runtime знает идентификатор уровня"
 // @openSpec  - "Пользователь просматривает историю итераций"
+// @openSpec capability: onboarding-repo
+// @openSpec scenarios:
+// @openSpec  - "Автор onboarding-уровня добавляет prompt проверки"
+// @openSpec  - "Автор onboarding-уровня не добавляет prompt проверки"
 
 import fs from "node:fs"
 import path from "node:path"
@@ -45,7 +51,22 @@ describe("LLM flow source contracts", () => {
 
     expect(source).toContain('path.join(appConfig.onboardingPromptsRoot, "levels", levelId, "start.md")')
     expect(source).toContain('path.join(appConfig.onboardingPromptsRoot, "levels", levelId, "iterate.md")')
+    expect(source).toContain('path.join(appConfig.onboardingPromptsRoot, "levels", levelId, "check.md")')
     expect(source).not.toContain("promptKey")
+  })
+
+  it("check-flow использует optional hidden check prompt уровня", () => {
+    const promptServer = readProjectFile("lib", "prompt", "server.ts")
+    const checkRoute = readProjectFile("app", "api", "tasks", "[taskId]", "check", "route.ts")
+    const checkPromptFunction = promptServer.match(/export async function readLevelCheckPrompt[\s\S]*?\n}/)?.[0] ?? ""
+
+    expect(checkRoute).toContain("readLevelCheckPrompt(level.id)")
+    expect(checkRoute).toContain('readPrompt("production", "default")')
+    expect(checkRoute).toContain('readPrompt("didactic", "default")')
+    expect(checkRoute).toContain("${levelCheckPrompt}")
+    expect(checkRoute).toContain('target: "check"')
+    expect(checkPromptFunction).toContain('return ""')
+    expect(checkPromptFunction).not.toContain("Промпт проверки уровня не найден")
   })
 
   it("system status предупреждает о legacy-конфиге без использования его как fallback", () => {

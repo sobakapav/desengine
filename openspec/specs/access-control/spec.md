@@ -10,6 +10,8 @@
 
 Система SHALL считать allowlist-систему корректно доступной только если базовый URL, заданный в `ALLOWLIST_BASE_URL`, в штатной ситуации отвечает `200`.
 
+Система SHALL показывать диагностические тексты allowlist-ресурсов из конфигурации системных ресурсов, а не из кода диагностики.
+
 #### Scenario: Диагностика проверяет базовый URL allowlist-системы
 - **WHEN** система проверяет сетевую доступность allowlist по `ALLOWLIST_BASE_URL`
 - **THEN** штатным успешным ответом считается `200`
@@ -19,6 +21,11 @@
 - **AND** базовый URL отвечает `404`
 - **THEN** система не считает allowlist-систему корректно развёрнутой
 - **AND** явно показывает проблему конфигурации или публикации allowlist-системы
+
+#### Scenario: Диагностика показывает статус allowlist
+- **WHEN** система собирает ресурсы `allowlist-config` или `allowlist-network`
+- **THEN** summary, detail и инструкции берутся из конфигурации системных ресурсов
+- **AND** код диагностики передаёт только condition и переменные проверки
 
 ### Requirement: Проверка allowlist устойчива к хостингам без корректного HEAD
 
@@ -55,3 +62,17 @@
 - **WHEN** компонентный слой (`components/**`) рендерится после route-level guard
 - **THEN** компонент не содержит собственной redirect-проверки доступа
 - **AND** не вызывает `requireAccessOrRedirect` повторно
+
+### Requirement: Help-контент защищён route-level access guard
+
+Система SHALL применять существующий route-level access guard ко всем пользовательским help entry points, включая каталог, Markdown-страницы, страницу ошибки, картинки и Mermaid-страницы.
+
+#### Scenario: Пользователь без доступа открывает help-страницу
+- **WHEN** пользователь без действующего допуска открывает `/help`, `/help/[helpId]`, `/help/error` или `/help/mermaid/[mermaidId]`
+- **THEN** route entry point проверяет доступ через `requireAccessOrRedirect`
+- **AND** при отсутствии доступа выполняется redirect в auth-flow
+
+#### Scenario: Браузер без доступа запрашивает help asset
+- **WHEN** браузер без действующего допуска запрашивает `/help/images/[imgId]`
+- **THEN** route handler проверяет доступ через `requireAccessOrUnauthorizedResponse`
+- **AND** при отсутствии доступа возвращает `401`

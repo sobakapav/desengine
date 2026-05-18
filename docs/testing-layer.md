@@ -168,6 +168,8 @@ LLM provider-проверки используют только выбранны
 | OpenAI | `LLM_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL` |
 | DeepSeek | `LLM_PROVIDER`, `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL`, `DEEPSEEK_BASE_URL` |
 | Google Gemini | `LLM_PROVIDER`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_BASE_URL` |
+| Claude | `LLM_PROVIDER`, `CLAUDE_API_KEY`, `CLAUDE_MODEL`, `CLAUDE_BASE_URL`, `CLAUDE_MAX_TOKENS` |
+| Z.AI | `LLM_PROVIDER`, `ZAI_API_KEY`, `ZAI_MODEL`, `ZAI_BASE_URL` |
 
 Дополнительные live-контуры, если они появятся:
 

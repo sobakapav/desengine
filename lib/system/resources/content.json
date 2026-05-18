@@ -67,6 +67,42 @@
     }
   },
   {
+    "id": "system-release",
+    "label": "Версия системы",
+    "conditions": {
+      "upToDate": {
+        "state": "ready",
+        "summary": "Система обновлена до актуального релиза",
+        "detail": "Локальная версия: {{currentVersion}}. Последний релиз на origin: {{latestVersion}}."
+      },
+      "updateAvailable": {
+        "state": "warning",
+        "summary": "Доступен новый релиз системы",
+        "detail": "Локальная версия: {{currentVersion}}. Последний релиз на origin: {{latestVersion}}. {{updateSafety}}"
+      },
+      "development": {
+        "state": "warning",
+        "summary": "Система запущена в нерелизном Git-состоянии",
+        "detail": "Текущая ветка: {{branch}}. Ближайший локальный релизный тег: {{nearestVersion}}. Последний релиз на origin: {{latestVersion}}. В режиме разработки такое состояние возможно и не блокирует работу."
+      },
+      "unavailable": {
+        "state": "warning",
+        "summary": "Не удалось проверить актуальность системы",
+        "detail": "{{message}}. Remote: {{remoteUrl}}. Это не блокирует работу, но администратору стоит проверить Git-установку вручную."
+      }
+    },
+    "instructions": {
+      "updateAvailable": {
+        "actor": "admin",
+        "text": "Обновите систему до `{{latestVersion}}` кнопкой `Обновить` или вручную по `UPDATE.md`. После обновления перезапустите сервер."
+      },
+      "unavailable": {
+        "actor": "admin",
+        "text": "Проверьте, что локальная установка является Git-репозиторием с remote `origin`, а затем повторно откройте `/system`."
+      }
+    }
+  },
+  {
     "id": "llm-config",
     "label": "{{providerLabel}} API",
     "conditions": {

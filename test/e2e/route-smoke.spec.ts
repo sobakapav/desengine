@@ -36,7 +36,7 @@ test.describe("route smoke без live credentials", () => {
 
       await expect(page).toHaveURL(/\/auth$/)
       await expect(page.getByRole("heading", { name: /Авторизация|Допуск в лабораторию/ })).toBeVisible()
-      await expect(page.getByRole("button", { name: "Открыть защищённую лабораторию" })).toBeVisible()
+      await expect(page.getByText("Система входа не настроена")).toBeVisible()
     })
   }
 

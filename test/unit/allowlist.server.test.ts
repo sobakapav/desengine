@@ -45,7 +45,7 @@ describe("allowlist HTTP contracts", () => {
     const { summarizeAllowlistSystemStatus } = await import("../../lib/auth/allowlist")
 
     expect(summarizeAllowlistSystemStatus(404)).toEqual({
-      tone: "warning",
+      state: "warning",
       summary: "Базовый URL allowlist отвечает 404",
       detail:
         "Базовый URL allowlist-системы должен отдавать 200. Проверьте публикацию корневой точки или health-entry.",

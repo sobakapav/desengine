@@ -23,3 +23,16 @@
 - **WHEN** пользователь открывает `/system`
 - **THEN** система показывает действие `Обновить onboarding`
 - **AND** обновление onboarding-контента запускается как повторная синхронизация с репозиторием из `ONBOARDING_REPO_URL`
+
+### Requirement: Hidden checking prompt уровня является optional onboarding-контентом
+
+Система SHALL разрешать уровням не иметь отдельный hidden checking prompt.
+
+#### Scenario: Автор onboarding-уровня добавляет prompt проверки
+- **WHEN** уровню нужны дополнительные скрытые требования проверки
+- **THEN** автор может добавить файл `onboarding/prompts/levels/<levelId>/check.md`
+
+#### Scenario: Автор onboarding-уровня не добавляет prompt проверки
+- **WHEN** уровню не нужны дополнительные скрытые требования проверки
+- **THEN** файл `onboarding/prompts/levels/<levelId>/check.md` может отсутствовать
+- **AND** runtime продолжает проверку уровня без дополнительной level-specific checking части
