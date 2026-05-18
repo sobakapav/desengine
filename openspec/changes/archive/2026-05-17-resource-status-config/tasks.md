@@ -13,7 +13,8 @@
 
 - [x] 2.1 Добавить unit-тесты resolver ресурсов.
 - [x] 2.2 Привязать тесты к OpenSpec capability/scenarios `resource-status`.
-- [ ] 2.3 Запустить `npm run test:unit` до зелёного результата.
+- [x] 2.3 Зафиксировать зелёную unit-проверку change через целевой прогон:
+  `npx vitest run --project unit test/unit/resource-status.test.ts test/unit/llm-flow-source-contract.test.ts`.
 - [x] 2.4 Запустить `npm run test:traceability`.
 - [x] 2.5 Добавить unit-проверку условий показа встроенных контролов исправления.
 - [x] 2.6 Добавить unit-проверку сравнения релизных тегов системы и dev-состояния.
