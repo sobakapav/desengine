@@ -75,6 +75,19 @@ function OutRender({ task, started, reloadKey, startStatus }: OutRenderProps) {
                         <SandpackProvider
                             key={moduleUrl}
                             template="react-ts"
+                            theme={{
+
+    colors: {
+
+      surface1: "#ffffff",
+
+      surface2: "#ffffff",
+
+      surface3: "#ffffff",
+
+    },
+
+  }}
                             files={previewPayload.files}
                             customSetup={previewPayload.customSetup}
                             options={{
@@ -96,6 +109,8 @@ function OutRender({ task, started, reloadKey, startStatus }: OutRenderProps) {
                                 style={{
                                     minHeight: 128,
                                     overflow: "hidden",
+                                    background: "#ffffff",
+                                    height: "100%",
                                 }}
                             />
                         </SandpackProvider>

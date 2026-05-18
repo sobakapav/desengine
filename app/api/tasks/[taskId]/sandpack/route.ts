@@ -8,6 +8,7 @@ import {
 } from "@/lib/lab/sandpack-preview"
 import { getTaskListItemById } from "@/lib/system/server"
 import { getUserTaskFilePath } from "@/lib/user/server"
+import { readFilesRecursively } from "@/lib/system/shadcn-files"
 
 type Params = { taskId: string }
 
@@ -20,6 +21,11 @@ const systemUtilsPath = path.join(process.cwd(), "lib", "system", "utils.ts")
 async function readUserTaskFile(taskId: string, fileName: string, fallback = "") {
   return readFile(getUserTaskFilePath(taskId, fileName), "utf-8").catch(() => fallback)
 }
+
+const shadcnFiles = await readFilesRecursively(
+  path.join(process.cwd(), "components", "ui"),
+  "/components/ui"
+)
 
 export async function GET(
   _request: Request,
@@ -43,6 +49,7 @@ export async function GET(
     props,
     uiBadge,
     systemUtils,
+    shadcnFiles,
   ] = await Promise.all([
     readUserTaskFile(taskId, "Component.tsx"),
     readUserTaskFile(taskId, "Component.stories.ts", "export {};\n"),
@@ -51,6 +58,10 @@ export async function GET(
     readUserTaskFile(taskId, "props.ts", "export {};\n"),
     readFile(uiBadgePath, "utf-8"),
     readFile(systemUtilsPath, "utf-8"),
+    readFilesRecursively(
+      path.join(process.cwd(), "components", "ui"),
+      "/components/ui"
+    ),
   ])
 
   if (!component.trim()) {
@@ -68,6 +79,7 @@ export async function GET(
     props,
     uiBadge,
     systemUtils,
+    shadcnFiles,
   }
 
   return Response.json(

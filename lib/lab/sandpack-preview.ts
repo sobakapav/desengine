@@ -4,6 +4,18 @@ type SandpackFileEntry = string | {
   readOnly?: boolean
 }
 
+function toHiddenFiles(
+  files: Record<string, string>,
+  relativeRoot: string,
+): SandpackPreviewFiles {
+  return Object.fromEntries(
+    Object.entries(files).map(([filePath, code]) => [
+      filePath,
+      hidden(rewriteRootAliasImports(code, relativeRoot)),
+    ]),
+  )
+}
+
 type SandpackPreviewFiles = Record<string, SandpackFileEntry>
 
 type SandpackPreviewSourceFiles = {
@@ -15,6 +27,7 @@ type SandpackPreviewSourceFiles = {
   uiBadge: string
   systemUtils: string
   previewCss?: string
+  shadcnFiles: Record<string, string>
 }
 
 type SandpackPreviewPayload = {
@@ -27,6 +40,7 @@ type SandpackPreviewPayload = {
   options: {
     activeFile: string
     visibleFiles: string[]
+    externalResources: string[]
   }
 }
 
@@ -42,9 +56,10 @@ const packageJson = {
     "@types/react-dom": "^19.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "lucide-react": "latest",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-scripts": "^4.0.0",
+    "react-scripts": "^5.0.1",
     "tailwind-merge": "^3.5.0",
     "typescript": "^5.0.0",
   },
@@ -82,6 +97,107 @@ const indexHtml = `<!DOCTYPE html>
     <div id="root"></div>
   </body>
 </html>
+`
+
+const tailwindConfigJs = `
+module.exports = {
+  content: ["./**/*.{js,jsx,ts,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        primary: {
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
+        },
+        secondary: {
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
+        },
+        destructive: {
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
+        },
+        muted: {
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
+        },
+        accent: {
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
+        },
+        popover: {
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
+        },
+        card: {
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+    },
+  },
+  plugins: [],
+}
+`
+
+const postcssConfigJs = `
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+`
+
+const previewCssSource = `
+:root {
+  --background: #ffffff;
+  --foreground: #111318;
+  --card: #ffffff;
+  --card-foreground: #111318;
+  --popover: #ffffff;
+  --popover-foreground: #111318;
+  --primary: #111318;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f6f8;
+  --secondary-foreground: #111318;
+  --muted: #f4f6f8;
+  --muted-foreground: #5f6672;
+  --accent: #f4f6f8;
+  --accent-foreground: #111318;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e2e5ea;
+  --input: #e2e5ea;
+  --ring: #111318;
+  --radius: 0.375rem;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background: transparent;
+  color: var(--foreground);
+}
+
+.desengine-preview-root {
+  min-height: 100vh;
+}
 `
 
 const mainTsx = `import React, { StrictMode } from "react";
@@ -131,84 +247,84 @@ export default function App() {
 }
 `
 
-const previewCssSource = `
-:root {
-  --background: #ffffff;
-  --foreground: #111318;
-  --border: #e2e5ea;
-  --primary: #111318;
-  --primary-foreground: #ffffff;
-  --secondary: #f4f6f8;
-  --secondary-foreground: #111318;
-  --muted: #f4f6f8;
-  --muted-foreground: #5f6672;
-  --destructive: #dc2626;
-  --radius: 0.375rem;
-}
+// const previewCssSource = `
+// :root {
+//   --background: #ffffff;
+//   --foreground: #111318;
+//   --border: #e2e5ea;
+//   --primary: #111318;
+//   --primary-foreground: #ffffff;
+//   --secondary: #f4f6f8;
+//   --secondary-foreground: #111318;
+//   --muted: #f4f6f8;
+//   --muted-foreground: #5f6672;
+//   --destructive: #dc2626;
+//   --radius: 0.375rem;
+// }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  border-color: var(--border);
-}
+// *,
+// *::before,
+// *::after {
+//   box-sizing: border-box;
+//   border-color: var(--border);
+// }
 
-html,
-body,
-#root {
-  min-height: 100%;
-  margin: 0;
-}
+// html,
+// body,
+// #root {
+//   min-height: 100%;
+//   margin: 0;
+// }
 
-body {
-  font-family: "Segoe UI", "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  background: transparent;
-  color: var(--foreground);
-}
+// body {
+//   font-family: "Segoe UI", "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+//   -webkit-font-smoothing: antialiased;
+//   text-rendering: optimizeLegibility;
+//   background: transparent;
+//   color: var(--foreground);
+// }
 
-.desengine-preview-root {
-  min-height: 8rem;
-  padding: 0;
-}
+// .desengine-preview-root {
+//   min-height: 8rem;
+//   padding: 0;
+// }
 
-.inline-flex { display: inline-flex; }
-.flex { display: flex; }
-.grid { display: grid; }
-.hidden { display: none; }
-.h-5 { height: 1.25rem; }
-.w-fit { width: fit-content; }
-.shrink-0 { flex-shrink: 0; }
-.items-center { align-items: center; }
-.justify-center { justify-content: center; }
-.gap-1 { gap: 0.25rem; }
-.overflow-hidden { overflow: hidden; }
-.rounded-full { border-radius: 9999px; }
-.border { border-width: 1px; border-style: solid; }
-.border-transparent { border-color: transparent; }
-.border-border { border-color: var(--border); }
-.bg-primary { background-color: var(--primary); }
-.bg-secondary { background-color: var(--secondary); }
-.bg-muted { background-color: var(--muted); }
-[class~="bg-input/20"] { background-color: rgba(226, 229, 234, 0.2); }
-[class~="bg-destructive/10"] { background-color: rgba(220, 38, 38, 0.1); }
-.text-primary-foreground { color: var(--primary-foreground); }
-.text-secondary-foreground { color: var(--secondary-foreground); }
-.text-muted-foreground { color: var(--muted-foreground); }
-.text-destructive { color: var(--destructive); }
-.text-foreground { color: var(--foreground); }
-.px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
-[class~="py-0.5"] { padding-top: 0.125rem; padding-bottom: 0.125rem; }
-[class~="text-[0.625rem]"] { font-size: 0.625rem; }
-.text-xs { font-size: 0.75rem; line-height: 1rem; }
-.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-.font-medium { font-weight: 500; }
-.whitespace-nowrap { white-space: nowrap; }
-.transition-all { transition-property: all; transition-duration: 150ms; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
-[class~="hover:bg-muted"]:hover { background-color: var(--muted); }
-[class~="hover:text-muted-foreground"]:hover { color: var(--muted-foreground); }
-`
+// .inline-flex { display: inline-flex; }
+// .flex { display: flex; }
+// .grid { display: grid; }
+// .hidden { display: none; }
+// .h-5 { height: 1.25rem; }
+// .w-fit { width: fit-content; }
+// .shrink-0 { flex-shrink: 0; }
+// .items-center { align-items: center; }
+// .justify-center { justify-content: center; }
+// .gap-1 { gap: 0.25rem; }
+// .overflow-hidden { overflow: hidden; }
+// .rounded-full { border-radius: 9999px; }
+// .border { border-width: 1px; border-style: solid; }
+// .border-transparent { border-color: transparent; }
+// .border-border { border-color: var(--border); }
+// .bg-primary { background-color: var(--primary); }
+// .bg-secondary { background-color: var(--secondary); }
+// .bg-muted { background-color: var(--muted); }
+// [class~="bg-input/20"] { background-color: rgba(226, 229, 234, 0.2); }
+// [class~="bg-destructive/10"] { background-color: rgba(220, 38, 38, 0.1); }
+// .text-primary-foreground { color: var(--primary-foreground); }
+// .text-secondary-foreground { color: var(--secondary-foreground); }
+// .text-muted-foreground { color: var(--muted-foreground); }
+// .text-destructive { color: var(--destructive); }
+// .text-foreground { color: var(--foreground); }
+// .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+// [class~="py-0.5"] { padding-top: 0.125rem; padding-bottom: 0.125rem; }
+// [class~="text-[0.625rem]"] { font-size: 0.625rem; }
+// .text-xs { font-size: 0.75rem; line-height: 1rem; }
+// .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+// .font-medium { font-weight: 500; }
+// .whitespace-nowrap { white-space: nowrap; }
+// .transition-all { transition-property: all; transition-duration: 150ms; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+// [class~="hover:bg-muted"]:hover { background-color: var(--muted); }
+// [class~="hover:text-muted-foreground"]:hover { color: var(--muted-foreground); }
+// `
 
 function hidden(code: string): SandpackFileEntry {
   return {
@@ -242,8 +358,17 @@ function buildSandpackPreviewPayload(sourceFiles: SandpackPreviewSourceFiles): S
     "/mock.ts": hidden(sourceFiles.mock ?? defaultMockSource),
     "/props.ts": hidden(sourceFiles.props ?? defaultPropsSource),
     "/styles.css": hidden(sourceFiles.previewCss ?? previewCssSource),
-    "/components/ui/badge.tsx": hidden(rewriteRootAliasImports(sourceFiles.uiBadge, "../../")),
+    ...toHiddenFiles(sourceFiles.shadcnFiles, "../../"),
     "/lib/system/utils.ts": hidden(sourceFiles.systemUtils),
+    "/lib/utils.ts": hidden(`
+      import { clsx, type ClassValue } from "clsx"
+      import { twMerge } from "tailwind-merge"
+      export function cn(...inputs: ClassValue[]) {
+        return twMerge(clsx(inputs))
+      }
+      `),
+    "/tailwind.config.js": hidden(tailwindConfigJs),
+    "/postcss.config.js": hidden(postcssConfigJs),
   }
 
   return {
@@ -256,6 +381,7 @@ function buildSandpackPreviewPayload(sourceFiles: SandpackPreviewSourceFiles): S
     options: {
       activeFile: "/Component.tsx",
       visibleFiles: ["/Component.tsx"],
+      externalResources: ["https://cdn.tailwindcss.com"],
     },
   }
 }
