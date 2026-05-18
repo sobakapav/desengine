@@ -19,8 +19,13 @@ const navigationLinks = [
 
 const contactLinks = [
   {
+    href: "https://t.me/+ZN5GnB2Pd5Q2OWFi",
+    label: "tg-группа общения",
+    external: true,
+  },
+  {
     href: "https://t.me/eduhund_bot",
-    label: "telegram-бот помощи",
+    label: "tg-полубот помощи",
     external: true,
   },
   {
