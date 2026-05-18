@@ -2,6 +2,8 @@
 // @openSpec scenarios:
 // @openSpec  - "Защищённая страница открывается через route-файл"
 // @openSpec  - "UI-компонент рендерится внутри защищённого маршрута"
+// @openSpec  - "Пользователь без доступа открывает help-страницу"
+// @openSpec  - "Браузер без доступа запрашивает help asset"
 
 import fs from "node:fs"
 import path from "node:path"
@@ -30,6 +32,8 @@ describe("route-level access guards", () => {
     const routeFiles = [
       "app/page.tsx",
       "app/tasks/page.tsx",
+      "app/tasks/[taskId]/check/page.tsx",
+      "app/tasks/[taskId]/done/page.tsx",
       "app/lab/page.tsx",
       "app/levels/page.tsx",
       "app/help/page.tsx",

@@ -53,9 +53,31 @@ function getMarkdownTitle(content: string, fallback: string) {
   return headingMatch?.[1]?.trim() || fallback
 }
 
-function resolveInside(root: string, fileName: string) {
-  const resolvedRoot = path.resolve(root)
-  const resolvedPath = path.resolve(resolvedRoot, fileName)
+function resolveHelpPagePath(fileName: string) {
+  const resolvedRoot = path.resolve(HELP_ROOT)
+  const resolvedPath = path.resolve(HELP_ROOT, fileName)
+
+  if (resolvedPath !== resolvedRoot && resolvedPath.startsWith(`${resolvedRoot}${path.sep}`)) {
+    return resolvedPath
+  }
+
+  return null
+}
+
+function resolveHelpImagePath(fileName: string) {
+  const resolvedRoot = path.resolve(HELP_IMAGES_ROOT)
+  const resolvedPath = path.resolve(HELP_IMAGES_ROOT, fileName)
+
+  if (resolvedPath !== resolvedRoot && resolvedPath.startsWith(`${resolvedRoot}${path.sep}`)) {
+    return resolvedPath
+  }
+
+  return null
+}
+
+function resolveHelpMermaidPath(fileName: string) {
+  const resolvedRoot = path.resolve(HELP_MERMAID_ROOT)
+  const resolvedPath = path.resolve(HELP_MERMAID_ROOT, fileName)
 
   if (resolvedPath !== resolvedRoot && resolvedPath.startsWith(`${resolvedRoot}${path.sep}`)) {
     return resolvedPath
@@ -72,11 +94,11 @@ function normalizeMermaidId(rawId: string) {
   return rawId.slice(0, -MERMAID_EXTENSION.length)
 }
 
-async function listHelpPages(helpRoot = HELP_ROOT): Promise<HelpPageEntry[]> {
+async function listHelpPages(): Promise<HelpPageEntry[]> {
   let entries
 
   try {
-    entries = await readdir(helpRoot, { withFileTypes: true })
+    entries = await readdir(HELP_ROOT, { withFileTypes: true })
   } catch {
     return []
   }
@@ -91,7 +113,7 @@ async function listHelpPages(helpRoot = HELP_ROOT): Promise<HelpPageEntry[]> {
           return null
         }
 
-        const filePath = resolveInside(helpRoot, entry.name)
+        const filePath = resolveHelpPagePath(entry.name)
         if (!filePath) return null
 
         const content = await readFile(filePath, "utf8")
@@ -110,15 +132,12 @@ async function listHelpPages(helpRoot = HELP_ROOT): Promise<HelpPageEntry[]> {
     .sort((left, right) => left.title.localeCompare(right.title, "ru"))
 }
 
-async function readHelpMarkdownPage(
-  helpId: string,
-  helpRoot = HELP_ROOT,
-): Promise<HelpMarkdownPage | null> {
+async function readHelpMarkdownPage(helpId: string): Promise<HelpMarkdownPage | null> {
   if (!isSafeHelpId(helpId)) {
     return null
   }
 
-  const filePath = resolveInside(helpRoot, `${helpId}${MARKDOWN_EXTENSION}`)
+  const filePath = resolveHelpPagePath(`${helpId}${MARKDOWN_EXTENSION}`)
   if (!filePath) return null
 
   try {
@@ -135,15 +154,12 @@ async function readHelpMarkdownPage(
   }
 }
 
-async function readHelpImageAsset(
-  imgId: string,
-  imagesRoot = HELP_IMAGES_ROOT,
-): Promise<HelpImageAsset | null> {
+async function readHelpImageAsset(imgId: string): Promise<HelpImageAsset | null> {
   if (!isSafeAssetId(imgId)) {
     return null
   }
 
-  const filePath = resolveInside(imagesRoot, imgId)
+  const filePath = resolveHelpImagePath(imgId)
   if (!filePath) return null
 
   try {
@@ -159,17 +175,14 @@ async function readHelpImageAsset(
   }
 }
 
-async function readHelpMermaidSource(
-  rawMermaidId: string,
-  mermaidRoot = HELP_MERMAID_ROOT,
-) {
+async function readHelpMermaidSource(rawMermaidId: string) {
   const mermaidId = normalizeMermaidId(rawMermaidId)
 
   if (!isSafeHelpId(mermaidId)) {
     return null
   }
 
-  const filePath = resolveInside(mermaidRoot, `${mermaidId}${MERMAID_EXTENSION}`)
+  const filePath = resolveHelpMermaidPath(`${mermaidId}${MERMAID_EXTENSION}`)
   if (!filePath) return null
 
   try {

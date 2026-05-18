@@ -1,4 +1,4 @@
-import { ConfigScreen } from "@/components/desengine/system/SystemScreen"
+import { SystemScreen } from "@/components/desengine/system/SystemScreen"
 import { requireAccessOrRedirect } from "@/lib/auth/server"
 import { getResourceStates } from "@/lib/system/resources/internalstate"
 
@@ -8,7 +8,7 @@ export default async function Page() {
   const status = await getResourceStates()
 
   return (
-    <ConfigScreen
+    <SystemScreen
       authState={status.authState}
       configured={status.allowlistConfigured}
       resources={status.items}

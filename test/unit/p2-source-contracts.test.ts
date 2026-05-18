@@ -141,7 +141,7 @@ describe("P2 source contracts", () => {
       expect(source, fileName).toContain("desengine.config.txt")
       expect(source, fileName).toContain("ONBOARDING_REPO_URL")
       expect(source, fileName).toContain("/onboarding")
-      expect(source, fileName).toContain("/config")
+      expect(source, fileName).toContain("/system")
     }
 
     expect(readProjectFile("README.md")).toContain("/auth")
@@ -181,12 +181,14 @@ describe("P2 source contracts", () => {
     expect(install).toContain("docs/platform-notes.md")
   })
 
-  it("страница /config предоставляет ручное обновление onboarding через API синхронизации", () => {
-    const configPage = readProjectFile("app", "config", "page.tsx")
-    const card = readProjectFile("components", "desengine", "platform", "OnboardingUpdateCard.tsx")
+  it("страница /system предоставляет ручное обновление onboarding через API синхронизации", () => {
+    const systemPage = readProjectFile("app", "system", "page.tsx")
+    const remediationControl = readProjectFile("components", "desengine", "system", "ResourceRemediationControl.tsx")
+    const card = readProjectFile("components", "desengine", "system", "OnboardingUpdateCard.tsx")
     const route = readProjectFile("app", "api", "onboarding", "update", "route.ts")
 
-    expect(configPage).toContain("OnboardingUpdateCard")
+    expect(systemPage).toContain("SystemScreen")
+    expect(remediationControl).toContain("OnboardingUpdateCard")
     expect(card).toContain("Обновить onboarding")
     expect(card).toContain('fetch("/api/onboarding/update"')
     expect(card).toContain("ONBOARDING_REPO_URL")
@@ -196,18 +198,18 @@ describe("P2 source contracts", () => {
   it("product-shell страницы получают общий Navigation из root layout", () => {
     const layout = readProjectFile("app", "layout.tsx")
 
-    expect(layout).toContain('import { Navigation } from "@/components/desengine/platform/Navigation"')
+    expect(layout).toContain('import { Navigation } from "@/components/desengine/system/Navigation"')
     expect(layout).toContain("<Navigation />")
     expect(fs.existsSync(projectPath("app", "page.tsx"))).toBe(true)
     expect(fs.existsSync(projectPath("app", "tasks", "page.tsx"))).toBe(true)
     expect(fs.existsSync(projectPath("app", "levels", "page.tsx"))).toBe(true)
     expect(fs.existsSync(projectPath("app", "auth", "page.tsx"))).toBe(true)
-    expect(fs.existsSync(projectPath("app", "config", "page.tsx"))).toBe(true)
+    expect(fs.existsSync(projectPath("app", "system", "page.tsx"))).toBe(true)
     expect(fs.existsSync(projectPath("app", "help", "page.tsx"))).toBe(true)
   })
 
   it("Navigation содержит постоянные контакты справа", () => {
-    const navigation = readProjectFile("components", "desengine", "platform", "Navigation", "Navigation.tsx")
+    const navigation = readProjectFile("components", "desengine", "system", "Navigation.tsx")
 
     expect(navigation).toContain("contactLinks")
     expect(navigation).toContain("https://t.me/eduhund_bot")
@@ -216,18 +218,20 @@ describe("P2 source contracts", () => {
   })
 
   it("top-level URL map представлена path-based маршрутами и фабриками путей", () => {
-    const navigationHelpers = readProjectFile("lib", "platform", "navigation.ts")
-    const navigation = readProjectFile("components", "desengine", "platform", "Navigation", "Navigation.tsx")
+    const navigationHelpers = readProjectFile("lib", "system", "navigation.ts")
+    const navigation = readProjectFile("components", "desengine", "system", "Navigation.tsx")
 
-    for (const route of ['"/tasks"', '"/levels"', '"/auth"', '"/config"', '"/help"']) {
-      expect(navigationHelpers).toContain(route)
-    }
+    expect(readProjectFile("lib", "task", "navigation.ts")).toContain("/tasks")
+    expect(readProjectFile("lib", "level", "navigation.ts")).toContain("/levels")
+    expect(readProjectFile("lib", "auth", "navigation.ts")).toContain("/auth")
+    expect(navigationHelpers).toContain("/system")
+    expect(readProjectFile("lib", "help", "navigation.ts")).toContain("/help")
 
     expect(navigation).toContain('href: "/"')
-    expect(navigation).toContain("createLevelsPath()")
+    expect(navigation).toContain("getLevelsRootUrl()")
     expect(navigation).toContain("getTasksRootUrl()")
-    expect(navigation).toContain("createConfigPath()")
-    expect(navigation).toContain("createHelpPath()")
+    expect(navigation).toContain("getSystemUrl()")
+    expect(navigation).toContain("getHelpRootUrl()")
   })
 
   it("динамический render-островок лаборатории изолирован локальным boundary/fallback", () => {
@@ -240,7 +244,7 @@ describe("P2 source contracts", () => {
   })
 
   it("простой статический Navigation не требует механического boundary", () => {
-    const navigation = readProjectFile("components", "desengine", "platform", "Navigation", "Navigation.tsx")
+    const navigation = readProjectFile("components", "desengine", "system", "Navigation.tsx")
 
     expect(navigation).not.toContain("ErrorBoundary")
     expect(navigation).not.toContain("PreviewRenderBoundary")

@@ -12,12 +12,14 @@ type RequiredEnvResult =
       missing: string[]
     }
 
-type ProviderName = "openai" | "deepseek" | "gemini"
+type ProviderName = "openai" | "deepseek" | "gemini" | "claude" | "zai"
 
 const LIVE_PROVIDER_ENV: Record<ProviderName, string[]> = {
   openai: ["LLM_PROVIDER", "OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_BASE_URL"],
   deepseek: ["LLM_PROVIDER", "DEEPSEEK_API_KEY", "DEEPSEEK_MODEL", "DEEPSEEK_BASE_URL"],
   gemini: ["LLM_PROVIDER", "GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_BASE_URL"],
+  claude: ["LLM_PROVIDER", "CLAUDE_API_KEY", "CLAUDE_MODEL", "CLAUDE_BASE_URL", "CLAUDE_MAX_TOKENS"],
+  zai: ["LLM_PROVIDER", "ZAI_API_KEY", "ZAI_MODEL", "ZAI_BASE_URL"],
 }
 
 const LIVE_ALLOWLIST_ENV = ["ALLOWLIST_BASE_URL", "ALLOWLIST_SALT"]
