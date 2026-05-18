@@ -3,6 +3,7 @@
 // @openSpec  - "Пользовательский компонент падает во время React-рендера"
 // @openSpec  - "Ошибка возникает до React-рендера"
 // @openSpec  - "Ошибка возникает внутри React-дерева компонента"
+// @openSpec  - "Preview принимает UI-импорты из components/ui"
 // @openSpec  - "Клиент запрашивает картинку варианта"
 // @openSpec  - "Клиент пытается использовать удалённый дублирующий endpoint"
 // @openSpec capability: task-levels
@@ -16,6 +17,7 @@
 // @openSpec  - "Новый уровень запрещает файл, существовавший раньше"
 // @openSpec  - "Пользователь завершил максимальный уровень задачи"
 // @openSpec  - "Пользователь нажал `Я закончил`"
+// @openSpec  - "Пользователь открывает результат проверки по каноническому route"
 // @openSpec  - "Проверка уровня успешна"
 // @openSpec  - "Пользователь запускает проверки результата уровня"
 // @openSpec  - "Исчерпан лимит уточняющих промптов уровня"
@@ -111,6 +113,7 @@ describe("P1 source contracts", () => {
 
   it("task runtime применяет fallback/error-boundary контракт для пользовательского render", () => {
     const outRender = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "OutRender.tsx")
+    const moduleRoute = readProjectFile("app", "api", "tasks", "[taskId]", "module", "route.ts")
     const startRoute = readProjectFile("app", "api", "tasks", "[taskId]", "start", "route.ts")
     const iterateRoute = readProjectFile("app", "api", "tasks", "[taskId]", "iterate", "route.ts")
 
@@ -118,6 +121,10 @@ describe("P1 source contracts", () => {
     expect(outRender).toContain("PreviewErrorNotice")
     expect(outRender).toContain("Ошибка загрузки превью")
     expect(outRender).toContain("Ошибка React-рендера")
+    expect(moduleRoute).toContain('"@/components/ui/Button"')
+    expect(moduleRoute).toContain('specifier.startsWith("@/components/ui/")')
+    expect(moduleRoute).toContain("RadioGroup")
+    expect(moduleRoute).toContain("SelectTrigger")
     expect(startRoute).toContain("validateGeneratedFilesPayload")
     expect(iterateRoute).toContain("validateGeneratedFilesPayload")
   })
@@ -173,10 +180,20 @@ describe("P1 source contracts", () => {
   it("level pages and task pages are path-based entry points for reloadable contexts", () => {
     const levelPageExists = fs.existsSync(path.join(process.cwd(), "app", "levels", "[levelId]", "page.tsx"))
     const taskPageExists = fs.existsSync(path.join(process.cwd(), "app", "lab", "[taskId]", "[screen]", "page.tsx"))
+    const taskCheckPageExists = fs.existsSync(path.join(process.cwd(), "app", "tasks", "[taskId]", "check", "page.tsx"))
+    const taskDonePageExists = fs.existsSync(path.join(process.cwd(), "app", "tasks", "[taskId]", "done", "page.tsx"))
+    const taskCheckPage = readProjectFile("app", "tasks", "[taskId]", "check", "page.tsx")
+    const taskDonePage = readProjectFile("app", "tasks", "[taskId]", "done", "page.tsx")
     const levelsPage = readProjectFile("app", "levels", "page.tsx")
 
     expect(levelPageExists).toBe(true)
     expect(taskPageExists).toBe(true)
+    expect(taskCheckPageExists).toBe(true)
+    expect(taskDonePageExists).toBe(true)
+    expect(taskCheckPage).toContain("createTaskCheckPath")
+    expect(taskCheckPage).toContain('initScreen={{ type: "check"')
+    expect(taskDonePage).toContain("createTaskDonePath")
+    expect(taskDonePage).toContain('initScreen={{ type: "done"')
     expect(levelsPage).toContain("getAllLevelOverviews")
   })
 

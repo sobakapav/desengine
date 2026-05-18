@@ -6,6 +6,20 @@
 // @openSpec  - "Start или iterate выполняется с картинками"
 // @openSpec  - "Авторизация Google Gemini не прошла"
 // @openSpec  - "Google Gemini заблокировал запрос по safety-фильтру"
+// @openSpec capability: claude
+// @openSpec scenarios:
+// @openSpec  - "Оператор выбирает Claude"
+// @openSpec  - "Оператор настраивает Claude"
+// @openSpec  - "Claude включён как активный провайдер"
+// @openSpec  - "Start или iterate выполняется с картинками через Claude"
+// @openSpec  - "Авторизация Claude не прошла"
+// @openSpec capability: zai
+// @openSpec scenarios:
+// @openSpec  - "Оператор выбирает Z.AI"
+// @openSpec  - "Оператор настраивает Z.AI"
+// @openSpec  - "Z.AI включён как активный провайдер"
+// @openSpec  - "Start или iterate выполняется с картинками через Z.AI"
+// @openSpec  - "Авторизация Z.AI не прошла"
 // @openSpec capability: deepseek
 // @openSpec scenarios:
 // @openSpec  - "Оператор выбирает DeepSeek"
@@ -15,6 +29,8 @@
 // @openSpec capability: llm
 // @openSpec scenarios:
 // @openSpec  - "Конфигурация выбрала Google Gemini"
+// @openSpec  - "Конфигурация выбрала Claude"
+// @openSpec  - "Конфигурация выбрала Z.AI"
 // @openSpec  - "Конфигурация выбрала DeepSeek"
 // @openSpec  - "Оператор переключает активный провайдер"
 // @openSpec  - "Для активного провайдера не задан base URL"
@@ -24,6 +40,8 @@
 // @openSpec  - "Провайдер вернул ошибку"
 // @openSpec  - "DeepSeek вернул ошибку"
 // @openSpec  - "Google Gemini вернул ошибку"
+// @openSpec  - "Claude вернул ошибку"
+// @openSpec  - "Z.AI вернул ошибку"
 // @openSpec  - "Initiator-запрос превысил отдельный timeout"
 // @openSpec  - "Провайдер не вернул метрики"
 // @openSpec capability: llm-endpoint
@@ -49,6 +67,21 @@ function applyDeepSeekEnv() {
   process.env.DEEPSEEK_API_KEY = "test-deepseek-key"
   process.env.DEEPSEEK_MODEL = "deepseek-test"
   process.env.DEEPSEEK_BASE_URL = "https://api.deepseek.example"
+}
+
+function applyClaudeEnv() {
+  process.env.LLM_PROVIDER = "claude"
+  process.env.CLAUDE_API_KEY = "test-claude-key"
+  process.env.CLAUDE_MODEL = "claude-test"
+  process.env.CLAUDE_BASE_URL = "https://api.anthropic.example/v1"
+  process.env.CLAUDE_MAX_TOKENS = "4096"
+}
+
+function applyZaiEnv() {
+  process.env.LLM_PROVIDER = "zai"
+  process.env.ZAI_API_KEY = "test-zai-key"
+  process.env.ZAI_MODEL = "glm-test"
+  process.env.ZAI_BASE_URL = "https://api.z.ai.example/api/paas/v4"
 }
 
 describe("Google Gemini adapter", () => {
@@ -477,6 +510,343 @@ describe("Google Gemini adapter", () => {
     expect(body.messages[1].content).toContain("Изображения текущего уровня в этом вызове недоступны")
   })
 
+  it("использует Claude как активный провайдер и отправляет structured JSON-запрос с картинками", async () => {
+    applyClaudeEnv()
+    const fetchMock = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          content: [
+            {
+              type: "text",
+              text: '{"ok":true}',
+            },
+          ],
+          stop_reason: "end_turn",
+          usage: {
+            input_tokens: 12,
+            cache_creation_input_tokens: 2,
+            cache_read_input_tokens: 3,
+            output_tokens: 8,
+          },
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      )
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    const { getLlmStatus, runStructuredLlmRequest } = await import("../../lib/llm/server")
+
+    await expect(getLlmStatus()).resolves.toMatchObject({
+      provider: "claude",
+      label: "Claude",
+      ready: true,
+      endpoint: "https://api.anthropic.example/v1",
+      config: {
+        activeProvider: "claude",
+        model: "claude-test",
+        hasRequiredKey: true,
+        missingEnvVars: [],
+      },
+    })
+
+    const result = await runStructuredLlmRequest({
+      instruction: "Верни JSON",
+      imageBase64List: ["img-a", "img-b"],
+      schemaName: "claude_schema",
+      schema: {
+        type: "object",
+        properties: {
+          ok: { type: "boolean" },
+        },
+        required: ["ok"],
+      },
+    })
+
+    expect(result).toEqual({
+      provider: "claude",
+      model: "claude-test",
+      outputText: '{"ok":true}',
+      metrics: {
+        status: "available",
+        inputTokens: 17,
+        outputTokens: 8,
+        totalTokens: 25,
+        costUsd: null,
+      },
+    })
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe("https://api.anthropic.example/v1/messages")
+    expect(init.headers).toMatchObject({
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+      "x-api-key": "test-claude-key",
+    })
+
+    const body = JSON.parse(String(init.body))
+    expect(body).toMatchObject({
+      model: "claude-test",
+      max_tokens: 4096,
+      output_config: {
+        format: {
+          type: "json_schema",
+          schema: {
+            type: "object",
+            properties: {
+              ok: { type: "boolean" },
+            },
+            required: ["ok"],
+          },
+        },
+      },
+    })
+    expect(body.messages).toEqual([
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: "image/png",
+              data: "img-a",
+            },
+          },
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: "image/png",
+              data: "img-b",
+            },
+          },
+          { type: "text", text: "Верни JSON" },
+        ],
+      },
+    ])
+  })
+
+  it("возвращает понятную auth-ошибку Claude без раскрытия ключа", async () => {
+    applyClaudeEnv()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            error: {
+              message: "Claude key rejected",
+            },
+          }),
+          {
+            status: 401,
+            headers: { "content-type": "application/json" },
+          },
+        )
+      }),
+    )
+
+    const { runStructuredLlmRequest, toLlmErrorResponse } = await import("../../lib/llm/server")
+
+    const error = await runStructuredLlmRequest({
+      instruction: "Проверка авторизации",
+      schemaName: "claude_auth_schema",
+      schema: { type: "object" },
+    }).catch((caught) => caught)
+
+    expect(toLlmErrorResponse(error)).toEqual({
+      status: 502,
+      body: {
+        ok: false,
+        error: "Claude key rejected",
+        errorKind: "auth",
+      },
+    })
+    expect(toLlmErrorResponse(error).body.error).not.toContain("test-claude-key")
+  })
+
+  it("требует явный CLAUDE_MAX_TOKENS для активного провайдера Claude", async () => {
+    applyClaudeEnv()
+    process.env.CLAUDE_MAX_TOKENS = ""
+
+    const { runStructuredLlmRequest, toLlmErrorResponse } = await import("../../lib/llm/server")
+
+    const error = await runStructuredLlmRequest({
+      instruction: "Проверка конфига",
+      schemaName: "claude_missing_max_tokens_schema",
+      schema: { type: "object" },
+    }).catch((caught) => caught)
+
+    expect(toLlmErrorResponse(error)).toEqual({
+      status: 400,
+      body: {
+        ok: false,
+        error: "Для режима Claude не настроен CLAUDE_MAX_TOKENS",
+        errorKind: "config",
+      },
+    })
+  })
+
+  it("использует Z.AI как активный провайдер и отправляет JSON-chat запрос с картинками", async () => {
+    applyZaiEnv()
+    const fetchMock = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          choices: [
+            {
+              message: {
+                content: '{"ok":true}',
+              },
+              finish_reason: "stop",
+            },
+          ],
+          usage: {
+            prompt_tokens: 13,
+            completion_tokens: 7,
+            total_tokens: 20,
+          },
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      )
+    })
+    vi.stubGlobal("fetch", fetchMock)
+
+    const { getLlmStatus, runStructuredLlmRequest } = await import("../../lib/llm/server")
+
+    await expect(getLlmStatus()).resolves.toMatchObject({
+      provider: "zai",
+      label: "Z.AI",
+      ready: true,
+      endpoint: "https://api.z.ai.example/api/paas/v4",
+      config: {
+        activeProvider: "zai",
+        model: "glm-test",
+        hasRequiredKey: true,
+        missingEnvVars: [],
+      },
+    })
+
+    const result = await runStructuredLlmRequest({
+      instruction: "Верни JSON",
+      imageBase64List: ["img-a", "img-b"],
+      schemaName: "zai_schema",
+      schema: { type: "object" },
+    })
+
+    expect(result).toEqual({
+      provider: "zai",
+      model: "glm-test",
+      outputText: '{"ok":true}',
+      metrics: {
+        status: "available",
+        inputTokens: 13,
+        outputTokens: 7,
+        totalTokens: 20,
+        costUsd: null,
+      },
+    })
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe("https://api.z.ai.example/api/paas/v4/chat/completions")
+    expect(init.headers).toMatchObject({
+      authorization: "Bearer test-zai-key",
+      "content-type": "application/json",
+    })
+
+    const body = JSON.parse(String(init.body))
+    expect(body).toMatchObject({
+      model: "glm-test",
+      response_format: { type: "json_object" },
+      stream: false,
+    })
+    expect(body.messages).toEqual([
+      {
+        role: "system",
+        content:
+          "Верни только валидный JSON-объект без markdown и без пояснений. Строго соблюдай ограничения из запроса пользователя.",
+      },
+      {
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image_url: { url: "data:image/png;base64,img-a" },
+          },
+          {
+            type: "image_url",
+            image_url: { url: "data:image/png;base64,img-b" },
+          },
+          { type: "text", text: "Верни JSON" },
+        ],
+      },
+    ])
+  })
+
+  it("возвращает понятную auth-ошибку Z.AI без раскрытия ключа", async () => {
+    applyZaiEnv()
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            error: {
+              message: "Z.AI key rejected",
+            },
+          }),
+          {
+            status: 403,
+            headers: { "content-type": "application/json" },
+          },
+        )
+      }),
+    )
+
+    const { runStructuredLlmRequest, toLlmErrorResponse } = await import("../../lib/llm/server")
+
+    const error = await runStructuredLlmRequest({
+      instruction: "Проверка авторизации",
+      schemaName: "zai_auth_schema",
+      schema: { type: "object" },
+    }).catch((caught) => caught)
+
+    expect(toLlmErrorResponse(error)).toEqual({
+      status: 502,
+      body: {
+        ok: false,
+        error: "Z.AI key rejected",
+        errorKind: "auth",
+      },
+    })
+    expect(toLlmErrorResponse(error).body.error).not.toContain("test-zai-key")
+  })
+
+  it("требует явный ZAI_BASE_URL для активного провайдера Z.AI", async () => {
+    applyZaiEnv()
+    process.env.ZAI_BASE_URL = ""
+
+    const { runStructuredLlmRequest, toLlmErrorResponse } = await import("../../lib/llm/server")
+
+    const error = await runStructuredLlmRequest({
+      instruction: "Проверка конфига",
+      schemaName: "zai_missing_base_url_schema",
+      schema: { type: "object" },
+    }).catch((caught) => caught)
+
+    expect(toLlmErrorResponse(error)).toEqual({
+      status: 400,
+      body: {
+        ok: false,
+        error: "Для режима Z.AI не настроен ZAI_BASE_URL",
+        errorKind: "config",
+      },
+    })
+  })
+
   it("возвращает понятную auth-ошибку DeepSeek", async () => {
     applyDeepSeekEnv()
     vi.stubGlobal(
@@ -523,6 +893,13 @@ describe("Google Gemini adapter", () => {
     process.env.GEMINI_API_KEY = "test-gemini-key"
     process.env.GEMINI_MODEL = "gemini-test"
     process.env.GEMINI_BASE_URL = "https://gemini.example/v1beta"
+    process.env.CLAUDE_API_KEY = "test-claude-key"
+    process.env.CLAUDE_MODEL = "claude-test"
+    process.env.CLAUDE_BASE_URL = "https://api.anthropic.example/v1"
+    process.env.CLAUDE_MAX_TOKENS = "4096"
+    process.env.ZAI_API_KEY = "test-zai-key"
+    process.env.ZAI_MODEL = "glm-test"
+    process.env.ZAI_BASE_URL = "https://api.z.ai.example/api/paas/v4"
 
     const { getLlmStatus } = await import("../../lib/llm/server")
 
@@ -534,7 +911,7 @@ describe("Google Gemini adapter", () => {
       endpoint: "https://api.deepseek.example",
       config: {
         activeProvider: "deepseek",
-        configuredProviders: ["openai", "deepseek", "gemini"],
+        configuredProviders: ["openai", "deepseek", "gemini", "claude", "zai"],
       },
     })
   })
@@ -556,7 +933,7 @@ describe("Google Gemini adapter", () => {
       },
       availability: {
         ok: false,
-        message: "Неподдерживаемый LLM_PROVIDER: local. Поддерживаются: openai, deepseek, gemini.",
+        message: "Неподдерживаемый LLM_PROVIDER: local. Поддерживаются: openai, deepseek, gemini, claude, zai.",
       },
     })
   })

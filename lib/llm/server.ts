@@ -32,13 +32,19 @@ function getLlmProvider(): LlmProvider {
     return "openai"
   }
 
-  if (rawProvider === "openai" || rawProvider === "deepseek" || rawProvider === "gemini") {
+  if (
+    rawProvider === "openai" ||
+    rawProvider === "deepseek" ||
+    rawProvider === "gemini" ||
+    rawProvider === "claude" ||
+    rawProvider === "zai"
+  ) {
     return rawProvider
   }
 
   throw new LlmError(
     "config",
-    `Неподдерживаемый LLM_PROVIDER: ${rawProvider}. Поддерживаются: openai, deepseek, gemini.`,
+    `Неподдерживаемый LLM_PROVIDER: ${rawProvider}. Поддерживаются: openai, deepseek, gemini, claude, zai.`,
   )
 }
 
@@ -67,6 +73,46 @@ function getGeminiModel(): string {
 
   if (!model) {
     throw new LlmError("config", "Для режима Google Gemini не настроен GEMINI_MODEL")
+  }
+
+  return model
+}
+
+function getClaudeModel(): string {
+  const model = process.env.CLAUDE_MODEL?.trim()
+
+  if (!model) {
+    throw new LlmError("config", "Для режима Claude не настроен CLAUDE_MODEL")
+  }
+
+  return model
+}
+
+function getClaudeMaxTokens(): number {
+  const rawValue = process.env.CLAUDE_MAX_TOKENS?.trim()
+
+  if (!rawValue) {
+    throw new LlmError("config", "Для режима Claude не настроен CLAUDE_MAX_TOKENS")
+  }
+
+  if (!/^\d+$/.test(rawValue)) {
+    throw new LlmError("config", "Переменная CLAUDE_MAX_TOKENS должна быть положительным числом токенов")
+  }
+
+  const maxTokens = Number.parseInt(rawValue, 10)
+
+  if (!Number.isFinite(maxTokens) || maxTokens <= 0) {
+    throw new LlmError("config", "Переменная CLAUDE_MAX_TOKENS должна быть положительным числом токенов")
+  }
+
+  return maxTokens
+}
+
+function getZaiModel(): string {
+  const model = process.env.ZAI_MODEL?.trim()
+
+  if (!model) {
+    throw new LlmError("config", "Для режима Z.AI не настроен ZAI_MODEL")
   }
 
   return model
@@ -135,6 +181,44 @@ function getOutputTextFromDeepSeek(data: unknown): string {
   throw new LlmError("invalid_response", "DeepSeek вернул ответ без итогового текста")
 }
 
+function getOutputTextFromZai(data: unknown): string {
+  const choices =
+    data &&
+    typeof data === "object" &&
+    "choices" in data &&
+    Array.isArray(data.choices)
+      ? data.choices
+      : []
+
+  const firstChoice = choices[0]
+  const finishReason =
+    firstChoice &&
+    typeof firstChoice === "object" &&
+    "finish_reason" in firstChoice &&
+    typeof firstChoice.finish_reason === "string"
+      ? firstChoice.finish_reason
+      : null
+
+  if (finishReason === "sensitive") {
+    throw new LlmError("provider", "Z.AI заблокировал ответ из-за ограничений контента. Измените запрос и повторите попытку.")
+  }
+
+  const message =
+    firstChoice &&
+    typeof firstChoice === "object" &&
+    "message" in firstChoice &&
+    firstChoice.message &&
+    typeof firstChoice.message === "object"
+      ? (firstChoice.message as Record<string, unknown>)
+      : null
+
+  if (message && typeof message.content === "string" && message.content.trim()) {
+    return message.content
+  }
+
+  throw new LlmError("invalid_response", "Z.AI вернул ответ без итогового текста")
+}
+
 function getOpenAIMetrics(data: unknown): LlmUsageMetrics {
   const usage =
     data &&
@@ -162,6 +246,32 @@ function getOpenAIMetrics(data: unknown): LlmUsageMetrics {
 }
 
 function getDeepSeekMetrics(data: unknown): LlmUsageMetrics {
+  const usage =
+    data &&
+    typeof data === "object" &&
+    "usage" in data &&
+    data.usage &&
+    typeof data.usage === "object"
+      ? (data.usage as Record<string, unknown>)
+      : null
+
+  if (!usage) {
+    return {
+      status: "unavailable",
+      reason: "provider_did_not_return_metrics",
+    }
+  }
+
+  return {
+    status: "available",
+    inputTokens: typeof usage.prompt_tokens === "number" ? usage.prompt_tokens : null,
+    outputTokens: typeof usage.completion_tokens === "number" ? usage.completion_tokens : null,
+    totalTokens: typeof usage.total_tokens === "number" ? usage.total_tokens : null,
+    costUsd: null,
+  }
+}
+
+function getZaiMetrics(data: unknown): LlmUsageMetrics {
   const usage =
     data &&
     typeof data === "object" &&
@@ -256,6 +366,44 @@ function getOutputTextFromGemini(data: unknown): string {
   throw new LlmError("invalid_response", "Google Gemini вернул ответ без итогового текста")
 }
 
+function getOutputTextFromClaude(data: unknown): string {
+  const stopReason =
+    data &&
+    typeof data === "object" &&
+    "stop_reason" in data &&
+    typeof data.stop_reason === "string"
+      ? data.stop_reason
+      : null
+
+  if (stopReason === "refusal") {
+    throw new LlmError("provider", "Claude отказался выполнить запрос. Измените формулировку и повторите попытку.")
+  }
+
+  const content =
+    data &&
+    typeof data === "object" &&
+    "content" in data &&
+    Array.isArray(data.content)
+      ? data.content
+      : []
+
+  for (const part of content) {
+    if (
+      part &&
+      typeof part === "object" &&
+      "type" in part &&
+      part.type === "text" &&
+      "text" in part &&
+      typeof part.text === "string" &&
+      part.text.trim()
+    ) {
+      return part.text
+    }
+  }
+
+  throw new LlmError("invalid_response", "Claude вернул ответ без итогового текста")
+}
+
 function getGeminiMetrics(data: unknown): LlmUsageMetrics {
   const usage =
     data &&
@@ -278,6 +426,39 @@ function getGeminiMetrics(data: unknown): LlmUsageMetrics {
     inputTokens: typeof usage.promptTokenCount === "number" ? usage.promptTokenCount : null,
     outputTokens: typeof usage.candidatesTokenCount === "number" ? usage.candidatesTokenCount : null,
     totalTokens: typeof usage.totalTokenCount === "number" ? usage.totalTokenCount : null,
+    costUsd: null,
+  }
+}
+
+function getClaudeMetrics(data: unknown): LlmUsageMetrics {
+  const usage =
+    data &&
+    typeof data === "object" &&
+    "usage" in data &&
+    data.usage &&
+    typeof data.usage === "object"
+      ? (data.usage as Record<string, unknown>)
+      : null
+
+  if (!usage) {
+    return {
+      status: "unavailable",
+      reason: "provider_did_not_return_metrics",
+    }
+  }
+
+  const cacheCreationInputTokens =
+    typeof usage.cache_creation_input_tokens === "number" ? usage.cache_creation_input_tokens : 0
+  const cacheReadInputTokens =
+    typeof usage.cache_read_input_tokens === "number" ? usage.cache_read_input_tokens : 0
+  const inputTokens = typeof usage.input_tokens === "number" ? usage.input_tokens + cacheCreationInputTokens + cacheReadInputTokens : null
+  const outputTokens = typeof usage.output_tokens === "number" ? usage.output_tokens : null
+
+  return {
+    status: "available",
+    inputTokens,
+    outputTokens,
+    totalTokens: inputTokens !== null && outputTokens !== null ? inputTokens + outputTokens : null,
     costUsd: null,
   }
 }
@@ -376,6 +557,39 @@ function ensureGeminiConfig(): ProviderRuntimeConfig {
     model: getGeminiModel(),
     apiKey: process.env.GEMINI_API_KEY,
     baseUrl: process.env.GEMINI_BASE_URL.trim(),
+  }
+}
+
+function ensureClaudeConfig(): ProviderRuntimeConfig {
+  if (!process.env.CLAUDE_API_KEY?.trim()) {
+    throw new LlmError("config", "Для режима Claude не настроен CLAUDE_API_KEY")
+  }
+  if (!process.env.CLAUDE_BASE_URL?.trim()) {
+    throw new LlmError("config", "Для режима Claude не настроен CLAUDE_BASE_URL")
+  }
+
+  return {
+    provider: "claude",
+    model: getClaudeModel(),
+    apiKey: process.env.CLAUDE_API_KEY,
+    baseUrl: process.env.CLAUDE_BASE_URL.trim(),
+    maxTokens: getClaudeMaxTokens(),
+  }
+}
+
+function ensureZaiConfig(): ProviderRuntimeConfig {
+  if (!process.env.ZAI_API_KEY?.trim()) {
+    throw new LlmError("config", "Для режима Z.AI не настроен ZAI_API_KEY")
+  }
+  if (!process.env.ZAI_BASE_URL?.trim()) {
+    throw new LlmError("config", "Для режима Z.AI не настроен ZAI_BASE_URL")
+  }
+
+  return {
+    provider: "zai",
+    model: getZaiModel(),
+    apiKey: process.env.ZAI_API_KEY,
+    baseUrl: process.env.ZAI_BASE_URL.trim(),
   }
 }
 
@@ -688,6 +902,222 @@ async function callGemini(
   }
 }
 
+async function callClaude(
+  request: LlmStructuredRequest,
+  config: ProviderRuntimeConfig,
+  runtime: LlmRequestRuntime,
+): Promise<LlmStructuredResponse> {
+  const images = request.imageBase64List ?? (request.imageBase64 ? [request.imageBase64] : [])
+  const startedAt = Date.now()
+  const content: Array<
+    | { type: "text"; text: string }
+    | { type: "image"; source: { type: "base64"; media_type: "image/png"; data: string } }
+  > = []
+
+  for (const imageBase64 of images) {
+    content.push({
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: "image/png",
+        data: imageBase64,
+      },
+    })
+  }
+
+  content.push({ type: "text", text: request.instruction })
+
+  let res: Response
+  try {
+    console.log("[desengine][claude] start", {
+      target: request.target ?? "default",
+      model: config.model,
+      imageCount: images.length,
+      instructionLength: request.instruction.length,
+      schemaName: request.schemaName,
+      timeoutMs: runtime.timeoutMs,
+    })
+
+    res = await fetch(`${config.baseUrl}/messages`, {
+      method: "POST",
+      signal: runtime.signal,
+      headers: {
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+        "x-api-key": config.apiKey,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        max_tokens: config.maxTokens,
+        system:
+          "Верни только валидный JSON-объект без markdown и без пояснений. Строго соблюдай ограничения из запроса пользователя.",
+        messages: [
+          {
+            role: "user",
+            content,
+          },
+        ],
+        output_config: {
+          format: {
+            type: "json_schema",
+            schema: request.schema,
+          },
+        },
+      }),
+    })
+  } catch (error) {
+    console.error("[desengine][claude] network_error", {
+      target: request.target ?? "default",
+      model: config.model,
+      durationMs: Date.now() - startedAt,
+      message: error instanceof Error ? error.message : String(error),
+    })
+    mapFetchError(error, "Не удалось подключиться к Claude API")
+  }
+
+  const data = await res.json().catch(() => null)
+  if (!res.ok) {
+    const providerMessage =
+      data &&
+      typeof data === "object" &&
+      "error" in data &&
+      data.error &&
+      typeof data.error === "object" &&
+      "message" in data.error &&
+      typeof data.error.message === "string"
+        ? data.error.message
+        : "Ошибка Claude API"
+    const errorKind = res.status === 401 || res.status === 403 ? "auth" : "provider"
+    console.error("[desengine][claude] provider_error", {
+      target: request.target ?? "default",
+      model: config.model,
+      status: res.status,
+      durationMs: Date.now() - startedAt,
+      message: providerMessage,
+    })
+    throw new LlmError(errorKind, providerMessage)
+  }
+
+  console.log("[desengine][claude] success", {
+    target: request.target ?? "default",
+    model: config.model,
+    status: res.status,
+    durationMs: Date.now() - startedAt,
+  })
+
+  return {
+    provider: "claude",
+    model: config.model,
+    outputText: getOutputTextFromClaude(data),
+    metrics: getClaudeMetrics(data),
+  }
+}
+
+async function callZai(
+  request: LlmStructuredRequest,
+  config: ProviderRuntimeConfig,
+  runtime: LlmRequestRuntime,
+): Promise<LlmStructuredResponse> {
+  const images = request.imageBase64List ?? (request.imageBase64 ? [request.imageBase64] : [])
+  const startedAt = Date.now()
+  const content: Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }> = []
+
+  for (const imageBase64 of images) {
+    content.push({
+      type: "image_url",
+      image_url: {
+        url: `data:image/png;base64,${imageBase64}`,
+      },
+    })
+  }
+
+  content.push({ type: "text", text: request.instruction })
+
+  let res: Response
+  try {
+    console.log("[desengine][zai] start", {
+      target: request.target ?? "default",
+      model: config.model,
+      imageCount: images.length,
+      instructionLength: request.instruction.length,
+      schemaName: request.schemaName,
+      timeoutMs: runtime.timeoutMs,
+    })
+
+    res = await fetch(`${config.baseUrl}/chat/completions`, {
+      method: "POST",
+      signal: runtime.signal,
+      headers: {
+        authorization: `Bearer ${config.apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Верни только валидный JSON-объект без markdown и без пояснений. Строго соблюдай ограничения из запроса пользователя.",
+          },
+          {
+            role: "user",
+            content,
+          },
+        ],
+        response_format: {
+          type: "json_object",
+        },
+        stream: false,
+      }),
+    })
+  } catch (error) {
+    console.error("[desengine][zai] network_error", {
+      target: request.target ?? "default",
+      model: config.model,
+      durationMs: Date.now() - startedAt,
+      message: error instanceof Error ? error.message : String(error),
+    })
+    mapFetchError(error, "Не удалось подключиться к Z.AI API")
+  }
+
+  const data = await res.json().catch(() => null)
+  if (!res.ok) {
+    const providerMessage =
+      data &&
+      typeof data === "object" &&
+      "error" in data &&
+      data.error &&
+      typeof data.error === "object" &&
+      "message" in data.error &&
+      typeof data.error.message === "string"
+        ? data.error.message
+        : "Ошибка Z.AI API"
+    const errorKind = res.status === 401 || res.status === 403 ? "auth" : "provider"
+    console.error("[desengine][zai] provider_error", {
+      target: request.target ?? "default",
+      model: config.model,
+      status: res.status,
+      durationMs: Date.now() - startedAt,
+      message: providerMessage,
+    })
+    throw new LlmError(errorKind, providerMessage)
+  }
+
+  console.log("[desengine][zai] success", {
+    target: request.target ?? "default",
+    model: config.model,
+    status: res.status,
+    durationMs: Date.now() - startedAt,
+  })
+
+  return {
+    provider: "zai",
+    model: config.model,
+    outputText: getOutputTextFromZai(data),
+    metrics: getZaiMetrics(data),
+  }
+}
+
 const ADAPTERS: Record<LlmProvider, LlmAdapter> = {
   openai: {
     provider: "openai",
@@ -722,6 +1152,29 @@ const ADAPTERS: Record<LlmProvider, LlmAdapter> = {
     buildConfig: ensureGeminiConfig,
     call: callGemini,
   },
+  claude: {
+    provider: "claude",
+    label: "Claude",
+    envVars: {
+      apiKey: "CLAUDE_API_KEY",
+      model: "CLAUDE_MODEL",
+      baseUrl: "CLAUDE_BASE_URL",
+      maxTokens: "CLAUDE_MAX_TOKENS",
+    },
+    buildConfig: ensureClaudeConfig,
+    call: callClaude,
+  },
+  zai: {
+    provider: "zai",
+    label: "Z.AI",
+    envVars: {
+      apiKey: "ZAI_API_KEY",
+      model: "ZAI_MODEL",
+      baseUrl: "ZAI_BASE_URL",
+    },
+    buildConfig: ensureZaiConfig,
+    call: callZai,
+  },
 }
 
 function getActiveAdapter(): LlmAdapter {
@@ -741,6 +1194,14 @@ function listConfiguredProviders(): LlmProvider[] {
 
   if (process.env.GEMINI_API_KEY?.trim() || process.env.GEMINI_MODEL?.trim()) {
     configured.push("gemini")
+  }
+
+  if (process.env.CLAUDE_API_KEY?.trim() || process.env.CLAUDE_MODEL?.trim()) {
+    configured.push("claude")
+  }
+
+  if (process.env.ZAI_API_KEY?.trim() || process.env.ZAI_MODEL?.trim()) {
+    configured.push("zai")
   }
 
   return configured
@@ -834,6 +1295,7 @@ export async function getLlmStatus(): Promise<LlmStatus> {
       process.env[adapter.envVars.model]?.trim() ? null : adapter.envVars.model,
       process.env[adapter.envVars.apiKey]?.trim() ? null : adapter.envVars.apiKey,
       process.env[adapter.envVars.baseUrl]?.trim() ? null : adapter.envVars.baseUrl,
+      adapter.envVars.maxTokens && !process.env[adapter.envVars.maxTokens]?.trim() ? adapter.envVars.maxTokens : null,
     ].filter((value): value is string => Boolean(value))
 
     return {

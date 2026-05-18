@@ -4,10 +4,12 @@
 
 
 /** Настройка LLM — в desengine.config.txt, параметр LLM_PROVIDER */
-const LLM_PROVIDERS = [
+export const LLM_PROVIDERS = [
   "openai",
   "deepseek",
-  "gemini"
+  "gemini",
+  "claude",
+  "zai"
 ] as const
 
 type LlmProvider =
@@ -79,6 +81,7 @@ type ProviderRuntimeConfig = {
   model: string
   apiKey: string
   baseUrl: string
+  maxTokens?: number
 }
 
 // TODO Refactoring
@@ -95,6 +98,7 @@ type LlmAdapter = {
     apiKey: string
     model: string
     baseUrl: string
+    maxTokens?: string
   }
   buildConfig: () => ProviderRuntimeConfig
   call: (

@@ -20,6 +20,8 @@ export const e2eSmokeRoutes = {
       skipReason:
         "Временно ожидает завершения runtime-переезда task/user schema; e2e route smoke не должен блокировать этот runtime change.",
     },
+    { path: "/tasks/e2e-fixture-task/check" },
+    { path: "/tasks/e2e-fixture-task/done" },
     {
       path: "/levels/e2e-fixture-level",
       skipReason:

@@ -32,6 +32,8 @@ describe("route-level access guards", () => {
     const routeFiles = [
       "app/page.tsx",
       "app/tasks/page.tsx",
+      "app/tasks/[taskId]/check/page.tsx",
+      "app/tasks/[taskId]/done/page.tsx",
       "app/lab/page.tsx",
       "app/levels/page.tsx",
       "app/help/page.tsx",

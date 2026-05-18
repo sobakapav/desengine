@@ -14,8 +14,10 @@
 
 Поддерживаются как минимум следующие режимы:
 - OpenAI по ключу;
-- DeepSeek.
-- Google Gemini.
+- DeepSeek;
+- Google Gemini;
+- Claude;
+- Z.AI.
 
 Активный провайдер SHALL выбираться через локальный env-конфиг запуска (`desengine.config.txt` или эквивалентные env vars процесса), а не через `desengine.config.json`.
 
@@ -30,6 +32,14 @@
 #### Scenario: Конфигурация выбрала Google Gemini
 - **WHEN** приложение настроено на режим Google Gemini
 - **THEN** система отправляет LLM-запросы через адаптер Google Gemini
+
+#### Scenario: Конфигурация выбрала Claude
+- **WHEN** приложение настроено на режим Claude
+- **THEN** система отправляет LLM-запросы через адаптер Claude
+
+#### Scenario: Конфигурация выбрала Z.AI
+- **WHEN** приложение настроено на режим Z.AI
+- **THEN** система отправляет LLM-запросы через адаптер Z.AI
 
 #### Scenario: Оператор переключает активный провайдер
 - **WHEN** оператор меняет `LLM_PROVIDER` и provider-specific модель в `desengine.config.txt`
@@ -70,7 +80,7 @@
 Система SHALL позволять хранить настройки нескольких LLM-провайдеров в одном `desengine.config.txt`, если активный провайдер выбран явно.
 
 #### Scenario: В конфиге лежат несколько провайдеров
-- **WHEN** в `desengine.config.txt` одновременно присутствуют ключи и модели для OpenAI, DeepSeek и Google Gemini
+- **WHEN** в `desengine.config.txt` одновременно присутствуют ключи и модели для OpenAI, DeepSeek, Google Gemini, Claude и Z.AI
 - **THEN** система использует только параметры активного провайдера из `LLM_PROVIDER`
 - **AND** наличие неактивных provider-specific переменных не ломает запуск
 
@@ -93,7 +103,7 @@
 
 ### Requirement: Level-specific prompts читаются из скрытого onboarding prompt-слоя
 
-Система SHALL читать level-specific prompts класса `start` и `iterate` только из скрытого onboarding prompt-слоя.
+Система SHALL читать level-specific prompts класса `start`, `iterate` и `check` из скрытого onboarding prompt-слоя.
 
 #### Scenario: Система выполняет start для уровня
 - **WHEN** runtime подбирает start prompt уровня
@@ -102,6 +112,17 @@
 #### Scenario: Система выполняет iterate prompt lookup для уровня
 - **WHEN** runtime подбирает iterate prompt уровня
 - **THEN** он читает `onboarding/prompts/levels/<levelId>/iterate.md`
+
+#### Scenario: Система выполняет checking prompt lookup для уровня
+- **WHEN** runtime подбирает hidden prompt проверки уровня
+- **THEN** он ищет `onboarding/prompts/levels/<levelId>/check.md`
+- **AND** если файл существует, включает его содержимое в checking instruction
+
+#### Scenario: Hidden prompt проверки уровня отсутствует
+- **WHEN** runtime подбирает hidden prompt проверки уровня
+- **AND** `onboarding/prompts/levels/<levelId>/check.md` отсутствует
+- **THEN** runtime использует пустой level-specific checking prompt
+- **AND** не считает отсутствие файла технической ошибкой проверки
 
 ### Requirement: LLM-контур не требует level promptKey
 
@@ -160,6 +181,14 @@
 
 #### Scenario: Google Gemini вернул ошибку
 - **WHEN** адаптер Google Gemini получает ошибку от провайдера
+- **THEN** пользователь видит понятное сообщение и может повторить действие после исправления причины
+
+#### Scenario: Claude вернул ошибку
+- **WHEN** адаптер Claude получает ошибку от провайдера
+- **THEN** пользователь видит понятное сообщение и может повторить действие после исправления причины
+
+#### Scenario: Z.AI вернул ошибку
+- **WHEN** адаптер Z.AI получает ошибку от провайдера
 - **THEN** пользователь видит понятное сообщение и может повторить действие после исправления причины
 
 #### Scenario: Initiator-запрос превысил отдельный timeout

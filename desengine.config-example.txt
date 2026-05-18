@@ -4,7 +4,7 @@
 
 # LLM
 # Можно выбирать, какой LLM пользоваться
-# Варианты: openai | deepseek | gemini
+# Варианты: openai | deepseek | gemini | claude | zai
 # Конечно, у вас должен быть ключ к этой LLM
 # И ключ этот надо записать в одну из переменных ниже
 LLM_PROVIDER=deepseek
@@ -26,6 +26,19 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-2.5-flash
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+
+# CLAUDE_API_KEY создаётся в Claude Console
+# Claude API требует явно указать лимит ответа в токенах
+CLAUDE_API_KEY=
+CLAUDE_MODEL=claude-haiku-4-5
+CLAUDE_BASE_URL=https://api.anthropic.com/v1
+CLAUDE_MAX_TOKENS=4096
+
+# ZAI_API_KEY создаётся в Z.AI Open Platform
+# Для visual-входов выбирайте модель с поддержкой изображений, например glm-5v-turbo
+ZAI_API_KEY=
+ZAI_MODEL=glm-5v-turbo
+ZAI_BASE_URL=https://api.z.ai/api/paas/v4
 
 # # # # # # # # # # # # # # # # # # # # #
 

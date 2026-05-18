@@ -39,7 +39,7 @@ export async function readLevelCheckPrompt(levelId: string) {
   try {
     return await readFile(filePath, "utf-8")
   } catch {
-    throw new Error(`Промпт проверки уровня не найден: ${levelId}`)
+    return ""
   }
 }
 

@@ -158,7 +158,7 @@ export async function getLegacyOnboardingPaths() {
   const existing: string[] = []
 
   for (const relativePath of legacyOnboardingRoots) {
-    const absolutePath = path.join(process.cwd(), relativePath)
+    const absolutePath = path.join(/*turbopackIgnore: true*/ process.cwd(), relativePath)
 
     if (await pathExists(absolutePath)) {
       existing.push(relativePath)

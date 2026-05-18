@@ -50,9 +50,41 @@ const deepSeekJsonSuccessResponse = {
   },
 }
 
+const claudeJsonSuccessResponse = {
+  content: [
+    {
+      type: "text",
+      text: "{\"ok\":true}",
+    },
+  ],
+  stop_reason: "end_turn",
+  usage: {
+    input_tokens: 12,
+    output_tokens: 8,
+  },
+}
+
+const zaiJsonSuccessResponse = {
+  choices: [
+    {
+      message: {
+        content: "{\"ok\":true}",
+      },
+      finish_reason: "stop",
+    },
+  ],
+  usage: {
+    prompt_tokens: 13,
+    completion_tokens: 7,
+    total_tokens: 20,
+  },
+}
+
 export {
+  claudeJsonSuccessResponse,
   deepSeekJsonSuccessResponse,
   geminiJsonSuccessResponse,
   geminiSafetyBlockResponse,
   openAiJsonSuccessResponse,
+  zaiJsonSuccessResponse,
 }
