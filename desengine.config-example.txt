@@ -42,6 +42,12 @@ ZAI_BASE_URL=https://api.z.ai/api/paas/v4
 
 # # # # # # # # # # # # # # # # # # # # #
 
+# UI kit
+# Варианты: none | shadcn | ant | mui
+SANDPACK_UI_KIT=shadcn
+
+# # # # # # # # # # # # # # # # # # # # #
+
 # Ниже всё уже настроено, можно не менять
 
 # Доступ по email в рабочую часть лаборатории
@@ -51,3 +57,12 @@ ALLOWLIST_SALT=68vBN7EWDTDsMLzoTyOghApJ5zDBI/Mg1ZNGpbrxvIY=
 # Источник обучающего контента
 # Вы можете собрать свой собственный
 ONBOARDING_REPO_URL=https://github.com/sobakapav/desengine-onboarding.git
+
+# # # # # # # # # # # # # # # # # # # # #
+
+# Sandpack preview
+# Какой UI kit подключать в виртуальном проекте Sandpack.
+# В каждый момент времени активен только один kit (или ни одного).
+# Варианты: shadcn | ant | mui | none
+# По умолчанию: shadcn
+SANDPACK_UI_KIT=shadcn

@@ -70,6 +70,10 @@ type FailedTaskCheckMutationResult = {
   reset: boolean
 }
 
+// Временно фиксируем глубину прохождения одной и той же задачи.
+// Это принудительное правило для всех задач вне зависимости от task catalog config.
+const FORCED_TASK_MAX_LEVEL = 3
+
 async function readLevelsCatalogRaw() {
   const levelsRoot = appConfig.levelsCatalogRoot
   const entries = await readdir(levelsRoot, { withFileTypes: true })
@@ -160,7 +164,11 @@ async function writeTaskCheckResult(result: TaskCheckResult) {
 async function readTaskConfig(taskId: string): Promise<TaskConfig> {
   const configPath = getTaskCatalogFilePath(taskId, appConfig.taskConfigFile)
   const rawTaskConfig = await readFile(configPath, "utf-8")
-  return TaskConfigSchema.parse(JSON.parse(rawTaskConfig))
+  const parsed = TaskConfigSchema.parse(JSON.parse(rawTaskConfig))
+  return {
+    ...parsed,
+    maxLevel: FORCED_TASK_MAX_LEVEL,
+  }
 }
 
 function buildInitialTaskProgress(maxLevel: number): TaskProgress {

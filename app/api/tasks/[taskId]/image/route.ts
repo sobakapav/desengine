@@ -5,6 +5,23 @@ import { getTaskCatalogFilePath } from "@/lib/user/server"
 
 type Params = { taskId: string }
 
+function normalizeImageId(raw: string | null) {
+  const value = raw?.trim()
+  if (!value) return "base"
+
+  const lower = value.toLowerCase()
+  if (lower === "none" || lower === "off" || lower === "false" || lower === "0") {
+    return "base"
+  }
+
+  // Защита от случайных/враждебных значений в query param.
+  if (!/^[a-z0-9_-]+$/i.test(value)) {
+    return "base"
+  }
+
+  return value
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<Params> },
@@ -14,7 +31,7 @@ export async function GET(
 
   const { taskId } = await params
   const { searchParams } = new URL(request.url)
-  const imageId = searchParams.get("imageId")?.trim() || "base"
+  const imageId = normalizeImageId(searchParams.get("imageId"))
 
   const requestedImagePath = getTaskCatalogFilePath(taskId, `${imageId}.png`)
 

@@ -1,3 +1,13 @@
+import {
+  DEFAULT_SANDPACK_UI_KIT_ID,
+  normalizeSandpackUiKitId,
+  sandpackUiKitsConfig,
+  type SandpackUiKitId,
+  validateSandpackUiKitsConfig,
+} from "@/lib/lab/sandpack-ui-kits.config"
+import { loadSandpackDefaultTemplates } from "@/lib/lab/sandpack-default-templates"
+import { fallbackAppTsx } from "@/lib/lab/sandpack-template-fallback"
+
 type SandpackFileEntry = string | {
   code: string
   hidden?: boolean
@@ -27,7 +37,7 @@ type SandpackPreviewSourceFiles = {
   uiBadge: string
   systemUtils: string
   previewCss?: string
-  shadcnFiles: Record<string, string>
+  shadcnFiles?: Record<string, string>
 }
 
 type SandpackPreviewPayload = {
@@ -44,230 +54,34 @@ type SandpackPreviewPayload = {
   }
 }
 
+type SandpackAppTemplateOptions = {
+  appTsx: string
+  previewCss: string | null
+  levelTemplateRuntime: string
+}
+
 const defaultStylesSource = "export const styles = {};\n"
 const defaultMockSource = "export const mock = {};\n"
 const defaultPropsSource = "export {};\n"
 
-const packageJson = {
+const baseDependencies = {
+  "@types/react": "^19.0.8",
+  "@types/react-dom": "^19.0.3",
+  react: "^19.0.0",
+  "react-dom": "^19.0.0",
+  "react-scripts": "^5.0.1",
+  typescript: "^5.0.0",
+}
+
+const basePackageJson = {
   main: "/index.tsx",
-  dependencies: {
-    "@radix-ui/react-accordion": "^1.2.12",
-        "@radix-ui/react-alert-dialog": "^1.1.15",
-        "@radix-ui/react-avatar": "^1.1.11",
-        "@radix-ui/react-checkbox": "^1.3.3",
-        "@radix-ui/react-collapsible": "^1.1.12",
-        "@radix-ui/react-context-menu": "^2.2.16",
-        "@radix-ui/react-dialog": "^1.1.15",
-        "@radix-ui/react-dropdown-menu": "^2.1.16",
-        "@radix-ui/react-hover-card": "^1.1.15",
-        "@radix-ui/react-label": "^2.1.8",
-        "@radix-ui/react-menubar": "^1.1.16",
-        "@radix-ui/react-navigation-menu": "^1.2.14",
-        "@radix-ui/react-popover": "^1.1.15",
-        "@radix-ui/react-progress": "^1.1.8",
-        "@radix-ui/react-radio-group": "^1.3.8",
-        "@radix-ui/react-scroll-area": "^1.2.10",
-        "@radix-ui/react-select": "^2.2.6",
-        "@radix-ui/react-separator": "^1.1.8",
-        "@radix-ui/react-slider": "^1.3.6",
-        "@radix-ui/react-slot": "^1.2.4",
-        "@radix-ui/react-switch": "^1.2.6",
-        "@radix-ui/react-tabs": "^1.1.13",
-        "@radix-ui/react-tooltip": "^1.2.8",
-    "@types/react": "^19.0.8",
-    "@types/react-dom": "^19.0.3",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "^1.16.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-scripts": "^5.0.1",
-    "tailwind-merge": "^3.5.0",
-    "typescript": "^5.0.0",
-  },
+  dependencies: baseDependencies,
 }
 
-const tsconfigJson = {
-  compilerOptions: {
-    target: "ESNext",
-    useDefineForClassFields: true,
-    lib: ["DOM", "DOM.Iterable", "ESNext"],
-    allowJs: true,
-    skipLibCheck: true,
-    esModuleInterop: true,
-    allowSyntheticDefaultImports: true,
-    strict: true,
-    forceConsistentCasingInFileNames: true,
-    module: "ESNext",
-    moduleResolution: "Node",
-    resolveJsonModule: true,
-    isolatedModules: true,
-    noEmit: true,
-    jsx: "react-jsx",
-  },
-  include: ["./**/*"],
+function buildMainTsx(indexTsxTemplate: string, indexTsxImports: string[] = []) {
+  const extraImports = indexTsxImports.length ? `${indexTsxImports.join("\n")}\n` : ""
+  return indexTsxTemplate.replace("/* __EXTRA_IMPORTS__ */", extraImports)
 }
-
-const indexHtml = `<!DOCTYPE html>
-<html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>desengine preview</title>
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
-</html>
-`
-
-const tailwindConfigJs = `
-module.exports = {
-  content: ["./**/*.{js,jsx,ts,tsx}"],
-  theme: {
-    extend: {
-      colors: {
-        border: "var(--border)",
-        input: "var(--input)",
-        ring: "var(--ring)",
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-        primary: {
-          DEFAULT: "var(--primary)",
-          foreground: "var(--primary-foreground)",
-        },
-        secondary: {
-          DEFAULT: "var(--secondary)",
-          foreground: "var(--secondary-foreground)",
-        },
-        destructive: {
-          DEFAULT: "var(--destructive)",
-          foreground: "var(--destructive-foreground)",
-        },
-        muted: {
-          DEFAULT: "var(--muted)",
-          foreground: "var(--muted-foreground)",
-        },
-        accent: {
-          DEFAULT: "var(--accent)",
-          foreground: "var(--accent-foreground)",
-        },
-        popover: {
-          DEFAULT: "var(--popover)",
-          foreground: "var(--popover-foreground)",
-        },
-        card: {
-          DEFAULT: "var(--card)",
-          foreground: "var(--card-foreground)",
-        },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-      },
-    },
-  },
-  plugins: [],
-}
-`
-
-const postcssConfigJs = `
-module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}
-`
-
-const previewCssSource = `
-:root {
-  --background: #ffffff;
-  --foreground: #111318;
-  --card: #ffffff;
-  --card-foreground: #111318;
-  --popover: #ffffff;
-  --popover-foreground: #111318;
-  --primary: #111318;
-  --primary-foreground: #ffffff;
-  --secondary: #f4f6f8;
-  --secondary-foreground: #111318;
-  --muted: #f4f6f8;
-  --muted-foreground: #5f6672;
-  --accent: #f4f6f8;
-  --accent-foreground: #111318;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: #e2e5ea;
-  --input: #e2e5ea;
-  --ring: #111318;
-  --radius: 0.375rem;
-}
-
-html,
-body,
-#root {
-  min-height: 100%;
-  margin: 0;
-}
-
-body {
-  background: transparent;
-  color: var(--foreground);
-}
-
-.desengine-preview-root {
-  min-height: 100vh;
-}
-`
-
-const mainTsx = `import React, { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-
-import "./styles.css";
-import App from "./App";
-
-const rootElement = document.getElementById("root");
-
-if (!rootElement) {
-  throw new Error("Preview root element not found");
-}
-
-createRoot(rootElement).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
-`
-
-const appTsx = `import React from "react";
-
-import Component from "./Component";
-import * as mockModule from "./mock";
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function pickPreviewProps(): Record<string, unknown> {
-  const explicit = (mockModule as { mockProps?: unknown; mock?: unknown }).mockProps ?? (mockModule as { mock?: unknown }).mock;
-
-  if (isPlainObject(explicit)) {
-    return explicit;
-  }
-
-  return {};
-}
-
-export default function App() {
-  return (
-    <main className="desengine-preview-root">
-      <Component {...pickPreviewProps()} />
-    </main>
-  );
-}
-`
 
 // const previewCssSource = `
 // :root {
@@ -364,13 +178,46 @@ function rewriteRootAliasImports(code: string, relativeRoot: string) {
     .replaceAll("import('@/", `import('${relativeRoot}`)
 }
 
-function buildSandpackPreviewPayload(sourceFiles: SandpackPreviewSourceFiles): SandpackPreviewPayload {
+function buildSandpackPreviewPayload(
+  sourceFiles: SandpackPreviewSourceFiles,
+  options: {
+    uiKitId?: SandpackUiKitId | string | null
+    appTemplate?: SandpackAppTemplateOptions | null
+  } = {},
+): SandpackPreviewPayload {
+  validateSandpackUiKitsConfig()
+
+  const templates = loadSandpackDefaultTemplates()
+
+  const resolvedUiKitId = typeof options.uiKitId === "string"
+    ? normalizeSandpackUiKitId(options.uiKitId)
+    : (options.uiKitId ?? DEFAULT_SANDPACK_UI_KIT_ID)
+
+  const uiKit = sandpackUiKitsConfig[resolvedUiKitId] ?? sandpackUiKitsConfig[DEFAULT_SANDPACK_UI_KIT_ID]
+  const dependencies = {
+    ...basePackageJson.dependencies,
+    ...uiKit.dependencies,
+  }
+
+  const appTemplate = options.appTemplate ?? null
+  const resolvedAppTsx = appTemplate?.appTsx ?? fallbackAppTsx
+  const resolvedLevelRuntime = appTemplate?.levelTemplateRuntime ?? "export const levelRuntime = {} as const;\n"
+  const resolvedPreviewCss = (() => {
+    const previewCssBase = sourceFiles.previewCss ?? templates.previewCssSource
+    const levelCss = appTemplate?.previewCss
+    if (!levelCss) return previewCssBase
+    return `${previewCssBase}\n\n/* level preview.css */\n${levelCss}\n`
+  })()
+
+  const packageJsonBase = templates.packageJson
+
   const files: SandpackPreviewFiles = {
-    "/public/index.html": hidden(indexHtml),
-    "/package.json": hidden(JSON.stringify(packageJson, null, 2)),
-    "/tsconfig.json": hidden(JSON.stringify(tsconfigJson, null, 2)),
-    "/index.tsx": hidden(mainTsx),
-    "/App.tsx": hidden(appTsx),
+    "/public/index.html": hidden(templates.indexHtml),
+    "/package.json": hidden(JSON.stringify({ ...packageJsonBase, ...basePackageJson, dependencies }, null, 2)),
+    "/tsconfig.json": hidden(JSON.stringify(templates.tsconfigJson, null, 2)),
+    "/index.tsx": hidden(buildMainTsx(templates.indexTsxTemplate, uiKit.indexTsxImports)),
+    "/App.tsx": hidden(resolvedAppTsx || ""),
+    "/level-template-runtime.ts": hidden(resolvedLevelRuntime),
     "/Component.tsx": {
       code: rewriteRootAliasImports(sourceFiles.component, "./"),
       readOnly: true,
@@ -379,8 +226,7 @@ function buildSandpackPreviewPayload(sourceFiles: SandpackPreviewSourceFiles): S
     "/styles.ts": hidden(sourceFiles.styles ?? defaultStylesSource),
     "/mock.ts": hidden(sourceFiles.mock ?? defaultMockSource),
     "/props.ts": hidden(sourceFiles.props ?? defaultPropsSource),
-    "/styles.css": hidden(sourceFiles.previewCss ?? previewCssSource),
-    ...toHiddenFiles(sourceFiles.shadcnFiles, "../../"),
+    "/styles.css": hidden(resolvedPreviewCss),
     "/lib/system/utils.ts": hidden(sourceFiles.systemUtils),
     "/lib/utils.ts": hidden(`
       import { clsx, type ClassValue } from "clsx"
@@ -389,14 +235,19 @@ function buildSandpackPreviewPayload(sourceFiles: SandpackPreviewSourceFiles): S
         return twMerge(clsx(inputs))
       }
       `),
-    "/tailwind.config.js": hidden(tailwindConfigJs),
-    "/postcss.config.js": hidden(postcssConfigJs),
+    "/tailwind.config.js": hidden(templates.tailwindConfigJs),
+    "/postcss.config.js": hidden(templates.postcssConfigJs),
+  }
+
+  if (resolvedUiKitId === "shadcn") {
+    files["/components/ui/badge.tsx"] = hidden(rewriteRootAliasImports(sourceFiles.uiBadge, "../../"))
+    Object.assign(files, toHiddenFiles(sourceFiles.shadcnFiles ?? {}, "../../"))
   }
 
   return {
     files,
     customSetup: {
-      dependencies: packageJson.dependencies,
+      dependencies,
       entry: "/index.tsx",
       environment: "create-react-app",
     },

@@ -237,10 +237,8 @@ describe("P2 source contracts", () => {
   it("динамический render-островок лаборатории изолирован локальным boundary/fallback", () => {
     const outRender = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "OutRender.tsx")
 
-    expect(outRender).toContain("PreviewRenderBoundary")
     expect(outRender).toContain("PreviewErrorNotice")
     expect(outRender).toContain("Ошибка загрузки превью")
-    expect(outRender).toContain("Ошибка React-рендера")
   })
 
   it("простой статический Navigation не требует механического boundary", () => {

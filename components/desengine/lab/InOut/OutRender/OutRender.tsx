@@ -72,48 +72,45 @@ function OutRender({ task, started, reloadKey, startStatus }: OutRenderProps) {
                     {error ? (
                         <PreviewErrorNotice message={error} />
                     ) : previewPayload ? (
-                        <SandpackProvider
-                            key={moduleUrl}
-                            template="react-ts"
-                            theme={{
-
-    colors: {
-
-      surface1: "#ffffff",
-
-      surface2: "#ffffff",
-
-      surface3: "#ffffff",
-
-    },
-
-  }}
-                            files={previewPayload.files}
-                            customSetup={previewPayload.customSetup}
-                            options={{
-                                ...previewPayload.options,
-                                autorun: true,
-                                autoReload: true,
-                                bundlerTimeOut: 180000,
-                                initMode: "immediate",
-                                recompileMode: "immediate",
-                            }}
-                        >
-                            <SandpackPreview
-                                showNavigator={false}
-                                showOpenInCodeSandbox={false}
-                                showOpenNewtab={false}
-                                showRefreshButton={false}
-                                showRestartButton={false}
-                                showSandpackErrorOverlay
-                                style={{
-                                    minHeight: 128,
-                                    overflow: "hidden",
-                                    background: "#ffffff",
-                                    height: "100%",
+                        <div className="w-full">
+                            <SandpackProvider
+                                key={moduleUrl}
+                                template="react-ts"
+                                theme={{
+                                    colors: {
+                                        surface1: "#ffffff",
+                                        surface2: "#ffffff",
+                                        surface3: "#ffffff",
+                                    },
                                 }}
-                            />
-                        </SandpackProvider>
+                                files={previewPayload.files}
+                                customSetup={previewPayload.customSetup}
+                                options={{
+                                    ...previewPayload.options,
+                                    autorun: true,
+                                    autoReload: true,
+                                    bundlerTimeOut: 180000,
+                                    initMode: "immediate",
+                                    recompileMode: "immediate",
+                                }}
+                            >
+                                <SandpackPreview
+                                    showNavigator={false}
+                                    showOpenInCodeSandbox={false}
+                                    showOpenNewtab={false}
+                                    showRefreshButton={false}
+                                    showRestartButton={false}
+                                    showSandpackErrorOverlay
+                                    style={{
+                                        minHeight: 128,
+                                        overflow: "hidden",
+                                        background: "#ffffff",
+                                        height: "100%",
+                                        width: "100%",
+                                    }}
+                                />
+                            </SandpackProvider>
+                        </div>
                     ) : (
                         <p className="text-muted-foreground">Загрузка рендера…</p>
                     )}

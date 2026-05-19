@@ -34,6 +34,28 @@
 - **THEN** preview runtime считает такую UI-зависимость поддерживаемой
 - **AND** не показывает ошибку `Неподдерживаемая зависимость`
 
+### Requirement: Пользователь выбирает UI kit для Sandpack preview в настройках
+
+Система SHALL позволять пользователю выбрать, какой UI kit будет подключён в Sandpack preview (глобально для локальной системы), чтобы управлять доступным набором UI-компонентов в виртуальном проекте.
+
+Источник настройки SHALL быть `desengine.config.txt`, параметр `SANDPACK_UI_KIT`.
+
+#### Scenario: По умолчанию включён shadcn/ui
+- **WHEN** `SANDPACK_UI_KIT` не задан
+- **THEN** preview подключает `shadcn/ui` как активный UI kit
+
+#### Scenario: Пользователь отключает UI kit
+- **WHEN** `SANDPACK_UI_KIT=none`
+- **THEN** preview не подключает дополнительные UI kit'ы (кроме стандартного React runtime)
+
+#### Scenario: Пользователь включает Ant Design
+- **WHEN** `SANDPACK_UI_KIT=ant`
+- **THEN** preview подключает Ant Design как активный UI kit
+
+#### Scenario: Пользователь включает Material UI
+- **WHEN** `SANDPACK_UI_KIT=mui`
+- **THEN** preview подключает Material UI как активный UI kit
+
 ### Requirement: API картинок задачи использует единый канонический endpoint
 
 Система SHALL отдавать картинки задачи через единый endpoint `GET /api/tasks/:taskId/image` с параметром `imageId`.
@@ -46,4 +68,3 @@
 - **WHEN** клиент делает запрос `GET /api/tasks/:taskId/images/:imageId`
 - **THEN** система не предоставляет этот дублирующий endpoint
 - **AND** каноническим остаётся только `GET /api/tasks/:taskId/image`
-

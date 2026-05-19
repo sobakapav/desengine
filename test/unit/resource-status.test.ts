@@ -8,6 +8,7 @@
 // @openSpec  - "Карточка ресурса показывает встроенный контрол исправления"
 // @openSpec  - "Старая версия системы показывается предупреждением"
 // @openSpec  - "Нерелизное Git-состояние не блокирует систему"
+// @openSpec  - "Недоступность remote-релизов не создаёт ложную тревогу при точном релизном теге"
 // @openSpec  - "Разработчик запускает unit-проверку статусов ресурсов"
 // @openSpec  - "Разработчик запускает traceability-проверку"
 // @openSpec capability: access-control
@@ -213,6 +214,16 @@ describe("resource status resolver", () => {
         nearestVersion: "v0.1.6",
       }),
     ).toBe("development")
+  })
+
+  it("не тревожит пользователя, если онлайн-проверка релиза недоступна, но HEAD на точном релизном теге", () => {
+    expect(
+      getSystemReleaseCondition({
+        currentVersion: "v0.1.6",
+        latestVersion: null,
+        nearestVersion: "v0.1.6",
+      }),
+    ).toBe("upToDate")
   })
 
   it("явно падает при неизвестном condition ресурса", () => {

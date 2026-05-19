@@ -1,10 +1,45 @@
 import "server-only"
 
 import { execFile } from "node:child_process"
+import fs from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
 
 const execFileAsync = promisify(execFile)
-const repoRoot = process.cwd()
+
+function tryResolveRepoRootFromCwd() {
+  // `npm run start` может запускать Next.js из `.next/standalone`, из-за чего `process.cwd()`
+  // не совпадает с корнем репозитория и git-команды начинают выполняться не там.
+  let currentDir = process.cwd()
+
+  for (let i = 0; i < 10; i += 1) {
+    const packageJsonPath = path.join(currentDir, "package.json")
+
+    if (fs.existsSync(packageJsonPath)) {
+      try {
+        const raw = fs.readFileSync(packageJsonPath, "utf8")
+        const parsedPackage = JSON.parse(raw) as { name?: string }
+
+        if (parsedPackage.name === "desengine") {
+          return currentDir
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    const parentDir = path.dirname(currentDir)
+    if (parentDir === currentDir) break
+    currentDir = parentDir
+  }
+
+  return null
+}
+
+const repoRoot =
+  tryResolveRepoRootFromCwd() ??
+  path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..")
 
 type ReleaseVersion = {
   major: number
@@ -106,6 +141,17 @@ function getSystemReleaseCondition(params: {
   nearestVersion: string | null
 }): SystemReleaseCondition {
   if (!params.latestVersion) {
+    // Если система запущена из точного релизного тега, но онлайн-проверка origin недоступна,
+    // это допустимый сценарий: не тревожим пользователя ложным warning.
+    if (params.currentVersion) {
+      return "upToDate"
+    }
+
+    // Если релизный тег не подтверждён, считаем состояние dev-подобным.
+    if (params.nearestVersion) {
+      return "development"
+    }
+
     return "unavailable"
   }
 
