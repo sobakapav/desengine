@@ -3,6 +3,17 @@ import type { LlmCallRecord } from "../llm/types"
 type PromptName = "default" | "iterate-component" | "start-component"
 type PromptKind = "production" | "didactic"
 
+type PromptRenderContext = {
+  user?: {
+    designSystemId?: string
+  }
+  task?: Record<string, unknown>
+  level?: {
+    id: string
+    number: number
+  }
+}
+
 type PromptHistoryEntry = {
   text: string
   createdAt: string
@@ -19,5 +30,6 @@ type PromptHistoryEntry = {
 export type {
   PromptName,
   PromptKind,
+  PromptRenderContext,
   PromptHistoryEntry,
 }

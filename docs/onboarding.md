@@ -29,7 +29,7 @@ ONBOARDING_REPO_URL=https://github.com/sobakapav/desengine-onboarding.git
 
 - `onboarding/levels/**`
 - `onboarding/tasks/**`
-- `onboarding/prompts/default.md`
+- `onboarding/prompts/default.njk`
 - `onboarding/prompts/levels/**`
 
 Если обязательные каталоги или файлы отсутствуют, приложение должно показать проблему в диагностике вместо тихого fallback к legacy-структуре.
