@@ -2,6 +2,13 @@
 // @openSpec scenarios:
 // @openSpec  - "Пользователь видит референс и результат"
 // @openSpec  - "Пользователь открывает рабочий экран на desktop"
+// @openSpec capability: task
+// @openSpec scenarios:
+// @openSpec  - "Preview принимает UI-импорты из components/ui"
+// @openSpec  - "По умолчанию включён shadcn/ui"
+// @openSpec  - "Пользователь отключает UI kit"
+// @openSpec  - "Пользователь включает Ant Design"
+// @openSpec  - "Пользователь включает Material UI"
 // @openSpec capability: ui-foundation
 // @openSpec scenarios:
 // @openSpec  - "Команда работает с динамическим render-островком"
@@ -9,6 +16,10 @@
 import { describe, expect, it } from "vitest"
 
 import { buildSandpackPreviewPayload } from "../../lib/lab/sandpack-preview"
+import {
+  normalizeSandpackUiKitId,
+  validateSandpackUiKitsConfig,
+} from "../../lib/lab/sandpack-ui-kits.config"
 
 const badgeSource = `import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -43,6 +54,21 @@ export function cn(...inputs: ClassValue[]) {
 `
 
 describe("buildSandpackPreviewPayload", () => {
+  it("нормализует SANDPACK_UI_KIT и по умолчанию включает shadcn", () => {
+    expect(normalizeSandpackUiKitId(undefined)).toBe("shadcn")
+    expect(normalizeSandpackUiKitId("")).toBe("shadcn")
+    expect(normalizeSandpackUiKitId("ant")).toBe("ant")
+    expect(normalizeSandpackUiKitId("antd")).toBe("ant")
+    expect(normalizeSandpackUiKitId("mui")).toBe("mui")
+    expect(normalizeSandpackUiKitId("none")).toBe("none")
+    expect(normalizeSandpackUiKitId("off")).toBe("none")
+    expect(normalizeSandpackUiKitId("что-то-непонятное")).toBe("shadcn")
+  })
+
+  it("держит внешний конфиг UI kit'ов валидным", () => {
+    expect(() => validateSandpackUiKitsConfig()).not.toThrow()
+  })
+
   it("собирает preview-проект с настоящим Badge вместо HTML-заглушки", () => {
     const payload = buildSandpackPreviewPayload({
       component: `import { Badge } from "@/components/ui/badge";
@@ -75,6 +101,72 @@ export default function Component() {
     }))
   })
 
+  it("умеет выключать shadcn/ui через uiKitId=none", () => {
+    const payload = buildSandpackPreviewPayload(
+      {
+        component: `export default function Component() {
+  return <div>Preview</div>;
+}
+`,
+        uiBadge: badgeSource,
+        systemUtils: utilsSource,
+      },
+      { uiKitId: "none" },
+    )
+
+    expect(payload.customSetup.dependencies).not.toMatchObject({
+      "@radix-ui/react-dialog": expect.any(String),
+    })
+    expect(payload.files["/components/ui/badge.tsx"]).toBeUndefined()
+  })
+
+  it("подключает Ant Design через адаптер (antd + reset.css)", () => {
+    const payload = buildSandpackPreviewPayload(
+      {
+        component: `import { Button } from "antd";
+
+export default function Component() {
+  return <Button type="primary">Кнопка</Button>;
+}
+`,
+        uiBadge: badgeSource,
+        systemUtils: utilsSource,
+      },
+      { uiKitId: "ant" },
+    )
+
+    expect(payload.customSetup.dependencies).toMatchObject({
+      antd: expect.any(String),
+    })
+    expect(payload.files["/index.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('import "antd/dist/reset.css";'),
+    }))
+    expect(payload.files["/components/ui/badge.tsx"]).toBeUndefined()
+  })
+
+  it("подключает Material UI через адаптер (@mui/material + emotion)", () => {
+    const payload = buildSandpackPreviewPayload(
+      {
+        component: `import { Button } from "@mui/material";
+
+export default function Component() {
+  return <Button variant="contained">Кнопка</Button>;
+}
+`,
+        uiBadge: badgeSource,
+        systemUtils: utilsSource,
+      },
+      { uiKitId: "mui" },
+    )
+
+    expect(payload.customSetup.dependencies).toMatchObject({
+      "@mui/material": expect.any(String),
+      "@emotion/react": expect.any(String),
+      "@emotion/styled": expect.any(String),
+    })
+    expect(payload.files["/components/ui/badge.tsx"]).toBeUndefined()
+  })
+
   it("подключает Tailwind CSS и client-bundler runtime к виртуальному проекту", () => {
     const payload = buildSandpackPreviewPayload({
       component: `export default function Component() {
@@ -85,6 +177,9 @@ export default function Component() {
       systemUtils: utilsSource,
     })
 
+    expect(payload.files["/level-template-runtime.ts"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("export const levelRuntime"),
+    }))
     expect(payload.files["/styles.css"]).toEqual(expect.objectContaining({
       code: expect.stringContaining('[class~="hover:bg-muted"]:hover'),
     }))

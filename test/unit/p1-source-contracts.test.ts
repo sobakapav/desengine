@@ -11,12 +11,13 @@
 // @openSpec  - "Система читает каталог уровней"
 // @openSpec  - "Runtime загружает каталог уровней"
 // @openSpec  - "Система читает метаданные задачи"
+// @openSpec  - "Система нормализует maxLevel задачи"
 // @openSpec  - "Пользователь завершил текущий уровень задачи"
 // @openSpec  - "Пользователь впервые входит в новый уровень задачи"
 // @openSpec  - "Система загружает конфигурацию уровня"
 // @openSpec  - "Новый уровень запрещает файл, существовавший раньше"
 // @openSpec  - "Пользователь завершил максимальный уровень задачи"
-// @openSpec  - "Пользователь нажал `Проверить результат`"
+// @openSpec  - "Пользователь нажал `Я закончил`"
 // @openSpec  - "Пользователь открывает результат проверки по каноническому route"
 // @openSpec  - "Проверка уровня успешна"
 // @openSpec  - "Пользователь запускает проверки результата уровня"
@@ -113,18 +114,15 @@ describe("P1 source contracts", () => {
 
   it("task runtime применяет fallback/error-boundary контракт для пользовательского render", () => {
     const outRender = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "OutRender.tsx")
-    const moduleRoute = readProjectFile("app", "api", "tasks", "[taskId]", "module", "route.ts")
+    const sandpackRoute = readProjectFile("app", "api", "tasks", "[taskId]", "sandpack", "route.ts")
     const startRoute = readProjectFile("app", "api", "tasks", "[taskId]", "start", "route.ts")
     const iterateRoute = readProjectFile("app", "api", "tasks", "[taskId]", "iterate", "route.ts")
 
-    expect(outRender).toContain("PreviewRenderBoundary")
     expect(outRender).toContain("PreviewErrorNotice")
     expect(outRender).toContain("Ошибка загрузки превью")
-    expect(outRender).toContain("Ошибка React-рендера")
-    expect(moduleRoute).toContain('"@/components/ui/Button"')
-    expect(moduleRoute).toContain('specifier.startsWith("@/components/ui/")')
-    expect(moduleRoute).toContain("RadioGroup")
-    expect(moduleRoute).toContain("SelectTrigger")
+    expect(outRender).toContain('width: "100%"')
+    expect(sandpackRoute).toContain("buildSandpackPreviewPayload")
+    expect(sandpackRoute).toContain("readFilesRecursively")
     expect(startRoute).toContain("validateGeneratedFilesPayload")
     expect(iterateRoute).toContain("validateGeneratedFilesPayload")
   })
@@ -135,6 +133,7 @@ describe("P1 source contracts", () => {
     expect(source).toContain("readLevelsCatalogRaw")
     expect(source).toContain("LevelsCatalogSchema.parse")
     expect(source).toContain("TaskConfigSchema.parse")
+    expect(source).toContain("FORCED_TASK_MAX_LEVEL = 3")
     expect(source).toContain("buildTaskLabContext")
     expect(source).toContain("readLevelCommonExplanation")
     expect(source).toContain("readTaskLevelTip")

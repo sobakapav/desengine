@@ -6,7 +6,12 @@ import {
   buildSandpackPreviewPayload,
   type SandpackPreviewSourceFiles,
 } from "@/lib/lab/sandpack-preview"
-import { getTaskListItemById } from "@/lib/system/server"
+import {
+  buildLevelTemplateRuntimeSource,
+  readLevelSandpackTemplate,
+} from "@/lib/lab/sandpack-template"
+import { normalizeSandpackUiKitId } from "@/lib/lab/sandpack-ui-kits.config"
+import { getLevelsCatalog, getTaskListItemById } from "@/lib/system/server"
 import { getUserTaskFilePath } from "@/lib/user/server"
 import { readFilesRecursively } from "@/lib/system/shadcn-files"
 
@@ -22,10 +27,19 @@ async function readUserTaskFile(taskId: string, fileName: string, fallback = "")
   return readFile(getUserTaskFilePath(taskId, fileName), "utf-8").catch(() => fallback)
 }
 
-const shadcnFiles = await readFilesRecursively(
-  path.join(process.cwd(), "components", "ui"),
-  "/components/ui"
-)
+const sandpackUiKitId = normalizeSandpackUiKitId(process.env.SANDPACK_UI_KIT)
+
+function pickPreviewLevelNumber(taskItem: { progress: { currentLevel: number, currentLevelNotStarted: boolean } }) {
+  if (taskItem.progress.currentLevel <= 1) {
+    return 1
+  }
+
+  if (taskItem.progress.currentLevelNotStarted) {
+    return taskItem.progress.currentLevel - 1
+  }
+
+  return taskItem.progress.currentLevel
+}
 
 export async function GET(
   _request: Request,
@@ -41,28 +55,51 @@ export async function GET(
     return Response.json({ ok: false, error: "Задание не найдено" }, { status: 404 })
   }
 
+  const levels = await getLevelsCatalog()
+  const previewLevelNumber = pickPreviewLevelNumber(taskItem)
+  const previewLevel = levels.find((level) => level.number === previewLevelNumber) ?? null
+
+  if (!previewLevel) {
+    return Response.json(
+      { ok: false, error: `Уровень ${previewLevelNumber} не найден в каталоге` },
+      { status: 500 },
+    )
+  }
+
+  const [levelTemplate, levelTemplateRuntimeSource] = await Promise.all([
+    readLevelSandpackTemplate(previewLevel.id),
+    Promise.resolve(buildLevelTemplateRuntimeSource({
+      levelId: previewLevel.id,
+      levelNumber: previewLevel.number,
+      labId: previewLevel.labId,
+    })),
+  ])
+
   const [
     component,
     stories,
     styles,
     mock,
     props,
-    uiBadge,
     systemUtils,
-    shadcnFiles,
   ] = await Promise.all([
     readUserTaskFile(taskId, "Component.tsx"),
     readUserTaskFile(taskId, "Component.stories.ts", "export {};\n"),
     readUserTaskFile(taskId, "styles.ts", "export const styles = {};\n"),
     readUserTaskFile(taskId, "mock.ts", "export const mock = {};\n"),
     readUserTaskFile(taskId, "props.ts", "export {};\n"),
-    readFile(uiBadgePath, "utf-8"),
     readFile(systemUtilsPath, "utf-8"),
-    readFilesRecursively(
-      path.join(process.cwd(), "components", "ui"),
-      "/components/ui"
-    ),
   ])
+
+  const [uiBadge, shadcnFiles] = sandpackUiKitId === "shadcn"
+    ? await Promise.all([
+      readFile(uiBadgePath, "utf-8"),
+      readFilesRecursively(
+        path.join(process.cwd(), "components", "ui"),
+        "/components/ui"
+      ),
+    ])
+    : ["", {} as Record<string, string>]
 
   if (!component.trim()) {
     return Response.json(
@@ -77,15 +114,22 @@ export async function GET(
     styles,
     mock,
     props,
-    uiBadge,
     systemUtils,
+    uiBadge,
     shadcnFiles,
   }
 
   return Response.json(
     {
       ok: true,
-      ...buildSandpackPreviewPayload(sourceFiles),
+      ...buildSandpackPreviewPayload(sourceFiles, {
+        uiKitId: sandpackUiKitId,
+        appTemplate: {
+          appTsx: levelTemplate.appTsx,
+          previewCss: levelTemplate.previewCss,
+          levelTemplateRuntime: levelTemplateRuntimeSource,
+        },
+      }),
     },
     {
       headers: {

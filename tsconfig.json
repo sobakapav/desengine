@@ -30,5 +30,10 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "user/**/*"]
+  "exclude": [
+    "node_modules",
+    "user/**/*",
+    "onboarding/levels/**/sandpack/**",
+    "lib/lab/sandpack-templates/**"
+  ]
 }

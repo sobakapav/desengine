@@ -46,6 +46,7 @@ a {
 .sp-preview,
 .sp-preview-container,
 .sp-preview-iframe {
+  width: 100%;
   background: #ffffff !important;
 }
 
