@@ -38,6 +38,10 @@ describe("change testing guidance", () => {
 
     expect(source).toContain("CAPABILITY_PATTERN")
     expect(source).toContain("SCENARIO_ITEM_PATTERN")
+    expect(source).toContain("validateShortRules")
+    expect(source).toContain("должно начинаться с маленькой буквы")
+    expect(source).toContain("должно быть не длиннее 75 символов")
+    expect(source).toContain("не должно заканчиваться знаком препинания")
     expect(source).toContain("coverage-plan")
     expect(source).toContain("ссылается на неизвестный capability")
     expect(source).toContain("ссылается на неизвестный scenario")
@@ -69,9 +73,14 @@ describe("change testing guidance", () => {
 
     expect(source).toContain("TEST_CHECKLIST_HEADING")
     expect(source).toContain("## Тестовая часть change")
+    expect(source).toContain("METADATA_DEFAULTS")
+    expect(source).toContain("short_policy")
+    expect(source).toContain("review_sync_state")
+    expect(source).toContain('"none"')
+    expect(source).toContain("краткое описание change")
     expect(source).toContain("ensureTestChecklist(changeDir)")
     expect(source).toContain("test/traceability/coverage-plan.json")
-    expect(source).toContain("Добавлен тестовый чеклист")
+    expect(source).toContain("Обновлены поля metadata")
   })
 
   it("документация показывает пример тестовой части и правило coverage-plan", () => {

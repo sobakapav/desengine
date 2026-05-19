@@ -76,11 +76,19 @@ Root-карта документации:
 
 ### `npm run openspec:new -- <name>`
 
-Создаёт новый OpenSpec change через штатный `openspec new change`, а затем гарантирует, что в `openspec/changes/<name>/.openspec.yaml` есть поле:
+Создаёт новый OpenSpec change через штатный `openspec new change`, а затем гарантирует, что в `openspec/changes/<name>/.openspec.yaml` есть базовые поля:
 
 ```yaml
-short: ""
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "краткое описание change"
 ```
+
+Для непустого `short` в changes с `short_policy: strict-v1` действует строгий контракт кастомной схемы:
+- начинается с маленькой буквы;
+- длина не превышает 75 символов;
+- в конце нет знака препинания.
 
 Примеры:
 

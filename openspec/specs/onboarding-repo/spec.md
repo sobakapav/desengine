@@ -30,9 +30,9 @@
 
 #### Scenario: Автор onboarding-уровня добавляет prompt проверки
 - **WHEN** уровню нужны дополнительные скрытые требования проверки
-- **THEN** автор может добавить файл `onboarding/prompts/levels/<levelId>/check.md`
+- **THEN** автор может добавить файл `onboarding/prompts/levels/<levelId>/check.njk`
 
 #### Scenario: Автор onboarding-уровня не добавляет prompt проверки
 - **WHEN** уровню не нужны дополнительные скрытые требования проверки
-- **THEN** файл `onboarding/prompts/levels/<levelId>/check.md` может отсутствовать
+- **THEN** файл `onboarding/prompts/levels/<levelId>/check.njk` может отсутствовать
 - **AND** runtime продолжает проверку уровня без дополнительной level-specific checking части

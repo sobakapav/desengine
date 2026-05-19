@@ -10,6 +10,7 @@ const TEST_FILE_PATTERN = /\.(?:test|spec)\.(?:js|jsx|mjs|ts|tsx)$/
 const SCENARIO_PATTERN = /^#### Scenario:\s*(.+?)\s*$/gm
 const CAPABILITY_PATTERN = /^\s*\/\/\s*@openSpec\s+capability:\s*([a-z0-9-]+)\s*$/i
 const SCENARIO_ITEM_PATTERN = /^\s*\/\/\s*@openSpec\s+-\s*"(.+)"\s*$/i
+const SHORT_PATTERN = /^short:\s*(.+)\s*$/m
 
 function readText(filePath) {
   return fs.readFileSync(filePath, "utf8")
@@ -101,12 +102,56 @@ function relative(filePath) {
   return path.relative(projectRoot, filePath)
 }
 
+function readChangeDirs(changesDir) {
+  if (!fs.existsSync(changesDir)) {
+    return []
+  }
+
+  return fs
+    .readdirSync(changesDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name !== "archive")
+    .map((entry) => path.join(changesDir, entry.name))
+}
+
+function parseShortFromMetadata(metadataText) {
+  const match = metadataText.match(SHORT_PATTERN)
+
+  if (!match) {
+    return null
+  }
+
+  return match[1].trim().replace(/^["']|["']$/g, "")
+}
+
+function validateShortRules(value) {
+  if (!value) {
+    return []
+  }
+
+  const violations = []
+
+  if (!/^\p{Ll}/u.test(value)) {
+    violations.push("должно начинаться с маленькой буквы")
+  }
+
+  if (value.length > 75) {
+    violations.push("должно быть не длиннее 75 символов")
+  }
+
+  if (/\p{P}$/u.test(value)) {
+    violations.push("не должно заканчиваться знаком препинания")
+  }
+
+  return violations
+}
+
 const specs = readSpecs()
 const coveragePlan = readCoveragePlan()
 const testFiles = walkFiles(testsRoot, (filePath) => TEST_FILE_PATTERN.test(filePath))
 const records = testFiles.flatMap(parseTestMetadata)
 const coveredScenarios = new Map()
 const errors = []
+const changesRoot = path.join(projectRoot, "openspec", "changes")
 
 for (const [capability, entry] of Object.entries(coveragePlan)) {
   if (!specs.has(capability)) {
@@ -117,6 +162,22 @@ for (const [capability, entry] of Object.entries(coveragePlan)) {
     if (!entry[field]) {
       errors.push(`coverage-plan.${capability} не содержит поле ${field}`)
     }
+  }
+}
+
+for (const changeDir of readChangeDirs(changesRoot)) {
+  const metadataPath = path.join(changeDir, ".openspec.yaml")
+
+  if (!fs.existsSync(metadataPath)) {
+    continue
+  }
+
+  const metadata = readText(metadataPath)
+  const short = parseShortFromMetadata(metadata)
+  const violations = validateShortRules(short)
+
+  for (const violation of violations) {
+    errors.push(`${relative(metadataPath)}: short ${violation}`)
   }
 }
 

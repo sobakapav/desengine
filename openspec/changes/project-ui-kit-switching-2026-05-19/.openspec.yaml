@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-05-19
+short_policy: "none"
+review_sync_state: "in-sync"
+issue: "https://github.com/sobakapav/desengine/issues/8"
+short: "переключение ui kit на уровне проекта без перезагрузки и html-режим"

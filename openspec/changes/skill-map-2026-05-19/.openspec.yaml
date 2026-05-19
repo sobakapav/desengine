@@ -1,0 +1,7 @@
+schema: spec-driven
+created: 2026-05-19
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "карта навыков: структура, связи и навигация по аттракторам"
+depends_on_change: "expertise-attractors-2026-05-19"

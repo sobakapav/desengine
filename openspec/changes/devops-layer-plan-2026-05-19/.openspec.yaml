@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-05-19
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "devops-слой: ci/cd, деплой, окружения и мониторинг без зависимости от llm"

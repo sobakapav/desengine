@@ -4,6 +4,12 @@ import { spawnSync } from "node:child_process"
 
 const METADATA_FILE = ".openspec.yaml"
 const TASKS_FILE = "tasks.md"
+const METADATA_DEFAULTS = [
+  { key: "short_policy", value: "none" },
+  { key: "review_sync_state", value: "none" },
+  { key: "issue", value: "" },
+  { key: "short", value: "краткое описание change" },
+]
 const TEST_CHECKLIST_HEADING = "## Тестовая часть change"
 const TEST_CHECKLIST = `${TEST_CHECKLIST_HEADING}
 
@@ -57,7 +63,7 @@ function parseArgs(argv) {
   return { help: false, changeName }
 }
 
-function ensureShortField(changeDir) {
+function ensureMetadataFields(changeDir) {
   const metadataPath = path.join(changeDir, METADATA_FILE)
 
   if (!fs.existsSync(metadataPath)) {
@@ -66,12 +72,26 @@ function ensureShortField(changeDir) {
 
   const metadata = fs.readFileSync(metadataPath, "utf8")
 
-  if (/^short:\s*/m.test(metadata)) {
+  let next = metadata.endsWith("\n") ? metadata : `${metadata}\n`
+  let changed = false
+
+  for (const field of METADATA_DEFAULTS) {
+    const pattern = new RegExp(`^${field.key}:\\s*`, "m")
+
+    if (pattern.test(next)) {
+      continue
+    }
+
+    const serializedValue = `"${field.value.replaceAll('"', '\\"')}"`
+    next = `${next}${field.key}: ${serializedValue}\n`
+    changed = true
+  }
+
+  if (!changed) {
     return false
   }
 
-  const normalized = metadata.endsWith("\n") ? metadata : `${metadata}\n`
-  fs.writeFileSync(metadataPath, `${normalized}short: ""\n`, "utf8")
+  fs.writeFileSync(metadataPath, next, "utf8")
   return true
 }
 
@@ -125,11 +145,11 @@ function main() {
     throw result.error
   }
 
-  const addedShort = ensureShortField(changeDir)
+  const addedMetadata = ensureMetadataFields(changeDir)
   const addedTestChecklist = ensureTestChecklist(changeDir)
 
-  if (addedShort) {
-    console.log(`Добавлено поле short в ${path.relative(projectRoot, path.join(changeDir, METADATA_FILE))}`)
+  if (addedMetadata) {
+    console.log(`Обновлены поля metadata в ${path.relative(projectRoot, path.join(changeDir, METADATA_FILE))}`)
   }
 
   if (addedTestChecklist) {
