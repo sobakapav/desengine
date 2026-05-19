@@ -1,7 +1,11 @@
+"use client"
+
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import type { InPictureProps } from "./props";
 import type { TaskLabImage } from "@/lib/task/types";
+import { KonvaImageInspector } from "@/components/desengine/system/ImageInspector";
 
 function ImageCard({
     task,
@@ -11,24 +15,40 @@ function ImageCard({
     image: { id: string; src: string; width: number; height: number };
 }) {
     const [src, setSrc] = useState(image.src);
+    const searchParams = useSearchParams();
+    const imageInspectorEnabled = searchParams.get("imageInspector") === "1";
 
     return (
         <div className="min-w-0">
-            <Image
-              src={src}
-              alt={`${task}-${image.id}`}
-              width={Math.max(image.width, 1)}
-              height={Math.max(image.height, 1)}
-              unoptimized
-              className="h-auto max-w-full rounded-md"
-              style={{ width: `${Math.max(image.width, 1)}px` }}
-              onError={() => {
-                  const fallbackSrc = `/api/tasks/${task}/image`;
-                  if (image.id === "base" && src !== fallbackSrc) {
-                      setSrc(fallbackSrc);
-                  }
-              }}
-            />
+            {imageInspectorEnabled ? (
+                <KonvaImageInspector
+                    src={src}
+                    alt={`${task}-${image.id}`}
+                    className="h-[520px]"
+                    onLoadError={() => {
+                        const fallbackSrc = `/api/tasks/${task}/image`;
+                        if (image.id === "base" && src !== fallbackSrc) {
+                            setSrc(fallbackSrc);
+                        }
+                    }}
+                />
+            ) : (
+                <Image
+                    src={src}
+                    alt={`${task}-${image.id}`}
+                    width={Math.max(image.width, 1)}
+                    height={Math.max(image.height, 1)}
+                    unoptimized
+                    className="h-auto max-w-full rounded-md"
+                    style={{ width: `${Math.max(image.width, 1)}px` }}
+                    onError={() => {
+                        const fallbackSrc = `/api/tasks/${task}/image`;
+                        if (image.id === "base" && src !== fallbackSrc) {
+                            setSrc(fallbackSrc);
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 }
