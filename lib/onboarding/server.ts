@@ -103,7 +103,7 @@ export async function validateOnboardingLayout(root: string): Promise<Onboarding
     }
   }
 
-  const requiredFiles = [path.join(promptsRoot, "default.md")]
+  const requiredFiles = [path.join(promptsRoot, "default.njk")]
 
   for (const filePath of requiredFiles) {
     if (!(await pathExists(filePath))) {
