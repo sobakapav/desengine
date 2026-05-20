@@ -24,6 +24,20 @@ Implement tasks from an OpenSpec change.
 
    Always announce: "Using change: <name>" and how to override (e.g., `/opsx:apply <other>`).
 
+   Перед началом реализации обязательно выполнить preflight:
+
+   ```bash
+   npm run os:begin -- <name>
+   ```
+
+   - Если change имеет `change_kind=dispatcher`, прямую реализацию НЕ запускать.
+   - Для dispatcher сначала создать исполнительский change:
+     ```bash
+     npm run os:begin -- <dispatcher-name> --spawn-implement implement-<name> --description "..."
+     ```
+   - После создания implement/fix продолжать работу уже в нём.
+   - Это правило действует и для "добавленных по ходу" хотелок в том же чате: каждая новая хотелка в dispatcher-контексте сначала уходит в новый implement/fix change, затем реализуется.
+
 2. **Check status to understand the schema**
    ```bash
    openspec status --change "<name>" --json
@@ -147,6 +161,8 @@ What would you like to do?
 - Update task checkbox immediately after completing each task
 - Pause on errors, blockers, or unclear requirements - don't guess
 - Use contextFiles from CLI output, don't assume specific file names
+- Никогда не выполнять кодовую реализацию в `dispatcher` change; dispatcher только декомпозирует работу в `implement`/`fix`
+- Если запрос пришёл в чат dispatcher и сформулирован как новая хотелка, сначала создать отдельный implement/fix change под эту хотелку, даже если пользователь не произнёс фразу "работаем над change"
 
 **Fluid Workflow Integration**
 

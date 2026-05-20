@@ -82,6 +82,7 @@ OpenSpec в этом change фиксирует продуктовый контр
 - проверки (если есть): валидация схемы и статическая проверка согласованности.
   - `npm run test:traceability` валидирует `short` у активных changes по правилам кастомной схемы.
   - `npm run test:traceability` валидирует `change_kind`, `execution_mode`, связи (`parent_change`, `strategy_root`, `roadmap_ref`), ссылку `release_ref` и implement-поля проверки.
+  - `npm run os:begin -- <change>` выполняет preflight: dispatcher не может перейти в режим прямой реализации и должен породить implement/fix change.
 
 ## Миграция
 

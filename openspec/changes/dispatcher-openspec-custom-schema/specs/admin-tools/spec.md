@@ -108,3 +108,17 @@
 - **THEN** `parent_change` пустой
 - **AND** другие changes не используют этот change как `parent_change`
 - **AND** любые changes могут ссылаться на release через `release_ref`
+
+### Requirement: Старт реализации проходит через preflight-команду
+
+Система SHALL перед началом реализации change использовать preflight-команду, которая блокирует прямую реализацию dispatcher и направляет работу в implement/fix changes.
+
+#### Scenario: Разработчик пытается начать реализацию dispatcher
+- **WHEN** запускается `npm run os:begin -- <dispatcher-change>`
+- **THEN** команда завершает preflight с отказом в прямой реализации
+- **AND** предлагает создать исполнительский change (`implement-*` или `fix-*`)
+
+#### Scenario: Разработчик создаёт implement из dispatcher через preflight
+- **WHEN** запускается `npm run os:begin -- <dispatcher-change> --spawn-implement <implement-change>`
+- **THEN** создаётся исполнительский change
+- **AND** в нём автоматически заполняются `parent_change` и `strategy_root` от dispatcher-контекста
