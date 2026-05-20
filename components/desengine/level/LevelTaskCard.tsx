@@ -57,7 +57,7 @@ export function LevelTaskCard({
             </Button>
           ) : (
             <Link
-              className="tool-link"
+             
               href={getLabUrl(task.id)}
             >
               Открыть задачу

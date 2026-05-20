@@ -14,13 +14,13 @@ export default async function HelpPage() {
   const helpPages = await listHelpPages()
 
   return (
-    <main className="tool-shell-page">
-      <div className="tool-shell-frame">
-        <section className="tool-shell-surface">
+    <main>
+      <div>
+        <section>
           <div className="space-y-3 border-b border-black/10 pb-5">
-            <div className="tool-eyebrow">desengine help</div>
-            <h1 className="tool-page-title">Справка</h1>
-            <p className="tool-page-description">
+            <div>desengine help</div>
+            <h1>Справка</h1>
+            <p>
               Markdown-страницы из каталога help. Заголовки берутся из первого H1 в каждом файле.
             </p>
           </div>

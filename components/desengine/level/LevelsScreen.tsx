@@ -21,12 +21,12 @@ type LevelTaskSectionProps = {
 
 function LevelsScreenHeader() {
     return (
-        <div className="tool-shell-header">
-            <div className="tool-shell-header-copy">
-                <div className="tool-eyebrow">desengine</div>
-                <div className="tool-shell-title-group">
-                    <h1 className="tool-page-title">Все уровни</h1>
-                    <p className="tool-page-description">
+        <div>
+            <div>
+                <div>desengine</div>
+                <div>
+                    <h1>Все уровни</h1>
+                    <p>
                         Полный обзор каталога уровней: название, описание и задачи, которые доступны или уже пройдены на каждом уровне.
                     </p>
                 </div>
@@ -37,7 +37,7 @@ function LevelsScreenHeader() {
 
 function LevelTaskSection({ emptyText, mode, tasks, title }: LevelTaskSectionProps) {
     return (
-        <section className="tool-section-subcard">
+        <section>
             <h3 className="font-medium">{title}</h3>
             {tasks.length === 0 ? (
                 <p className="text-muted-foreground">{emptyText}</p>
@@ -58,7 +58,7 @@ function LevelOverviewCard({ overview }: { overview: LevelOverviewData }) {
             <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <h2 className="font-semibold">{overview.level.title}</h2>
-                    <Link className="tool-link" href={getLevelUrl(overview.level.id)}>
+                    <Link href={getLevelUrl(overview.level.id)}>
                         Открыть уровень
                     </Link>
                 </div>
@@ -92,9 +92,9 @@ function LevelOverviewCard({ overview }: { overview: LevelOverviewData }) {
 
 function LevelsScreen({overviews}: LevelsScreenProps) {
     return(
-        <main className="tool-shell-page">
-            <div className="tool-shell-frame">
-                <section className="tool-shell-surface">
+        <main>
+            <div>
+                <section>
                     <LevelsScreenHeader />
 
                     <div className="mt-6 space-y-6">

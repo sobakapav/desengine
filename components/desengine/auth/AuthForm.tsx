@@ -48,11 +48,11 @@ export default function AuthForm({
                 />
 
               {error && (
-                <p className="tool-notice-error">{error}</p>
+                <p>{error}</p>
               )}
 
               {!configured && (
-                <p className="tool-notice-warning">
+                <p>
                   Проверка доступа пока не настроена. Сначала администратор должен задать
                   `ALLOWLIST_BASE_URL` и `ALLOWLIST_SALT` в `desengine.config.txt`.
                 </p>

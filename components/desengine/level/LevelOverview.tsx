@@ -34,14 +34,14 @@ function LevelMaterialLink({ url }: { url: string | null }) {
 
   if (isExternalUrl(url)) {
     return (
-      <a className="tool-link-inline" href={url} rel="noreferrer" target="_blank">
+      <a href={url} rel="noreferrer" target="_blank">
         Дополнительные материалы
       </a>
     );
   }
 
   return (
-    <Link className="tool-link-inline" href={url}>
+    <Link href={url}>
       Дополнительные материалы
     </Link>
   );
@@ -66,7 +66,7 @@ function LevelHeader({
           content={overview.level.description}
         />
         <div className="flex flex-wrap items-center gap-3">
-          <Link className="tool-link-inline" href={getLevelsRootUrl()}>
+          <Link href={getLevelsRootUrl()}>
             Открыть все уровни
           </Link>
           <LevelMaterialLink url={overview.level.url ?? null} />
@@ -102,7 +102,7 @@ function LevelTaskSection({
   title,
 }: LevelTaskSectionProps) {
   return (
-    <section className="tool-section-subcard">
+    <section>
       <h2 className="font-medium">{title}</h2>
       {tasks.length === 0 ? (
         <p className="text-muted-foreground">{emptyText}</p>

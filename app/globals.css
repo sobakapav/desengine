@@ -53,3 +53,11 @@ a {
 .sp-preview-container {
   background-color: #ffffff !important;
 }
+
+section {
+  margin: 10pt;
+}
+
+p {
+  font-size: 12pt;
+}

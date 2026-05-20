@@ -72,7 +72,7 @@ export function SystemScreen({
   }
 
   return (
-    <main className="tool-shell-page">
+    <main>
         <section className="flex m-5 gap-2 items-center">
           <div className="flex-1 p-8">
             <SystemNavigationLinks />

@@ -29,11 +29,11 @@ export default async function HelpMermaidPage({ params }: HelpMermaidPageProps) 
   }
 
   return (
-    <main className="tool-shell-page">
-      <div className="tool-shell-frame">
-        <section className="tool-shell-surface">
+    <main>
+      <div>
+        <section>
           <div className="mb-6 border-b border-black/10 pb-5">
-            <Link className="tool-link-inline" href={getHelpRootUrl()}>
+            <Link href={getHelpRootUrl()}>
               Справка
             </Link>
             <h1 className="tool-page-title mt-3">{diagram.title}</h1>
