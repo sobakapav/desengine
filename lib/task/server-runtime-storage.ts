@@ -17,6 +17,9 @@ import { UserProgressStoreSchema } from "@/lib/user/schema"
 import type { UserProgressStore } from "@/lib/user/types"
 
 import { taskServerProgress } from "./server-runtime-progress"
+import { renderTaskHint } from "./hints"
+import type { LevelConfig } from "../level/types"
+import type { Project } from "../project/runtime"
 import type { TaskCheckResult, TaskConfig, TaskProgress } from "./types"
 
 const FORCED_TASK_MAX_LEVEL = 3
@@ -163,23 +166,19 @@ async function readTaskCatalog() {
   return tasks.sort((a, b) => a.id.localeCompare(b.id))
 }
 
-async function readTaskLevelTip(taskId: string, levelId: string) {
-  const filePath = getTaskCatalogFilePath(taskId, path.join("levels", levelId, "tip.md"))
-
-  try {
-    return (await readFile(filePath, "utf-8")).trim()
-  } catch (error) {
-    if (
-      typeof error === "object"
-      && error !== null
-      && "code" in error
-      && error.code === "ENOENT"
-    ) {
-      return ""
-    }
-
-    throw error
-  }
+async function readTaskLevelTip(
+  taskId: string,
+  level: LevelConfig,
+  taskConfig: TaskConfig,
+  project?: Project,
+) {
+  return renderTaskHint({
+    taskCatalogRoot: appConfig.taskCatalogRoot,
+    taskId,
+    level,
+    taskConfig,
+    project,
+  })
 }
 
 export const taskServerStorage = {

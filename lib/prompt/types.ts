@@ -6,12 +6,17 @@ type PromptKind = "production" | "didactic"
 type PromptRenderContext = {
   user?: {
     designSystemId?: string
+    designSystemName?: string
   }
   task?: Record<string, unknown>
   level?: {
     id: string
     number: number
+    title?: string
+    labId?: string
+    editableFileIds?: string[]
   }
+  project?: Record<string, unknown>
 }
 
 type PromptHistoryEntry = {

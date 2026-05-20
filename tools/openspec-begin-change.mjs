@@ -121,6 +121,81 @@ function createImplementChange(dispatcherName, implementName, description) {
   }
 }
 
+function ensureFile(filePath, content) {
+  if (fs.existsSync(filePath)) {
+    return false
+  }
+  fs.mkdirSync(path.dirname(filePath), { recursive: true })
+  fs.writeFileSync(filePath, content, "utf8")
+  return true
+}
+
+function ensureApplyArtifacts(changeName, description) {
+  const changeDir = path.join(CHANGES_DIR, changeName)
+  const summary = description?.trim() || "описание реализации будет уточнено"
+  const created = []
+
+  if (
+    ensureFile(
+      path.join(changeDir, "proposal.md"),
+      `## Why
+
+Нужен исполнительский change для реализации задачи диспетчера.
+
+## What Changes
+
+- Реализовать: ${summary}
+
+## Impact
+
+- Изменение закрывает конкретный исполнительский срез в рамках текущего dispatcher.
+`,
+    )
+  ) {
+    created.push("proposal.md")
+  }
+
+  if (
+    ensureFile(
+      path.join(changeDir, "design.md"),
+      `## Контекст
+
+- Родительский dispatcher управляет приоритетом и порядком реализации.
+
+## Решение
+
+- Реализация уточняется в рамках задач этого change.
+`,
+    )
+  ) {
+    created.push("design.md")
+  }
+
+  if (
+    ensureFile(
+      path.join(changeDir, "tasks.md"),
+      `## Tasks
+
+- [ ] 1. Уточнить постановку и границы реализации
+- [ ] 2. Внести кодовые изменения
+- [ ] 3. Выполнить проверку по verification_command из metadata
+
+## Тестовая часть change
+
+- [ ] Указать затронутые OpenSpec capability/scenarios
+- [ ] Выбрать уровень проверки
+- [ ] Добавить или обновить тесты
+- [ ] Зафиксировать команду проверки
+- [ ] Описать mock/fixture-данные и live credentials, если нужны
+`,
+    )
+  ) {
+    created.push("tasks.md")
+  }
+
+  return created
+}
+
 function main() {
   const parsed = parseArgs(process.argv.slice(2))
 
@@ -150,6 +225,7 @@ function main() {
       strategy_root: current.strategyRoot || parsed.changeName,
       release_ref: current.releaseRef || created.releaseRef,
     })
+    const createdArtifacts = ensureApplyArtifacts(parsed.spawnImplement, parsed.description)
 
     console.log("")
     console.log(`Создан исполнительский change: ${parsed.spawnImplement}`)
@@ -157,6 +233,9 @@ function main() {
     console.log(`- strategy_root: ${current.strategyRoot || parsed.changeName}`)
     if (current.releaseRef) {
       console.log(`- release_ref: ${current.releaseRef}`)
+    }
+    if (createdArtifacts.length > 0) {
+      console.log(`- автосозданы артефакты: ${createdArtifacts.join(", ")}`)
     }
     console.log(`Запусти: npm run os:begin -- ${parsed.spawnImplement}`)
     return
