@@ -6,6 +6,7 @@ import {
 import { runStructuredLlmRequest } from "@/lib/llm/server"
 import { isTaskStarted, readTaskData } from "@/lib/onboarding/repository"
 import { readLevelCheckPrompt, readPrompt } from "@/lib/prompt/server"
+import type { Project } from "@/lib/project/runtime"
 import { runTaskMutation } from "@/lib/task/mutation-boundary"
 import {
   clearTaskCheckResult,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/task/server"
 import type { TaskCheckResult } from "@/lib/task/types"
 
+import { buildTaskPromptContext } from "../prompt-context"
 import { taskActionShared } from "./shared"
 import type { OutputFile, TaskActionHttpResult } from "./types"
 
@@ -274,7 +276,7 @@ async function buildTechnicalCheckResponse(taskId: string, context: CheckContext
 }
 
 export const taskCheckAction = {
-  async checkTaskLevel(taskId: string): Promise<TaskActionHttpResult> {
+  async checkTaskLevel(taskId: string, project?: Project): Promise<TaskActionHttpResult> {
     return runTaskMutation(taskId, async (): Promise<TaskActionHttpResult> => {
       const request = await validateCheckRequest(taskId)
       if ("status" in request || !("taskItem" in request)) return request
@@ -284,10 +286,17 @@ export const taskCheckAction = {
 
       const { context, promptImages } = loaded
       const taskData = await readTaskData(context.taskItem, context.labContext)
+      const promptContext = buildTaskPromptContext({
+        taskId,
+        taskMaxLevel: context.taskItem.maxLevel,
+        taskImages: context.labContext.images,
+        level: context.level,
+        project,
+      })
       const [defaultProductionPrompt, defaultDidacticPrompt, levelCheckPrompt] = await Promise.all([
         readPrompt("production", "default"),
         readPrompt("didactic", "default"),
-        readLevelCheckPrompt(context.level.id),
+        readLevelCheckPrompt(context.level.id, promptContext),
       ])
 
       let imageBase64List: string[]

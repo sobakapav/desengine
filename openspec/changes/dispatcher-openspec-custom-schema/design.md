@@ -62,7 +62,16 @@ OpenSpec в этом change фиксирует продуктовый контр
 - `dispatcher`: тактический слой; `execution_mode=no-code`; обязательны `parent_change` и `roadmap_ref`; управляет `implement` changes.
 - `dispatcher` может иметь родителя любого типа; единственное ограничение — dispatcher не может быть верхнеуровневым.
 - `implement`: внедренческий слой; `execution_mode=code`; обязательный `parent_change` на `dispatcher`, а также `strategy_root`, `verification_level`, `verification_command`.
-- `fix`: быстрый внедренческий слой для небольших исправлений; `execution_mode=code`; обязательный `parent_change`.
+- `fix`: быстрый внедренческий слой для небольших исправлений; `execution_mode=code`; обязательный `parent_change` на `dispatcher`, а также `strategy_root`, `verification_level`, `verification_command`.
+
+## Delivery-матрица release ↔ dispatcher
+
+- `parent_change` задаёт тактическую вертикаль (`dispatcher -> implement/fix`) и ответственность за стратегию.
+- `release_ref` задаёт релизную горизонталь и состав поставки.
+- Один implement/fix одновременно принадлежит:
+  - тактическому dispatcher (через `parent_change`);
+  - конкретному release (через `release_ref`).
+- Release не становится иерархическим родителем: это оркестратор поставки, а не владелец стратегии.
 
 ## Правила синхронизации OpenSpec ↔ Issues
 
@@ -84,6 +93,8 @@ OpenSpec в этом change фиксирует продуктовый контр
   - `npm run test:traceability` валидирует `change_kind`, `execution_mode`, связи (`parent_change`, `strategy_root`, `roadmap_ref`), ссылку `release_ref` и implement-поля проверки.
   - `npm run os:begin -- <change>` выполняет preflight: dispatcher не может перейти в режим прямой реализации и должен породить implement/fix change.
   - `npm run os:dispatch -- <dispatcher> --kind <implement|fix> --name <name>` создаёт и привязывает исполнительский change как основной путь обработки новых хотелок в dispatcher-контексте.
+  - `npm run os:dispatch -- <release> --dispatcher <dispatcher> --kind <implement|fix> --name <name>` создаёт исполнительский change в delivery-матрице release↔dispatcher.
+  - `npm run os:ctx -- <implement-or-fix-change>` выводит контекст parent dispatcher для release-чата.
   - `npm run os:close -- <implement-or-fix-change>` закрывает исполнительский change через проверочный каскад и архивирование.
 
 ## Миграция

@@ -52,6 +52,17 @@ export async function GET(
       },
     })
   } catch {
-    return Response.json({ ok: false, error: "Картинка не найдена" }, { status: 404 })
+    return Response.json(
+      {
+        ok: false,
+        error: "Картинка не найдена",
+        debug: {
+          taskId,
+          imageId,
+          requestedImagePath,
+        },
+      },
+      { status: 404 },
+    )
   }
 }

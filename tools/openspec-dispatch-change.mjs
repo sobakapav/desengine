@@ -1,8 +1,13 @@
 import { spawnSync } from "node:child_process"
+import fs from "node:fs"
+import path from "node:path"
+
+const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
 
 function printUsage() {
   console.error("Использование:")
   console.error("  npm run os:dispatch -- <dispatcher-change> --kind <implement|fix> --name <short-name> --description \"...\"")
+  console.error("  npm run os:dispatch -- <release-change> --dispatcher <dispatcher-change> --kind <implement|fix> --name <short-name> --description \"...\"")
 }
 
 function parseArgs(argv) {
@@ -15,6 +20,7 @@ function parseArgs(argv) {
     kind: "",
     name: "",
     description: "",
+    release: "",
   }
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -39,6 +45,11 @@ function parseArgs(argv) {
       index += 1
       continue
     }
+    if (arg === "--dispatcher") {
+      parsed.release = (argv[index + 1] || "").trim()
+      index += 1
+      continue
+    }
     if (arg.startsWith("--kind=")) {
       parsed.kind = arg.slice("--kind=".length).trim()
       continue
@@ -49,6 +60,10 @@ function parseArgs(argv) {
     }
     if (arg.startsWith("--description=")) {
       parsed.description = arg.slice("--description=".length)
+      continue
+    }
+    if (arg.startsWith("--dispatcher=")) {
+      parsed.release = arg.slice("--dispatcher=".length).trim()
       continue
     }
   }
@@ -70,6 +85,36 @@ function normalizeChangeName(kind, name) {
   return `${kind}-${name}`
 }
 
+function readMetadata(changeName) {
+  const metadataPath = path.join(CHANGES_DIR, changeName, ".openspec.yaml")
+  if (!fs.existsSync(metadataPath)) {
+    throw new Error(`Change не найден: ${changeName}`)
+  }
+  const text = fs.readFileSync(metadataPath, "utf8")
+  const readValue = (key) => {
+    const match = text.match(new RegExp(`^${key}:\\s*(.+)\\s*$`, "m"))
+    return match ? match[1].trim().replace(/^["']|["']$/g, "") : ""
+  }
+  return {
+    kind: readValue("change_kind"),
+  }
+}
+
+function setReleaseRef(changeName, releaseName) {
+  const metadataPath = path.join(CHANGES_DIR, changeName, ".openspec.yaml")
+  let text = fs.readFileSync(metadataPath, "utf8")
+  const line = `release_ref: "${releaseName}"`
+  const pattern = /^release_ref:\s*.*$/m
+
+  if (pattern.test(text)) {
+    text = text.replace(pattern, line)
+  } else {
+    text = `${text.endsWith("\n") ? text : `${text}\n`}${line}\n`
+  }
+
+  fs.writeFileSync(metadataPath, text, "utf8")
+}
+
 function run() {
   const parsed = parseArgs(process.argv.slice(2))
 
@@ -78,8 +123,26 @@ function run() {
     return
   }
 
+  const sourceMeta = readMetadata(parsed.dispatcher)
+  let dispatcherName = parsed.dispatcher
+  let releaseName = ""
+
+  if (sourceMeta.kind === "release") {
+    if (!parsed.release) {
+      throw new Error("Для release-диспетчеризации нужен --dispatcher <dispatcher-change>.")
+    }
+    const dispatcherMeta = readMetadata(parsed.release)
+    if (dispatcherMeta.kind !== "dispatcher") {
+      throw new Error(`--dispatcher должен ссылаться на dispatcher-change. Получено: ${dispatcherMeta.kind}`)
+    }
+    releaseName = parsed.dispatcher
+    dispatcherName = parsed.release
+  } else if (sourceMeta.kind !== "dispatcher") {
+    throw new Error(`Источник диспетчеризации должен быть release или dispatcher. Получено: ${sourceMeta.kind}`)
+  }
+
   const changeName = normalizeChangeName(parsed.kind, parsed.name)
-  const args = ["run", "os:begin", "--", parsed.dispatcher, "--spawn-implement", changeName]
+  const args = ["run", "os:begin", "--", dispatcherName, "--spawn-implement", changeName]
 
   if (parsed.description) {
     args.push("--description", parsed.description)
@@ -90,8 +153,16 @@ function run() {
     process.exit(result.status)
   }
 
+  if (releaseName) {
+    setReleaseRef(changeName, releaseName)
+  }
+
   console.log("")
-  console.log(`Диспетчеризация завершена: ${parsed.dispatcher} -> ${changeName}`)
+  if (releaseName) {
+    console.log(`Релизная диспетчеризация завершена: ${releaseName} -> ${dispatcherName} -> ${changeName}`)
+  } else {
+    console.log(`Диспетчеризация завершена: ${dispatcherName} -> ${changeName}`)
+  }
   console.log(`Исполнение вести только в ${changeName}`)
 }
 

@@ -104,6 +104,7 @@ describe("project UI kit switching", () => {
     })
     expect(payload.customSetup.dependencies).toMatchObject({
       antd: expect.any(String),
+      "@rc-component/picker": expect.any(String),
     })
     expect(payload.files["/index.tsx"]).toEqual(expect.objectContaining({
       code: expect.stringContaining('import "antd/dist/reset.css";'),
@@ -164,6 +165,7 @@ describe("project UI kit switching", () => {
   it("route и Workbench держат project как boundary между UI и Sandpack payload", () => {
     const sandpackRoute = readProjectFile("app", "api", "tasks", "[taskId]", "sandpack", "route.ts")
     const hintRoute = readProjectFile("app", "api", "tasks", "[taskId]", "hint", "route.ts")
+    const checkRoute = readProjectFile("app", "api", "tasks", "[taskId]", "check", "route.ts")
     const workbench = readProjectFile("components", "desengine", "lab", "Workbench", "Workbench.tsx")
     const workbenchView = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchView.tsx")
     const workbenchController = readProjectFile(
@@ -180,11 +182,15 @@ describe("project UI kit switching", () => {
     expect(hintRoute).toContain("getTaskLevelHint")
     expect(hintRoute).toContain('searchParams.get("uiKitId")')
     expect(hintRoute).toContain('searchParams.get("uiMode")')
+    expect(checkRoute).toContain("normalizeProject")
+    expect(checkRoute).toContain("await request.json()")
     expect(sandpackRoute).toContain("buildSandpackPreviewPayload(sourceFiles, {")
     expect(workbench).toContain("useWorkbenchController")
     expect(workbenchController).toContain("getProjectStorageKey(taskId)")
     expect(workbenchController).toContain("sandpackUiKitsConfig")
     expect(workbenchController).toContain("/hint?")
+    expect(workbenchController).toContain("/check")
+    expect(workbenchController).toContain("JSON.stringify({ project })")
     expect(workbenchController).toContain("window.localStorage.setItem")
     expect(workbenchView).toContain('uiMode: nextUiKitId === "none" ? "html-tags" : "ui-kit"')
     expect(outRender).toContain("new URLSearchParams")

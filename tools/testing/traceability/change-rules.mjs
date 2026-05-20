@@ -113,17 +113,17 @@ export function validateChangeKindRules(changeName, metadata, context) {
   if (["implement", "fix"].includes(changeKind) && executionMode !== "code") {
     errors.push(`${changeName}: ${changeKind} change должен иметь execution_mode=code`)
   }
-  if (changeKind === "implement" && parentChange && context.changeKindsByName.get(parentChange) !== "dispatcher") {
-    errors.push(`${changeName}: implement change должен иметь parent_change на dispatcher`)
+  if (["implement", "fix"].includes(changeKind) && parentChange && context.changeKindsByName.get(parentChange) !== "dispatcher") {
+    errors.push(`${changeName}: ${changeKind} change должен иметь parent_change на dispatcher`)
   }
-  if (changeKind === "implement" && !strategyRoot) {
-    errors.push(`${changeName}: implement change должен иметь strategy_root`)
+  if (["implement", "fix"].includes(changeKind) && !strategyRoot) {
+    errors.push(`${changeName}: ${changeKind} change должен иметь strategy_root`)
   }
-  if (changeKind === "implement" && !verificationLevel) {
-    errors.push(`${changeName}: implement change должен иметь verification_level`)
+  if (["implement", "fix"].includes(changeKind) && !verificationLevel) {
+    errors.push(`${changeName}: ${changeKind} change должен иметь verification_level`)
   }
-  if (changeKind === "implement" && !verificationCommand) {
-    errors.push(`${changeName}: implement change должен иметь verification_command`)
+  if (["implement", "fix"].includes(changeKind) && !verificationCommand) {
+    errors.push(`${changeName}: ${changeKind} change должен иметь verification_command`)
   }
 
   return errors

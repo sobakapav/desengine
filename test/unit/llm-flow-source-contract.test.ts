@@ -61,7 +61,7 @@ describe("LLM flow source contracts", () => {
     const checkRoute = readProjectFile("lib", "task", "actions.ts")
     const checkPromptFunction = promptServer.match(/export async function readLevelCheckPrompt[\s\S]*?\n}/)?.[0] ?? ""
 
-    expect(checkRoute).toContain("readLevelCheckPrompt(level.id)")
+    expect(checkRoute).toContain("readLevelCheckPrompt(level.id, promptContext)")
     expect(checkRoute).toContain('readPrompt("production", "default")')
     expect(checkRoute).toContain('readPrompt("didactic", "default")')
     expect(checkRoute).toContain("${levelCheckPrompt}")

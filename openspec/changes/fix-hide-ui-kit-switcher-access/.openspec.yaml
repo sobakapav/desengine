@@ -1,0 +1,14 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "fix"
+execution_mode: "code"
+parent_change: "dispatcher-ui-kit"
+strategy_root: "research-ui-kit"
+roadmap_ref: "roadmaps/ui-kit.md"
+release_ref: "release-2026-05-20-day"
+verification_level: "unit"
+verification_command: "npm run test:unit"
+issue: ""
+short: "временно скрыть доступ к переключению ui kit"

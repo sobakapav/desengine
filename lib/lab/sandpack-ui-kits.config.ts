@@ -126,4 +126,3 @@ export {
   validateSandpackUiKitsConfig,
   type SandpackUiKitConfig,
 }
-

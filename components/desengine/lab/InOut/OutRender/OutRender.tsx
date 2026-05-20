@@ -7,6 +7,7 @@ import type { SandpackPreviewPayload } from "@/lib/lab/sandpack-preview";
 import { createDefaultProject } from "@/lib/project/runtime";
 
 import { OutRenderProps } from "./props";
+const SANDBOX_RUNTIME_VERSION = "2026-05-20-ant-shim-v3";
 
 function getErrorMessage(error: unknown, fallbackMessage: string) {
     return error instanceof Error && error.message ? error.message : fallbackMessage;
@@ -63,6 +64,14 @@ function SandpackRuntimeDiagnosticsNotice({ payload }: { payload: SandpackPrevie
                 Sandpack runtime: {payload.project.uiKitId}, режим {payload.project.uiMode}
             </p>
             <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
+            {payload.debug ? (
+                <details className="mt-2">
+                    <summary className="cursor-pointer text-xs font-medium">Sandpack debug payload</summary>
+                    <pre className="mt-2 whitespace-pre-wrap break-words text-xs">
+                        {JSON.stringify(payload.debug, null, 2)}
+                    </pre>
+                </details>
+            ) : null}
         </div>
     );
 }
@@ -122,7 +131,7 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
         <div className="w-full">
             <ProjectCompatibilityNotice payload={previewPayload} />
             <SandpackProvider
-                key={moduleUrl}
+                key={`${moduleUrl}:${previewPayload.debug?.shimVersion ?? "no-debug"}`}
                 template="react-ts"
                 theme={{
                     colors: {
@@ -187,6 +196,7 @@ function OutRender({ task, started, reloadKey, startStatus, project }: OutRender
         () => {
             const params = new URLSearchParams({
                 v: String(reloadKey),
+                runtimeVersion: SANDBOX_RUNTIME_VERSION,
                 projectId: previewProject.id,
                 projectTitle: previewProject.title,
                 uiKitId: previewProject.uiKitId,
