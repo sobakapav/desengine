@@ -4,6 +4,54 @@
 
 Зафиксировать контракт устойчивости task-экрана при ошибках preview пользовательского компонента.
 ## Requirements
+### Requirement: Мутации задачи выполняются через runtime boundary
+
+Система SHALL выполнять локальные мутации состояния одной задачи через последовательную runtime boundary, чтобы параллельные действия пользователя не приводили к lost update или частично применённому состоянию.
+
+#### Scenario: Два действия одновременно меняют одну задачу
+- **WHEN** два lab action flow одновременно записывают файлы или progress одного `taskId`
+- **THEN** система выполняет эти мутации последовательно
+- **AND** итоговое состояние соответствует порядку завершения runtime boundary
+
+#### Scenario: Два действия меняют разные задачи
+- **WHEN** lab action flow меняют разные `taskId`
+- **THEN** система не блокирует их общей глобальной очередью
+- **AND** каждая задача сохраняет собственную последовательность мутаций
+
+### Requirement: Route handlers используют переиспользуемые lab action services
+
+Система SHALL держать core logic lab action flow в переиспользуемом runtime/service слое, а route handlers использовать как HTTP boundary.
+
+#### Scenario: Пользователь запускает уровень через service boundary
+- **WHEN** API route запускает текущий уровень задачи
+- **THEN** route handler делегирует доменную логику runtime/service функции
+- **AND** HTTP response contract для пользователя не меняется
+
+#### Scenario: Пользователь уточняет задачу через service boundary
+- **WHEN** API route выполняет уточняющий prompt по текущему уровню
+- **THEN** route handler делегирует LLM-flow, запись файлов и prompt history runtime/service функции
+- **AND** HTTP response contract для пользователя не меняется
+
+#### Scenario: Пользователь проверяет результат через service boundary
+- **WHEN** API route проверяет результат текущего уровня
+- **THEN** route handler делегирует LLM-check, progress mutation и check-result runtime/service функции
+- **AND** HTTP response contract для пользователя не меняется
+
+#### Scenario: Пользователь сохраняет рабочие файлы
+- **WHEN** API route сохраняет рабочие файлы задачи
+- **THEN** route handler делегирует доменную логику runtime/service функции
+- **AND** HTTP response contract для пользователя не меняется
+
+#### Scenario: Пользователь сбрасывает задачу через service boundary
+- **WHEN** API route сбрасывает задачу
+- **THEN** route handler делегирует доменную логику runtime/service функции
+- **AND** HTTP response contract для пользователя не меняется
+
+#### Scenario: Route handlers используют переиспользуемые lab action services
+- **WHEN** разработчик меняет route handlers ключевых lab actions
+- **THEN** core logic остаётся в `lib/task/actions.ts`
+- **AND** route handlers отвечают за access guard, params/body parsing и HTTP response mapping
+
 ### Requirement: Неконсистентный пользовательский компонент не рушит task-экран
 
 Система SHALL изолировать ошибки пользовательского component preview так, чтобы неконсистентный код компонента не валил task-экран целиком.
@@ -68,3 +116,22 @@
 - **WHEN** клиент делает запрос `GET /api/tasks/:taskId/images/:imageId`
 - **THEN** система не предоставляет этот дублирующий endpoint
 - **AND** каноническим остаётся только `GET /api/tasks/:taskId/image`
+
+### Requirement: Sandpack preview использует настройки проекта
+
+Система SHALL собирать Sandpack preview с учётом `project.uiKitId` и `project.uiMode`, чтобы preview можно было переключать на уровне проекта без смены глобального стека.
+
+#### Scenario: Sandpack preview использует project.uiKitId
+- **WHEN** клиент запрашивает Sandpack payload с `project.uiKitId`
+- **THEN** preview builder подключает UI kit из project settings
+- **AND** список kit'ов берётся из единого Sandpack UI kit config
+
+#### Scenario: Режим html-tags работает без UI kit
+- **WHEN** `project.uiMode=html-tags` и `project.uiKitId=none`
+- **THEN** Sandpack payload содержит только базовые React-зависимости
+- **AND** HTML JSX-теги рендерятся без дополнительных UI kit-пакетов
+
+#### Scenario: Preview показывает безопасный fallback при несовместимости проекта
+- **WHEN** компонент использует UI kit-импорты или абстрактные JSX-компоненты в режиме `html-tags`
+- **THEN** preview builder возвращает безопасный fallback-компонент и статус несовместимости
+- **AND** лаборатория продолжает работать

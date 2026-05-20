@@ -1,0 +1,11 @@
+schema: spec-driven
+created: 2026-05-19
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "накопление взаимодействий и обобщение опыта пользователя в навыки"
+change_kind: "research"
+execution_mode: "no-code"
+parent_change: "idea-user-experience-to-llm-skills"
+strategy_root: "idea-user-experience-to-llm-skills"
+roadmap_ref: ""

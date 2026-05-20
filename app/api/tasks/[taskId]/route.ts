@@ -6,6 +6,7 @@ import {
   readTaskData,
 } from "@/lib/system/server"
 import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
+import { createEmptyTaskData } from "@/lib/task/data"
 
 type Params = { taskId: string }
 
@@ -28,21 +29,7 @@ export async function GET(
   const labContext = await getTaskLabContext(taskItem)
   const taskData = started
     ? await readTaskData(taskItem, labContext)
-    : {
-        taskId,
-        contentByFileId: {},
-        promptHistory: [],
-        llmUsageSummary: {
-          totalCalls: 0,
-          teachingCostCents: 0,
-          providersUsed: [],
-          inputTokens: null,
-          outputTokens: null,
-          totalTokens: null,
-          callsWithoutProviderMetrics: 0,
-        },
-        labContext,
-      }
+    : createEmptyTaskData(taskId, labContext)
   const level = await getLevelForTaskItem(taskItem)
 
   return Response.json({

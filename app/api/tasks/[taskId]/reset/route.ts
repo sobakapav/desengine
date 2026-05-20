@@ -1,10 +1,5 @@
-import {
-  clearTaskCheckResult,
-  getTaskLabContext,
-  getTaskListItemById,
-  resetTask,
-} from "@/lib/system/server"
 import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
+import { resetTaskRuntime } from "@/lib/task/actions"
 
 type Params = { taskId: string }
 
@@ -16,38 +11,16 @@ export async function POST(
   if (unauthorizedResponse) return unauthorizedResponse
 
   const { taskId } = await params
+  const result = await resetTaskRuntime(taskId)
 
-  const taskItem = await getTaskListItemById(taskId)
-
-  if (!taskItem) {
-    return Response.json({ ok: false, error: "Задание не найдено" }, { status: 404 })
+  if (result.kind === "not_found") {
+    return Response.json({ ok: false, error: result.error }, { status: 404 })
   }
-
-  await resetTask(taskId)
-  await clearTaskCheckResult(taskId)
-  const nextTaskItem = await getTaskListItemById(taskId)
-  const labContext = nextTaskItem ? await getTaskLabContext(nextTaskItem) : null
 
   return Response.json({
     ok: true,
-    taskItem: nextTaskItem,
-    taskData: nextTaskItem
-      ? {
-          taskId,
-          contentByFileId: {},
-          promptHistory: [],
-          llmUsageSummary: {
-            totalCalls: 0,
-            teachingCostCents: 0,
-            providersUsed: [],
-            inputTokens: null,
-            outputTokens: null,
-            totalTokens: null,
-            callsWithoutProviderMetrics: 0,
-          },
-          labContext,
-        }
-      : null,
-    started: false,
+    taskItem: result.taskItem,
+    taskData: result.taskData,
+    started: result.started,
   })
 }

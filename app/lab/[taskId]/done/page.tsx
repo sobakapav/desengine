@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 
 import { requireAccessOrRedirect } from "@/lib/auth/server"
-import { createTaskDonePath } from "@/lib/system/navigation"
+import { createLabLegacyTransitionRedirectPath } from "@/lib/system/navigation"
 
 type Params = {
   taskId: string
@@ -13,7 +13,7 @@ export default async function TaskDonePage({
   params: Promise<Params>
 }) {
   const { taskId } = await params
-  const canonicalPath = createTaskDonePath(taskId)
+  const canonicalPath = createLabLegacyTransitionRedirectPath(taskId, "done")
 
   await requireAccessOrRedirect(canonicalPath)
 

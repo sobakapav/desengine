@@ -17,7 +17,7 @@
 #### Scenario: Разработчик запускает полный локальный тестовый слой
 
 - **WHEN** разработчик выполняет каноническую full test-команду
-- **THEN** система запускает обязательный runnable-слой текущего этапа: unit + strict traceability
+- **THEN** система запускает обязательный runnable-слой текущего этапа: unit + strict traceability + readability
 - **AND** интеграционные и e2e smoke-проверки не запускаются автоматически в составе `test:full`
 - **AND** live/provider-проверки с реальными внешними сервисами не запускаются случайно
 
@@ -42,6 +42,12 @@
 - **WHEN** существующий spec ещё не покрыт обязательным набором тестов
 - **THEN** отсутствие покрытия явно зафиксировано в coverage-plan или allowlist
 - **AND** эта запись объясняет причину и этап закрытия
+
+#### Scenario: Добавляется capability с quality-правилами читаемости
+
+- **WHEN** в OpenSpec добавляется capability, который задаёт quality-правила кода (например, `code-readability`)
+- **THEN** для capability существует минимум один runnable-путь проверки в едином тестовом слое (static/contract или unit)
+- **AND** `npm run test:traceability` валидирует связь его scenario с тестами или coverage-plan
 
 ### Requirement: Обязательные тесты воспроизводимы без внешних секретов
 
@@ -74,3 +80,18 @@
 - **WHEN** команда создаёт или реализует новый OpenSpec change
 - **THEN** change содержит тестовую часть: уровень проверки, команду запуска, mock/live требования и связь с общим тестовым слоем
 - **AND** если покрытие откладывается, это фиксируется в coverage-plan с причиной
+
+### Requirement: Lab-flow проверяется без live credentials
+
+Система SHALL иметь воспроизводимую проверку ключевого lab-flow или его service-level эквивалента без реальных LLM credentials.
+
+#### Scenario: Разработчик проверяет lab runtime после hardening
+- **WHEN** разработчик запускает обязательную проверку change
+- **THEN** lab-flow проверяется на mock LLM или fixture service данных
+- **AND** команда не требует live provider credentials
+
+#### Scenario: Проверка использует временное пользовательское состояние
+- **WHEN** тест lab-flow записывает task files, progress или check-result
+- **THEN** он использует temp/fixture storage или полностью замоканный service boundary
+- **AND** тест не оставляет изменение пользовательских данных после завершения
+

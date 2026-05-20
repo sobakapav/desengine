@@ -1,7 +1,0 @@
-schema: spec-driven
-created: 2026-05-19
-short_policy: "none"
-review_sync_state: "none"
-issue: ""
-short: "адаптер импорта figma в project для desengine"
-depends_on_change: "dev-mode-project-work-2026-05-19"

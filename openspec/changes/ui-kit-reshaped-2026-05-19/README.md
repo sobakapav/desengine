@@ -1,3 +1,0 @@
-# ui-kit-reshaped-2026-05-19
-
-Подключить Reshaped как Sandpack UI kit adapter (через общий механизм выбора UI kit).

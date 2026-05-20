@@ -11,6 +11,7 @@ import {
   readLevelSandpackTemplate,
 } from "@/lib/lab/sandpack-template"
 import { normalizeSandpackUiKitId } from "@/lib/lab/sandpack-ui-kits.config"
+import { normalizeProject, resolveProjectPreviewConfig } from "@/lib/project/runtime"
 import { getLevelsCatalog, getTaskListItemById } from "@/lib/system/server"
 import { getUserTaskFilePath } from "@/lib/user/server"
 import { readFilesRecursively } from "@/lib/system/shadcn-files"
@@ -27,7 +28,7 @@ async function readUserTaskFile(taskId: string, fileName: string, fallback = "")
   return readFile(getUserTaskFilePath(taskId, fileName), "utf-8").catch(() => fallback)
 }
 
-const sandpackUiKitId = normalizeSandpackUiKitId(process.env.SANDPACK_UI_KIT)
+const defaultSandpackUiKitId = normalizeSandpackUiKitId(process.env.SANDPACK_UI_KIT)
 
 function pickPreviewLevelNumber(taskItem: { progress: { currentLevel: number, currentLevelNotStarted: boolean } }) {
   if (taskItem.progress.currentLevel <= 1) {
@@ -42,13 +43,21 @@ function pickPreviewLevelNumber(taskItem: { progress: { currentLevel: number, cu
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<Params> },
 ) {
   const unauthorizedResponse = await requireAccessOrUnauthorizedResponse()
   if (unauthorizedResponse) return unauthorizedResponse
 
   const { taskId } = await params
+  const { searchParams } = new URL(request.url)
+  const project = normalizeProject({
+    id: searchParams.get("projectId") ?? `task-${taskId}`,
+    title: searchParams.get("projectTitle") ?? "Локальный проект",
+    uiKitId: searchParams.get("uiKitId") ?? defaultSandpackUiKitId,
+    uiMode: searchParams.get("uiMode") ?? "html-tags",
+  })
+  const projectPreviewConfig = resolveProjectPreviewConfig(project)
   const taskItem = await getTaskListItemById(taskId)
 
   if (!taskItem) {
@@ -91,7 +100,7 @@ export async function GET(
     readFile(systemUtilsPath, "utf-8"),
   ])
 
-  const [uiBadge, shadcnFiles] = sandpackUiKitId === "shadcn"
+  const [uiBadge, shadcnFiles] = projectPreviewConfig.effectiveUiKitId === "shadcn"
     ? await Promise.all([
       readFile(uiBadgePath, "utf-8"),
       readFilesRecursively(
@@ -123,7 +132,7 @@ export async function GET(
     {
       ok: true,
       ...buildSandpackPreviewPayload(sourceFiles, {
-        uiKitId: sandpackUiKitId,
+        project,
         appTemplate: {
           appTsx: levelTemplate.appTsx,
           previewCss: levelTemplate.previewCss,

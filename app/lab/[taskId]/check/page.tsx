@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation"
 
 import { requireAccessOrRedirect } from "@/lib/auth/server"
-import { createTaskCheckPath } from "@/lib/system/navigation"
+import { createLabLegacyTransitionRedirectPath } from "@/lib/system/navigation"
 
 type Params = {
   taskId: string
@@ -13,7 +13,7 @@ export default async function TaskCheckPage({
   params: Promise<Params>
 }) {
   const { taskId } = await params
-  const canonicalPath = createTaskCheckPath(taskId)
+  const canonicalPath = createLabLegacyTransitionRedirectPath(taskId, "check")
 
   await requireAccessOrRedirect(canonicalPath)
 

@@ -1,46 +1,50 @@
+import { getLabUrl } from "@/lib/lab/navigation"
+
+const taskTransitionScreens = ["check", "done", "next"] as const
+
+type TaskTransitionScreen = (typeof taskTransitionScreens)[number]
+
 /** Корневой URL-адрес для всех задач */
 function getTasksRootUrl() {
-  return `/tasks`
+  return "/tasks"
 }
 
 /** URL-адрес информационной страницы конкретной задачи */
 function getTaskUrl(taskId: string) {
-  const tasksRootUrl = getTasksRootUrl();
+  const tasksRootUrl = getTasksRootUrl()
   return `${tasksRootUrl}/${encodeURIComponent(taskId)}`
 }
 
-
-
-
-
-// ? И тогда зачем эти функции?
-export function createTaskNextPath(taskId: string) {
-  return `/tasks/${encodeURIComponent(taskId)}/next`
+function createTaskCheckPath(taskId: string) {
+  return `${getTaskUrl(taskId)}/check`
 }
 
-export function createTaskDonePath(taskId: string) {
-  return `/tasks/${encodeURIComponent(taskId)}/done`
+function createTaskDonePath(taskId: string) {
+  return `${getTaskUrl(taskId)}/done`
 }
 
-export function createTaskCheckPath(taskId: string) {
-  return `/tasks/${encodeURIComponent(taskId)}/check`
+function createTaskNextPath(taskId: string) {
+  return getLabUrl(taskId)
 }
 
+function createTaskTransitionPath(taskId: string, screen: TaskTransitionScreen) {
+  const transitionPathByScreen: Record<TaskTransitionScreen, string> = {
+    check: createTaskCheckPath(taskId),
+    done: createTaskDonePath(taskId),
+    next: createTaskNextPath(taskId),
+  }
 
-
-
-
-
-
-
-
-
-
-
-
-
+  return transitionPathByScreen[screen]
+}
 
 export {
-    getTasksRootUrl,
-    getTaskUrl,
+  createTaskCheckPath,
+  createTaskDonePath,
+  createTaskNextPath,
+  createTaskTransitionPath,
+  getTasksRootUrl,
+  getTaskUrl,
+  taskTransitionScreens,
 }
+
+export type { TaskTransitionScreen }

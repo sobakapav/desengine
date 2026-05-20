@@ -1,0 +1,26 @@
+## Why
+
+Нужно подключить Mantine в систему как ещё один Sandpack UI kit, чтобы его можно было выбрать на уровне проекта через общий механизм переключения UI kit'ов.
+
+## Зависимости
+
+Этот change зависит от `dispatcher-project-ui-kit-switching` и не должен реализовываться до его полного завершения.
+
+## What Changes
+
+- Добавляем новый `uiKitId` для Mantine в конфигурацию Sandpack UI kit'ов.
+- Описываем набор npm-зависимостей, необходимых Mantine для корректной работы в Sandpack preview.
+- Добавляем минимальный bootstrap (если нужен) и smoke-сценарий для проверки рендера.
+
+## Capabilities
+
+### Modified Capabilities
+- `task`: Sandpack preview получает ещё один поддерживаемый UI kit.
+- `level-labs`: список доступных UI kit'ов для проекта расширяется.
+
+## Acceptance Criteria
+
+- Mantine появляется в списке выбора UI kit'а проекта.
+- Переключение на Mantine работает «на лету» (в рамках механизма базового change).
+- Есть проверка в общем тестовом слое (минимум unit + traceability; при необходимости e2e smoke).
+

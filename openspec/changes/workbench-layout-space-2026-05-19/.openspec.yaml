@@ -1,7 +1,0 @@
-schema: spec-driven
-created: 2026-05-19
-short_policy: "none"
-review_sync_state: "none"
-issue: ""
-short: "верстак для организации пространства экрана: сценарии, роль и mvp"
-depends_on_change: "workbench-entity-workflow-step-2026-05-19"

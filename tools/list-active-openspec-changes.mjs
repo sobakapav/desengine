@@ -5,7 +5,7 @@ const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
 
 function printUsage() {
   console.error("Использование:")
-  console.error("  npm run openspec")
+  console.error("  npm run os")
   console.error("  node tools/list-active-openspec-changes.mjs")
 }
 
@@ -138,7 +138,7 @@ function main() {
   }
 
   for (const change of changes) {
-    console.log(`${change.name} — ${change.summary}`)
+    console.log(`${change.name}\t${change.summary}`)
   }
 }
 

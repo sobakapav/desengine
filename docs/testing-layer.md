@@ -27,7 +27,10 @@ npm run test:unit
 | `npm test` | работает | Быстрый локальный прогон, сейчас запускает `test:unit`. |
 | `npm run test:unit` | работает | Запускает Vitest project `unit` по `test/unit/**/*.test.ts`. |
 | `npm run test:storybook` | работает | Запускает Vitest project `storybook`; если story-файлов пока нет, команда завершается успешно. |
-| `npm run test:full` | работает | Полный обязательный слой текущего этапа: unit + strict traceability. |
+| `npm run quality:text` | работает | Проверяет code-quality-text по рабочим изменениям (working tree + staged). |
+| `npm run quality:text:branch` | работает | Проверяет code-quality-text изменений ветки относительно base branch. |
+| `npm run quality:text:repo` | работает | Полный аудит code-quality-text по репозиторию. |
+| `npm run test:full` | работает | Полный обязательный слой текущего этапа: unit + strict traceability + code-quality-text. |
 | `npm run test:traceability` | работает в мягком режиме | Проверяет `@openSpec` metadata в тестах и сверяет её с `openspec/specs/**`. |
 | `npm run test:integration` | placeholder | Зарезервировано для server/API-flow тестов на mock/fixtures. |
 | `npm run test:e2e` | работает частично | Запускает Playwright route smoke без live credentials; runtime-зависимые маршруты могут быть явно skipped с причиной. |
@@ -108,7 +111,7 @@ E2E helper снимает snapshot каталога `user/` до и после �
 npm run test:full
 ```
 
-Сейчас команда запускает `test:unit`, затем `test:traceability`. По мере стабилизации integration/e2e-слоя в неё можно добавлять дополнительные обязательные проверки.
+Сейчас команда запускает `test:unit`, затем `test:traceability`, затем `quality:text`. По мере стабилизации integration/e2e-слоя в неё можно добавлять дополнительные обязательные проверки.
 
 `test:full` не должен запускать live/provider-проверки с реальными внешними сервисами.
 
@@ -146,6 +149,37 @@ npm run test:traceability
 - Один тестовый файл может содержать несколько блоков `@openSpec capability`, если он покрывает несколько capability.
 - Если capability покрыт не полностью, он должен быть описан в `test/traceability/coverage-plan.json`.
 - Файл `openspec/specs/spec.md` считается обзорной wiki-страницей и не участвует в traceability capability-списке.
+
+## Code Quality Text
+
+Быстрый режим для рабочих изменений:
+
+```bash
+npm run quality:text
+```
+
+Режим для изменений всей ветки:
+
+```bash
+npm run quality:text:branch
+```
+
+Полный режим:
+
+```bash
+npm run quality:text:repo
+```
+
+Проверки:
+
+- file length: production-файлы до 300 строк кода, test/storybook до 450;
+- function length: до 60 строк кода;
+- экспортируемые API без boolean-trap параметров;
+- отсутствие floating promises без явной обработки;
+- формат TODO/FIXME: `TODO(owner:<владелец>, targetStage:<этап>): <описание>`.
+
+Временные legacy-исключения фиксируются в `tools/quality-text/waivers.json`.
+Для каждого исключения обязательны поля `rules`, `owner`, `reason`, `targetStage`.
 
 ## Live/provider-режим
 

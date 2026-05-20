@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 
 import { requireAccessOrRedirect } from "@/lib/auth/server"
-import { createTaskNextPath, createLabUrl } from "@/lib/system/navigation"
+import { createLabLegacyTransitionRedirectPath } from "@/lib/system/navigation"
 import { getTaskListItemById, getTaskPendingTransition } from "@/lib/system/server"
 
 type Params = {
@@ -14,7 +14,7 @@ export default async function TaskNextPage({
   params: Promise<Params>
 }) {
   const { taskId } = await params
-  const canonicalPath = createTaskNextPath(taskId)
+  const canonicalPath = createLabLegacyTransitionRedirectPath(taskId, "next")
 
   await requireAccessOrRedirect(canonicalPath)
 
@@ -27,8 +27,8 @@ export default async function TaskNextPage({
   const transition = await getTaskPendingTransition(taskId)
 
   if (!transition || !transition.toLevel) {
-    redirect(createLabUrl(taskId))
+    redirect(canonicalPath)
   }
 
-  redirect(createLabUrl(taskId))
+  redirect(canonicalPath)
 }

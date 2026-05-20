@@ -1,7 +1,0 @@
-schema: spec-driven
-created: 2026-05-19
-short_policy: "none"
-review_sync_state: "none"
-issue: ""
-short: "сущность верстака под задачу и этап workflow"
-depends_on_change: "task-and-workflow-entities-research-2026-05-19"

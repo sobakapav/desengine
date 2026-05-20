@@ -11,6 +11,11 @@
       "priority": "P2",
       "reason": "Покрыты shell Navigation и boundary/fallback подход; нужен browser/component follow-up на визуальный контракт Navigation, включая подчёркнутые белые ссылки и минимальную высоту.",
       "targetStage": "5.4"
+    },
+    "code-readability": {
+      "priority": "P2",
+      "reason": "Capability добавлен в рамках quality-контуров; пока нет отдельного полного набора @openSpec тестов на все 21 scenario.",
+      "targetStage": "5.5"
     }
   }
 }

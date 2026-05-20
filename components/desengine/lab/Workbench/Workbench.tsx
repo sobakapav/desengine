@@ -21,6 +21,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { taskWorkbenchFiles } from "@/lib/system/config/client";
 import { applyFileContentChange } from "@/lib/lab/editor";
+import { sandpackUiKitsConfig } from "@/lib/lab/sandpack-ui-kits.config";
+import {
+    createDefaultProject,
+    getProjectStorageKey,
+    normalizeProject,
+    type Project,
+} from "@/lib/project/runtime";
 
 type SaveErrorItem = {
     fileId: string;
@@ -51,6 +58,7 @@ function Workbench({
     const [promptError, setPromptError] = useState("");
     const [promptPending, setPromptPending] = useState(false);
     const [previewVersion, setPreviewVersion] = useState(0);
+    const [project, setProject] = useState<Project>(() => createDefaultProject(`task-${taskItem.id}`));
     const [dirtyFileIds, setDirtyFileIds] = useState<string[]>([]);
     const [autosaveRevision, setAutosaveRevision] = useState(0);
     const [codeContentByFileId, setCodeContentByFileId] = useState<Record<string, string>>(taskData.contentByFileId);
@@ -63,6 +71,8 @@ function Workbench({
     const editableFileIdsRef = useRef<Set<string>>(new Set());
     const taskIdRef = useRef(taskItem.id);
     const savePromiseRef = useRef<Promise<boolean> | null>(null);
+    const projectStorageKey = useMemo(() => getProjectStorageKey(taskItem.id), [taskItem.id]);
+    const uiKitOptions = useMemo(() => Object.values(sandpackUiKitsConfig), []);
 
     const editableFileIds = useMemo(() => {
         const editableIds = taskData.labContext?.editableFileIds ?? [];
@@ -88,6 +98,32 @@ function Workbench({
     useEffect(() => {
         taskIdRef.current = taskItem.id;
     }, [taskItem.id]);
+
+    useEffect(() => {
+        try {
+            const raw = window.localStorage.getItem(projectStorageKey);
+            const storedProject = raw ? JSON.parse(raw) : null;
+            setProject(normalizeProject({
+                ...storedProject,
+                id: `task-${taskItem.id}`,
+                title: `Проект ${taskItem.id}`,
+            }));
+        } catch {
+            setProject(createDefaultProject(`task-${taskItem.id}`));
+        }
+    }, [projectStorageKey, taskItem.id]);
+
+    function updateProject(nextProject: Project) {
+        const normalized = normalizeProject(nextProject);
+        setProject(normalized);
+        setPreviewVersion((value) => value + 1);
+
+        try {
+            window.localStorage.setItem(projectStorageKey, JSON.stringify(normalized));
+        } catch {
+            // localStorage может быть недоступен в приватном режиме; runtime продолжит работать в памяти страницы.
+        }
+    }
 
     function replaceTaskData(nextTaskData: typeof taskData) {
         savedContentByFileIdRef.current = {
@@ -495,6 +531,7 @@ function Workbench({
                       started={taskItem.started}
                       reloadKey={previewVersion}
                       startStatus=""
+                      project={project}
                     />
 
                     {taskData.labContext && (
@@ -522,6 +559,35 @@ function Workbench({
                                     {saveError}
                                 </pre>
                             )}
+
+                            <div className="rounded-md border bg-muted/30 p-3">
+                                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-medium">Настройки проекта</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            UI kit меняет Sandpack preview без перезагрузки страницы. Режим сейчас: html-tags.
+                                        </p>
+                                    </div>
+                                    <label className="flex flex-col gap-1 text-sm">
+                                        <span className="text-xs text-muted-foreground">UI kit</span>
+                                        <select
+                                            className="h-9 rounded-md border bg-background px-3 text-sm"
+                                            value={project.uiKitId}
+                                            onChange={(event) => updateProject({
+                                                ...project,
+                                                uiKitId: event.target.value as Project["uiKitId"],
+                                                uiMode: "html-tags",
+                                            })}
+                                        >
+                                            {uiKitOptions.map((kit) => (
+                                                <option key={kit.id} value={kit.id}>
+                                                    {kit.title}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
+                            </div>
 
                             <CodeList
                               taskData={{

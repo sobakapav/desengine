@@ -11,6 +11,14 @@ const SCENARIO_PATTERN = /^#### Scenario:\s*(.+?)\s*$/gm
 const CAPABILITY_PATTERN = /^\s*\/\/\s*@openSpec\s+capability:\s*([a-z0-9-]+)\s*$/i
 const SCENARIO_ITEM_PATTERN = /^\s*\/\/\s*@openSpec\s+-\s*"(.+)"\s*$/i
 const SHORT_PATTERN = /^short:\s*(.+)\s*$/m
+const CHANGE_KIND_PATTERN = /^change_kind:\s*(.+)\s*$/m
+const EXECUTION_MODE_PATTERN = /^execution_mode:\s*(.+)\s*$/m
+const PARENT_CHANGE_PATTERN = /^parent_change:\s*(.+)\s*$/m
+const ROADMAP_REF_PATTERN = /^roadmap_ref:\s*(.+)\s*$/m
+
+const CHANGE_KINDS = new Set(["focus", "idea", "research", "dispatcher", "implement"])
+const EXECUTION_MODES = new Set(["no-code", "code"])
+const GOVERNED_PREFIXES = ["focus", "idea", "research", "dispatcher", "implement"]
 
 function readText(filePath) {
   return fs.readFileSync(filePath, "utf8")
@@ -123,6 +131,16 @@ function parseShortFromMetadata(metadataText) {
   return match[1].trim().replace(/^["']|["']$/g, "")
 }
 
+function parseMetadataValue(metadataText, pattern) {
+  const match = metadataText.match(pattern)
+
+  if (!match) {
+    return null
+  }
+
+  return match[1].trim().replace(/^["']|["']$/g, "")
+}
+
 function validateShortRules(value) {
   if (!value) {
     return []
@@ -145,6 +163,101 @@ function validateShortRules(value) {
   return violations
 }
 
+function validateChangeKindRules(changeName, metadata, allChangeNames, changeKindsByName) {
+  const errors = []
+  const changeKind = parseMetadataValue(metadata, CHANGE_KIND_PATTERN)
+  const executionMode = parseMetadataValue(metadata, EXECUTION_MODE_PATTERN)
+  const parentChange = parseMetadataValue(metadata, PARENT_CHANGE_PATTERN) || ""
+  const roadmapRef = parseMetadataValue(metadata, ROADMAP_REF_PATTERN) || ""
+  const namePrefix = changeName.split("-", 1)[0]
+  const nameHasGovernedPrefix = GOVERNED_PREFIXES.includes(namePrefix)
+
+  if (/-[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(changeName)) {
+    errors.push(`${changeName}: суффикс даты в имени change не допускается`)
+  }
+
+  if (!changeKind) {
+    errors.push(`${changeName}: отсутствует обязательное поле change_kind`)
+    return errors
+  }
+
+  if (!CHANGE_KINDS.has(changeKind)) {
+    errors.push(`${changeName}: change_kind должен быть одним из focus/idea/research/dispatcher/implement`)
+  }
+
+  if (nameHasGovernedPrefix && changeKind !== namePrefix) {
+    errors.push(`${changeName}: префикс имени ${namePrefix}- должен совпадать с change_kind=${changeKind}`)
+  }
+
+  if (!CHANGE_KINDS.has(changeKind)) {
+    errors.push(`${changeName}: change_kind вне поддерживаемого набора`)
+  }
+
+  if (!executionMode) {
+    errors.push(`${changeName}: отсутствует обязательное поле execution_mode`)
+  } else if (!EXECUTION_MODES.has(executionMode)) {
+    errors.push(`${changeName}: execution_mode должен быть no-code или code`)
+  }
+
+  if (parentChange && !allChangeNames.has(parentChange)) {
+    errors.push(`${changeName}: parent_change ссылается на неизвестный change: ${parentChange}`)
+  }
+
+  if (changeKind === "idea") {
+    if (parentChange && changeKindsByName.has(parentChange) && changeKindsByName.get(parentChange) !== "focus") {
+      errors.push(`${changeName}: idea change может иметь parent_change только на focus`)
+    }
+    if (executionMode && executionMode !== "no-code") {
+      errors.push(`${changeName}: idea change должен иметь execution_mode=no-code`)
+    }
+  }
+
+  if (changeKind === "focus") {
+    if (parentChange) {
+      errors.push(`${changeName}: focus change не должен иметь parent_change`)
+    }
+    if (executionMode && executionMode !== "no-code") {
+      errors.push(`${changeName}: focus change должен иметь execution_mode=no-code`)
+    }
+  }
+
+  if (changeKind === "research") {
+    if (executionMode && executionMode !== "no-code") {
+      errors.push(`${changeName}: research change должен иметь execution_mode=no-code`)
+    }
+    if (
+      parentChange &&
+      changeKindsByName.has(parentChange) &&
+      !["focus", "idea", "research"].includes(changeKindsByName.get(parentChange))
+    ) {
+      errors.push(`${changeName}: research change может иметь parent_change только на стратегический change`)
+    }
+  }
+
+  if (changeKind === "dispatcher") {
+    if (!parentChange) {
+      errors.push(`${changeName}: dispatcher change должен иметь parent_change`)
+    }
+    if (!roadmapRef) {
+      errors.push(`${changeName}: dispatcher change должен иметь roadmap_ref`)
+    }
+    if (executionMode && executionMode !== "no-code") {
+      errors.push(`${changeName}: dispatcher change должен иметь execution_mode=no-code`)
+    }
+  }
+
+  if (changeKind === "implement") {
+    if (!parentChange) {
+      errors.push(`${changeName}: implement change должен иметь parent_change`)
+    }
+    if (executionMode && executionMode !== "code") {
+      errors.push(`${changeName}: implement change должен иметь execution_mode=code`)
+    }
+  }
+
+  return errors
+}
+
 const specs = readSpecs()
 const coveragePlan = readCoveragePlan()
 const testFiles = walkFiles(testsRoot, (filePath) => TEST_FILE_PATTERN.test(filePath))
@@ -152,6 +265,24 @@ const records = testFiles.flatMap(parseTestMetadata)
 const coveredScenarios = new Map()
 const errors = []
 const changesRoot = path.join(projectRoot, "openspec", "changes")
+const allChanges = new Set(readChangeDirs(changesRoot).map((dirPath) => path.basename(dirPath)))
+const changeKindsByName = new Map()
+
+for (const changeDir of readChangeDirs(changesRoot)) {
+  const metadataPath = path.join(changeDir, ".openspec.yaml")
+
+  if (!fs.existsSync(metadataPath)) {
+    continue
+  }
+
+  const metadata = readText(metadataPath)
+  const changeName = path.basename(changeDir)
+  const changeKind = parseMetadataValue(metadata, CHANGE_KIND_PATTERN)
+
+  if (changeKind) {
+    changeKindsByName.set(changeName, changeKind)
+  }
+}
 
 for (const [capability, entry] of Object.entries(coveragePlan)) {
   if (!specs.has(capability)) {
@@ -175,9 +306,14 @@ for (const changeDir of readChangeDirs(changesRoot)) {
   const metadata = readText(metadataPath)
   const short = parseShortFromMetadata(metadata)
   const violations = validateShortRules(short)
+  const changeName = path.basename(changeDir)
 
   for (const violation of violations) {
     errors.push(`${relative(metadataPath)}: short ${violation}`)
+  }
+
+  for (const violation of validateChangeKindRules(changeName, metadata, allChanges, changeKindsByName)) {
+    errors.push(`${relative(metadataPath)}: ${violation}`)
   }
 }
 

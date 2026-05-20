@@ -51,6 +51,8 @@ Onboarding-контент runtime читает из каталога `/onboardin
 ## Админские команды
 
 ```bash
+npm run test:full
+npm run quality:text
 npm run build
 npm run smoke
 npm run allowlist:marker -- user@example.com
@@ -58,7 +60,7 @@ npm run admin:tasks:configs
 npm run admin:tasks:import -- --variants-root=... --base-root=...
 ```
 
-`npm run build` проверяет production-сборку. `npm run smoke` делает базовую preflight-проверку env и build. Полный канонический каталог админских утилит и команд собран в [tools/README.md](tools/README.md).
+`npm run test:full` проверяет обязательный слой качества (unit + traceability + code-quality-text). `npm run quality:text` запускает быстрый контроль качества текста кода по рабочим изменениям. `npm run build` проверяет production-сборку. `npm run smoke` делает базовую preflight-проверку env и build. Полный канонический каталог админских утилит и команд собран в [tools/README.md](tools/README.md).
 
 ## Документация
 

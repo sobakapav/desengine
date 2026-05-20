@@ -1,0 +1,11 @@
+schema: spec-driven
+created: 2026-05-19
+short_policy: "none"
+review_sync_state: "in-sync"
+issue: "https://github.com/sobakapav/desengine/issues/9"
+short: "подсказки задач переводятся на шаблонирование промптов"
+change_kind: "dispatcher"
+execution_mode: "no-code"
+parent_change: "focus-features"
+strategy_root: "focus-features"
+roadmap_ref: "roadmaps/task-hints-templating.md"
