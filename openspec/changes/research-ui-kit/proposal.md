@@ -6,6 +6,5 @@
 
 ## Что меняется
 
-- Вводится change `research-ui-kit` как change первого уровня (без родителя).
-- `dispatcher-ui-kit` становится дочерним к `research-ui-kit`.
-- Дальнейшие fix/implement changes по UI kit наследуют этот root через `dispatcher-ui-kit`.
+- `research-ui-kit` закрепляется под стратегическим фокусом `focus-features`.
+- Диспетчерская и внедренческая ветка UI kit ведётся отдельно в feature-контуре (`focus-features`), без дочерней привязки к этому research.

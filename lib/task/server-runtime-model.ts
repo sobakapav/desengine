@@ -6,6 +6,7 @@ import { appConfig } from "@/lib/system/config/server"
 import type {
   LevelConfig,
 } from "../level/types"
+import { readTaskImageDataUrl } from "./image-source"
 import type { TaskConfig, TaskLabContext } from "./types"
 import { taskServerStorage } from "./server-runtime-storage"
 
@@ -41,6 +42,18 @@ async function buildTaskLabContext(
     readLevelCommonExplanation(level.id, level.description),
     taskServerStorage.readTaskLevelTip(taskId, level, taskConfig),
   ])
+  const images = await Promise.all(level.images.map(async (imageConfig) => {
+    const size = requireTaskImage(taskConfig, imageConfig.id)
+    const inlineSrc = await readTaskImageDataUrl(taskId, imageConfig.id)
+
+    return {
+      id: imageConfig.id,
+      src: inlineSrc ?? `/api/tasks/${taskId}/image?imageId=${encodeURIComponent(imageConfig.id)}`,
+      width: size.width,
+      height: size.height,
+      show: imageConfig.show,
+    }
+  }))
 
   return {
     levelId: level.id,
@@ -49,17 +62,7 @@ async function buildTaskLabContext(
     commonExplanation,
     taskTip,
     editableFileIds: normalizeEditableFileIds(level),
-    images: level.images.map((imageConfig) => {
-      const size = requireTaskImage(taskConfig, imageConfig.id)
-
-      return {
-        id: imageConfig.id,
-        src: `/api/tasks/${taskId}/image?imageId=${encodeURIComponent(imageConfig.id)}`,
-        width: size.width,
-        height: size.height,
-        show: imageConfig.show,
-      }
-    }),
+    images,
   }
 }
 

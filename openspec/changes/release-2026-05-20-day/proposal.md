@@ -6,9 +6,7 @@
 
 - Введён release change `release-2026-05-20-day`.
 - В релиз добавлены:
-  - `dispatcher-task-hints`
-  - `dispatcher-code-quality-text-subsystem`
-  - `dispatcher-ui-kit`
+  - `implement-ai-policy-publishing`
   - `implement-prompts-njk-templating`
   - `implement-check-prompt-context`
   - `fix-hide-ui-kit-switcher-access`

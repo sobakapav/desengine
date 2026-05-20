@@ -96,11 +96,11 @@ function buildChangeSummary(changeDir) {
   const metadataText = readChangeMetadata(changeDir)
   const proposalText = readProposal(changeDir)
 
-  if (!proposalText || isSuspended(proposalText)) {
+  if (proposalText && isSuspended(proposalText)) {
     return null
   }
 
-  const summary = extractShortSummary(metadataText) || extractWhySummary(proposalText)
+  const summary = extractShortSummary(metadataText) || extractWhySummary(proposalText || "")
 
   return {
     name: changeName,

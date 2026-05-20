@@ -7,7 +7,7 @@ execution_mode: "code"
 parent_change: "dispatcher-help"
 strategy_root: "focus-content"
 roadmap_ref: ""
-release_ref: "release-2026-05-20-evening"
+release_ref: "release-2026-05-20-day"
 issue: ""
 short: "создать и опубликовать ai-политику в системе помощи"
 

@@ -5,8 +5,8 @@
 
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import type { Dispatch, MutableRefObject, ReactNode, RefObject, SetStateAction } from "react"
 import { Stage, Layer, Image as KonvaImage } from "react-konva"
 
 import { cn } from "@/lib/system/utils"
@@ -16,6 +16,8 @@ type KonvaImageInspectorProps = {
   src: string
   alt?: string
   className?: string
+  imageWidth?: number
+  imageHeight?: number
   onMetaReady?: (meta: ImageInspectorMeta) => void
   onLoadError?: () => void
 }
@@ -77,32 +79,49 @@ function getZoomViewport({
 function useContainerSize(containerRef: RefObject<HTMLDivElement | null>) {
   const [containerSize, setContainerSize] = useState<Size>({ width: 0, height: 0 })
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = containerRef.current
     if (!el) return
+    let frameId = 0
 
-    const ro = new ResizeObserver(() => {
+    const measure = () => {
       const rect = el.getBoundingClientRect()
       setContainerSize({
         width: Math.max(0, Math.floor(rect.width)),
         height: Math.max(0, Math.floor(rect.height)),
       })
+    }
+
+    const ro = new ResizeObserver(() => {
+      measure()
     })
 
+    measure()
+    frameId = window.requestAnimationFrame(measure)
     ro.observe(el)
-    return () => ro.disconnect()
+
+    return () => {
+      ro.disconnect()
+      window.cancelAnimationFrame(frameId)
+    }
   }, [containerRef])
 
   return containerSize
 }
 
 function useLoadedImage({
+  imageHeight,
+  imageWidth,
   onLoadError,
   onMetaReady,
   src,
-}: Pick<KonvaImageInspectorProps, "onLoadError" | "onMetaReady" | "src">) {
+}: Pick<KonvaImageInspectorProps, "imageHeight" | "imageWidth" | "onLoadError" | "onMetaReady" | "src">) {
   const [image, setImage] = useState<HTMLImageElement | null>(null)
-  const [imageSize, setImageSize] = useState<Size>({ width: 0, height: 0 })
+  const [imageSize, setImageSize] = useState<Size>({
+    width: Math.max(imageWidth ?? 0, 0),
+    height: Math.max(imageHeight ?? 0, 0),
+  })
+  const [hasLoadError, setHasLoadError] = useState(false)
 
   useEffect(() => {
     let canceled = false
@@ -115,16 +134,24 @@ function useLoadedImage({
 
     img.onload = () => {
       if (canceled) return
-      const size = { width: img.naturalWidth, height: img.naturalHeight }
+      const size = {
+        width: Math.max(img.naturalWidth, imageWidth ?? 0),
+        height: Math.max(img.naturalHeight, imageHeight ?? 0),
+      }
       setImage(img)
       setImageSize(size)
+      setHasLoadError(false)
       onMetaReady?.({ naturalWidth: size.width, naturalHeight: size.height })
     }
 
     img.onerror = () => {
       if (canceled) return
       setImage(null)
-      setImageSize({ width: 0, height: 0 })
+      setImageSize({
+        width: Math.max(imageWidth ?? 0, 0),
+        height: Math.max(imageHeight ?? 0, 0),
+      })
+      setHasLoadError(true)
       onLoadError?.()
     }
 
@@ -133,23 +160,36 @@ function useLoadedImage({
     return () => {
       canceled = true
     }
-  }, [src, onMetaReady, onLoadError])
+  }, [src, imageHeight, imageWidth, onMetaReady, onLoadError])
 
-  return { image, imageSize }
+  return { image, imageSize, hasLoadError }
 }
 
 function LoadingImageFrame({
-  alt,
+  className,
+  hasLoadError,
+}: Pick<KonvaImageInspectorProps, "className"> & {
+  hasLoadError: boolean
+}) {
+  return (
+    <div className={cn("absolute inset-0 flex items-center justify-center text-sm text-neutral-500", className)}>
+      {hasLoadError ? "Не удалось загрузить изображение" : "Загрузка изображения…"}
+    </div>
+  )
+}
+
+function InspectorFrame({
+  children,
   className,
   containerRef,
-}: Pick<KonvaImageInspectorProps, "alt" | "className"> & {
+}: {
+  children: ReactNode
+  className?: string
   containerRef: RefObject<HTMLDivElement | null>
 }) {
   return (
     <div ref={containerRef} className={cn("relative min-h-[180px] w-full overflow-hidden rounded-md border bg-white", className)}>
-      <div className="absolute inset-0 flex items-center justify-center text-sm text-neutral-500">
-        {alt ?? "Загрузка изображения…"}
-      </div>
+      {children}
     </div>
   )
 }
@@ -238,12 +278,26 @@ function ViewerStage({
   )
 }
 
-function KonvaImageInspector({ src, alt, className, onMetaReady, onLoadError }: KonvaImageInspectorProps) {
+function KonvaImageInspector({
+  src,
+  className,
+  imageWidth,
+  imageHeight,
+  onMetaReady,
+  onLoadError,
+}: KonvaImageInspectorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const stageRef = useRef<import("konva/lib/Stage").Stage | null>(null)
   const containerSize = useContainerSize(containerRef)
-  const { image, imageSize } = useLoadedImage({ src, onMetaReady, onLoadError })
+  const { image, imageSize, hasLoadError } = useLoadedImage({
+    src,
+    imageWidth,
+    imageHeight,
+    onMetaReady,
+    onLoadError,
+  })
   const [viewport, setViewport] = useState<Viewport>({ scale: 1, x: 0, y: 0 })
+  const [isViewportInitialized, setIsViewportInitialized] = useState(false)
   const canRenderStage = containerSize.width > 0 && containerSize.height > 0 && image != null && imageSize.width > 0 && imageSize.height > 0
   const fitViewport = useMemo(() => {
     if (!canRenderStage) return null
@@ -252,30 +306,40 @@ function KonvaImageInspector({ src, alt, className, onMetaReady, onLoadError }: 
   }, [canRenderStage, containerSize, imageSize])
 
   useEffect(() => {
-    if (fitViewport) setViewport(fitViewport)
-  }, [fitViewport])
+    setIsViewportInitialized(false)
+    setViewport({ scale: 1, x: 0, y: 0 })
+  }, [src])
 
-  if (!canRenderStage) {
-    return <LoadingImageFrame alt={alt} className={className} containerRef={containerRef} />
-  }
+  useEffect(() => {
+    if (!canRenderStage || isViewportInitialized) return
+
+    setViewport(getCenteredViewport(containerSize, imageSize, 1))
+    setIsViewportInitialized(true)
+  }, [canRenderStage, containerSize, imageSize, isViewportInitialized])
 
   return (
-    <div ref={containerRef} className={cn("relative min-h-[180px] w-full overflow-hidden rounded-md border bg-white", className)}>
-      <InspectorToolbar
-        viewport={viewport}
-        onFit={() => fitViewport && setViewport(fitViewport)}
-        onReset={() => setViewport(getCenteredViewport(containerSize, imageSize, 1))}
-        onZoom={(direction) => setViewport((current) => getZoomViewport({ containerSize, direction, scaleBy: 1.15, viewport: current }))}
-      />
-      <ViewerStage
-        containerSize={containerSize}
-        image={image}
-        imageSize={imageSize}
-        setViewport={setViewport}
-        stageRef={stageRef}
-        viewport={viewport}
-      />
-    </div>
+    <InspectorFrame className={className} containerRef={containerRef}>
+      {canRenderStage ? (
+        <>
+          <InspectorToolbar
+            viewport={viewport}
+            onFit={() => fitViewport && setViewport(fitViewport)}
+            onReset={() => setViewport(getCenteredViewport(containerSize, imageSize, 1))}
+            onZoom={(direction) => setViewport((current) => getZoomViewport({ containerSize, direction, scaleBy: 1.15, viewport: current }))}
+          />
+          <ViewerStage
+            containerSize={containerSize}
+            image={image}
+            imageSize={imageSize}
+            setViewport={setViewport}
+            stageRef={stageRef}
+            viewport={viewport}
+          />
+        </>
+      ) : (
+        <LoadingImageFrame hasLoadError={hasLoadError} />
+      )}
+    </InspectorFrame>
   )
 }
 
