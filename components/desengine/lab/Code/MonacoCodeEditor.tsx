@@ -60,6 +60,25 @@ type MonacoGlobalInstance = MonacoInstance & {
   };
 }
 
+const editorOptions = {
+  automaticLayout: true,
+  bracketPairColorization: { enabled: false },
+  fontSize: 14,
+  guides: {
+    bracketPairs: false,
+    indentation: true,
+  },
+  lineNumbers: "on",
+  minimap: { enabled: false },
+  padding: { top: 12, bottom: 12 },
+  renderLineHighlight: "line",
+  roundedSelection: false,
+  scrollBeyondLastLine: false,
+  smoothScrolling: true,
+  tabSize: 2,
+  wordWrap: "on",
+} satisfies Record<string, unknown>;
+
 function getEditorLanguage(fileName: string) {
   if (fileName.endsWith(".json")) {
     return "json";
@@ -123,6 +142,10 @@ function configureLabDiagnostics(monaco: MonacoInstance) {
   });
 }
 
+function EditorFallback(props: MonacoEditorProps) {
+  return <FallbackCodeEditor {...props} />;
+}
+
 function MonacoCodeEditor({ fileId, fileName, value, onChange, onSaveShortcut }: MonacoEditorProps) {
   const [Editor, setEditor] = useState<ComponentType<MonacoReactEditorProps> | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -148,9 +171,18 @@ function MonacoCodeEditor({ fileId, fileName, value, onChange, onSaveShortcut }:
   }, []);
 
   const language = useMemo(() => getEditorLanguage(fileName), [fileName]);
+  const fallback = (
+    <EditorFallback
+      fileId={fileId}
+      fileName={fileName}
+      value={value}
+      onChange={onChange}
+      onSaveShortcut={onSaveShortcut}
+    />
+  );
 
   if (loadFailed || Editor === null) {
-    return <FallbackCodeEditor fileId={fileId} fileName={fileName} value={value} onChange={onChange} onSaveShortcut={onSaveShortcut} />;
+    return fallback;
   }
 
   return (
@@ -161,9 +193,7 @@ function MonacoCodeEditor({ fileId, fileName, value, onChange, onSaveShortcut }:
       height="100%"
       theme="light"
       value={value}
-      loading={
-        <FallbackCodeEditor fileId={fileId} fileName={fileName} value={value} onChange={onChange} onSaveShortcut={onSaveShortcut} />
-      }
+      loading={fallback}
       onMount={(editor, monaco) => {
         if (!onSaveShortcut) {
           return;
@@ -174,24 +204,7 @@ function MonacoCodeEditor({ fileId, fileName, value, onChange, onSaveShortcut }:
         });
       }}
       onChange={(nextValue) => onChange(nextValue ?? "")}
-      options={{
-        automaticLayout: true,
-        bracketPairColorization: { enabled: false },
-        fontSize: 14,
-        guides: {
-          bracketPairs: false,
-          indentation: true,
-        },
-        lineNumbers: "on",
-        minimap: { enabled: false },
-        padding: { top: 12, bottom: 12 },
-        renderLineHighlight: "line",
-        roundedSelection: false,
-        scrollBeyondLastLine: false,
-        smoothScrolling: true,
-        tabSize: 2,
-        wordWrap: "on",
-      }}
+      options={editorOptions}
     />
   );
 }

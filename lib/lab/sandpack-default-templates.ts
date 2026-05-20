@@ -246,6 +246,12 @@ function readJsonFile(filePath: string): unknown | null {
 let cachedTemplates: SandpackDefaultTemplates | null = null
 let didWarnMissingTemplatesInProd = false
 
+/**
+ * @example
+ * ```ts
+ * const templates = loadSandpackDefaultTemplates({ rootDir: process.cwd() })
+ * ```
+ */
 export function loadSandpackDefaultTemplates(
   options: { rootDir?: string } = {},
 ): SandpackDefaultTemplates {
@@ -300,4 +306,3 @@ export function loadSandpackDefaultTemplates(
   if (shouldCache) cachedTemplates = result
   return result
 }
-

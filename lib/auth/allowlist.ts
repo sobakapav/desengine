@@ -7,6 +7,13 @@ export type AllowlistReachabilityResult = {
   message: string
 }
 
+/**
+ * @example
+ * ```ts
+ * const status = summarizeAllowlistSystemStatus(200)
+ * status.state
+ * ```
+ */
 export function summarizeAllowlistSystemStatus(status: number): {
   state: ResourceState
   summary: string

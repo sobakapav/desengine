@@ -123,14 +123,22 @@ describe("project UI kit switching", () => {
   it("route и Workbench держат project как boundary между UI и Sandpack payload", () => {
     const sandpackRoute = readProjectFile("app", "api", "tasks", "[taskId]", "sandpack", "route.ts")
     const workbench = readProjectFile("components", "desengine", "lab", "Workbench", "Workbench.tsx")
+    const workbenchController = readProjectFile(
+      "components",
+      "desengine",
+      "lab",
+      "Workbench",
+      "useWorkbenchController.ts",
+    )
     const outRender = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "OutRender.tsx")
 
     expect(sandpackRoute).toContain('searchParams.get("uiKitId")')
     expect(sandpackRoute).toContain('searchParams.get("uiMode")')
     expect(sandpackRoute).toContain("buildSandpackPreviewPayload(sourceFiles, {")
-    expect(workbench).toContain("getProjectStorageKey(taskItem.id)")
-    expect(workbench).toContain("sandpackUiKitsConfig")
-    expect(workbench).toContain("window.localStorage.setItem")
+    expect(workbench).toContain("useWorkbenchController")
+    expect(workbenchController).toContain("getProjectStorageKey(taskId)")
+    expect(workbenchController).toContain("sandpackUiKitsConfig")
+    expect(workbenchController).toContain("window.localStorage.setItem")
     expect(outRender).toContain("new URLSearchParams")
     expect(outRender).toContain("uiKitId: previewProject.uiKitId")
     expect(outRender).toContain('compatibility.status !== "incompatible"')

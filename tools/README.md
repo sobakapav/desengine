@@ -138,6 +138,8 @@ npm run openspec:new -- add-level-badges --description "Пробный change"
 - формат TODO/FIXME.
 
 Временные legacy-исключения ведутся в `tools/quality-text/waivers.json` с обязательными полями `rules`, `owner`, `reason`, `targetStage`.
+Отчёт всегда показывает `Scope`, `Files checked`, `Violations`, `Waived violations` и `LLM mode`.
+Обязательный путь deterministic: `test:full` не включает LLM, сеть или live credentials.
 
 Полный аудит по репозиторию:
 

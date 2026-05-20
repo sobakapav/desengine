@@ -3,6 +3,14 @@ import { startTaskLevel } from "@/lib/task/actions"
 
 type Params = { taskId: string }
 
+/**
+ * @example
+ * ```ts
+ * await POST(new Request("http://localhost/api/tasks/task-1/start"), {
+ *   params: Promise.resolve({ taskId: "task-1" }),
+ * })
+ * ```
+ */
 export async function POST(
   _request: Request,
   { params }: { params: Promise<Params> },

@@ -34,6 +34,12 @@ export function getTaskCatalogDir(taskId: string) {
   return path.join(appConfig.taskCatalogRoot, taskId)
 }
 
+/**
+ * @example
+ * ```ts
+ * const filePath = getTaskCatalogFilePath("task-1", "component.tsx")
+ * ```
+ */
 export function getTaskCatalogFilePath(taskId: string, fileName: string) {
   return path.join(getTaskCatalogDir(taskId), fileName)
 }
@@ -50,6 +56,12 @@ export function getUserTaskDir(taskId: string) {
   return path.join(getUserTasksRoot(), taskId)
 }
 
+/**
+ * @example
+ * ```ts
+ * const filePath = getUserTaskFilePath("task-1", "Component.tsx")
+ * ```
+ */
 export function getUserTaskFilePath(taskId: string, fileName: string) {
   return path.join(getUserTaskDir(taskId), fileName)
 }

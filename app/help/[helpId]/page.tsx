@@ -12,6 +12,12 @@ type HelpMarkdownPageProps = {
   }>
 }
 
+/**
+ * @example
+ * ```tsx
+ * <HelpMarkdownPage params={Promise.resolve({ helpId: "start" })} />
+ * ```
+ */
 export default async function HelpMarkdownPage({ params }: HelpMarkdownPageProps) {
   const { helpId } = await params
   await requireAccessOrRedirect(`/help/${helpId}`)
@@ -39,4 +45,3 @@ export default async function HelpMarkdownPage({ params }: HelpMarkdownPageProps
     </main>
   )
 }
-

@@ -11,6 +11,12 @@ type Params = {
   screen: string
 }
 
+/**
+ * @example
+ * ```tsx
+ * <TaskScreenPage params={Promise.resolve({ taskId: "task-1", screen: "component" })} />
+ * ```
+ */
 export default async function TaskScreenPage({
   params,
 }: {

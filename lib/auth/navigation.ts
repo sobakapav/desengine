@@ -4,7 +4,7 @@ function getAuthUrl() {
 }
 
 /** URL endpoint'а подготовки проходной страницы авторизации */
-// TODO Адрес endpoint'а захардкожен, нехорошо, переписать
+// TODO(owner:team-desengine, targetStage:6.5): переписать захардкоженный адрес endpoint'а.
 // ? А верифицирующий endpoint так не используется?
 function getAuthPrepareUrl(returnTo: string) {
   return `/api/auth/prepare?returnTo=${encodeURIComponent(returnTo)}`
@@ -20,7 +20,7 @@ function skipLastSlash(pathname: string): string {
 }
 
 /** Требуется ли проверка доступа для этого URL */
-// TODO Адреса захардкожены, подкаталоги не предусмотрены — точно нужно переписать!
+// TODO(owner:team-desengine, targetStage:6.5): переписать захардкоженные адреса и поддержку подкаталогов.
 export function isProtectedUrl(pathname: string) {
   const normalized = skipLastSlash(pathname)
   return normalized != "/auth"

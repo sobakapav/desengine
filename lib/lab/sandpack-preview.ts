@@ -92,6 +92,13 @@ const basePackageJson = {
   dependencies: baseDependencies,
 }
 
+type ResolvedPreviewProject = {
+  project: Project
+  resolvedUiKitId: SandpackUiKitId
+  compatibility: ProjectCompatibility
+}
+type SandpackUiKitConfig = (typeof sandpackUiKitsConfig)[SandpackUiKitId]
+
 function buildMainTsx(indexTsxTemplate: string, indexTsxImports: string[] = []) {
   const extraImports = indexTsxImports.length ? `${indexTsxImports.join("\n")}\n` : ""
   return indexTsxTemplate.replace("/* __EXTRA_IMPORTS__ */", extraImports)
@@ -215,19 +222,14 @@ function buildHtmlTagsFallbackComponent(message: string) {
 `
 }
 
-function buildSandpackPreviewPayload(
+function resolvePreviewProject(
   sourceFiles: SandpackPreviewSourceFiles,
   options: {
     uiKitId?: SandpackUiKitId | string | null
     uiMode?: ProjectUiMode | string | null
     project?: RawProject | null
-    appTemplate?: SandpackAppTemplateOptions | null
-  } = {},
-): SandpackPreviewPayload {
-  validateSandpackUiKitsConfig()
-
-  const templates = loadSandpackDefaultTemplates()
-
+  },
+): ResolvedPreviewProject {
   const project = normalizeProject(options.project ?? {
     ...createDefaultProject(),
     uiKitId: typeof options.uiKitId === "string"
@@ -238,33 +240,40 @@ function buildSandpackPreviewPayload(
   const projectPreviewConfig = resolveProjectPreviewConfig(project)
   const resolvedUiKitId = projectPreviewConfig.effectiveUiKitId
 
-  const uiKit = sandpackUiKitsConfig[resolvedUiKitId] ?? sandpackUiKitsConfig[DEFAULT_SANDPACK_UI_KIT_ID]
-  const dependencies = {
-    ...basePackageJson.dependencies,
-    ...uiKit.dependencies,
-  }
-
-  const appTemplate = options.appTemplate ?? null
-  const resolvedAppTsx = appTemplate?.appTsx ?? fallbackAppTsx
-  const resolvedLevelRuntime = appTemplate?.levelTemplateRuntime ?? "export const levelRuntime = {} as const;\n"
-  const resolvedPreviewCss = (() => {
-    const previewCssBase = sourceFiles.previewCss ?? templates.previewCssSource
-    const levelCss = appTemplate?.previewCss
-    if (!levelCss) return previewCssBase
-    return `${previewCssBase}\n\n/* level preview.css */\n${levelCss}\n`
-  })()
-
-  const packageJsonBase = templates.packageJson
-
   const shouldValidateHtmlTags = Boolean(options.project || options.uiMode)
   const compatibility = shouldValidateHtmlTags && project.uiMode === "html-tags"
     ? validateHtmlTagsComponentSource(sourceFiles.component)
     : { status: "compatible" as const, message: "Режим проекта совместим с выбранным UI kit." }
-  const componentSource = compatibility.status === "compatible"
-    ? sourceFiles.component
-    : buildHtmlTagsFallbackComponent(compatibility.message)
 
-  const files: SandpackPreviewFiles = {
+  return { project, resolvedUiKitId, compatibility }
+}
+
+function resolvePreviewCss(
+  sourceFiles: SandpackPreviewSourceFiles,
+  templates: ReturnType<typeof loadSandpackDefaultTemplates>,
+  appTemplate: SandpackAppTemplateOptions | null,
+) {
+  const previewCssBase = sourceFiles.previewCss ?? templates.previewCssSource
+  const levelCss = appTemplate?.previewCss
+  if (!levelCss) return previewCssBase
+  return `${previewCssBase}\n\n/* level preview.css */\n${levelCss}\n`
+}
+
+function createBaseSandpackFiles(args: {
+  sourceFiles: SandpackPreviewSourceFiles
+  templates: ReturnType<typeof loadSandpackDefaultTemplates>
+  dependencies: Record<string, string>
+  appTemplate: SandpackAppTemplateOptions | null
+  componentSource: string
+  resolvedPreviewCss: string
+  uiKit: SandpackUiKitConfig
+}): SandpackPreviewFiles {
+  const { sourceFiles, templates, dependencies, appTemplate, componentSource, resolvedPreviewCss, uiKit } = args
+  const packageJsonBase = templates.packageJson
+  const resolvedAppTsx = appTemplate?.appTsx ?? fallbackAppTsx
+  const resolvedLevelRuntime = appTemplate?.levelTemplateRuntime ?? "export const levelRuntime = {} as const;\n"
+
+  return {
     "/public/index.html": hidden(templates.indexHtml),
     "/package.json": hidden(JSON.stringify({ ...packageJsonBase, ...basePackageJson, dependencies }, null, 2)),
     "/tsconfig.json": hidden(JSON.stringify(templates.tsconfigJson, null, 2)),
@@ -291,6 +300,36 @@ function buildSandpackPreviewPayload(
     "/tailwind.config.js": hidden(templates.tailwindConfigJs),
     "/postcss.config.js": hidden(templates.postcssConfigJs),
   }
+}
+
+function buildSandpackPreviewPayload(
+  sourceFiles: SandpackPreviewSourceFiles,
+  options: {
+    uiKitId?: SandpackUiKitId | string | null
+    uiMode?: ProjectUiMode | string | null
+    project?: RawProject | null
+    appTemplate?: SandpackAppTemplateOptions | null
+  } = {},
+): SandpackPreviewPayload {
+  validateSandpackUiKitsConfig()
+
+  const templates = loadSandpackDefaultTemplates()
+  const { project, resolvedUiKitId, compatibility } = resolvePreviewProject(sourceFiles, options)
+  const uiKit = sandpackUiKitsConfig[resolvedUiKitId] ?? sandpackUiKitsConfig[DEFAULT_SANDPACK_UI_KIT_ID]
+  const dependencies = { ...basePackageJson.dependencies, ...uiKit.dependencies }
+  const appTemplate = options.appTemplate ?? null
+  const componentSource = compatibility.status === "compatible"
+    ? sourceFiles.component
+    : buildHtmlTagsFallbackComponent(compatibility.message)
+  const files = createBaseSandpackFiles({
+    sourceFiles,
+    templates,
+    dependencies,
+    appTemplate,
+    componentSource,
+    resolvedPreviewCss: resolvePreviewCss(sourceFiles, templates, appTemplate),
+    uiKit,
+  })
 
   if (resolvedUiKitId === "shadcn") {
     files["/components/ui/badge.tsx"] = hidden(rewriteRootAliasImports(sourceFiles.uiBadge, "../../"))

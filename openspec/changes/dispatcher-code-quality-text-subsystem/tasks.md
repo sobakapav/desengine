@@ -2,7 +2,7 @@
 
 - [x] 1.1 Создать каталог `tools/quality-text/` с подпапками `rules`, `reporters` и базовыми index-модулями.
 - [x] 1.2 Перенести текущую логику из `tools/testing/check-code-readability.mjs` в `tools/quality-text/engine.mjs`.
-- [ ] 1.3 Вынести правила в отдельные файлы `tools/quality-text/rules/*.mjs` (file-length, function-length, todo-format, boolean-trap, floating-promise, api-example).
+- [x] 1.3 Вынести правила в отдельные файлы `tools/quality-text/rules/*.mjs` (file-length, function-length, todo-format, boolean-trap, floating-promise, api-example).
 - [x] 1.4 Вынести конфиг лимитов и режимов в `tools/quality-text/config.json`.
 - [x] 1.5 Перенести waiver-реестр в `tools/quality-text/waivers.json` и оставить совместимый bridge из старого пути на период migration.
 
@@ -16,9 +16,9 @@
 ## 3. Cost-guardrails для LLM-разработки
 
 - [x] 3.1 Зафиксировать в engine запрет LLM и сетевых вызовов в обязательном режиме quality-gate.
-- [ ] 3.2 Добавить optional LLM-режим только как выключенную по умолчанию feature-опцию (без включения в `test:full`).
-- [ ] 3.3 В optional режиме добавить budget caps: максимум файлов, максимум токенов, fail-open в deterministic fallback.
-- [ ] 3.4 Добавить метрики в отчёт подсистемы: `scope`, `filesChecked`, `violations`, `waivedViolations`, `llmMode`.
+- [x] 3.2 Добавить optional LLM-режим только как выключенную по умолчанию feature-опцию (без включения в `test:full`).
+- [x] 3.3 В optional режиме добавить budget caps: максимум файлов, максимум токенов, fail-open в deterministic fallback.
+- [x] 3.4 Добавить метрики в отчёт подсистемы: `scope`, `filesChecked`, `violations`, `waivedViolations`, `llmMode`.
 
 ## 4. Документация для админов и разработчиков
 
@@ -32,14 +32,16 @@
 - [x] 5.1 Перенести существующие legacy-waivers в новый реестр без потери полей `owner/reason/targetStage`.
 - [x] 5.2 Убедиться, что changed-scope режим остаётся дефолтом и не анализирует весь репозиторий без явной команды.
 - [x] 5.3 Провести smoke migration: старые команды и новые команды дают эквивалентный результат на одном наборе изменений.
-- [ ] 5.4 Подготовить release-note для команды о переходе на `quality:text*` и timeline удаления legacy aliases.
+- [x] 5.4 Подготовить release-note для команды о переходе на `quality:text*` и timeline удаления legacy aliases.
 
 ## 6. Проверка результата change
 
 - [x] 6.1 Прогнать `npm run test:unit`.
 - [x] 6.2 Прогнать `npm run test:traceability`.
 - [x] 6.3 Прогнать `npm run test:full`.
-- [ ] 6.4 Дополнительно прогнать `npm run quality:text:repo` перед закрытием migration-фазы.
+- [x] 6.4 Дополнительно прогнать `npm run quality:text:repo` перед закрытием migration-фазы.
+  - После follow-up cleanup changes команда проходит без исключений: 0 нарушений, 0 покрыто waiver, активных нарушений нет.
+  - Follow-up changes: `implement-code-quality-text-todo-cleanup`, `implement-code-quality-text-api-examples-cleanup`, `implement-code-quality-text-size-cleanup`, `implement-code-quality-text-ui-size-refactor`, `implement-code-quality-text-ui-kit-size-refactor`, `implement-code-quality-text-task-runtime-size-refactor`, `implement-code-quality-text-llm-server-size-refactor`, `implement-code-quality-text-runtime-helper-size-refactor`, `implement-code-quality-text-tooling-test-size-refactor`.
 
 ## Тестовая часть change
 

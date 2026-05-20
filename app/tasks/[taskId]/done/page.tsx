@@ -9,6 +9,12 @@ type Params = {
   taskId: string
 }
 
+/**
+ * @example
+ * ```tsx
+ * <TaskDonePage params={Promise.resolve({ taskId: "task-1" })} />
+ * ```
+ */
 export default async function TaskDonePage({
   params,
 }: {

@@ -16,6 +16,15 @@ type Body = {
   email?: string
 }
 
+/**
+ * @example
+ * ```ts
+ * await POST(new Request("http://localhost/api/auth/verify", {
+ *   method: "POST",
+ *   body: JSON.stringify({ email: "user@example.com" }),
+ * }))
+ * ```
+ */
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as Body | null
   const normalizedEmail = normalizeEmail(String(body?.email || ""))

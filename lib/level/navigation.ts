@@ -9,7 +9,7 @@ function getLevelUrl(levelId: string) {
     return `${levelsRootUrl}/${encodeURIComponent(levelId)}`
 }
 
-// TODO Убрать вшитый адрес в настройки?
+// TODO(owner:team-desengine, targetStage:6.5): вынести вшитый адрес asset endpoint в настройки.
 function getLevelAssetPath(levelId: string, assetPath?: string | null) {
   const basePath = `/api/levels/${encodeURIComponent(levelId)}/assets`
 

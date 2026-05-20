@@ -10,6 +10,14 @@ import { createEmptyTaskData } from "@/lib/task/data"
 
 type Params = { taskId: string }
 
+/**
+ * @example
+ * ```ts
+ * await GET(new Request("http://localhost/api/tasks/task-1"), {
+ *   params: Promise.resolve({ taskId: "task-1" }),
+ * })
+ * ```
+ */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<Params> },

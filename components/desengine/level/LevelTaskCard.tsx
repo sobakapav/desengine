@@ -29,6 +29,12 @@ function renderTaskMeta(task: LevelOverviewTaskItem) {
   return "Этот уровень уже закрыт"
 }
 
+/**
+ * @example
+ * ```tsx
+ * <LevelTaskCard task={task} mode="available" pending={false} onOpenTask={() => {}} />
+ * ```
+ */
 export function LevelTaskCard({
   task,
   mode,

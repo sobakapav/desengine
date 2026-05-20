@@ -18,17 +18,46 @@ import { TabsStyles } from "./styles"
 import { isEditorSaveHotkey } from "@/lib/lab/editor";
 import { taskWorkbenchFiles } from "@/lib/system/config/client";
 
-function Code({
-  id,
-  taskData,
-  onTaskDataChange,
-  onFileChange,
-  onSaveShortcut,
-  dirtyFileIds = [],
-}: CodeProps & { id: string }) {
+type CodeHeaderProps = {
+  fileName: string;
+  isDirty: boolean;
+  title: string;
+}
+
+function CodeHeader({ fileName, isDirty, title }: CodeHeaderProps) {
+  return (
+    <div className="flex items-center gap-2 px-1 text-sm text-black/80">
+      <strong>{title}</strong>
+      {isDirty ? (
+        <span
+          aria-hidden="true"
+          className="inline-block size-2.5 rounded-full bg-destructive"
+        />
+      ) : null}
+      <span className="text-xs text-black/50">
+        <code>{fileName}</code>
+      </span>
+    </div>
+  );
+}
+
+function CopyButton({ copied, onCopy }: { copied: boolean; onCopy: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={onCopy}
+      className="absolute right-3 top-3 z-10 gap-2 border-black bg-black text-white shadow-sm hover:bg-black/90 hover:text-white"
+    >
+      {copied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
+      {copied ? "Скопировано" : "Скопировать"}
+    </Button>
+  );
+}
+
+function useCopyState(text: string) {
   const [copied, setCopied] = useState(false);
-  const currentFile = id ? taskWorkbenchFiles.find((file) => file.id === id) : null;
-  const isDirty = id ? dirtyFileIds.includes(id) : false;
 
   useEffect(() => {
     if (!copied) {
@@ -44,19 +73,43 @@ function Code({
     };
   }, [copied]);
 
-  if (!id || !currentFile) {
-    return null;
-  }
-
-  const fileContent = taskData.contentByFileId[id] ?? "";
-
-  async function handleCopy() {
+  async function copy() {
     try {
-      await navigator.clipboard.writeText(fileContent);
+      await navigator.clipboard.writeText(text);
       setCopied(true);
     } catch {
       setCopied(false);
     }
+  }
+
+  return { copied, copy };
+}
+
+function createTaskDataWithFileContent(taskData: CodeProps["taskData"], fileId: string, nextValue: string) {
+  return {
+    ...taskData,
+    contentByFileId: {
+      ...taskData.contentByFileId,
+      [fileId]: nextValue,
+    },
+  };
+}
+
+function Code({
+  id,
+  taskData,
+  onTaskDataChange,
+  onFileChange,
+  onSaveShortcut,
+  dirtyFileIds = [],
+}: CodeProps & { id: string }) {
+  const currentFile = id ? taskWorkbenchFiles.find((file) => file.id === id) : null;
+  const isDirty = id ? dirtyFileIds.includes(id) : false;
+  const fileContent = id ? taskData.contentByFileId[id] ?? "" : "";
+  const { copied, copy } = useCopyState(fileContent);
+
+  if (!id || !currentFile) {
+    return null;
   }
 
   function handleEditorKeyDownCapture(event: ReactKeyboardEvent<HTMLDivElement>) {
@@ -71,20 +124,23 @@ function Code({
     onSaveShortcut?.();
   }
 
+  function handleChange(nextValue: string) {
+    if (onFileChange) {
+      onFileChange(id, nextValue);
+      return;
+    }
+
+    if (!onTaskDataChange) return;
+    onTaskDataChange(createTaskDataWithFileContent(taskData, id, nextValue));
+  }
+
   return (
     <div className="flex h-full w-full flex-col gap-2">
-      <div className="flex items-center gap-2 px-1 text-sm text-black/80">
-        <strong>{currentFile.title}</strong>
-        {isDirty ? (
-          <span
-            aria-hidden="true"
-            className="inline-block size-2.5 rounded-full bg-destructive"
-          />
-        ) : null}
-        <span className="text-xs text-black/50">
-          <code>{currentFile.fileName}</code>
-        </span>
-      </div>
+      <CodeHeader
+        fileName={currentFile.fileName}
+        isDirty={isDirty}
+        title={currentFile.title}
+      />
 
       <div
         className={[
@@ -93,37 +149,14 @@ function Code({
         ].join(" ")}
         onKeyDownCapture={handleEditorKeyDownCapture}
       >
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => void handleCopy()}
-          className="absolute right-3 top-3 z-10 gap-2 border-black bg-black text-white shadow-sm hover:bg-black/90 hover:text-white"
-        >
-          {copied ? <Check className="size-4" aria-hidden="true" /> : <Copy className="size-4" aria-hidden="true" />}
-          {copied ? "Скопировано" : "Скопировать"}
-        </Button>
+        <CopyButton copied={copied} onCopy={() => void copy()} />
 
         <MonacoCodeEditor
           fileId={id}
           fileName={currentFile.fileName}
           value={fileContent}
           onSaveShortcut={onSaveShortcut}
-          onChange={(nextValue) => {
-            if (onFileChange) {
-              onFileChange(id, nextValue);
-              return;
-            }
-
-            if (!onTaskDataChange) return;
-            onTaskDataChange({
-              ...taskData,
-              contentByFileId: {
-                ...taskData.contentByFileId,
-                [id]: nextValue,
-              },
-            });
-          }}
+          onChange={handleChange}
         />
       </div>
     </div>

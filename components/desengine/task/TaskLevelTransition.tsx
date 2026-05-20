@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { MarkdownContent } from "@/components/desengine/system/MarkdownContent";
 import { Button } from "@/components/ui/button";
 import { OutRender } from "@/components/desengine/lab/InOut/OutRender/OutRender";
@@ -14,6 +15,69 @@ type TaskLevelTransitionProps = {
   onBackToLevelList: () => void;
 };
 
+type TransitionPanelProps = {
+  assetBasePath: string;
+  description: string;
+  title: string;
+  children: ReactNode;
+};
+
+function TransitionPanel({ assetBasePath, children, description, title }: TransitionPanelProps) {
+  return (
+    <div className="space-y-2">
+      <p className="font-medium">{title}</p>
+      {children}
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-muted-foreground/80">Общий фокус уровня</p>
+        <MarkdownContent
+          assetBasePath={assetBasePath}
+          className="text-sm text-muted-foreground/80"
+          content={description}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TransitionHeader({ transition, nextLevel }: { transition: TaskTransition; nextLevel: NonNullable<TaskTransition["toLevel"]> }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-muted-foreground">
+        Уровень {transition.fromLevel.number} завершён
+      </p>
+      <h1 className="font-semibold">
+        {`Задача ${transition.taskId} готова к переходу на ${nextLevel.title}`}
+      </h1>
+      <p className="text-muted-foreground">
+        Причина завершения: успешная проверка результата уровня.
+      </p>
+    </div>
+  );
+}
+
+function TransitionActions({
+  pending,
+  onBackToLevelList,
+  onContinue,
+}: Pick<TaskLevelTransitionProps, "pending" | "onBackToLevelList" | "onContinue">) {
+  return (
+    <div className="flex flex-wrap gap-3">
+      <Button disabled={pending} onClick={onContinue}>
+        Решать эту же задачу дальше
+      </Button>
+      <Button variant="outline" disabled={pending} onClick={onBackToLevelList}>
+        Перейти в список задач
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * @example
+ * ```tsx
+ * <TaskLevelTransition transition={transition} started pending={false} onContinue={() => {}} onBackToLevelList={() => {}} />
+ * ```
+ */
 export function TaskLevelTransition({
   transition,
   started,
@@ -21,7 +85,6 @@ export function TaskLevelTransition({
   onContinue,
   onBackToLevelList,
 }: TaskLevelTransitionProps) {
-  const reasonText = "успешная проверка результата уровня"
   const previousLevelTaskText = transition.fromTaskTip
     || `В задаче ${transition.taskId} на уровне ${transition.fromLevel.number} удалось закрепить результат и подготовить переход дальше.`
   const nextLevel = transition.toLevel
@@ -37,32 +100,17 @@ export function TaskLevelTransition({
 
   return (
     <section className="space-y-4 rounded-md border p-6">
-      <div className="space-y-2">
-        <p className="text-muted-foreground">
-          Уровень {transition.fromLevel.number} завершён
-        </p>
-        <h1 className="font-semibold">
-          {`Задача ${transition.taskId} готова к переходу на ${nextLevel.title}`}
-        </h1>
-        <p className="text-muted-foreground">
-          Причина завершения: {reasonText}.
-        </p>
-      </div>
+      <TransitionHeader transition={transition} nextLevel={nextLevel} />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(18rem,1fr)]">
         <div className="space-y-4 rounded-md border p-4">
-          <div className="space-y-2">
-            <p className="font-medium">Что удалось на предыдущем уровне</p>
+          <TransitionPanel
+            assetBasePath={previousLevelAssetBasePath}
+            description={transition.fromLevel.description}
+            title="Что удалось на предыдущем уровне"
+          >
             <MarkdownContent content={previousLevelTaskText} />
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-muted-foreground/80">Общий фокус уровня</p>
-              <MarkdownContent
-                assetBasePath={previousLevelAssetBasePath}
-                className="text-sm text-muted-foreground/80"
-                content={transition.fromLevel.description}
-              />
-            </div>
-          </div>
+          </TransitionPanel>
 
           <div className="space-y-2">
             <p className="font-medium">Актуальный результат задачи</p>
@@ -76,29 +124,21 @@ export function TaskLevelTransition({
         </div>
 
         <div className="space-y-2 rounded-md border p-4">
-          <p className="font-medium">
-            Что хочет следующий уровень
-          </p>
-          <MarkdownContent content={nextLevelTaskText} />
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground/80">Общий фокус уровня</p>
-            <MarkdownContent
-              assetBasePath={nextLevelAssetBasePath}
-              className="text-sm text-muted-foreground/80"
-              content={nextLevel.description}
-            />
-          </div>
+          <TransitionPanel
+            assetBasePath={nextLevelAssetBasePath}
+            description={nextLevel.description}
+            title="Что хочет следующий уровень"
+          >
+            <MarkdownContent content={nextLevelTaskText} />
+          </TransitionPanel>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <Button disabled={pending} onClick={onContinue}>
-          Решать эту же задачу дальше
-        </Button>
-        <Button variant="outline" disabled={pending} onClick={onBackToLevelList}>
-          Перейти в список задач
-        </Button>
-      </div>
+      <TransitionActions
+        pending={pending}
+        onBackToLevelList={onBackToLevelList}
+        onContinue={onContinue}
+      />
     </section>
   );
 }

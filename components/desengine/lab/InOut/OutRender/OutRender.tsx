@@ -39,24 +39,9 @@ function ProjectCompatibilityNotice({ payload }: { payload: SandpackPreviewPaylo
     );
 }
 
-function OutRender({ task, started, reloadKey, startStatus, project }: OutRenderProps) {
-    const previewProject = project ?? createDefaultProject(`task-${task}`);
+function usePreviewPayload({ moduleUrl, started }: { moduleUrl: string; started: boolean }) {
     const [error, setError] = useState<string>("");
     const [previewPayload, setPreviewPayload] = useState<SandpackPreviewPayload | null>(null);
-
-    const moduleUrl = useMemo(
-        () => {
-            const params = new URLSearchParams({
-                v: String(reloadKey),
-                projectId: previewProject.id,
-                projectTitle: previewProject.title,
-                uiKitId: previewProject.uiKitId,
-                uiMode: previewProject.uiMode,
-            });
-            return `/api/tasks/${task}/sandpack?${params.toString()}`;
-        },
-        [previewProject.id, previewProject.title, previewProject.uiKitId, previewProject.uiMode, task, reloadKey],
-    );
 
     useEffect(() => {
         let cancelled = false;
@@ -83,68 +68,113 @@ function OutRender({ task, started, reloadKey, startStatus, project }: OutRender
             }
         }
 
-        load();
+        void load();
         return () => { cancelled = true; };
     }, [moduleUrl, started]);
+
+    return { error, previewPayload };
+}
+
+function IdlePreviewNotice({ startStatus }: { startStatus: string }) {
+    return (
+        <div className="space-y-2 py-2">
+            <p className="text-muted-foreground">
+                Превью станет доступно после старта уровня.
+            </p>
+            {startStatus === "starting" && <p className="text-muted-foreground">Генерация файлов…</p>}
+        </div>
+    );
+}
+
+function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
+    moduleUrl: string;
+    previewPayload: SandpackPreviewPayload;
+}) {
+    return (
+        <div className="w-full">
+            <ProjectCompatibilityNotice payload={previewPayload} />
+            <SandpackProvider
+                key={moduleUrl}
+                template="react-ts"
+                theme={{
+                    colors: {
+                        surface1: "#ffffff",
+                        surface2: "#ffffff",
+                        surface3: "#ffffff",
+                    },
+                }}
+                files={previewPayload.files}
+                customSetup={previewPayload.customSetup}
+                options={{
+                    ...previewPayload.options,
+                    autorun: true,
+                    autoReload: true,
+                    bundlerTimeOut: 180000,
+                    initMode: "immediate",
+                    recompileMode: "immediate",
+                }}
+            >
+                <SandpackPreview
+                    showNavigator={false}
+                    showOpenInCodeSandbox={false}
+                    showOpenNewtab={false}
+                    showRefreshButton={false}
+                    showRestartButton={false}
+                    showSandpackErrorOverlay
+                    style={{
+                        minHeight: 128,
+                        overflow: "hidden",
+                        background: "#ffffff",
+                        height: "100%",
+                        width: "100%",
+                    }}
+                />
+            </SandpackProvider>
+        </div>
+    );
+}
+
+function PreviewContent({ error, moduleUrl, previewPayload }: {
+    error: string;
+    moduleUrl: string;
+    previewPayload: SandpackPreviewPayload | null;
+}) {
+    return (
+        <div className="min-h-32 overflow-hidden">
+            {error ? (
+                <PreviewErrorNotice message={error} />
+            ) : previewPayload ? (
+                <SandpackPreviewFrame moduleUrl={moduleUrl} previewPayload={previewPayload} />
+            ) : (
+                <p className="text-muted-foreground">Загрузка рендера…</p>
+            )}
+        </div>
+    );
+}
+
+function OutRender({ task, started, reloadKey, startStatus, project }: OutRenderProps) {
+    const previewProject = project ?? createDefaultProject(`task-${task}`);
+    const moduleUrl = useMemo(
+        () => {
+            const params = new URLSearchParams({
+                v: String(reloadKey),
+                projectId: previewProject.id,
+                projectTitle: previewProject.title,
+                uiKitId: previewProject.uiKitId,
+                uiMode: previewProject.uiMode,
+            });
+            return `/api/tasks/${task}/sandpack?${params.toString()}`;
+        },
+        [previewProject.id, previewProject.title, previewProject.uiKitId, previewProject.uiMode, task, reloadKey],
+    );
+    const { error, previewPayload } = usePreviewPayload({ moduleUrl, started });
 
     return (
         <div className="min-w-0">
             {!started ? (
-                <div className="space-y-2 py-2">
-                    <p className="text-muted-foreground">
-                        Превью станет доступно после старта уровня.
-                    </p>
-                    {startStatus === "starting" && <p className="text-muted-foreground">Генерация файлов…</p>}
-                </div>
+                <IdlePreviewNotice startStatus={startStatus} />
             ) : (
-                <div className="min-h-32 overflow-hidden">
-                    {error ? (
-                        <PreviewErrorNotice message={error} />
-                    ) : previewPayload ? (
-                        <div className="w-full">
-                            <ProjectCompatibilityNotice payload={previewPayload} />
-                            <SandpackProvider
-                                key={moduleUrl}
-                                template="react-ts"
-                                theme={{
-                                    colors: {
-                                        surface1: "#ffffff",
-                                        surface2: "#ffffff",
-                                        surface3: "#ffffff",
-                                    },
-                                }}
-                                files={previewPayload.files}
-                                customSetup={previewPayload.customSetup}
-                                options={{
-                                    ...previewPayload.options,
-                                    autorun: true,
-                                    autoReload: true,
-                                    bundlerTimeOut: 180000,
-                                    initMode: "immediate",
-                                    recompileMode: "immediate",
-                                }}
-                            >
-                                <SandpackPreview
-                                    showNavigator={false}
-                                    showOpenInCodeSandbox={false}
-                                    showOpenNewtab={false}
-                                    showRefreshButton={false}
-                                    showRestartButton={false}
-                                    showSandpackErrorOverlay
-                                    style={{
-                                        minHeight: 128,
-                                        overflow: "hidden",
-                                        background: "#ffffff",
-                                        height: "100%",
-                                        width: "100%",
-                                    }}
-                                />
-                            </SandpackProvider>
-                        </div>
-                    ) : (
-                        <p className="text-muted-foreground">Загрузка рендера…</p>
-                    )}
-                </div>
+                <PreviewContent error={error} moduleUrl={moduleUrl} previewPayload={previewPayload} />
             )}
         </div>
     );

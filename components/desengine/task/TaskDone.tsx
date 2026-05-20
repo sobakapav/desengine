@@ -14,6 +14,12 @@ type TaskDoneProps = {
   onBackToTaskList: () => void;
 };
 
+/**
+ * @example
+ * ```tsx
+ * <TaskDone transition={transition} started pending={false} onOpenTask={() => {}} onBackToTaskList={() => {}} />
+ * ```
+ */
 export function TaskDone({
   transition,
   started,

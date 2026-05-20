@@ -8,26 +8,20 @@ import localConfig from "@/lib/system/config/local.cjs"
 import {
   resolveOnboardingSyncState,
   type OnboardingSourceMarker,
-  type OnboardingSyncState,
 } from "@/lib/onboarding/status"
+import {
+  createConfirmedOnboardingStatus,
+  createIncompleteOnboardingStatus,
+  createMissingMarkerStatus,
+  createMissingOnboardingStatus,
+  createMissingRepoStatus,
+  createRepoMismatchStatus,
+  createUnconfirmedMarkerStatus,
+  type OnboardingLayoutStatus,
+  type OnboardingSyncStatus,
+} from "@/lib/onboarding/sync-status-model"
 
 const ONBOARDING_SOURCE_MARKER_FILE = ".desengine-onboarding-source.json"
-
-type OnboardingLayoutStatus =
-  | { ok: true }
-  | { ok: false; message: string; missingPaths: string[] }
-
-type OnboardingSyncStatus = {
-  state: OnboardingSyncState
-  tone: "ready" | "warning" | "blocked"
-  summary: string
-  detail: string
-  missingPaths: string[]
-  legacyPaths: string[]
-  configuredRepoUrl: string
-  markerPath: string
-  marker: OnboardingSourceMarker | null
-}
 
 const legacyOnboardingRoots = [
   "levels",
@@ -53,6 +47,13 @@ function getOnboardingSourceMarkerPath(root = appConfig.onboardingRoot) {
   return path.join(root, ONBOARDING_SOURCE_MARKER_FILE)
 }
 
+/**
+ * @example
+ * ```ts
+ * const layout = await validateOnboardingLayout(appConfig.onboardingRoot)
+ * if (!layout.ok) console.log(layout.missingPaths)
+ * ```
+ */
 export async function validateOnboardingLayout(root: string): Promise<OnboardingLayoutStatus> {
   const levelsRoot = path.join(root, "levels")
   const tasksRoot = path.join(root, "tasks")
@@ -146,6 +147,12 @@ export async function readOnboardingSourceMarker(
   }
 }
 
+/**
+ * @example
+ * ```ts
+ * await writeOnboardingSourceMarker(root, { repoUrl, syncedAt: new Date().toISOString(), commitHash: null })
+ * ```
+ */
 export async function writeOnboardingSourceMarker(
   root: string,
   marker: OnboardingSourceMarker,
@@ -168,40 +175,29 @@ export async function getLegacyOnboardingPaths() {
   return existing
 }
 
+/**
+ * @example
+ * ```ts
+ * const status = await getOnboardingSyncStatus()
+ * status.tone
+ * ```
+ */
 export async function getOnboardingSyncStatus(): Promise<OnboardingSyncStatus> {
   const configuredRepoUrl = getConfiguredOnboardingRepoUrl()
   const markerPath = getOnboardingSourceMarkerPath()
   const legacyPaths = await getLegacyOnboardingPaths()
+  const context = { configuredRepoUrl, markerPath, legacyPaths }
 
   if (!(await pathExists(appConfig.onboardingRoot))) {
-    return {
-      state: "missing",
-      tone: "blocked",
-      summary: "Onboarding-контент отсутствует",
-      detail: configuredRepoUrl
-        ? "Каталог `/onboarding` ещё не был синхронизирован из канонического репозитория."
-        : "Каталог `/onboarding` отсутствует, а канонический onboarding-репозиторий ещё не настроен.",
-      missingPaths: [path.relative(process.cwd(), appConfig.onboardingRoot) || appConfig.onboardingRoot],
-      legacyPaths,
-      configuredRepoUrl,
-      markerPath,
-      marker: null,
-    }
+    return createMissingOnboardingStatus(
+      context,
+      path.relative(process.cwd(), appConfig.onboardingRoot) || appConfig.onboardingRoot,
+    )
   }
 
   const layoutStatus = await validateOnboardingLayout(appConfig.onboardingRoot)
   if (!layoutStatus.ok) {
-    return {
-      state: "missing",
-      tone: "blocked",
-      summary: "Onboarding-контент неполон",
-      detail: layoutStatus.message,
-      missingPaths: layoutStatus.missingPaths,
-      legacyPaths,
-      configuredRepoUrl,
-      markerPath,
-      marker: null,
-    }
+    return createIncompleteOnboardingStatus(context, layoutStatus)
   }
 
   const marker = await readOnboardingSourceMarker()
@@ -213,82 +209,23 @@ export async function getOnboardingSyncStatus(): Promise<OnboardingSyncStatus> {
   })
 
   if (state === "unconfirmed" && !marker) {
-    return {
-      state: "unconfirmed",
-      tone: "warning",
-      summary: "Источник onboarding-контента не подтверждён",
-      detail:
-        "Каталог `/onboarding` найден, но для него нет подтверждённого маркера синхронизации. Такой каталог нужно пересинхронизировать из `ONBOARDING_REPO_URL`.",
-      missingPaths: [],
-      legacyPaths,
-      configuredRepoUrl,
-      markerPath,
-      marker: null,
-    }
+    return createMissingMarkerStatus(context)
   }
 
-  if (state === "unconfirmed" && !configuredRepoUrl) {
-    return {
-      state: "unconfirmed",
-      tone: "warning",
-      summary: "Источник onboarding-контента не подтверждён",
-      detail:
-        "Для локального `/onboarding` найден маркер синхронизации, но в `desengine.config.txt` не задан `ONBOARDING_REPO_URL`, поэтому канонический источник нельзя подтвердить.",
-      missingPaths: [],
-      legacyPaths,
-      configuredRepoUrl,
-      markerPath,
-      marker,
-    }
+  if (state === "unconfirmed" && marker && !configuredRepoUrl) {
+    return createMissingRepoStatus(context, marker)
   }
 
   if (state === "unconfirmed" && marker && marker.repoUrl !== configuredRepoUrl) {
-    return {
-      state: "unconfirmed",
-      tone: "warning",
-      summary: "Onboarding синхронизирован не из того репозитория",
-      detail:
-        `Локальный маркер указывает на ${marker.repoUrl}, а ` +
-        `в конфиге задан ${configuredRepoUrl}. Нужна явная пересинхронизация.`,
-      missingPaths: [],
-      legacyPaths,
-      configuredRepoUrl,
-      markerPath,
-      marker,
-    }
+    return createRepoMismatchStatus(context, marker)
   }
 
   const confirmedMarker = marker
   if (!confirmedMarker) {
-    return {
-      state: "unconfirmed",
-      tone: "warning",
-      summary: "Источник onboarding-контента не подтверждён",
-      detail:
-        "Не удалось подтвердить маркер синхронизации `/onboarding`. Выполните повторную синхронизацию из `ONBOARDING_REPO_URL`.",
-      missingPaths: [],
-      legacyPaths,
-      configuredRepoUrl,
-      markerPath,
-      marker: null,
-    }
+    return createUnconfirmedMarkerStatus(context)
   }
 
-  const commitSuffix = confirmedMarker.commitHash ? ` Коммит: ${confirmedMarker.commitHash}.` : ""
-
-  return {
-    state,
-    tone: "ready",
-    summary: "Onboarding синхронизирован из канонического репозитория",
-    detail:
-      `Источник подтверждён: ${configuredRepoUrl}. ` +
-      `Последняя синхронизация: ${confirmedMarker.syncedAt}.${commitSuffix}`,
-    missingPaths: [],
-    legacyPaths,
-    configuredRepoUrl,
-    markerPath,
-    marker: confirmedMarker,
-  }
+  return createConfirmedOnboardingStatus(context, state, confirmedMarker)
 }
 
 export type {
@@ -296,5 +233,5 @@ export type {
   OnboardingSyncStatus,
 }
 
-// TODO Нигде не используется. Если так и не потребуется — убрать.
+// TODO(owner:team-desengine, targetStage:6.5): удалить marker export, если он не понадобится onboarding diagnostics.
 // export { ONBOARDING_SOURCE_MARKER_FILE }

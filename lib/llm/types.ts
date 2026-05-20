@@ -16,7 +16,7 @@ type LlmProvider =
   (typeof LLM_PROVIDERS)[number]
 
 
-// TODO Refactoring
+// TODO(owner:team-desengine, targetStage:6.6): выделить usage metrics в отдельный LLM cost module.
 type LlmUsageMetrics =
   | {
       status: "available"
@@ -30,14 +30,14 @@ type LlmUsageMetrics =
       reason: "provider_did_not_return_metrics"
     }
 
-// TODO Refactoring
+// TODO(owner:team-desengine, targetStage:6.6): выделить call record в отдельный LLM audit module.
 type LlmCallRecord = {
   provider: LlmProvider
   model: string
   metrics: LlmUsageMetrics
 }
 
-// TODO Refactoring
+// TODO(owner:team-desengine, targetStage:6.6): разделить runtime status и provider config status.
 type LlmStatus = {
   provider: LlmProvider
   label: string
@@ -57,7 +57,7 @@ type LlmStatus = {
 }
 
 
-// TODO Refactoring
+// TODO(owner:team-desengine, targetStage:6.6): вынести structured request contract в provider boundary.
 type LlmStructuredRequest = {
   instruction: string
   imageBase64?: string
@@ -67,7 +67,7 @@ type LlmStructuredRequest = {
   target?: "default" | "init" | "check"
 }
 
-// TODO Refactoring
+// TODO(owner:team-desengine, targetStage:6.6): вынести structured response contract в provider boundary.
 type LlmStructuredResponse = {
   provider: LlmProvider
   model: string
@@ -75,7 +75,7 @@ type LlmStructuredResponse = {
   metrics: LlmUsageMetrics
 }
 
-// TODO Refactoring
+// TODO(owner:team-desengine, targetStage:6.6): вынести runtime config в provider adapter boundary.
 type ProviderRuntimeConfig = {
   provider: LlmProvider
   model: string
@@ -84,13 +84,13 @@ type ProviderRuntimeConfig = {
   maxTokens?: number
 }
 
-// TODO Refactoring
+// TODO(owner:team-desengine, targetStage:6.6): вынести request runtime в provider adapter boundary.
 type LlmRequestRuntime = {
   timeoutMs: number | null
   signal?: AbortSignal
 }
 
-// TODO Refactoring
+// TODO(owner:team-desengine, targetStage:6.6): вынести adapter interface в provider adapter boundary.
 type LlmAdapter = {
   provider: LlmProvider
   label: string

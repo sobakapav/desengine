@@ -51,4 +51,18 @@ npm run test:readability:repo
 
 - обязательный контур deterministic и не использует LLM;
 - по умолчанию анализируется только `working` scope;
-- полный обзор запускается только явной командой `quality:text:repo`.
+- полный обзор запускается только явной командой `quality:text:repo`;
+- optional LLM-режим выключен по умолчанию и не входит в `test:full`;
+- при ручном `QUALITY_TEXT_LLM_MODE=optional` подсистема соблюдает budget caps и возвращается к `fallback:deterministic`, если provider-интеграция не настроена безопасно.
+
+## Метрики отчёта
+
+Каждый запуск печатает:
+
+- `Scope`
+- `Files checked`
+- `Violations`
+- `Waived violations`
+- `LLM mode`
+
+`Violations` считается до применения waiver, `Waived violations` показывает покрытую часть, а активные нарушения остаются причиной ненулевого exit code.

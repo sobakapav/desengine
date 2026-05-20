@@ -38,6 +38,12 @@ function getMeta(result: TaskCheckResult) {
   return `Проверка уровня ${result.levelNumber}, попытка ${result.attemptNumber} из ${result.maxCheckAttempts}.`
 }
 
+/**
+ * @example
+ * ```tsx
+ * <TaskCheckResult result={result} transition={null} pending={false} onContinue={() => {}} onBackToLab={() => {}} onRetry={() => {}} />
+ * ```
+ */
 export function TaskCheckResult({
   result,
   transition,

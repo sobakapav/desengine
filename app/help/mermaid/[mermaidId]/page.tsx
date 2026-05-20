@@ -12,6 +12,12 @@ type HelpMermaidPageProps = {
   }>
 }
 
+/**
+ * @example
+ * ```tsx
+ * <HelpMermaidPage params={Promise.resolve({ mermaidId: "flow" })} />
+ * ```
+ */
 export default async function HelpMermaidPage({ params }: HelpMermaidPageProps) {
   const { mermaidId } = await params
   await requireAccessOrRedirect(`/help/mermaid/${mermaidId}`)

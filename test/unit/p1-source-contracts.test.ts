@@ -218,6 +218,8 @@ describe("P1 source contracts", () => {
 
   it("UI source contains composer keyboard handling and editor fallback/save flow", () => {
     const workbench = readProjectFile("components", "desengine", "lab", "Workbench", "Workbench.tsx")
+    const workbenchView = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchView.tsx")
+    const workbenchPrompt = readProjectFile("components", "desengine", "lab", "Workbench", "useWorkbenchPrompt.ts")
     const promptComposer = readProjectFile(
       "components",
       "desengine",
@@ -228,8 +230,9 @@ describe("P1 source contracts", () => {
     )
     const editor = readProjectFile("components", "desengine", "lab", "Code", "MonacoCodeEditor.tsx")
 
-    expect(workbench).toContain("handlePromptKeyDown")
-    expect(workbench).toContain("Сохранить")
+    expect(workbench).toContain("WorkbenchView")
+    expect(workbenchPrompt).toContain("handlePromptKeyDown")
+    expect(workbenchView).toContain("Сохранить")
     expect(promptComposer).toContain("onKeyDown")
     expect(promptComposer).toContain("Shift+Enter")
     expect(editor).toContain("FallbackCodeEditor")

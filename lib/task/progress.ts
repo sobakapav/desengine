@@ -92,6 +92,12 @@ export function getCurrentLevelDisplayStatus(
   return "available"
 }
 
+/**
+ * @example
+ * ```ts
+ * const summary = summarizeTaskProgress(levels, taskConfig, taskProgress)
+ * ```
+ */
 export function summarizeTaskProgress(
   levels: LevelConfig[],
   taskConfig: TaskConfig,

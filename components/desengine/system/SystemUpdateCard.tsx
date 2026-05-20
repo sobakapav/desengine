@@ -17,12 +17,7 @@ type UpdateState =
   | { kind: "success"; message: string }
   | { kind: "error"; message: string }
 
-function SystemUpdateCard({
-  canUpdate,
-  currentVersion,
-  detail,
-  latestVersion,
-}: SystemUpdateCardProps) {
+function useSystemUpdate(latestVersion: string | null) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [updateState, setUpdateState] = useState<UpdateState>({ kind: "idle" })
@@ -57,6 +52,43 @@ function SystemUpdateCard({
     })
   }
 
+  return { handleUpdate, isPending, updateState }
+}
+
+function SystemUpdateMessages({
+  canUpdate,
+  updateState,
+}: {
+  canUpdate: boolean
+  updateState: UpdateState
+}) {
+  return (
+    <>
+      {!canUpdate ? (
+        <p className="tool-notice-warning mt-4">
+          Автоматическое обновление отключено для текущего Git-состояния. В режиме разработки это нормально.
+        </p>
+      ) : null}
+
+      {updateState.kind === "success" ? (
+        <p className="tool-notice-success mt-4">{updateState.message}</p>
+      ) : null}
+
+      {updateState.kind === "error" ? (
+        <p className="tool-notice-error mt-4">{updateState.message}</p>
+      ) : null}
+    </>
+  )
+}
+
+function SystemUpdateCard({
+  canUpdate,
+  currentVersion,
+  detail,
+  latestVersion,
+}: SystemUpdateCardProps) {
+  const { handleUpdate, isPending, updateState } = useSystemUpdate(latestVersion)
+
   return (
     <section className="tool-panel mt-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -80,19 +112,7 @@ function SystemUpdateCard({
         </Button>
       </div>
 
-      {!canUpdate ? (
-        <p className="tool-notice-warning mt-4">
-          Автоматическое обновление отключено для текущего Git-состояния. В режиме разработки это нормально.
-        </p>
-      ) : null}
-
-      {updateState.kind === "success" ? (
-        <p className="tool-notice-success mt-4">{updateState.message}</p>
-      ) : null}
-
-      {updateState.kind === "error" ? (
-        <p className="tool-notice-error mt-4">{updateState.message}</p>
-      ) : null}
+      <SystemUpdateMessages canUpdate={canUpdate} updateState={updateState} />
     </section>
   )
 }
