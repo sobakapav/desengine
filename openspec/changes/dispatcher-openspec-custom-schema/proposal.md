@@ -30,6 +30,7 @@
   - тестовый уровень и команды проверки (как минимум ссылками/полями).
   - связь с реализацией: `issue` (ссылка на главный GitHub issue при старте техпроработки), `review_sync_state` (none/needs-sync/needs-review/in-sync).
   - иерархия управления: `parent_change`, `strategy_root`, `roadmap_ref`, `release_ref`, `execution_mode`.
+  - для implement: `verification_level` и `verification_command`.
 - обновление/план обновления внутренних инструментов под схему:
   - создание change (`openspec:new`);
   - листинг активных changes (`npm run openspec`);

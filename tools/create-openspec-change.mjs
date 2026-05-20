@@ -14,6 +14,8 @@ const METADATA_DEFAULTS = [
   { key: "strategy_root", value: "" },
   { key: "roadmap_ref", value: "" },
   { key: "release_ref", value: "" },
+  { key: "verification_level", value: "" },
+  { key: "verification_command", value: "" },
   { key: "issue", value: "" },
   { key: "short", value: "краткое описание change" },
 ]
@@ -141,6 +143,11 @@ function ensureMetadataFields(changeDir, changeName) {
     { key: "change_kind", value: inferredKind },
     { key: "execution_mode", value: inferredExecutionMode },
   ]
+
+  if (inferredKind === "implement") {
+    forcedFields.push({ key: "verification_level", value: "unit" })
+    forcedFields.push({ key: "verification_command", value: "npm run test:unit" })
+  }
 
   for (const field of forcedFields) {
     const serializedValue = `"${field.value.replaceAll('"', '\\"')}"`

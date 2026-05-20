@@ -5,6 +5,9 @@ import {
   PARENT_CHANGE_PATTERN,
   RELEASE_REF_PATTERN,
   ROADMAP_REF_PATTERN,
+  STRATEGY_ROOT_PATTERN,
+  VERIFICATION_COMMAND_PATTERN,
+  VERIFICATION_LEVEL_PATTERN,
   parseMetadataValue,
 } from "./common.mjs"
 
@@ -31,17 +34,25 @@ function validateCommonRules(changeName, changeKind, executionMode, errors) {
 function validateReferenceRules(changeName, metadata, context, errors) {
   const parentChange = parseMetadataValue(metadata, PARENT_CHANGE_PATTERN) || ""
   const releaseRef = parseMetadataValue(metadata, RELEASE_REF_PATTERN) || ""
+  const strategyRoot = parseMetadataValue(metadata, STRATEGY_ROOT_PATTERN) || ""
 
   if (parentChange && !context.allChangeNames.has(parentChange)) {
     errors.push(`${changeName}: parent_change ссылается на неизвестный change: ${parentChange}`)
   }
   if (!releaseRef) {
-    return
-  }
-  if (!context.allChangeNames.has(releaseRef)) {
+  } else if (!context.allChangeNames.has(releaseRef)) {
     errors.push(`${changeName}: release_ref ссылается на неизвестный change: ${releaseRef}`)
   } else if (context.changeKindsByName.get(releaseRef) !== "release") {
     errors.push(`${changeName}: release_ref должен ссылаться на change_kind=release`)
+  }
+
+  if (!strategyRoot) {
+    return
+  }
+  if (!context.allChangeNames.has(strategyRoot)) {
+    errors.push(`${changeName}: strategy_root ссылается на неизвестный change: ${strategyRoot}`)
+  } else if (!["focus", "idea", "research"].includes(context.changeKindsByName.get(strategyRoot))) {
+    errors.push(`${changeName}: strategy_root должен ссылаться на стратегический change`)
   }
 }
 
@@ -79,7 +90,10 @@ export function validateChangeKindRules(changeName, metadata, context) {
   const changeKind = context.changeKindsByName.get(changeName) || ""
   const executionMode = parseMetadataValue(metadata, /^execution_mode:\s*(.+)\s*$/m)
   const parentChange = parseMetadataValue(metadata, PARENT_CHANGE_PATTERN) || ""
+  const strategyRoot = parseMetadataValue(metadata, STRATEGY_ROOT_PATTERN) || ""
   const roadmapRef = parseMetadataValue(metadata, ROADMAP_REF_PATTERN) || ""
+  const verificationLevel = parseMetadataValue(metadata, VERIFICATION_LEVEL_PATTERN) || ""
+  const verificationCommand = parseMetadataValue(metadata, VERIFICATION_COMMAND_PATTERN) || ""
 
   if (!changeKind) {
     return [`${changeName}: отсутствует обязательное поле change_kind`]
@@ -98,6 +112,18 @@ export function validateChangeKindRules(changeName, metadata, context) {
   }
   if (["implement", "fix"].includes(changeKind) && executionMode !== "code") {
     errors.push(`${changeName}: ${changeKind} change должен иметь execution_mode=code`)
+  }
+  if (changeKind === "implement" && parentChange && context.changeKindsByName.get(parentChange) !== "dispatcher") {
+    errors.push(`${changeName}: implement change должен иметь parent_change на dispatcher`)
+  }
+  if (changeKind === "implement" && !strategyRoot) {
+    errors.push(`${changeName}: implement change должен иметь strategy_root`)
+  }
+  if (changeKind === "implement" && !verificationLevel) {
+    errors.push(`${changeName}: implement change должен иметь verification_level`)
+  }
+  if (changeKind === "implement" && !verificationCommand) {
+    errors.push(`${changeName}: implement change должен иметь verification_command`)
   }
 
   return errors

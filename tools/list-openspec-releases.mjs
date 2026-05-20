@@ -2,6 +2,9 @@ import fs from "node:fs"
 import path from "node:path"
 
 const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
+const ARCHIVE_DIR = path.join(CHANGES_DIR, "archive")
+const ANSI_GRAY = "\u001b[90m"
+const ANSI_RESET = "\u001b[0m"
 
 function printUsage() {
   console.error("Использование:")
@@ -9,12 +12,22 @@ function printUsage() {
   console.error("  node tools/list-openspec-releases.mjs")
 }
 
-function listChangeDirs(changesDir) {
+function listActiveChangeDirs(changesDir) {
   return fs
     .readdirSync(changesDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name !== "archive")
     .map((entry) => path.join(changesDir, entry.name))
-    .sort((left, right) => path.basename(left).localeCompare(path.basename(right)))
+}
+
+function listArchivedChangeDirs(archiveDir) {
+  if (!fs.existsSync(archiveDir)) {
+    return []
+  }
+
+  return fs
+    .readdirSync(archiveDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(archiveDir, entry.name))
 }
 
 function readText(filePath) {
@@ -36,8 +49,13 @@ function readMetaValue(metadataText, key) {
   return match ? match[1].trim().replace(/^["']|["']$/g, "") : ""
 }
 
-function readChange(changeDir) {
+function canonicalNameFromPath(changeDir) {
   const name = path.basename(changeDir)
+  return name.replace(/^[0-9]{4}-[0-9]{2}-[0-9]{2}-/, "")
+}
+
+function readChange(changeDir, archived) {
+  const name = canonicalNameFromPath(changeDir)
   const metadata = readText(path.join(changeDir, ".openspec.yaml"))
   const proposal = readText(path.join(changeDir, "proposal.md"))
 
@@ -49,8 +67,17 @@ function readChange(changeDir) {
     name,
     kind: readMetaValue(metadata, "change_kind") || "idea",
     short: readMetaValue(metadata, "short") || "нет краткого описания",
+    parent: readMetaValue(metadata, "parent_change") || "",
     releaseRef: readMetaValue(metadata, "release_ref"),
+    archived,
   }
+}
+
+function colorizeArchived(text, archived) {
+  if (!archived) {
+    return text
+  }
+  return `${ANSI_GRAY}${text}${ANSI_RESET}`
 }
 
 function main() {
@@ -73,8 +100,21 @@ function main() {
     process.exit(1)
   }
 
-  const changes = listChangeDirs(CHANGES_DIR).map(readChange).filter(Boolean)
-  const releases = changes.filter((change) => change.kind === "release").sort((a, b) => a.name.localeCompare(b.name))
+  const changes = [
+    ...listActiveChangeDirs(CHANGES_DIR).map((dirPath) => readChange(dirPath, false)),
+    ...listArchivedChangeDirs(ARCHIVE_DIR).map((dirPath) => readChange(dirPath, true)),
+  ]
+    .filter(Boolean)
+    .sort((a, b) => a.name.localeCompare(b.name))
+
+  const byName = new Map()
+  for (const change of changes) {
+    if (!byName.has(change.name) || (byName.get(change.name).archived && !change.archived)) {
+      byName.set(change.name, change)
+    }
+  }
+
+  const releases = [...byName.values()].filter((change) => change.kind === "release").sort((a, b) => a.name.localeCompare(b.name))
 
   if (releases.length === 0) {
     console.log("Нет активных release changes.")
@@ -83,17 +123,53 @@ function main() {
 
   for (let index = 0; index < releases.length; index += 1) {
     const release = releases[index]
-    console.log(`${release.name}\t${release.short}`)
+    console.log(colorizeArchived(`${release.name}\t${release.short}`, release.archived))
 
-    const members = changes
+    const members = [...byName.values()]
       .filter((change) => change.releaseRef === release.name)
       .sort((a, b) => a.name.localeCompare(b.name))
 
     if (members.length === 0) {
       console.log(`  (пусто)\tнет привязанных changes`)
     } else {
+      const membersByName = new Map(members.map((member) => [member.name, member]))
+      const children = new Map(members.map((member) => [member.name, []]))
+
       for (const member of members) {
-        console.log(`  ${member.name}\t${member.short}`)
+        if (!member.parent || !membersByName.has(member.parent)) {
+          continue
+        }
+        children.get(member.parent).push(member)
+      }
+
+      for (const nodeChildren of children.values()) {
+        nodeChildren.sort((left, right) => left.name.localeCompare(right.name))
+      }
+
+      const roots = members
+        .filter((member) => !member.parent || !membersByName.has(member.parent))
+        .sort((left, right) => left.name.localeCompare(right.name))
+      const visited = new Set()
+
+      function printNode(node, depth) {
+        if (visited.has(node.name)) {
+          return
+        }
+        visited.add(node.name)
+        const indent = "  ".repeat(depth + 1)
+        console.log(colorizeArchived(`${indent}${node.name}\t${node.short}`, node.archived))
+        for (const child of children.get(node.name) || []) {
+          printNode(child, depth + 1)
+        }
+      }
+
+      for (const root of roots) {
+        printNode(root, 0)
+      }
+
+      const orphans = members.filter((member) => !visited.has(member.name)).sort((a, b) => a.name.localeCompare(b.name))
+      for (const orphan of orphans) {
+        printNode(orphan, 0)
       }
     }
 

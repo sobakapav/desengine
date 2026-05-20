@@ -15,7 +15,7 @@
 - [ ] 5. Обновить внутренние инструменты под расширяемую схему:
   - [ ] 5.1 `openspec:new` шаблоны и базовая валидация
   - [ ] 5.2 `npm run openspec` (листинг) — вывод product-ориентированных полей
-  - [ ] 5.3 статическая проверка схемы (`change_kind`, `execution_mode`, `parent_change`, `roadmap_ref`, `release_ref`)
+  - [ ] 5.3 статическая проверка схемы (`change_kind`, `execution_mode`, `parent_change`, `strategy_root`, `roadmap_ref`, `release_ref`, `verification_level`, `verification_command`)
 - [ ] 6. Описать MVP-каскад закрытия change/task (issues, тесты, документация, кодовые ссылки).
 - [ ] 7. План миграции существующих changes (поэтапно) + правила совместимости.
 - [ ] 8. Тестовый план:

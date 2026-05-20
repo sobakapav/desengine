@@ -9,4 +9,7 @@ strategy_root: "focus-tech"
 roadmap_ref: "roadmaps/code-quality-text-subsystem.md"
 release_ref: "release-2026-05-20-day"
 issue: ""
-short: "нормализовать ui kit size violations"
+short: "закрыть api-example violations quality-text"
+
+verification_level: "unit"
+verification_command: "npm run test:unit"

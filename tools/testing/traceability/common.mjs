@@ -9,8 +9,11 @@ export const SHORT_PATTERN = /^short:\s*(.+)\s*$/m
 export const CHANGE_KIND_PATTERN = /^change_kind:\s*(.+)\s*$/m
 export const EXECUTION_MODE_PATTERN = /^execution_mode:\s*(.+)\s*$/m
 export const PARENT_CHANGE_PATTERN = /^parent_change:\s*(.+)\s*$/m
+export const STRATEGY_ROOT_PATTERN = /^strategy_root:\s*(.+)\s*$/m
 export const ROADMAP_REF_PATTERN = /^roadmap_ref:\s*(.+)\s*$/m
 export const RELEASE_REF_PATTERN = /^release_ref:\s*(.+)\s*$/m
+export const VERIFICATION_LEVEL_PATTERN = /^verification_level:\s*(.+)\s*$/m
+export const VERIFICATION_COMMAND_PATTERN = /^verification_command:\s*(.+)\s*$/m
 
 export const CHANGE_KINDS = new Set(["focus", "release", "idea", "research", "dispatcher", "implement", "fix"])
 export const EXECUTION_MODES = new Set(["no-code", "code"])

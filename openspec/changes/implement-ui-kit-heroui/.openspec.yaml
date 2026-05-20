@@ -10,3 +10,6 @@ execution_mode: "code"
 parent_change: "dispatcher-project-ui-kit-switching"
 strategy_root: "research-task-and-workflow-entities-research"
 roadmap_ref: ""
+
+verification_level: "unit"
+verification_command: "npm run test:unit"

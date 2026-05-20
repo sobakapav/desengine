@@ -80,7 +80,7 @@
 
 ### Requirement: Роль change определяет обязательные связи и режим исполнения
 
-Система SHALL валидировать согласованность полей `change_kind`, `execution_mode`, `parent_change`, `roadmap_ref` и `release_ref`.
+Система SHALL валидировать согласованность полей `change_kind`, `execution_mode`, `parent_change`, `strategy_root`, `roadmap_ref`, `release_ref`, `verification_level` и `verification_command`.
 
 #### Scenario: Создаётся dispatcher change
 - **WHEN** metadata change содержит `change_kind=dispatcher`
@@ -93,6 +93,10 @@
 - **WHEN** metadata change содержит `change_kind=implement`
 - **THEN** `execution_mode` равен `code`
 - **AND** задан `parent_change`
+- **AND** `parent_change` указывает на change с `change_kind=dispatcher`
+- **AND** задан `strategy_root` на стратегический change
+- **AND** задан `verification_level`
+- **AND** задан `verification_command`
 
 #### Scenario: Создаётся fix change
 - **WHEN** metadata change содержит `change_kind=fix`

@@ -89,13 +89,16 @@ Root-карта документации:
 
 ### `npm run os:r`
 
-Печатает список активных release changes и их состав по полю `release_ref`.
+Печатает список release changes и их состав по полю `release_ref` в виде дерева.
+В состав включаются как активные, так и архивированные changes.
+Архивированные строки выводятся серым цветом.
 
 Формат вывода:
 
 ```bash
 <release-change>\t<короткое пояснение>
   <change>\t<короткое пояснение>
+    <child-change>\t<короткое пояснение>
 ```
 
 ### `npm run openspec:new -- <name>`
@@ -111,6 +114,8 @@ parent_change: ""
 strategy_root: ""
 roadmap_ref: ""
 release_ref: ""
+verification_level: ""
+verification_command: ""
 issue: ""
 short: "краткое описание change"
 ```

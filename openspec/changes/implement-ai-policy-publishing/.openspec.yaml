@@ -10,3 +10,6 @@ roadmap_ref: ""
 release_ref: "release-2026-05-20-evening"
 issue: ""
 short: "создать и опубликовать ai-политику в системе помощи"
+
+verification_level: "unit"
+verification_command: "npm run test:unit"

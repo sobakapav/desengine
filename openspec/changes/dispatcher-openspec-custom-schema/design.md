@@ -49,6 +49,8 @@ OpenSpec в этом change фиксирует продуктовый контр
 - `strategy_root`: id корневого стратегического change
 - `roadmap_ref`: ссылка на roadmap (обязательно для `dispatcher`)
 - `release_ref`: ссылка на release change как метка принадлежности релизу
+- `verification_level`: целевой уровень проверки для внедренческого change
+- `verification_command`: команда запуска проверки для внедренческого change
 - `execution_mode`: `no-code | code`
 
 ## Правила классификации change
@@ -59,7 +61,7 @@ OpenSpec в этом change фиксирует продуктовый контр
 - `research`: стратегический слой; `execution_mode=no-code`; может быть верхнеуровневым и может ссылаться только на стратегического родителя (`focus|idea|research`).
 - `dispatcher`: тактический слой; `execution_mode=no-code`; обязательны `parent_change` и `roadmap_ref`; управляет `implement` changes.
 - `dispatcher` может иметь родителя любого типа; единственное ограничение — dispatcher не может быть верхнеуровневым.
-- `implement`: внедренческий слой; `execution_mode=code`; обязательный `parent_change` на `dispatcher`.
+- `implement`: внедренческий слой; `execution_mode=code`; обязательный `parent_change` на `dispatcher`, а также `strategy_root`, `verification_level`, `verification_command`.
 - `fix`: быстрый внедренческий слой для небольших исправлений; `execution_mode=code`; обязательный `parent_change`.
 
 ## Правила синхронизации OpenSpec ↔ Issues
@@ -79,7 +81,7 @@ OpenSpec в этом change фиксирует продуктовый контр
 - листинг (`tools/list-active-openspec-changes.mjs`): вывод важных полей (kind/status/depends);
 - проверки (если есть): валидация схемы и статическая проверка согласованности.
   - `npm run test:traceability` валидирует `short` у активных changes по правилам кастомной схемы.
-  - `npm run test:traceability` валидирует `change_kind`, `execution_mode`, связи (`parent_change`, `roadmap_ref`) и ссылку `release_ref`.
+  - `npm run test:traceability` валидирует `change_kind`, `execution_mode`, связи (`parent_change`, `strategy_root`, `roadmap_ref`), ссылку `release_ref` и implement-поля проверки.
 
 ## Миграция
 
