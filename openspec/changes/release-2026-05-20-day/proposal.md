@@ -8,7 +8,7 @@
 - В релиз добавлены:
   - `dispatcher-task-hints-templating`
   - `dispatcher-code-quality-text-subsystem`
-  - `dispatcher-project-ui-kit-switching`
+  - `dispatcher-ui-kit`
 - Привязка выполнена через поле metadata `release_ref`.
 
 ## Impact

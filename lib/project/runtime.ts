@@ -4,7 +4,7 @@ import {
   type SandpackUiKitId,
 } from "@/lib/lab/sandpack-ui-kits.config"
 
-export type ProjectUiMode = "html-tags"
+export type ProjectUiMode = "ui-kit" | "html-tags"
 
 export type Project = {
   id: string
@@ -27,7 +27,7 @@ export type RawProject = {
   uiMode?: string | null
 }
 
-const DEFAULT_PROJECT_UI_MODE: ProjectUiMode = "html-tags"
+const DEFAULT_PROJECT_UI_MODE: ProjectUiMode = "ui-kit"
 
 const allowedHtmlTagNames = new Set([
   "a",
@@ -81,16 +81,17 @@ const allowedHtmlTagNames = new Set([
 ])
 
 const uiKitImportPatterns = [
-  /from\s+["']@\/components\/ui\//,
-  /from\s+["']antd["']/,
-  /from\s+["']@mui\//,
-  /from\s+["']lucide-react["']/,
-  /from\s+["']@radix-ui\//,
+  /(?:from\s+|import\s+)["']@\/components\/ui\//,
+  /(?:from\s+|import\s+)["']antd(?:["']|\/)/,
+  /(?:from\s+|import\s+)["']@mui\//,
+  /(?:from\s+|import\s+)["']lucide-react(?:["']|\/)/,
+  /(?:from\s+|import\s+)["']@radix-ui\//,
 ]
 
 function normalizeProjectUiMode(rawUiMode?: string | null): ProjectUiMode {
   const raw = rawUiMode?.trim().toLowerCase()
   if (!raw) return DEFAULT_PROJECT_UI_MODE
+  if (raw === "ui-kit" || raw === "uikit" || raw === "kit" || raw === "components") return "ui-kit"
   if (raw === "html" || raw === "html-tags" || raw === "native" || raw === "none") return "html-tags"
   return DEFAULT_PROJECT_UI_MODE
 }
@@ -106,11 +107,16 @@ function createDefaultProject(id = "lab-local-project"): Project {
 
 function normalizeProject(rawProject: RawProject | null | undefined): Project {
   const fallback = createDefaultProject(rawProject?.id || undefined)
+  const uiKitId = normalizeSandpackUiKitId(rawProject?.uiKitId)
+  const uiMode = rawProject?.uiMode == null && uiKitId === "none"
+    ? "html-tags"
+    : normalizeProjectUiMode(rawProject?.uiMode)
+
   return {
     id: typeof rawProject?.id === "string" && rawProject.id.trim() ? rawProject.id.trim() : fallback.id,
     title: typeof rawProject?.title === "string" && rawProject.title.trim() ? rawProject.title.trim() : fallback.title,
-    uiKitId: normalizeSandpackUiKitId(rawProject?.uiKitId),
-    uiMode: normalizeProjectUiMode(rawProject?.uiMode),
+    uiKitId,
+    uiMode,
   }
 }
 
@@ -120,9 +126,10 @@ function getProjectStorageKey(taskId: string) {
 
 function findDisallowedJsxTag(componentSource: string) {
   const jsxTagPattern = /<\s*([A-Za-z][A-Za-z0-9._:-]*)\b/g
+  const sourceWithoutTextLiterals = stripCodeTextLiterals(componentSource)
   let match: RegExpExecArray | null
 
-  while ((match = jsxTagPattern.exec(componentSource))) {
+  while ((match = jsxTagPattern.exec(sourceWithoutTextLiterals))) {
     const tagName = match[1]
     if (!tagName || tagName.includes(".")) return tagName
     if (tagName[0] === tagName[0].toUpperCase()) return tagName
@@ -130,6 +137,74 @@ function findDisallowedJsxTag(componentSource: string) {
   }
 
   return null
+}
+
+function stripCodeTextLiterals(source: string) {
+  let result = ""
+  let index = 0
+  let state: "code" | "single" | "double" | "template" | "line-comment" | "block-comment" = "code"
+
+  while (index < source.length) {
+    const char = source[index]
+    const nextChar = source[index + 1]
+
+    if (state === "code") {
+      if (char === "'" || char === '"' || char === "`") {
+        state = char === "'" ? "single" : char === '"' ? "double" : "template"
+        result += " "
+      } else if (char === "/" && nextChar === "/") {
+        state = "line-comment"
+        result += "  "
+        index += 1
+      } else if (char === "/" && nextChar === "*") {
+        state = "block-comment"
+        result += "  "
+        index += 1
+      } else {
+        result += char
+      }
+      index += 1
+      continue
+    }
+
+    if (state === "line-comment") {
+      if (char === "\n") {
+        state = "code"
+        result += "\n"
+      } else {
+        result += " "
+      }
+      index += 1
+      continue
+    }
+
+    if (state === "block-comment") {
+      if (char === "*" && nextChar === "/") {
+        state = "code"
+        result += "  "
+        index += 2
+      } else {
+        result += char === "\n" ? "\n" : " "
+        index += 1
+      }
+      continue
+    }
+
+    const quote = state === "single" ? "'" : state === "double" ? '"' : "`"
+    if (char === "\\") {
+      result += "  "
+      index += 2
+    } else if (char === quote) {
+      state = "code"
+      result += " "
+      index += 1
+    } else {
+      result += char === "\n" ? "\n" : " "
+      index += 1
+    }
+  }
+
+  return result
 }
 
 function validateHtmlTagsComponentSource(componentSource: string): ProjectCompatibility {
@@ -158,7 +233,7 @@ function validateHtmlTagsComponentSource(componentSource: string): ProjectCompat
 function resolveProjectPreviewConfig(project: Project) {
   return {
     ...project,
-    effectiveUiKitId: project.uiKitId,
+    effectiveUiKitId: project.uiMode === "html-tags" ? "none" : project.uiKitId,
   }
 }
 

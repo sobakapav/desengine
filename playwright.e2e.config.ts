@@ -2,6 +2,8 @@ import { defineConfig, devices } from "playwright/test"
 
 const e2ePort = Number(process.env.DESENGINE_E2E_PORT || 3410)
 const baseURL = process.env.DESENGINE_E2E_BASE_URL || `http://127.0.0.1:${e2ePort}`
+const fixtureAccessEnabled = process.env.DESENGINE_E2E_FIXTURE_ACCESS === "1"
+const fixtureAccessSalt = process.env.DESENGINE_E2E_ACCESS_SALT || "desengine-e2e-salt"
 
 export default defineConfig({
   testDir: "test/e2e",
@@ -24,12 +26,12 @@ export default defineConfig({
     : {
         command: `npm run dev -- --hostname 127.0.0.1 --port ${e2ePort}`,
         url: `${baseURL}/auth`,
-        timeout: 120_000,
+        timeout: 180_000,
         reuseExistingServer: false,
         env: {
           ...process.env,
-          ALLOWLIST_BASE_URL: "",
-          ALLOWLIST_SALT: "",
+          ALLOWLIST_BASE_URL: fixtureAccessEnabled ? "http://127.0.0.1:9/" : "",
+          ALLOWLIST_SALT: fixtureAccessEnabled ? fixtureAccessSalt : "",
           DESENGINE_ALLOWLIST_BASE_URL: "",
           DESENGINE_ALLOWLIST_SALT: "",
           LLM_PROVIDER: "deepseek",

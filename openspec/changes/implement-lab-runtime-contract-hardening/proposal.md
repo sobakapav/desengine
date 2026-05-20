@@ -27,7 +27,7 @@
 ## Non-goals
 
 - Не вводим полный `Project Workspace`.
-- Не реализуем `project-ui-kit-switching`.
+- Не реализуем проектное переключение UI kit'ов из `dispatcher-ui-kit`.
 - Не подключаем новые UI kit'ы.
 - Не меняем Node.js, сборщик, Turbopack, Sandpack как технологию или install-critical инфраструктуру.
 - Не делаем Figma import, cloud/electron packaging, cost/experience/event log.

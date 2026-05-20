@@ -1,6 +1,6 @@
 "use client";
 
-import { SandpackPreview, SandpackProvider } from "@codesandbox/sandpack-react/unstyled";
+import { SandpackPreview, SandpackProvider, useSandpack } from "@codesandbox/sandpack-react/unstyled";
 import { useEffect, useMemo, useState } from "react";
 
 import type { SandpackPreviewPayload } from "@/lib/lab/sandpack-preview";
@@ -35,6 +35,34 @@ function ProjectCompatibilityNotice({ payload }: { payload: SandpackPreviewPaylo
                 {payload.project.effectiveUiKitId !== payload.project.uiKitId ? `, runtime ${payload.project.effectiveUiKitId}` : ""}
             </p>
             <p className="mt-1">{compatibility.message}</p>
+        </div>
+    );
+}
+
+function getSandpackRuntimeDiagnosticMessage(error: unknown) {
+    if (!error) return "";
+    if (error instanceof Error) return error.message;
+    if (typeof error === "object" && "message" in error) {
+        const message = (error as { message?: unknown }).message;
+        return typeof message === "string" ? message : "";
+    }
+    return "";
+}
+
+function SandpackRuntimeDiagnosticsNotice({ payload }: { payload: SandpackPreviewPayload }) {
+    const { sandpack } = useSandpack();
+    const message = getSandpackRuntimeDiagnosticMessage(sandpack.error);
+
+    if (!message) {
+        return null;
+    }
+
+    return (
+        <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+            <p className="font-medium">
+                Sandpack runtime: {payload.project.uiKitId}, режим {payload.project.uiMode}
+            </p>
+            <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
         </div>
     );
 }
@@ -114,6 +142,7 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
                     recompileMode: "immediate",
                 }}
             >
+                <SandpackRuntimeDiagnosticsNotice payload={previewPayload} />
                 <SandpackPreview
                     showNavigator={false}
                     showOpenInCodeSandbox={false}

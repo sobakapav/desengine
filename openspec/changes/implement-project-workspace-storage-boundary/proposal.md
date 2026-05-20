@@ -1,6 +1,6 @@
 ## Why
 
-`dispatcher-project-ui-kit-switching` уже ввёл минимальный `Project` для lab-preview, но это пока локальный scope Workbench/Sandpack. Если сразу развивать `dev-mode-project-work`, Figma import, roadmap, cost или packaging, система рискует получить несколько несовместимых Project shapes и storage-подходов.
+Релизный срез `dispatcher-ui-kit` уже ввёл минимальный `Project` для lab-preview, но это пока локальный scope Workbench/Sandpack. Если сразу развивать `dev-mode-project-work`, Figma import, roadmap, cost или packaging, система рискует получить несколько несовместимых Project shapes и storage-подходов.
 
 Этот change поднимает `Project` из preview-настройки в настоящий `Project Workspace` и вводит storage boundary, не меняя стек и не ломая текущий lab UX.
 

@@ -49,7 +49,7 @@ function parseProjectFromRequest(request: Request, taskId: string) {
     id: searchParams.get("projectId") ?? `task-${taskId}`,
     title: searchParams.get("projectTitle") ?? "Локальный проект",
     uiKitId: searchParams.get("uiKitId") ?? defaultSandpackUiKitId,
-    uiMode: searchParams.get("uiMode") ?? "html-tags",
+    uiMode: searchParams.get("uiMode"),
   })
 }
 

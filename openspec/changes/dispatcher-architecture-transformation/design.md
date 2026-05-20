@@ -8,7 +8,7 @@
 
 - `code-readability-practices-2026-05-19`: governance baseline для читаемости, review hygiene и будущих checks.
 - `implement-lab-runtime-contract-hardening`: service boundary, mutation boundary, canonical route map.
-- `dispatcher-project-ui-kit-switching`: seed `Project` для Sandpack preview.
+- `dispatcher-ui-kit`: релизный срез seed `Project` для Sandpack preview и дальнейший диспетчер UI kit-направления.
 
 ### Шаг 1. Project Workspace + Storage Boundary
 
@@ -57,7 +57,7 @@ Change: `dispatcher-packaging-readiness-storage-adapters`.
 ```text
 code-readability-practices
 lab-runtime-contract-hardening
-project-ui-kit-switching
+dispatcher-ui-kit
   -> project-workspace-storage-boundary
     -> task-workflow-artifact-contract
       -> platform-component-sourcing-strategy

@@ -112,13 +112,21 @@ function ProjectSettings({
     uiKitOptions: Array<{ id: Project["uiKitId"]; title: string }>;
     updateProject: (project: Project) => void;
 }) {
+    function handleUiKitChange(nextUiKitId: Project["uiKitId"]) {
+        updateProject({
+            ...project,
+            uiKitId: nextUiKitId,
+            uiMode: nextUiKitId === "none" ? "html-tags" : "ui-kit",
+        });
+    }
+
     return (
         <div className="rounded-md border bg-muted/30 p-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div className="space-y-1">
                     <p className="text-sm font-medium">Настройки проекта</p>
                     <p className="text-xs text-muted-foreground">
-                        UI kit меняет Sandpack preview без перезагрузки страницы. Режим сейчас: html-tags.
+                        UI kit меняет Sandpack preview без перезагрузки страницы. Режим: {project.uiMode === "html-tags" ? "HTML-теги" : "UI kit"}.
                     </p>
                 </div>
                 <label className="flex flex-col gap-1 text-sm">
@@ -126,7 +134,7 @@ function ProjectSettings({
                     <select
                         className="h-9 rounded-md border bg-background px-3 text-sm"
                         value={project.uiKitId}
-                        onChange={(event) => updateProject({ ...project, uiKitId: event.target.value as Project["uiKitId"], uiMode: "html-tags" })}
+                        onChange={(event) => handleUiKitChange(event.target.value as Project["uiKitId"])}
                     >
                         {uiKitOptions.map((kit) => <option key={kit.id} value={kit.id}>{kit.title}</option>)}
                     </select>

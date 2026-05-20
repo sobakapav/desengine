@@ -1,6 +1,6 @@
 ## Why
 
-После `research-architecture-capital-analysis-2026-05-19`, `implement-lab-runtime-contract-hardening` и `dispatcher-project-ui-kit-switching` система получила первые реальные архитектурные границы, но следующие активные changes всё ещё выглядят как набор параллельных продуктовых направлений.
+После `research-architecture-capital-analysis-2026-05-19`, `implement-lab-runtime-contract-hardening` и `dispatcher-ui-kit` система получила первые реальные архитектурные границы, но следующие активные changes всё ещё выглядят как набор параллельных продуктовых направлений.
 
 Нужен отдельный change-диспетчер, который:
 
@@ -19,9 +19,9 @@
   5. `implement-prompt-context-runtime-boundary`
   6. `idea-event-envelope-experience-cost-boundary`
   7. `dispatcher-packaging-readiness-storage-adapters`
-- Фиксируется роль уже стабилизированных changes:
+- Фиксируется роль уже стабилизированных релизных срезов:
   - `implement-lab-runtime-contract-hardening` — выполненный фундамент service/mutation boundary;
-  - `dispatcher-project-ui-kit-switching` — выполненный seed `Project` для Sandpack preview;
+  - `dispatcher-ui-kit` — релизный срез с seed `Project` для Sandpack preview и дальнейшим UI kit-направлением;
   - `code-readability-practices-2026-05-19` — governance baseline для читаемости и ревью, без новых активных действий в этом проходе.
 - Существующие продуктовые changes (`dev-mode-project-work`, `task-and-workflow-entities-research`, `workbench-entity-workflow-step`, `user-experience-generalization`, `cost-accounting-layer`, packaging changes) становятся входными материалами и downstream-эпиками, а не конкурирующими первыми шагами.
 
