@@ -5,7 +5,7 @@
 ## What Changes
 
 - Создан release change `release-2026-05-20-evening`.
-- В релиз включён change `implement-ai-policy-publishing` через поле `release_ref`.
+- В этом релизе пока нет привязанных changes (метка оставлена для возможного вечернего потока).
 
 ## Impact
 

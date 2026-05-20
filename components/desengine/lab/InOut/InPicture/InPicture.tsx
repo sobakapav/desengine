@@ -16,7 +16,9 @@ function ImageCard({
 }) {
     const [src, setSrc] = useState(image.src);
     const searchParams = useSearchParams();
-    const imageInspectorEnabled = searchParams.get("imageInspector") === "1";
+    const imageInspectorMode = searchParams.get("imageInspector")?.toLowerCase();
+    const imageInspectorEnabled =
+        imageInspectorMode !== "0" && imageInspectorMode !== "off" && imageInspectorMode !== "false";
 
     return (
         <div className="min-w-0">
@@ -25,6 +27,8 @@ function ImageCard({
                     src={src}
                     alt={`${task}-${image.id}`}
                     className="h-[520px]"
+                    imageWidth={Math.max(image.width, 1)}
+                    imageHeight={Math.max(image.height, 1)}
                     onLoadError={() => {
                         const fallbackSrc = `/api/tasks/${task}/image`;
                         if (image.id === "base" && src !== fallbackSrc) {

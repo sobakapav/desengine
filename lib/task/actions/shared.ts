@@ -1,11 +1,9 @@
 import "server-only"
 
-import { readFile } from "node:fs/promises"
-
 import { isTaskStarted, readTaskData } from "@/lib/onboarding/repository"
 import { createEmptyTaskData } from "@/lib/task/data"
-import { getTaskCatalogFilePath } from "@/lib/user/server"
 
+import { readTaskImageBuffer } from "../image-source"
 import { getTaskLabContext } from "../server"
 import type { TaskData, TaskLabContext, TaskListItem } from "../types"
 import type {
@@ -82,9 +80,12 @@ export const taskActionShared = {
   async readPromptImages(taskId: string, images: TaskLabContext["images"]) {
     return Promise.all(
       images.map(async (image) => {
-        const imagePath = getTaskCatalogFilePath(taskId, `${image.id}.png`)
-        const buf = await readFile(imagePath)
-        return buf.toString("base64")
+        const asset = await readTaskImageBuffer(taskId, image.id)
+        if (!asset) {
+          throw new Error(`Не удалось прочитать картинку "${image.id}" для задачи "${taskId}"`)
+        }
+
+        return asset.buffer.toString("base64")
       }),
     )
   },

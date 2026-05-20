@@ -72,7 +72,7 @@ dispatcher-ui-kit
 - `research-dev-mode-project-work` реализуется через Project Workspace boundary, а не параллельным Project shape.
 - `research-task-and-workflow-entities-research` становится входом для Task/Workflow/Artifact contract.
 - `dispatcher-platform-component-sourcing-strategy` становится обязательным фильтром перед новыми Workbench tools, чтобы по максимуму использовать готовые компоненты без зависимости ради зависимости.
-- `dispatcher-workbench-entity-workflow-step`, `research-lab-image-inspector-tools-plan`, `dispatcher-workbench-layout-space` идут после Workbench Platform Registry.
+- `dispatcher-workbench-entity-workflow-step`, `research-image-inspector`, `dispatcher-workbench-layout-space` идут после Workbench Platform Registry.
 - `dispatcher-task-hints` и `idea-prompt-builder` идут после Prompt Context Runtime Boundary.
 - `user-experience-generalization`, `user-action-logging`, `cost-accounting-layer` идут через общий Event Envelope.
 - `figma-project-import-adapter`, `project-roadmap-entity`, packaging changes ждут Project/Artifact/Storage readiness.

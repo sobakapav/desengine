@@ -71,7 +71,7 @@ function readChange(changeDir) {
   const name = path.basename(changeDir)
   const proposalText = readText(path.join(changeDir, "proposal.md"))
 
-  if (!proposalText || isSuspended(proposalText)) {
+  if (proposalText && isSuspended(proposalText)) {
     return null
   }
 
@@ -84,7 +84,7 @@ function readChange(changeDir) {
     name,
     kind,
     parent,
-    summary: short || extractWhySummary(proposalText) || "Нет краткого пояснения в секции Why.",
+    summary: short || extractWhySummary(proposalText || "") || "Нет краткого пояснения.",
   }
 }
 

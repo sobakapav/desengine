@@ -24,6 +24,7 @@ import type { WorkbenchProps } from "./props";
 import type { useWorkbenchController } from "./useWorkbenchController";
 
 type WorkbenchController = ReturnType<typeof useWorkbenchController>;
+const SHOW_UI_KIT_SWITCHER = false;
 
 function WorkbenchHeader({
     completePending,
@@ -212,7 +213,13 @@ function WorkbenchWorkArea({ controller, props }: { controller: WorkbenchControl
                     </Button>
                 </div>
             )}
-            <ProjectSettings project={controller.project.project} uiKitOptions={controller.project.uiKitOptions} updateProject={controller.project.updateProject} />
+            {SHOW_UI_KIT_SWITCHER ? (
+                <ProjectSettings
+                    project={controller.project.project}
+                    uiKitOptions={controller.project.uiKitOptions}
+                    updateProject={controller.project.updateProject}
+                />
+            ) : null}
             <CodeList
                 taskData={{ ...props.taskData, contentByFileId: controller.code.codeContentByFileId }}
                 onFileChange={controller.code.handleCodeChange}

@@ -1,0 +1,14 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "idea"
+execution_mode: "no-code"
+parent_change: "focus-onboarding"
+strategy_root: "focus-onboarding"
+roadmap_ref: ""
+release_ref: ""
+verification_level: "spec"
+verification_command: "npm run test:traceability"
+issue: ""
+short: "пакетное управление компонентами вместо штучного"

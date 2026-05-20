@@ -238,4 +238,30 @@ describe("P1 source contracts", () => {
     expect(editor).toContain("FallbackCodeEditor")
     expect(editor).toContain("@monaco-editor/react")
   })
+
+  it("лаборатория включает image inspector по умолчанию и поддерживает явный query override на отключение", () => {
+    const inPicture = readProjectFile("components", "desengine", "lab", "InOut", "InPicture", "InPicture.tsx")
+
+    expect(inPicture).toContain('searchParams.get("imageInspector")?.toLowerCase()')
+    expect(inPicture).toContain('imageInspectorMode !== "0"')
+    expect(inPicture).toContain('imageInspectorMode !== "off"')
+    expect(inPicture).toContain('imageInspectorMode !== "false"')
+    expect(inPicture).toContain("KonvaImageInspector")
+    expect(inPicture).toContain("imageWidth={Math.max(image.width, 1)}")
+    expect(inPicture).toContain("imageHeight={Math.max(image.height, 1)}")
+    expect(inPicture).toContain("<Image")
+  })
+
+  it("инспектор изображения делает первичное измерение контейнера до первого resize", () => {
+    const inspector = readProjectFile("components", "desengine", "system", "ImageInspector", "KonvaImageInspector.tsx")
+
+    expect(inspector).toContain("useLayoutEffect")
+    expect(inspector).toContain("const measure = () =>")
+    expect(inspector).toContain("getBoundingClientRect()")
+    expect(inspector).toContain("measure()")
+    expect(inspector).toContain("requestAnimationFrame(measure)")
+    expect(inspector).toContain("<InspectorFrame")
+    expect(inspector).toContain("setViewport(getCenteredViewport(containerSize, imageSize, 1))")
+    expect(inspector).toContain("setIsViewportInitialized(false)")
+  })
 })

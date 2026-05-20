@@ -1,3 +1,3 @@
-# research-lab-image-inspector-tools-plan
+# research-image-inspector
 
 План развития инспектора изображений на лабораторном верстаке и набора локальных инструментов вокруг него.
