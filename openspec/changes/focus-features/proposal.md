@@ -15,4 +15,4 @@
 ## Acceptance Criteria
 
 - `focus-features` отображается в `npm run os:tree`.
-- `dispatcher-project-ui-kit-switching` привязан как потомок `focus-features`.
+- `dispatcher-ui-kit` привязан как потомок `focus-features`.

@@ -32,6 +32,12 @@ npm run quality:text
 npm run test:e2e
 ```
 
+Targeted smoke переключения UI kit использует fixture-доступ без live allowlist:
+
+```bash
+DESENGINE_E2E_FIXTURE_ACCESS=1 npm run test:e2e -- test/e2e/project-ui-kit-switching.spec.ts
+```
+
 Live/provider-проверки не входят в обычный обязательный прогон и запускаются только явно:
 
 ```bash

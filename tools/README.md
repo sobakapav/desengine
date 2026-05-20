@@ -29,6 +29,7 @@ Root-карта документации:
 | Краткая сводка актуальных OpenSpec changes | `tools/list-active-openspec-changes.mjs` | `npm run os` |
 | Дерево OpenSpec changes (`focus → release → idea → research → dispatcher → implement → fix`) | `tools/list-openspec-change-tree.mjs` | `npm run os:tree` |
 | Список релизов и их состав | `tools/list-openspec-releases.mjs` | `npm run os:r` |
+| Старт выполнения change с preflight-правилами | `tools/openspec-begin-change.mjs` | `npm run os:begin -- <change>` |
 | Создание нового OpenSpec change с `short` в metadata | `tools/create-openspec-change.mjs` | `npm run openspec:new -- <name>` |
 | Подсистема code quality text | `tools/quality-text/engine.mjs` | `npm run quality:text` |
 | Генерация allowlist-маркера | `tools/generate-allowlist-marker.mjs` | `npm run allowlist:marker -- user@example.com` |
@@ -100,6 +101,19 @@ Root-карта документации:
   <change>\t<короткое пояснение>
     <child-change>\t<короткое пояснение>
 ```
+
+### `npm run os:begin -- <change>`
+
+Запускает preflight перед началом работы над change.
+
+- Если `change_kind=dispatcher`, команда блокирует прямую реализацию и предлагает создать `implement-*` или `fix-*`.
+- Для dispatcher можно сразу создать исполнительский change:
+
+```bash
+npm run os:begin -- dispatcher-... --spawn-implement implement-... --description "..."
+```
+
+- Если `change_kind=implement|fix`, команда печатает readiness-поля (`parent_change`, `strategy_root`, `verification_level`, `verification_command`).
 
 ### `npm run openspec:new -- <name>`
 

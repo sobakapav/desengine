@@ -95,6 +95,14 @@ PLAYWRIGHT_BROWSER_CHANNEL=chromium npm run test:e2e
 DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
 ```
 
+Targeted smoke переключения UI kit в Workbench запускается с fixture-доступом, который создаёт signed access cookie без live allowlist:
+
+```bash
+DESENGINE_E2E_FIXTURE_ACCESS=1 npm run test:e2e -- test/e2e/project-ui-kit-switching.spec.ts
+```
+
+Для нестандартной тестовой соли можно задать `DESENGINE_E2E_ACCESS_SALT`; по умолчанию используется локальная fixture-соль. Этот режим предназначен для targeted spec и не меняет обычный route smoke без допуска.
+
 Текущий smoke-набор живёт в `test/e2e/route-smoke.spec.ts`:
 
 - публичные маршруты `/auth` и `/system` должны открываться без допуска;
