@@ -7,8 +7,11 @@ import {
   createTaskCheckPath,
   createTaskDonePath,
   createTaskNextPath,
+  createTaskTransitionPath,
   getTasksRootUrl,
   getTaskUrl,
+  taskTransitionScreens,
+  type TaskTransitionScreen,
 } from "@/lib/task/navigation"
 import {
   getLevelAssetPath,
@@ -25,6 +28,14 @@ function createLabUrl(taskId: string, screen?: string | null) {
   return getLabUrl(taskId, screen)
 }
 
+function createLabLegacyTransitionRedirectPath(taskId: string, screen: TaskTransitionScreen) {
+  return createTaskTransitionPath(taskId, screen)
+}
+
+function isTaskTransitionScreen(screen: string): screen is TaskTransitionScreen {
+  return taskTransitionScreens.includes(screen as TaskTransitionScreen)
+}
+
 function isAccessibleTaskScreen(screen: string, allowedScreens: string[]) {
   const defaultCodeScreen = getDefaultCodeScreen()
 
@@ -36,10 +47,12 @@ function isAccessibleTaskScreen(screen: string, allowedScreens: string[]) {
 }
 
 export {
+  createLabLegacyTransitionRedirectPath,
   createLabUrl,
   createTaskCheckPath,
   createTaskDonePath,
   createTaskNextPath,
+  createTaskTransitionPath,
   getLabRootUrl,
   getLabUrl,
   getLevelAssetPath,
@@ -49,4 +62,8 @@ export {
   getTasksRootUrl,
   getTaskUrl,
   isAccessibleTaskScreen,
+  isTaskTransitionScreen,
+  taskTransitionScreens,
 }
+
+export type { TaskTransitionScreen }

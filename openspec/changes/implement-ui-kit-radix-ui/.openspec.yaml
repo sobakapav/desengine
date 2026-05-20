@@ -1,0 +1,12 @@
+schema: spec-driven
+created: 2026-05-19
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "подключение radix ui как sandpack ui kit adapter"
+depends_on_change: "dispatcher-project-ui-kit-switching"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "dispatcher-project-ui-kit-switching"
+strategy_root: "research-task-and-workflow-entities-research"
+roadmap_ref: ""

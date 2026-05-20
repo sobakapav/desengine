@@ -1,0 +1,6 @@
+{
+  "maxLinesProduction": 300,
+  "maxLinesTests": 450,
+  "maxFunctionLines": 60,
+  "scopes": ["working", "branch", "repo"]
+}

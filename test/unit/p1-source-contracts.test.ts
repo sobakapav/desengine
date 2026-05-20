@@ -115,16 +115,14 @@ describe("P1 source contracts", () => {
   it("task runtime применяет fallback/error-boundary контракт для пользовательского render", () => {
     const outRender = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "OutRender.tsx")
     const sandpackRoute = readProjectFile("app", "api", "tasks", "[taskId]", "sandpack", "route.ts")
-    const startRoute = readProjectFile("app", "api", "tasks", "[taskId]", "start", "route.ts")
-    const iterateRoute = readProjectFile("app", "api", "tasks", "[taskId]", "iterate", "route.ts")
+    const taskActions = readProjectFile("lib", "task", "actions.ts")
 
     expect(outRender).toContain("PreviewErrorNotice")
     expect(outRender).toContain("Ошибка загрузки превью")
     expect(outRender).toContain('width: "100%"')
     expect(sandpackRoute).toContain("buildSandpackPreviewPayload")
     expect(sandpackRoute).toContain("readFilesRecursively")
-    expect(startRoute).toContain("validateGeneratedFilesPayload")
-    expect(iterateRoute).toContain("validateGeneratedFilesPayload")
+    expect(taskActions).toContain("validateGeneratedFilesPayload")
   })
 
   it("level/task server читает level catalog, task metadata и строит lab context из level-config", () => {
@@ -161,19 +159,17 @@ describe("P1 source contracts", () => {
 
   it("level transitions, checks, reset и forbidden-file cleanup представлены отдельными server mutations", () => {
     const source = readProjectFile("lib", "task", "server.ts")
-    const startRoute = readProjectFile("app", "api", "tasks", "[taskId]", "start", "route.ts")
-    const iterateRoute = readProjectFile("app", "api", "tasks", "[taskId]", "iterate", "route.ts")
-    const checkRoute = readProjectFile("app", "api", "tasks", "[taskId]", "check", "route.ts")
+    const taskActions = readProjectFile("lib", "task", "actions.ts")
 
     expect(source).toContain("passCurrentTaskLevelCheck")
     expect(source).toContain("failCurrentTaskLevelCheck")
     expect(source).toContain("markCurrentTaskLevelCheckTechnicalError")
     expect(source).toContain("resetTask")
     expect(source).toContain("removeUserTaskDir")
-    expect(startRoute).toContain("cleanupForbiddenWorkbenchFiles")
-    expect(iterateRoute).toContain("cleanupForbiddenWorkbenchFiles")
-    expect(checkRoute).toContain("passCurrentTaskLevelCheck")
-    expect(checkRoute).toContain("failCurrentTaskLevelCheck")
+    expect(taskActions).toContain("cleanupForbiddenWorkbenchFiles")
+    expect(taskActions).toContain("cleanupForbiddenWorkbenchFiles")
+    expect(taskActions).toContain("passCurrentTaskLevelCheck")
+    expect(taskActions).toContain("failCurrentTaskLevelCheck")
   })
 
   it("level pages and task pages are path-based entry points for reloadable contexts", () => {
@@ -197,8 +193,7 @@ describe("P1 source contracts", () => {
   })
 
   it("start и iterate routes собирают prompt context, enforcing limits and prompt history", () => {
-    const startRoute = readProjectFile("app", "api", "tasks", "[taskId]", "start", "route.ts")
-    const iterateRoute = readProjectFile("app", "api", "tasks", "[taskId]", "iterate", "route.ts")
+    const taskActions = readProjectFile("lib", "task", "actions.ts")
     const promptComposer = readProjectFile(
       "components",
       "desengine",
@@ -208,15 +203,15 @@ describe("P1 source contracts", () => {
       "PromptComposer.tsx",
     )
 
-    expect(startRoute).toContain("buildStartInstruction")
-    expect(startRoute).toContain("already")
-    expect(startRoute).toContain("normalizeStartPayload")
-    expect(startRoute).toContain("blankStartFallbackByFileName")
-    expect(startRoute).toContain("markCurrentTaskLevelInitialized")
-    expect(iterateRoute).toContain("promptText")
-    expect(iterateRoute).toContain("promptsUsed >= taskItem.progress.promptsLimit")
-    expect(iterateRoute).toContain("appendPromptHistory")
-    expect(iterateRoute).toContain("TEACHING_COST_PER_ITERATION_CENTS")
+    expect(taskActions).toContain("buildStartInstruction")
+    expect(taskActions).toContain("already")
+    expect(taskActions).toContain("normalizeStartPayload")
+    expect(taskActions).toContain("blankStartFallbackByFileName")
+    expect(taskActions).toContain("markCurrentTaskLevelInitialized")
+    expect(taskActions).toContain("promptText")
+    expect(taskActions).toContain("promptsUsed >= taskItem.progress.promptsLimit")
+    expect(taskActions).toContain("appendPromptHistory")
+    expect(taskActions).toContain("TEACHING_COST_PER_ITERATION_CENTS")
     expect(promptComposer).toContain("PromptText")
     expect(promptComposer).toContain("onRun")
   })

@@ -5,6 +5,7 @@
 // @openSpec  - "Разработчик запускает проверки по capability"
 // @openSpec  - "Тестовый файл покрывает OpenSpec-сценарий"
 // @openSpec  - "Capability временно не имеет полного покрытия"
+// @openSpec  - "Добавляется capability с quality-правилами читаемости"
 // @openSpec  - "Credentials не заданы"
 // @openSpec  - "Разработчик запускает live/provider-проверку"
 // @openSpec  - "Тестовый слой ещё покрывает не все specs"
@@ -27,7 +28,15 @@ describe("change testing guidance", () => {
 
     expect(packageJson.scripts.test).toBe("npm run test:unit")
     expect(packageJson.scripts["test:unit"]).toBe("vitest run --project unit")
-    expect(packageJson.scripts["test:full"]).toBe("npm run test:unit && npm run test:traceability")
+    expect(packageJson.scripts["quality:text"]).toBe("node tools/quality-text/engine.mjs --scope=working")
+    expect(packageJson.scripts["quality:text:branch"]).toBe("node tools/quality-text/engine.mjs --scope=branch")
+    expect(packageJson.scripts["quality:text:repo"]).toBe("node tools/quality-text/engine.mjs --scope=repo")
+    expect(packageJson.scripts["test:readability"]).toBe("npm run quality:text")
+    expect(packageJson.scripts["test:readability:branch"]).toBe("npm run quality:text:branch")
+    expect(packageJson.scripts["test:readability:repo"]).toBe("npm run quality:text:repo")
+    expect(packageJson.scripts["test:full"]).toBe(
+      "npm run test:unit && npm run test:traceability && npm run quality:text",
+    )
     expect(packageJson.scripts["test:spec"]).toBe("node tools/testing/pending-layer.mjs spec")
     expect(packageJson.scripts["test:live"]).toBe("node tools/testing/pending-layer.mjs live")
     expect(packageJson.scripts["test:full"]).not.toContain("test:live")
@@ -38,10 +47,36 @@ describe("change testing guidance", () => {
 
     expect(source).toContain("CAPABILITY_PATTERN")
     expect(source).toContain("SCENARIO_ITEM_PATTERN")
+    expect(source).toContain("validateShortRules")
+    expect(source).toContain("validateChangeKindRules")
+    expect(source).toContain("CHANGE_KIND_PATTERN")
+    expect(source).toContain("focus")
+    expect(source).toContain("execution_mode")
+    expect(source).toContain("parent_change")
+    expect(source).toContain("roadmap_ref")
+    expect(source).toContain("суффикс даты в имени change не допускается")
+    expect(source).toContain("должно начинаться с маленькой буквы")
+    expect(source).toContain("должно быть не длиннее 75 символов")
+    expect(source).toContain("не должно заканчиваться знаком препинания")
     expect(source).toContain("coverage-plan")
     expect(source).toContain("ссылается на неизвестный capability")
     expect(source).toContain("ссылается на неизвестный scenario")
     expect(source).toContain("но capability не внесён в coverage-plan")
+  })
+
+  it("readability checker задаёт deterministic-правила читаемости для изменённых файлов", () => {
+    const source = readProjectFile("tools", "quality-text", "engine.mjs")
+
+    expect(source).toContain("maxLinesProduction: 300")
+    expect(source).toContain("maxLinesTests: 450")
+    expect(source).toContain("maxFunctionLines: 60")
+    expect(source).toContain("TODO(owner:")
+    expect(source).toContain("targetStage:")
+    expect(source).toContain("boolean-trap")
+    expect(source).toContain("floating-promise")
+    expect(source).toContain('const scope = args.scope ?? config.scopes[0] ?? "working"')
+    expect(source).toContain('if (scope === "repo")')
+    expect(source).toContain('if (scope === "branch")')
   })
 
   it("placeholder-команды не блокируют runtime и объясняют следующий этап", () => {
@@ -69,9 +104,25 @@ describe("change testing guidance", () => {
 
     expect(source).toContain("TEST_CHECKLIST_HEADING")
     expect(source).toContain("## Тестовая часть change")
+    expect(source).toContain("METADATA_DEFAULTS")
+    expect(source).toContain("short_policy")
+    expect(source).toContain("review_sync_state")
+    expect(source).toContain("change_kind")
+    expect(source).toContain("GOVERNED_PREFIXES")
+    expect(source).toContain("focus")
+    expect(source).toContain("execution_mode")
+    expect(source).toContain("parent_change")
+    expect(source).toContain("strategy_root")
+    expect(source).toContain("roadmap_ref")
+    expect(source).toContain('"none"')
+    expect(source).toContain("краткое описание change")
+    expect(source).toContain("normalizeShortValue")
+    expect(source).toContain("normalizeChangeName")
+    expect(source).toContain("Имя change нормализовано")
+    expect(source).toContain("кратко ")
     expect(source).toContain("ensureTestChecklist(changeDir)")
     expect(source).toContain("test/traceability/coverage-plan.json")
-    expect(source).toContain("Добавлен тестовый чеклист")
+    expect(source).toContain("Обновлены поля metadata")
   })
 
   it("документация показывает пример тестовой части и правило coverage-plan", () => {
@@ -83,5 +134,6 @@ describe("change testing guidance", () => {
     expect(source).toContain("live/provider")
     expect(source).toContain("Если полный тест сейчас нельзя добавить")
     expect(source).toContain("targetStage")
+    expect(source).toContain("quality:text")
   })
 })

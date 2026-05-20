@@ -1,0 +1,12 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "dispatcher"
+execution_mode: "no-code"
+parent_change: "focus-content"
+strategy_root: "focus-content"
+roadmap_ref: "roadmaps/first-call.md"
+release_ref: ""
+issue: ""
+short: "провести первый созвон со студентами 21 мая с пользой для продукта"

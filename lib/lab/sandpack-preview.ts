@@ -7,6 +7,16 @@ import {
 } from "@/lib/lab/sandpack-ui-kits.config"
 import { loadSandpackDefaultTemplates } from "@/lib/lab/sandpack-default-templates"
 import { fallbackAppTsx } from "@/lib/lab/sandpack-template-fallback"
+import {
+  createDefaultProject,
+  normalizeProject,
+  resolveProjectPreviewConfig,
+  validateHtmlTagsComponentSource,
+  type Project,
+  type ProjectCompatibility,
+  type ProjectUiMode,
+  type RawProject,
+} from "@/lib/project/runtime"
 
 type SandpackFileEntry = string | {
   code: string
@@ -51,6 +61,10 @@ type SandpackPreviewPayload = {
     activeFile: string
     visibleFiles: string[]
     externalResources: string[]
+  }
+  project: Project & {
+    effectiveUiKitId: SandpackUiKitId
+    compatibility: ProjectCompatibility
   }
 }
 
@@ -178,10 +192,35 @@ function rewriteRootAliasImports(code: string, relativeRoot: string) {
     .replaceAll("import('@/", `import('${relativeRoot}`)
 }
 
+function buildHtmlTagsFallbackComponent(message: string) {
+  const safeMessage = JSON.stringify(message)
+
+  return `export default function Component() {
+  const message = ${safeMessage};
+
+  return (
+    <section style={{
+      border: "1px solid #f0b4b4",
+      borderRadius: 12,
+      padding: 16,
+      background: "#fff7f7",
+      color: "#7f1d1d",
+      fontFamily: "sans-serif"
+    }}>
+      <h2 style={{ margin: "0 0 8px", fontSize: 16 }}>Preview переключён в безопасный режим</h2>
+      <p style={{ margin: 0 }}>{message}</p>
+    </section>
+  );
+}
+`
+}
+
 function buildSandpackPreviewPayload(
   sourceFiles: SandpackPreviewSourceFiles,
   options: {
     uiKitId?: SandpackUiKitId | string | null
+    uiMode?: ProjectUiMode | string | null
+    project?: RawProject | null
     appTemplate?: SandpackAppTemplateOptions | null
   } = {},
 ): SandpackPreviewPayload {
@@ -189,9 +228,15 @@ function buildSandpackPreviewPayload(
 
   const templates = loadSandpackDefaultTemplates()
 
-  const resolvedUiKitId = typeof options.uiKitId === "string"
-    ? normalizeSandpackUiKitId(options.uiKitId)
-    : (options.uiKitId ?? DEFAULT_SANDPACK_UI_KIT_ID)
+  const project = normalizeProject(options.project ?? {
+    ...createDefaultProject(),
+    uiKitId: typeof options.uiKitId === "string"
+      ? normalizeSandpackUiKitId(options.uiKitId)
+      : (options.uiKitId ?? DEFAULT_SANDPACK_UI_KIT_ID),
+    uiMode: options.uiMode ?? undefined,
+  })
+  const projectPreviewConfig = resolveProjectPreviewConfig(project)
+  const resolvedUiKitId = projectPreviewConfig.effectiveUiKitId
 
   const uiKit = sandpackUiKitsConfig[resolvedUiKitId] ?? sandpackUiKitsConfig[DEFAULT_SANDPACK_UI_KIT_ID]
   const dependencies = {
@@ -211,6 +256,14 @@ function buildSandpackPreviewPayload(
 
   const packageJsonBase = templates.packageJson
 
+  const shouldValidateHtmlTags = Boolean(options.project || options.uiMode)
+  const compatibility = shouldValidateHtmlTags && project.uiMode === "html-tags"
+    ? validateHtmlTagsComponentSource(sourceFiles.component)
+    : { status: "compatible" as const, message: "Режим проекта совместим с выбранным UI kit." }
+  const componentSource = compatibility.status === "compatible"
+    ? sourceFiles.component
+    : buildHtmlTagsFallbackComponent(compatibility.message)
+
   const files: SandpackPreviewFiles = {
     "/public/index.html": hidden(templates.indexHtml),
     "/package.json": hidden(JSON.stringify({ ...packageJsonBase, ...basePackageJson, dependencies }, null, 2)),
@@ -219,7 +272,7 @@ function buildSandpackPreviewPayload(
     "/App.tsx": hidden(resolvedAppTsx || ""),
     "/level-template-runtime.ts": hidden(resolvedLevelRuntime),
     "/Component.tsx": {
-      code: rewriteRootAliasImports(sourceFiles.component, "./"),
+      code: rewriteRootAliasImports(componentSource, "./"),
       readOnly: true,
     },
     "/Component.stories.ts": hidden(sourceFiles.stories ?? ""),
@@ -255,6 +308,11 @@ function buildSandpackPreviewPayload(
       activeFile: "/Component.tsx",
       visibleFiles: ["/Component.tsx"],
       externalResources: ["https://cdn.tailwindcss.com"],
+    },
+    project: {
+      ...project,
+      effectiveUiKitId: resolvedUiKitId,
+      compatibility,
     },
   }
 }

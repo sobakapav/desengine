@@ -1,0 +1,11 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "idea"
+execution_mode: "no-code"
+parent_change: "focus-product"
+strategy_root: "focus-product"
+roadmap_ref: ""
+issue: ""
+short: "идея накопления пользовательского опыта и трансформации в llm-навыки"

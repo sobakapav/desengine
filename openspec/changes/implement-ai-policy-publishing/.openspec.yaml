@@ -1,0 +1,12 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "dispatcher-help"
+strategy_root: "focus-content"
+roadmap_ref: ""
+release_ref: "release-2026-05-20-evening"
+issue: ""
+short: "создать и опубликовать ai-политику в системе помощи"

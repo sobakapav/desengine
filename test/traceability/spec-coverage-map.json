@@ -3,7 +3,10 @@
   "capabilities": {
     "access-control": {
       "priority": "P0",
-      "primaryLevels": ["unit", "integration"],
+      "primaryLevels": [
+        "unit",
+        "integration"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Диагностика проверяет базовый URL allowlist-системы",
@@ -20,7 +23,10 @@
     },
     "admin-tools": {
       "priority": "P2",
-      "primaryLevels": ["static", "unit"],
+      "primaryLevels": [
+        "static",
+        "unit"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Root-документ упоминает административную команду",
@@ -31,7 +37,10 @@
     },
     "component-file-set": {
       "priority": "P2",
-      "primaryLevels": ["unit", "integration"],
+      "primaryLevels": [
+        "unit",
+        "integration"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Пользователь запускает итерацию по заданию",
@@ -43,7 +52,10 @@
     },
     "claude": {
       "priority": "P0",
-      "primaryLevels": ["unit", "integration"],
+      "primaryLevels": [
+        "unit",
+        "integration"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Оператор выбирает Claude",
@@ -55,7 +67,10 @@
     },
     "deepseek": {
       "priority": "P0",
-      "primaryLevels": ["unit", "integration"],
+      "primaryLevels": [
+        "unit",
+        "integration"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Оператор выбирает DeepSeek",
@@ -66,7 +81,10 @@
     },
     "external-local-onboarding": {
       "priority": "P2",
-      "primaryLevels": ["static", "integration"],
+      "primaryLevels": [
+        "static",
+        "integration"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Пользователь открывает шаблон конфигурации",
@@ -81,7 +99,10 @@
     },
     "google-gemini": {
       "priority": "P0",
-      "primaryLevels": ["unit", "integration"],
+      "primaryLevels": [
+        "unit",
+        "integration"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Оператор выбирает Google Gemini",
@@ -94,7 +115,10 @@
     },
     "zai": {
       "priority": "P0",
-      "primaryLevels": ["unit", "integration"],
+      "primaryLevels": [
+        "unit",
+        "integration"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Оператор выбирает Z.AI",
@@ -106,7 +130,10 @@
     },
     "help-content": {
       "priority": "P2",
-      "primaryLevels": ["unit", "e2e-smoke"],
+      "primaryLevels": [
+        "unit",
+        "e2e-smoke"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Пользователь открывает каталог справки",
@@ -125,7 +152,11 @@
     },
     "iteration": {
       "priority": "P1",
-      "primaryLevels": ["unit", "integration", "component"],
+      "primaryLevels": [
+        "unit",
+        "integration",
+        "component"
+      ],
       "status": "ready",
       "requiredScenarioGroups": {
         "prompt-input": [
@@ -173,7 +204,11 @@
     },
     "level-labs": {
       "priority": "P1",
-      "primaryLevels": ["unit", "component", "e2e-smoke"],
+      "primaryLevels": [
+        "unit",
+        "component",
+        "e2e-smoke"
+      ],
       "status": "ready",
       "requiredScenarioGroups": {
         "lab-shape": [
@@ -214,12 +249,27 @@
           "Пользователь открывает стартовый экран уровня 1 задачи",
           "Пользователь открывает стартовый экран уровня 2+ задачи",
           "Результат предыдущего уровня недоступен"
+        ],
+        "runtime-contract": [
+          "Пользователь открывает рабочую задачу лаборатории",
+          "Пользователь открывает рабочий файл задачи",
+          "Legacy route ведёт к transition экрану",
+          "Задача ещё не стартовала"
         ]
-      }
+      },
+      "requiredScenarios": [
+        "Лаборатория создаёт локальный проект для preview",
+        "Пользователь переключает UI kit проекта без перезагрузки страницы",
+        "Пользователь включает режим html-tags",
+        "Лаборатория показывает диагностику несовместимости UI kit"
+      ]
     },
     "llm": {
       "priority": "P0",
-      "primaryLevels": ["unit", "integration"],
+      "primaryLevels": [
+        "unit",
+        "integration"
+      ],
       "status": "ready",
       "requiredScenarioGroups": {
         "provider-selection": [
@@ -265,7 +315,10 @@
     },
     "llm-endpoint": {
       "priority": "P0",
-      "primaryLevels": ["unit", "integration"],
+      "primaryLevels": [
+        "unit",
+        "integration"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Оператор пытается настроить локальный endpoint",
@@ -274,7 +327,10 @@
     },
     "navigation": {
       "priority": "P2",
-      "primaryLevels": ["component", "e2e-smoke"],
+      "primaryLevels": [
+        "component",
+        "e2e-smoke"
+      ],
       "status": "partial",
       "requiredScenarios": [
         "Пользователь открывает product-shell страницу",
@@ -285,7 +341,10 @@
     },
     "onboarding-repo": {
       "priority": "P2",
-      "primaryLevels": ["unit", "integration"],
+      "primaryLevels": [
+        "unit",
+        "integration"
+      ],
       "status": "partial",
       "requiredScenarios": [
         "Система определяет источник onboarding-контента",
@@ -294,7 +353,9 @@
     },
     "resource-status": {
       "priority": "P2",
-      "primaryLevels": ["unit"],
+      "primaryLevels": [
+        "unit"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Диагностика собирает ресурс через общий resolver",
@@ -311,7 +372,11 @@
     },
     "task": {
       "priority": "P1",
-      "primaryLevels": ["unit", "integration", "component"],
+      "primaryLevels": [
+        "unit",
+        "integration",
+        "component"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Пользовательский компонент падает во время React-рендера",
@@ -319,12 +384,27 @@
         "Ошибка возникает внутри React-дерева компонента",
         "Preview принимает UI-импорты из components/ui",
         "Клиент запрашивает картинку варианта",
-        "Клиент пытается использовать удалённый дублирующий endpoint"
+        "Клиент пытается использовать удалённый дублирующий endpoint",
+        "Два действия одновременно меняют одну задачу",
+        "Два действия меняют разные задачи",
+        "Пользователь сохраняет рабочие файлы",
+        "Пользователь сбрасывает задачу через service boundary",
+        "Пользователь запускает уровень через service boundary",
+        "Пользователь уточняет задачу через service boundary",
+        "Пользователь проверяет результат через service boundary",
+        "Route handlers используют переиспользуемые lab action services",
+        "Sandpack preview использует project.uiKitId",
+        "Режим html-tags работает без UI kit",
+        "Preview показывает безопасный fallback при несовместимости проекта"
       ]
     },
     "task-levels": {
       "priority": "P1",
-      "primaryLevels": ["unit", "integration", "e2e-smoke"],
+      "primaryLevels": [
+        "unit",
+        "integration",
+        "e2e-smoke"
+      ],
       "status": "ready",
       "requiredScenarioGroups": {
         "catalog": [
@@ -358,7 +438,10 @@
     },
     "ui-foundation": {
       "priority": "P2",
-      "primaryLevels": ["component", "e2e-smoke"],
+      "primaryLevels": [
+        "component",
+        "e2e-smoke"
+      ],
       "status": "partial",
       "requiredScenarios": [
         "Команда добавляет или меняет product-shell страницу",
@@ -369,7 +452,10 @@
     },
     "user-progress": {
       "priority": "P1",
-      "primaryLevels": ["unit", "integration"],
+      "primaryLevels": [
+        "unit",
+        "integration"
+      ],
       "status": "ready",
       "requiredScenarios": [
         "Пользователь использует систему локально",

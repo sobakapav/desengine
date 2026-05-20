@@ -4,6 +4,7 @@ import { SandpackPreview, SandpackProvider } from "@codesandbox/sandpack-react/u
 import { useEffect, useMemo, useState } from "react";
 
 import type { SandpackPreviewPayload } from "@/lib/lab/sandpack-preview";
+import { createDefaultProject } from "@/lib/project/runtime";
 
 import { OutRenderProps } from "./props";
 
@@ -20,13 +21,41 @@ function PreviewErrorNotice({ message }: { message: string }) {
     );
 }
 
-function OutRender({ task, started, reloadKey, startStatus }: OutRenderProps) {
+function ProjectCompatibilityNotice({ payload }: { payload: SandpackPreviewPayload }) {
+    const compatibility = payload.project.compatibility;
+
+    if (compatibility.status !== "incompatible") {
+        return null;
+    }
+
+    return (
+        <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+            <p className="font-medium">
+                Project UI: {payload.project.uiKitId}, режим {payload.project.uiMode}
+                {payload.project.effectiveUiKitId !== payload.project.uiKitId ? `, runtime ${payload.project.effectiveUiKitId}` : ""}
+            </p>
+            <p className="mt-1">{compatibility.message}</p>
+        </div>
+    );
+}
+
+function OutRender({ task, started, reloadKey, startStatus, project }: OutRenderProps) {
+    const previewProject = project ?? createDefaultProject(`task-${task}`);
     const [error, setError] = useState<string>("");
     const [previewPayload, setPreviewPayload] = useState<SandpackPreviewPayload | null>(null);
 
     const moduleUrl = useMemo(
-        () => `/api/tasks/${task}/sandpack?v=${reloadKey}`,
-        [task, reloadKey],
+        () => {
+            const params = new URLSearchParams({
+                v: String(reloadKey),
+                projectId: previewProject.id,
+                projectTitle: previewProject.title,
+                uiKitId: previewProject.uiKitId,
+                uiMode: previewProject.uiMode,
+            });
+            return `/api/tasks/${task}/sandpack?${params.toString()}`;
+        },
+        [previewProject.id, previewProject.title, previewProject.uiKitId, previewProject.uiMode, task, reloadKey],
     );
 
     useEffect(() => {
@@ -73,6 +102,7 @@ function OutRender({ task, started, reloadKey, startStatus }: OutRenderProps) {
                         <PreviewErrorNotice message={error} />
                     ) : previewPayload ? (
                         <div className="w-full">
+                            <ProjectCompatibilityNotice payload={previewPayload} />
                             <SandpackProvider
                                 key={moduleUrl}
                                 template="react-ts"

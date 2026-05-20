@@ -22,7 +22,7 @@ test.describe("route smoke без live credentials", () => {
       await expect(page.getByRole("navigation", { name: "Глобальная навигация продукта" })).toBeVisible()
       await expect(page.getByRole("link", { name: "задачи" })).toBeVisible()
       await expect(page.getByRole("link", { name: "уровни" })).toBeVisible()
-      await expect(page.getByRole("link", { name: "telegram-бот помощи" })).toBeVisible()
+      await expect(page.getByRole("link", { name: "tg-полубот помощи" })).toBeVisible()
       await expect(page.getByRole("link", { name: "edu@eduhund.com" })).toBeVisible()
     })
   }

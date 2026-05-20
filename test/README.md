@@ -23,6 +23,7 @@ npm run test:full
 ```bash
 npm run test:unit
 npm run test:traceability
+npm run quality:text
 ```
 
 Браузерный smoke запускается отдельно:
@@ -44,7 +45,10 @@ npm run test:live
 | `npm test` | Быстрый локальный прогон, сейчас alias на `test:unit`. |
 | `npm run test:unit` | Unit/source-contract проверки в `test/unit/**/*.test.ts`. |
 | `npm run test:traceability` | Проверка связи `@openSpec` metadata с `openspec/specs/**`. |
-| `npm run test:full` | Обязательный слой текущего этапа: unit + traceability. |
+| `npm run quality:text` | Проверка подсистемы code-quality-text по рабочим изменениям. |
+| `npm run quality:text:branch` | Проверка подсистемы code-quality-text по изменениям ветки. |
+| `npm run quality:text:repo` | Полная проверка подсистемы code-quality-text по репозиторию. |
+| `npm run test:full` | Обязательный слой текущего этапа: unit + traceability + code-quality-text. |
 | `npm run test:storybook` | Browser/component проверки Storybook; пока успешно проходит без story-файлов. |
 | `npm run test:e2e` | Playwright route smoke без live credentials. |
 | `npm run test:integration` | Зарезервировано для server/API-flow на fixtures. |
@@ -98,6 +102,52 @@ npm run test:unit -- -t "часть названия"
 ```bash
 npm run test:traceability
 ```
+
+## Code Quality Text
+
+Быстрая проверка рабочих изменений:
+
+```bash
+npm run quality:text
+```
+
+Проверка изменений всей ветки:
+
+```bash
+npm run quality:text:branch
+```
+
+Полный аудит всего репозитория:
+
+```bash
+npm run quality:text:repo
+```
+
+Что проверяется автоматически:
+
+- лимит строк кода в файле (production: 300, test/storybook: 450);
+- лимит строк кода в функции (60);
+- запрет boolean-trap параметров в экспортируемых API;
+- запрет floating promises без `await`, `void` или `catch/finally`;
+- формат временных пометок `TODO/FIXME`.
+
+Формат временной пометки:
+
+```ts
+// TODO(owner:team-desengine, targetStage:5.4): вынести адаптер хранения
+```
+
+Если legacy-нарушение временно не закрывается, его можно зафиксировать в:
+
+- `tools/quality-text/waivers.json`
+
+Для waiver обязательны поля `rules`, `owner`, `reason`, `targetStage`.
+
+Совместимые алиасы migration-этапа:
+
+- `npm run test:readability`
+- `npm run test:readability:branch`
+- `npm run test:readability:repo`
 
 ## E2E smoke
 

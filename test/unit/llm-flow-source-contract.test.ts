@@ -25,7 +25,7 @@ function readProjectFile(...segments: string[]) {
 
 describe("LLM flow source contracts", () => {
   it("start-flow использует общий production prompt, didactic default и level-specific start/iterate prompts", () => {
-    const source = readProjectFile("app", "api", "tasks", "[taskId]", "start", "route.ts")
+    const source = readProjectFile("lib", "task", "actions.ts")
 
     expect(source).toContain('readPrompt("production", "start-component")')
     expect(source).toContain('readPrompt("didactic", "default")')
@@ -36,7 +36,7 @@ describe("LLM flow source contracts", () => {
   })
 
   it("iterate-flow использует общий production prompt, didactic default и level-specific iterate prompt", () => {
-    const source = readProjectFile("app", "api", "tasks", "[taskId]", "iterate", "route.ts")
+    const source = readProjectFile("lib", "task", "actions.ts")
 
     expect(source).toContain('readPrompt("production", "default")')
     expect(source).toContain('readPrompt("production", "iterate-component")')
@@ -49,15 +49,16 @@ describe("LLM flow source contracts", () => {
   it("prompt lookup строит hidden level prompt path только по levelId", () => {
     const source = readProjectFile("lib", "prompt", "server.ts")
 
-    expect(source).toContain('path.join(appConfig.onboardingPromptsRoot, "levels", levelId, "start.md")')
-    expect(source).toContain('path.join(appConfig.onboardingPromptsRoot, "levels", levelId, "iterate.md")')
-    expect(source).toContain('path.join(appConfig.onboardingPromptsRoot, "levels", levelId, "check.md")')
+    expect(source).toContain('path.join("levels", levelId, "start")')
+    expect(source).toContain('path.join("levels", levelId, "iterate")')
+    expect(source).toContain('path.join("levels", levelId, "check")')
+    expect(source).toContain('.njk')
     expect(source).not.toContain("promptKey")
   })
 
   it("check-flow использует optional hidden check prompt уровня", () => {
     const promptServer = readProjectFile("lib", "prompt", "server.ts")
-    const checkRoute = readProjectFile("app", "api", "tasks", "[taskId]", "check", "route.ts")
+    const checkRoute = readProjectFile("lib", "task", "actions.ts")
     const checkPromptFunction = promptServer.match(/export async function readLevelCheckPrompt[\s\S]*?\n}/)?.[0] ?? ""
 
     expect(checkRoute).toContain("readLevelCheckPrompt(level.id)")
@@ -85,7 +86,7 @@ describe("LLM flow source contracts", () => {
   })
 
   it("история итераций хранит учебную стоимость отдельно от provider metrics", () => {
-    const iterateRoute = readProjectFile("app", "api", "tasks", "[taskId]", "iterate", "route.ts")
+    const iterateRoute = readProjectFile("lib", "task", "actions.ts")
     const repository = readProjectFile("lib", "onboarding", "repository.ts")
 
     expect(iterateRoute).toContain("teachingCostCents: TEACHING_COST_PER_ITERATION_CENTS")

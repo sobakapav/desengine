@@ -26,8 +26,11 @@ Root-карта документации:
 | Назначение | Канонический файл | Каноническая команда |
 | --- | --- | --- |
 | Smoke-check локальной установки | `tools/smoke-local-install.mjs` | `npm run smoke` |
-| Краткая сводка актуальных OpenSpec changes | `tools/list-active-openspec-changes.mjs` | `npm run openspec` |
+| Краткая сводка актуальных OpenSpec changes | `tools/list-active-openspec-changes.mjs` | `npm run os` |
+| Дерево OpenSpec changes (`focus → release → idea → research → dispatcher → implement → fix`) | `tools/list-openspec-change-tree.mjs` | `npm run os:tree` |
+| Список релизов и их состав | `tools/list-openspec-releases.mjs` | `npm run os:r` |
 | Создание нового OpenSpec change с `short` в metadata | `tools/create-openspec-change.mjs` | `npm run openspec:new -- <name>` |
+| Подсистема code quality text | `tools/quality-text/engine.mjs` | `npm run quality:text` |
 | Генерация allowlist-маркера | `tools/generate-allowlist-marker.mjs` | `npm run allowlist:marker -- user@example.com` |
 | Генерация `config.json` по `base.png` и `variants.png` | `tools/generate-task-configs.mjs` | `npm run admin:tasks:configs` |
 | Подготовка task-каталогов из набора PNG | `tools/import-task-assets.mjs` | `npm run admin:tasks:import -- --variants-root=... --base-root=...` |
@@ -59,7 +62,7 @@ Root-карта документации:
 - базовую конфигурацию `OPENAI_API_KEY` и allowlist;
 - production build проекта.
 
-### `npm run openspec`
+### `npm run os`
 
 Печатает все актуальные OpenSpec changes, исключая:
 - archived changes из `openspec/changes/archive`;
@@ -71,16 +74,51 @@ Root-карта документации:
 Формат вывода:
 
 ```bash
-<change-name> — <короткое пояснение из секции Why>
+<change-name>\t<короткое пояснение из секции Why>
+```
+
+### `npm run os:tree`
+
+Печатает дерево активных changes в иерархии `focus → release → idea → research → dispatcher → implement → fix`.
+
+Каждая строка выводится в том же формате, что и `npm run os`:
+
+```bash
+<change-name>\t<короткое пояснение>
+```
+
+### `npm run os:r`
+
+Печатает список активных release changes и их состав по полю `release_ref`.
+
+Формат вывода:
+
+```bash
+<release-change>\t<короткое пояснение>
+  <change>\t<короткое пояснение>
 ```
 
 ### `npm run openspec:new -- <name>`
 
-Создаёт новый OpenSpec change через штатный `openspec new change`, а затем гарантирует, что в `openspec/changes/<name>/.openspec.yaml` есть поле:
+Создаёт новый OpenSpec change через штатный `openspec new change`, а затем гарантирует, что в `openspec/changes/<name>/.openspec.yaml` есть базовые поля:
 
 ```yaml
-short: ""
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "idea"
+execution_mode: "no-code"
+parent_change: ""
+strategy_root: ""
+roadmap_ref: ""
+release_ref: ""
+issue: ""
+short: "краткое описание change"
 ```
+
+Для непустого `short` в changes с `short_policy: strict-v1` действует строгий контракт кастомной схемы:
+- начинается с маленькой буквы;
+- длина не превышает 75 символов;
+- в конце нет знака препинания.
 
 Примеры:
 
@@ -88,6 +126,32 @@ short: ""
 npm run openspec:new -- add-level-badges
 npm run openspec:new -- add-level-badges --schema spec-driven
 npm run openspec:new -- add-level-badges --description "Пробный change"
+```
+
+### `npm run quality:text`
+
+Проверяет читаемость рабочих изменений (working tree + staged):
+
+- лимиты размера файла и функций;
+- boolean-trap параметры в экспортируемых API;
+- floating promises без явной обработки;
+- формат TODO/FIXME.
+
+Временные legacy-исключения ведутся в `tools/quality-text/waivers.json` с обязательными полями `rules`, `owner`, `reason`, `targetStage`.
+
+Полный аудит по репозиторию:
+
+```bash
+npm run quality:text:branch
+npm run quality:text:repo
+```
+
+Совместимые алиасы (migration):
+
+```bash
+npm run test:readability
+npm run test:readability:branch
+npm run test:readability:repo
 ```
 
 ### `npm run allowlist:marker -- user@example.com`

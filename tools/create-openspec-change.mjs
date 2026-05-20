@@ -4,6 +4,20 @@ import { spawnSync } from "node:child_process"
 
 const METADATA_FILE = ".openspec.yaml"
 const TASKS_FILE = "tasks.md"
+const GOVERNED_PREFIXES = ["focus", "release", "idea", "research", "dispatcher", "implement", "fix"]
+const METADATA_DEFAULTS = [
+  { key: "short_policy", value: "none" },
+  { key: "review_sync_state", value: "none" },
+  { key: "change_kind", value: "idea" },
+  { key: "execution_mode", value: "no-code" },
+  { key: "parent_change", value: "" },
+  { key: "strategy_root", value: "" },
+  { key: "roadmap_ref", value: "" },
+  { key: "release_ref", value: "" },
+  { key: "issue", value: "" },
+  { key: "short", value: "краткое описание change" },
+]
+const SHORT_DEFAULT_VALUE = "краткое описание change"
 const TEST_CHECKLIST_HEADING = "## Тестовая часть change"
 const TEST_CHECKLIST = `${TEST_CHECKLIST_HEADING}
 
@@ -57,7 +71,47 @@ function parseArgs(argv) {
   return { help: false, changeName }
 }
 
-function ensureShortField(changeDir) {
+function normalizeChangeName(changeName) {
+  return changeName.replace(/-[0-9]{4}-[0-9]{2}-[0-9]{2}$/, "")
+}
+
+function resolveKindFromName(changeName) {
+  const prefix = changeName.split("-", 1)[0]
+
+  if (!GOVERNED_PREFIXES.includes(prefix)) {
+    return "idea"
+  }
+
+  return prefix
+}
+
+function normalizeShortValue(value) {
+  let normalized = value.replace(/\s+/g, " ").trim().replace(/\p{P}+$/u, "")
+
+  if (!normalized) {
+    return SHORT_DEFAULT_VALUE
+  }
+
+  if (/^\p{Lu}/u.test(normalized)) {
+    normalized = `${normalized.slice(0, 1).toLocaleLowerCase("ru-RU")}${normalized.slice(1)}`
+  }
+
+  if (!/^\p{Ll}/u.test(normalized)) {
+    normalized = `кратко ${normalized}`
+  }
+
+  if (normalized.length > 75) {
+    normalized = normalized.slice(0, 75).trim().replace(/\p{P}+$/u, "")
+  }
+
+  if (!normalized) {
+    return SHORT_DEFAULT_VALUE
+  }
+
+  return normalized
+}
+
+function ensureMetadataFields(changeDir, changeName) {
   const metadataPath = path.join(changeDir, METADATA_FILE)
 
   if (!fs.existsSync(metadataPath)) {
@@ -65,13 +119,65 @@ function ensureShortField(changeDir) {
   }
 
   const metadata = fs.readFileSync(metadataPath, "utf8")
+  const inferredKind = resolveKindFromName(changeName)
+  const inferredExecutionMode = inferredKind === "implement" || inferredKind === "fix" ? "code" : "no-code"
 
-  if (/^short:\s*/m.test(metadata)) {
+  let next = metadata.endsWith("\n") ? metadata : `${metadata}\n`
+  let changed = false
+
+  for (const field of METADATA_DEFAULTS) {
+    const pattern = new RegExp(`^${field.key}:\\s*`, "m")
+
+    if (pattern.test(next)) {
+      continue
+    }
+
+    const serializedValue = `"${field.value.replaceAll('"', '\\"')}"`
+    next = `${next}${field.key}: ${serializedValue}\n`
+    changed = true
+  }
+
+  const forcedFields = [
+    { key: "change_kind", value: inferredKind },
+    { key: "execution_mode", value: inferredExecutionMode },
+  ]
+
+  for (const field of forcedFields) {
+    const serializedValue = `"${field.value.replaceAll('"', '\\"')}"`
+    const line = `${field.key}: ${serializedValue}`
+    const pattern = new RegExp(`^${field.key}:\\s*.*$`, "m")
+
+    if (pattern.test(next)) {
+      if (!new RegExp(`^${field.key}:\\s*${serializedValue.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\s*$`, "m").test(next)) {
+        next = next.replace(pattern, line)
+        changed = true
+      }
+      continue
+    }
+
+    next = `${next}${line}\n`
+    changed = true
+  }
+
+  const shortMatch = next.match(/^short:\s*(.+)\s*$/m)
+
+  if (shortMatch) {
+    const rawShort = shortMatch[1].trim().replace(/^["']|["']$/g, "")
+    const normalizedShort = normalizeShortValue(rawShort)
+    const serializedShort = `"${normalizedShort.replaceAll('"', '\\"')}"`
+    const normalizedLine = `short: ${serializedShort}`
+
+    if (shortMatch[0].trim() !== normalizedLine) {
+      next = next.replace(/^short:\s*(.+)\s*$/m, normalizedLine)
+      changed = true
+    }
+  }
+
+  if (!changed) {
     return false
   }
 
-  const normalized = metadata.endsWith("\n") ? metadata : `${metadata}\n`
-  fs.writeFileSync(metadataPath, `${normalized}short: ""\n`, "utf8")
+  fs.writeFileSync(metadataPath, next, "utf8")
   return true
 }
 
@@ -110,9 +216,17 @@ function main() {
     return
   }
 
+  const normalizedChangeName = normalizeChangeName(parsedArgs.changeName)
+  const cliArgs = [...process.argv.slice(2)]
+  const changeNameArgIndex = cliArgs.findIndex((arg) => arg === parsedArgs.changeName)
+
+  if (changeNameArgIndex !== -1) {
+    cliArgs[changeNameArgIndex] = normalizedChangeName
+  }
+
   const projectRoot = process.cwd()
-  const changeDir = path.join(projectRoot, "openspec", "changes", parsedArgs.changeName)
-  const result = spawnSync("openspec", ["new", "change", ...process.argv.slice(2)], {
+  const changeDir = path.join(projectRoot, "openspec", "changes", normalizedChangeName)
+  const result = spawnSync("openspec", ["new", "change", ...cliArgs], {
     cwd: projectRoot,
     stdio: "inherit",
   })
@@ -125,11 +239,15 @@ function main() {
     throw result.error
   }
 
-  const addedShort = ensureShortField(changeDir)
+  const addedMetadata = ensureMetadataFields(changeDir, normalizedChangeName)
   const addedTestChecklist = ensureTestChecklist(changeDir)
 
-  if (addedShort) {
-    console.log(`Добавлено поле short в ${path.relative(projectRoot, path.join(changeDir, METADATA_FILE))}`)
+  if (normalizedChangeName !== parsedArgs.changeName) {
+    console.log(`Имя change нормализовано: ${parsedArgs.changeName} -> ${normalizedChangeName}`)
+  }
+
+  if (addedMetadata) {
+    console.log(`Обновлены поля metadata в ${path.relative(projectRoot, path.join(changeDir, METADATA_FILE))}`)
   }
 
   if (addedTestChecklist) {

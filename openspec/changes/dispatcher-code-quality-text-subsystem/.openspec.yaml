@@ -1,0 +1,12 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "выделение подсистемы code quality text с детерминированным quality-gate"
+change_kind: "dispatcher"
+execution_mode: "no-code"
+parent_change: "focus-tech"
+strategy_root: "focus-tech"
+roadmap_ref: "roadmaps/code-quality-text-subsystem.md"
+release_ref: "release-2026-05-20-day"

@@ -5,27 +5,10 @@ import { requireAccessOrRedirect } from "@/lib/auth/server"
 import { getLabUrl } from "@/lib/lab/navigation"
 import { getLevelOverview, getTaskLabContext, getTaskListItemById, isTaskStarted, readTaskData } from "@/lib/system/server"
 import { getDefaultCodeScreen, isAccessibleCodeScreen } from "@/lib/lab/editor"
+import { createEmptyTaskData } from "@/lib/task/data"
 
 type Params = {
   taskId: string
-}
-
-function createEmptyTaskData(taskId: string, labContext: Awaited<ReturnType<typeof getTaskLabContext>>) {
-  return {
-    taskId,
-    contentByFileId: {},
-    promptHistory: [],
-    llmUsageSummary: {
-      totalCalls: 0,
-      teachingCostCents: 0,
-      providersUsed: [],
-      inputTokens: null,
-      outputTokens: null,
-      totalTokens: null,
-      callsWithoutProviderMetrics: 0,
-    },
-    labContext,
-  }
 }
 
 export default async function LabTaskPage({

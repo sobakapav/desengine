@@ -1,0 +1,12 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "стратегия выбора готовых компонентов платформы"
+depends_on_change: "implement-task-workflow-artifact-contract"
+change_kind: "dispatcher"
+execution_mode: "no-code"
+parent_change: "dispatcher-architecture-transformation"
+strategy_root: "research-task-and-workflow-entities-research"
+roadmap_ref: "roadmaps/platform-component-sourcing-strategy.md"

@@ -104,23 +104,24 @@
 ### Requirement: Level-specific prompts читаются из скрытого onboarding prompt-слоя
 
 Система SHALL читать level-specific prompts класса `start`, `iterate` и `check` из скрытого onboarding prompt-слоя.
+Формат шаблонов — `.njk` (Nunjucks). Для обратной совместимости onboarding-контента runtime MAY поддерживать legacy `.md` как fallback, если `.njk` отсутствует.
 
 #### Scenario: Система выполняет start для уровня
 - **WHEN** runtime подбирает start prompt уровня
-- **THEN** он читает `onboarding/prompts/levels/<levelId>/start.md`
+- **THEN** он читает `onboarding/prompts/levels/<levelId>/start.njk`
 
 #### Scenario: Система выполняет iterate prompt lookup для уровня
 - **WHEN** runtime подбирает iterate prompt уровня
-- **THEN** он читает `onboarding/prompts/levels/<levelId>/iterate.md`
+- **THEN** он читает `onboarding/prompts/levels/<levelId>/iterate.njk`
 
 #### Scenario: Система выполняет checking prompt lookup для уровня
 - **WHEN** runtime подбирает hidden prompt проверки уровня
-- **THEN** он ищет `onboarding/prompts/levels/<levelId>/check.md`
+- **THEN** он ищет `onboarding/prompts/levels/<levelId>/check.njk`
 - **AND** если файл существует, включает его содержимое в checking instruction
 
 #### Scenario: Hidden prompt проверки уровня отсутствует
 - **WHEN** runtime подбирает hidden prompt проверки уровня
-- **AND** `onboarding/prompts/levels/<levelId>/check.md` отсутствует
+- **AND** `onboarding/prompts/levels/<levelId>/check.njk` отсутствует
 - **THEN** runtime использует пустой level-specific checking prompt
 - **AND** не считает отсутствие файла технической ошибкой проверки
 

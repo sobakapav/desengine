@@ -1,0 +1,12 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "контракт task workflow artifact"
+depends_on_change: "implement-project-workspace-storage-boundary"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "dispatcher-architecture-transformation"
+strategy_root: "research-task-and-workflow-entities-research"
+roadmap_ref: ""
