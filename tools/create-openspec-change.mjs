@@ -44,16 +44,25 @@ function parseArgs(argv) {
   }
 
   let changeName = null
+  let description = ""
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
 
     if (arg === "--schema" || arg === "--description") {
+      if (arg === "--description") {
+        description = argv[index + 1] || ""
+      }
       index += 1
       continue
     }
 
-    if (arg.startsWith("--schema=") || arg.startsWith("--description=")) {
+    if (arg.startsWith("--schema=")) {
+      continue
+    }
+
+    if (arg.startsWith("--description=")) {
+      description = arg.slice("--description=".length)
       continue
     }
 
@@ -70,7 +79,7 @@ function parseArgs(argv) {
     throw new Error("Не удалось определить имя change из аргументов.")
   }
 
-  return { help: false, changeName }
+  return { help: false, changeName, description }
 }
 
 function normalizeChangeName(changeName) {
@@ -113,7 +122,12 @@ function normalizeShortValue(value) {
   return normalized
 }
 
-function ensureMetadataFields(changeDir, changeName) {
+function shortFromChangeName(changeName) {
+  const withoutPrefix = changeName.replace(/^(focus|release|idea|research|dispatcher|implement|fix)-/, "")
+  return normalizeShortValue(withoutPrefix.replace(/-/g, " "))
+}
+
+function ensureMetadataFields(changeDir, changeName, descriptionHint = "") {
   const metadataPath = path.join(changeDir, METADATA_FILE)
 
   if (!fs.existsSync(metadataPath)) {
@@ -144,7 +158,7 @@ function ensureMetadataFields(changeDir, changeName) {
     { key: "execution_mode", value: inferredExecutionMode },
   ]
 
-  if (inferredKind === "implement") {
+  if (inferredKind === "implement" || inferredKind === "fix") {
     forcedFields.push({ key: "verification_level", value: "unit" })
     forcedFields.push({ key: "verification_command", value: "npm run test:unit" })
   }
@@ -170,7 +184,11 @@ function ensureMetadataFields(changeDir, changeName) {
 
   if (shortMatch) {
     const rawShort = shortMatch[1].trim().replace(/^["']|["']$/g, "")
-    const normalizedShort = normalizeShortValue(rawShort)
+    const needsReplaceDefault = !rawShort || rawShort === SHORT_DEFAULT_VALUE
+    const shortSource = needsReplaceDefault
+      ? descriptionHint.trim() || shortFromChangeName(changeName)
+      : rawShort
+    const normalizedShort = normalizeShortValue(shortSource)
     const serializedShort = `"${normalizedShort.replaceAll('"', '\\"')}"`
     const normalizedLine = `short: ${serializedShort}`
 
@@ -246,7 +264,7 @@ function main() {
     throw result.error
   }
 
-  const addedMetadata = ensureMetadataFields(changeDir, normalizedChangeName)
+  const addedMetadata = ensureMetadataFields(changeDir, normalizedChangeName, parsedArgs.description)
   const addedTestChecklist = ensureTestChecklist(changeDir)
 
   if (normalizedChangeName !== parsedArgs.changeName) {

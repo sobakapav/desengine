@@ -122,3 +122,15 @@
 - **WHEN** запускается `npm run os:begin -- <dispatcher-change> --spawn-implement <implement-change>`
 - **THEN** создаётся исполнительский change
 - **AND** в нём автоматически заполняются `parent_change` и `strategy_root` от dispatcher-контекста
+- **AND** автоматически создаются базовые apply-артефакты (`proposal.md`, `design.md`, `tasks.md`)
+
+#### Scenario: Диспетчеризация хотелки выполняется одной командой
+- **WHEN** запускается `npm run os:dispatch -- <dispatcher-change> --kind <implement|fix> --name <name>`
+- **THEN** создаётся и привязывается исполнительский change
+- **AND** дальнейшая реализация выполняется только в этом исполнительском change
+
+#### Scenario: Исполнительский change закрывается через каскад
+- **WHEN** запускается `npm run os:close -- <implement-or-fix-change>`
+- **THEN** выполняется `verification_command` change
+- **AND** выполняется `npm run test:traceability`
+- **AND** при успехе change переносится в архив

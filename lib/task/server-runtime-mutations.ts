@@ -126,6 +126,7 @@ export const taskServerMutations = {
     const transition = await taskServerTransitions.buildTransition(
       context.levels,
       taskId,
+      context.taskConfig,
       currentLevelNumber,
       toLevelNumber,
     )

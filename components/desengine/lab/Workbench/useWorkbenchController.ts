@@ -75,6 +75,47 @@ function useProjectController(taskId: string) {
     return { project, previewVersion, setPreviewVersion, uiKitOptions, updateProject };
 }
 
+function buildTaskHintUrl(taskId: string, project: Project) {
+    const params = new URLSearchParams({
+        projectId: project.id,
+        projectTitle: project.title,
+        uiKitId: project.uiKitId,
+        uiMode: project.uiMode,
+    });
+
+    return `/api/tasks/${encodeURIComponent(taskId)}/hint?${params.toString()}`;
+}
+
+function useTaskHintController(taskId: string, initialTaskTip: string, project: Project) {
+    const [taskTip, setTaskTip] = useState(initialTaskTip);
+
+    useEffect(() => {
+        setTaskTip(initialTaskTip);
+    }, [initialTaskTip]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function refreshTaskTip() {
+            try {
+                const res = await fetch(buildTaskHintUrl(taskId, project));
+                const data = await res.json().catch(() => null);
+
+                if (!cancelled && res.ok && data?.ok && typeof data.taskTip === "string") {
+                    setTaskTip(data.taskTip);
+                }
+            } catch {
+                if (!cancelled) setTaskTip(initialTaskTip);
+            }
+        }
+
+        void refreshTaskTip();
+        return () => { cancelled = true; };
+    }, [initialTaskTip, project.id, project.title, project.uiKitId, project.uiMode, taskId]);
+
+    return { taskTip };
+}
+
 function useEditableFileIds(taskData: WorkbenchProps["taskData"]) {
     return useMemo(() => {
         const editableIds = taskData.labContext?.editableFileIds ?? [];
@@ -319,6 +360,7 @@ function useWorkbenchController(props: WorkbenchProps) {
     const editableFileIds = useEditableFileIds(props.taskData);
     const refs = useWorkbenchRefs(props.taskItem.id, props.taskData, editableFileIds);
     const project = useProjectController(props.taskItem.id);
+    const hint = useTaskHintController(props.taskItem.id, props.taskData.labContext?.taskTip ?? "", project.project);
     const dirty = useDirtyFiles(refs.savedContentByFileIdRef, refs.dirtyFileIdsRef);
     const [autosaveRevision, setAutosaveRevision] = useState(0);
     const save = useSaveController({ refs, setDirtyFileIds: dirty.setDirtyFileIds, setPreviewVersion: project.setPreviewVersion });
@@ -339,7 +381,7 @@ function useWorkbenchController(props: WorkbenchProps) {
         if (await save.saveBeforeAction(props.activeScreen ? [props.activeScreen] : undefined)) props.onScreenChange(nextFileId);
     }
 
-    return { actions, code, dirty, handleBackToLevelList, handleFileChange, project, prompt, promptInput, reset, save };
+    return { actions, code, dirty, handleBackToLevelList, handleFileChange, hint, project, prompt, promptInput, reset, save };
 }
 
 export { useWorkbenchController };

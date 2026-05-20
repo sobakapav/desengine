@@ -30,6 +30,9 @@ Root-карта документации:
 | Дерево OpenSpec changes (`focus → release → idea → research → dispatcher → implement → fix`) | `tools/list-openspec-change-tree.mjs` | `npm run os:tree` |
 | Список релизов и их состав | `tools/list-openspec-releases.mjs` | `npm run os:r` |
 | Старт выполнения change с preflight-правилами | `tools/openspec-begin-change.mjs` | `npm run os:begin -- <change>` |
+| Диспетчеризация хотелки в implement/fix | `tools/openspec-dispatch-change.mjs` | `npm run os:dispatch -- <dispatcher> --kind fix --name <name> --description "..."` |
+| Превращение текстовой хотелки в implement/fix | `tools/openspec-request-to-exec.mjs` | `npm run os:req -- <dispatcher> --request "..." --kind fix` |
+| Закрытие implement/fix change | `tools/openspec-close-change.mjs` | `npm run os:close -- <change>` |
 | Создание нового OpenSpec change с `short` в metadata | `tools/create-openspec-change.mjs` | `npm run openspec:new -- <name>` |
 | Подсистема code quality text | `tools/quality-text/engine.mjs` | `npm run quality:text` |
 | Генерация allowlist-маркера | `tools/generate-allowlist-marker.mjs` | `npm run allowlist:marker -- user@example.com` |
@@ -108,12 +111,39 @@ Root-карта документации:
 
 - Если `change_kind=dispatcher`, команда блокирует прямую реализацию и предлагает создать `implement-*` или `fix-*`.
 - Для dispatcher можно сразу создать исполнительский change:
+  При таком создании команда автоматически гарантирует базовые apply-артефакты (`proposal.md`, `design.md`, `tasks.md`), чтобы старт реализации не блокировался из-за пустого scaffolding.
 
 ```bash
 npm run os:begin -- dispatcher-... --spawn-implement implement-... --description "..."
 ```
 
 - Если `change_kind=implement|fix`, команда печатает readiness-поля (`parent_change`, `strategy_root`, `verification_level`, `verification_command`).
+
+### `npm run os:dispatch -- <dispatcher> --kind <implement|fix> --name <name>`
+
+Создаёт исполнительский change из dispatcher-контекста и сразу привязывает его к dispatcher.
+
+Пример:
+
+```bash
+npm run os:dispatch -- dispatcher-help --kind fix --name ai-policy-typo --description "исправить неточности в AI-политике"
+```
+
+### `npm run os:close -- <implement-or-fix-change>`
+
+Закрывает исполнительский change по каскаду:
+
+1. выполняет `verification_command` из metadata change;
+2. выполняет `npm run test:traceability`;
+3. архивирует change в `openspec/changes/archive/YYYY-MM-DD-<change>`.
+
+### `npm run os:req -- <dispatcher> --request "..."`
+
+Стандартизирует обработку новой хотелки в dispatcher-контексте:
+
+1. берёт текст хотелки;
+2. создаёт `implement` или `fix` change (по `--kind`, по умолчанию `fix`);
+3. привязывает его к dispatcher через `os:dispatch`.
 
 ### `npm run openspec:new -- <name>`
 

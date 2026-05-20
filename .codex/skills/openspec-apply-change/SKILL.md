@@ -31,7 +31,15 @@ Implement tasks from an OpenSpec change.
    ```
 
    - Если change имеет `change_kind=dispatcher`, прямую реализацию НЕ запускать.
-   - Для dispatcher сначала создать исполнительский change:
+   - Для dispatcher сначала создать исполнительский change (предпочтительно из текстовой хотелки):
+     ```bash
+     npm run os:req -- <dispatcher-name> --request "<текст хотелки>" --kind fix
+     ```
+   - Либо через явную диспетчеризацию:
+     ```bash
+     npm run os:dispatch -- <dispatcher-name> --kind fix --name <short-name> --description "..."
+     ```
+   - Допустимый fallback:
      ```bash
      npm run os:begin -- <dispatcher-name> --spawn-implement implement-<name> --description "..."
      ```
@@ -163,6 +171,8 @@ What would you like to do?
 - Use contextFiles from CLI output, don't assume specific file names
 - Никогда не выполнять кодовую реализацию в `dispatcher` change; dispatcher только декомпозирует работу в `implement`/`fix`
 - Если запрос пришёл в чат dispatcher и сформулирован как новая хотелка, сначала создать отдельный implement/fix change под эту хотелку, даже если пользователь не произнёс фразу "работаем над change"
+- После завершения implement/fix закрывать его через каскад:
+  - `npm run os:close -- <implement-or-fix-change>`
 
 **Fluid Workflow Integration**
 

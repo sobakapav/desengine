@@ -92,6 +92,10 @@ export async function getTaskLabContext(taskItem: TaskListItem): Promise<TaskLab
   return taskServerTransitions.getTaskLabContext(taskItem)
 }
 
+export async function getTaskLevelHint(taskItem: TaskListItem, project?: Parameters<typeof taskServerTransitions.getTaskLevelHint>[1]) {
+  return taskServerTransitions.getTaskLevelHint(taskItem, project)
+}
+
 export async function markTaskLevelInProgress(taskId: string) {
   return taskServerMutations.markTaskLevelInProgress(taskId)
 }

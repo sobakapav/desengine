@@ -181,7 +181,7 @@ function WorkbenchBody({ controller, props }: { controller: WorkbenchController;
                 onReset={() => void controller.reset.handleReset()}
             />
             <InOut task={props.taskItem.id} taskData={props.taskData} started={props.taskItem.started} reloadKey={controller.project.previewVersion} startStatus="" project={controller.project.project} />
-            {props.taskData.labContext && <TaskTip content={props.taskData.labContext.taskTip} />}
+            {props.taskData.labContext && <TaskTip content={controller.hint.taskTip} />}
             {levelReadyForWork && <WorkbenchWorkArea controller={controller} props={props} />}
             <ErrorNotices
                 completeError={controller.actions.completeError}

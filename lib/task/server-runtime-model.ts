@@ -39,7 +39,7 @@ async function buildTaskLabContext(
 ): Promise<TaskLabContext> {
   const [commonExplanation, taskTip] = await Promise.all([
     readLevelCommonExplanation(level.id, level.description),
-    taskServerStorage.readTaskLevelTip(taskId, level.id),
+    taskServerStorage.readTaskLevelTip(taskId, level, taskConfig),
   ])
 
   return {
