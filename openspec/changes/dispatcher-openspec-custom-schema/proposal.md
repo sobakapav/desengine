@@ -29,7 +29,7 @@
   - affected capabilities/scenarios (как минимум ссылками);
   - тестовый уровень и команды проверки (как минимум ссылками/полями).
   - связь с реализацией: `issue` (ссылка на главный GitHub issue при старте техпроработки), `review_sync_state` (none/needs-sync/needs-review/in-sync).
-  - иерархия управления: `parent_change`, `strategy_root`, `roadmap_ref`, `execution_mode`.
+  - иерархия управления: `parent_change`, `strategy_root`, `roadmap_ref`, `release_ref`, `execution_mode`.
 - обновление/план обновления внутренних инструментов под схему:
   - создание change (`openspec:new`);
   - листинг активных changes (`npm run openspec`);
@@ -52,6 +52,6 @@
 - Для `short` в режиме `short_policy: strict-v1` действует валидационный контракт (маленькая буква в начале, максимум 75 символов, без пунктуации в конце), и нарушение ловится статической проверкой.
 - Для product-only change допускается отсутствие `issue`; связь с issue становится обязательной только после явного старта технической проработки change.
 - Процесс закрытия change включает проверку трёх слоёв: продуктовый контракт, технические issue и фактический код/тесты.
-- Валидатор схемы контролирует роли `focus/idea/research/dispatcher/implement` и допустимые связи между ними.
+- Валидатор схемы контролирует роли `focus/release/idea/research/dispatcher/implement/fix` и допустимые связи между ними.
 - Стратегический уровень допускает верхнеуровневые changes типов `focus`, `idea`, `research`; `dispatcher` как тактический change обязан иметь родителя.
 - Есть план миграции существующих changes (поэтапно) и правила совместимости.

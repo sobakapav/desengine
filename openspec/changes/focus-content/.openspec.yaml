@@ -1,0 +1,12 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "focus"
+execution_mode: "no-code"
+parent_change: ""
+strategy_root: ""
+roadmap_ref: ""
+release_ref: ""
+issue: ""
+short: "фокус на сборке и публикации контента и живом общении с пользователями"

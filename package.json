@@ -27,6 +27,7 @@
     "onboarding:repair": "node tools/repair-onboarding.mjs",
     "os": "node tools/list-active-openspec-changes.mjs",
     "os:tree": "node tools/list-openspec-change-tree.mjs",
+    "os:r": "node tools/list-openspec-releases.mjs",
     "openspec:new": "node tools/create-openspec-change.mjs",
     "allowlist:marker": "node tools/generate-allowlist-marker.mjs",
     "admin:tasks:configs": "node tools/generate-task-configs.mjs",

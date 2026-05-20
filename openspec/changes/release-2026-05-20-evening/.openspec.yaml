@@ -1,0 +1,12 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "release"
+execution_mode: "no-code"
+parent_change: ""
+strategy_root: ""
+roadmap_ref: ""
+release_ref: ""
+issue: ""
+short: "вечерний релизный поток на 20 мая 2026"

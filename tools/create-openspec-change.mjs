@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process"
 
 const METADATA_FILE = ".openspec.yaml"
 const TASKS_FILE = "tasks.md"
-const GOVERNED_PREFIXES = ["focus", "idea", "research", "dispatcher", "implement"]
+const GOVERNED_PREFIXES = ["focus", "release", "idea", "research", "dispatcher", "implement", "fix"]
 const METADATA_DEFAULTS = [
   { key: "short_policy", value: "none" },
   { key: "review_sync_state", value: "none" },
@@ -13,6 +13,7 @@ const METADATA_DEFAULTS = [
   { key: "parent_change", value: "" },
   { key: "strategy_root", value: "" },
   { key: "roadmap_ref", value: "" },
+  { key: "release_ref", value: "" },
   { key: "issue", value: "" },
   { key: "short", value: "краткое описание change" },
 ]
@@ -119,7 +120,7 @@ function ensureMetadataFields(changeDir, changeName) {
 
   const metadata = fs.readFileSync(metadataPath, "utf8")
   const inferredKind = resolveKindFromName(changeName)
-  const inferredExecutionMode = inferredKind === "implement" ? "code" : "no-code"
+  const inferredExecutionMode = inferredKind === "implement" || inferredKind === "fix" ? "code" : "no-code"
 
   let next = metadata.endsWith("\n") ? metadata : `${metadata}\n`
   let changed = false

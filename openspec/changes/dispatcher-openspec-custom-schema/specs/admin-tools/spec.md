@@ -61,7 +61,7 @@
 
 ### Requirement: Change классифицируется по роли в продуктовой механике
 
-Система SHALL в metadata change поддерживать поле `change_kind` со значением `focus`, `idea`, `research`, `dispatcher` или `implement`.
+Система SHALL в metadata change поддерживать поле `change_kind` со значением `focus`, `release`, `idea`, `research`, `dispatcher`, `implement` или `fix`.
 
 #### Scenario: Создаётся новый product-only change
 - **WHEN** разработчик создаёт новый change через `openspec:new`
@@ -73,9 +73,14 @@
 - **THEN** metadata содержит `change_kind=focus`
 - **AND** metadata содержит `execution_mode=no-code`
 
+#### Scenario: Создаётся release change
+- **WHEN** имя нового change начинается с префикса `release-`
+- **THEN** metadata содержит `change_kind=release`
+- **AND** metadata содержит `execution_mode=no-code`
+
 ### Requirement: Роль change определяет обязательные связи и режим исполнения
 
-Система SHALL валидировать согласованность полей `change_kind`, `execution_mode`, `parent_change` и `roadmap_ref`.
+Система SHALL валидировать согласованность полей `change_kind`, `execution_mode`, `parent_change`, `roadmap_ref` и `release_ref`.
 
 #### Scenario: Создаётся dispatcher change
 - **WHEN** metadata change содержит `change_kind=dispatcher`
@@ -88,3 +93,14 @@
 - **WHEN** metadata change содержит `change_kind=implement`
 - **THEN** `execution_mode` равен `code`
 - **AND** задан `parent_change`
+
+#### Scenario: Создаётся fix change
+- **WHEN** metadata change содержит `change_kind=fix`
+- **THEN** `execution_mode` равен `code`
+- **AND** задан `parent_change`
+
+#### Scenario: Release используется как метка, а не как родитель
+- **WHEN** metadata change содержит `change_kind=release`
+- **THEN** `parent_change` пустой
+- **AND** другие changes не используют этот change как `parent_change`
+- **AND** любые changes могут ссылаться на release через `release_ref`

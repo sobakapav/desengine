@@ -15,10 +15,11 @@ const CHANGE_KIND_PATTERN = /^change_kind:\s*(.+)\s*$/m
 const EXECUTION_MODE_PATTERN = /^execution_mode:\s*(.+)\s*$/m
 const PARENT_CHANGE_PATTERN = /^parent_change:\s*(.+)\s*$/m
 const ROADMAP_REF_PATTERN = /^roadmap_ref:\s*(.+)\s*$/m
+const RELEASE_REF_PATTERN = /^release_ref:\s*(.+)\s*$/m
 
-const CHANGE_KINDS = new Set(["focus", "idea", "research", "dispatcher", "implement"])
+const CHANGE_KINDS = new Set(["focus", "release", "idea", "research", "dispatcher", "implement", "fix"])
 const EXECUTION_MODES = new Set(["no-code", "code"])
-const GOVERNED_PREFIXES = ["focus", "idea", "research", "dispatcher", "implement"]
+const GOVERNED_PREFIXES = ["focus", "release", "idea", "research", "dispatcher", "implement", "fix"]
 
 function readText(filePath) {
   return fs.readFileSync(filePath, "utf8")
@@ -163,12 +164,13 @@ function validateShortRules(value) {
   return violations
 }
 
-function validateChangeKindRules(changeName, metadata, allChangeNames, changeKindsByName) {
+function validateChangeKindRules(changeName, metadata, allChangeNames, changeKindsByName, childCountByParent) {
   const errors = []
   const changeKind = parseMetadataValue(metadata, CHANGE_KIND_PATTERN)
   const executionMode = parseMetadataValue(metadata, EXECUTION_MODE_PATTERN)
   const parentChange = parseMetadataValue(metadata, PARENT_CHANGE_PATTERN) || ""
   const roadmapRef = parseMetadataValue(metadata, ROADMAP_REF_PATTERN) || ""
+  const releaseRef = parseMetadataValue(metadata, RELEASE_REF_PATTERN) || ""
   const namePrefix = changeName.split("-", 1)[0]
   const nameHasGovernedPrefix = GOVERNED_PREFIXES.includes(namePrefix)
 
@@ -182,7 +184,7 @@ function validateChangeKindRules(changeName, metadata, allChangeNames, changeKin
   }
 
   if (!CHANGE_KINDS.has(changeKind)) {
-    errors.push(`${changeName}: change_kind должен быть одним из focus/idea/research/dispatcher/implement`)
+    errors.push(`${changeName}: change_kind должен быть одним из focus/release/idea/research/dispatcher/implement/fix`)
   }
 
   if (nameHasGovernedPrefix && changeKind !== namePrefix) {
@@ -202,6 +204,13 @@ function validateChangeKindRules(changeName, metadata, allChangeNames, changeKin
   if (parentChange && !allChangeNames.has(parentChange)) {
     errors.push(`${changeName}: parent_change ссылается на неизвестный change: ${parentChange}`)
   }
+  if (releaseRef) {
+    if (!allChangeNames.has(releaseRef)) {
+      errors.push(`${changeName}: release_ref ссылается на неизвестный change: ${releaseRef}`)
+    } else if (changeKindsByName.get(releaseRef) !== "release") {
+      errors.push(`${changeName}: release_ref должен ссылаться на change_kind=release`)
+    }
+  }
 
   if (changeKind === "idea") {
     if (parentChange && changeKindsByName.has(parentChange) && changeKindsByName.get(parentChange) !== "focus") {
@@ -218,6 +227,18 @@ function validateChangeKindRules(changeName, metadata, allChangeNames, changeKin
     }
     if (executionMode && executionMode !== "no-code") {
       errors.push(`${changeName}: focus change должен иметь execution_mode=no-code`)
+    }
+  }
+
+  if (changeKind === "release") {
+    if (parentChange) {
+      errors.push(`${changeName}: release change не должен иметь parent_change`)
+    }
+    if (executionMode && executionMode !== "no-code") {
+      errors.push(`${changeName}: release change должен иметь execution_mode=no-code`)
+    }
+    if (childCountByParent.get(changeName)) {
+      errors.push(`${changeName}: release change не может быть родителем других changes`)
     }
   }
 
@@ -255,6 +276,15 @@ function validateChangeKindRules(changeName, metadata, allChangeNames, changeKin
     }
   }
 
+  if (changeKind === "fix") {
+    if (!parentChange) {
+      errors.push(`${changeName}: fix change должен иметь parent_change`)
+    }
+    if (executionMode && executionMode !== "code") {
+      errors.push(`${changeName}: fix change должен иметь execution_mode=code`)
+    }
+  }
+
   return errors
 }
 
@@ -267,6 +297,7 @@ const errors = []
 const changesRoot = path.join(projectRoot, "openspec", "changes")
 const allChanges = new Set(readChangeDirs(changesRoot).map((dirPath) => path.basename(dirPath)))
 const changeKindsByName = new Map()
+const childCountByParent = new Map()
 
 for (const changeDir of readChangeDirs(changesRoot)) {
   const metadataPath = path.join(changeDir, ".openspec.yaml")
@@ -278,9 +309,13 @@ for (const changeDir of readChangeDirs(changesRoot)) {
   const metadata = readText(metadataPath)
   const changeName = path.basename(changeDir)
   const changeKind = parseMetadataValue(metadata, CHANGE_KIND_PATTERN)
+  const parentChange = parseMetadataValue(metadata, PARENT_CHANGE_PATTERN) || ""
 
   if (changeKind) {
     changeKindsByName.set(changeName, changeKind)
+  }
+  if (parentChange) {
+    childCountByParent.set(parentChange, (childCountByParent.get(parentChange) || 0) + 1)
   }
 }
 
@@ -312,7 +347,7 @@ for (const changeDir of readChangeDirs(changesRoot)) {
     errors.push(`${relative(metadataPath)}: short ${violation}`)
   }
 
-  for (const violation of validateChangeKindRules(changeName, metadata, allChanges, changeKindsByName)) {
+  for (const violation of validateChangeKindRules(changeName, metadata, allChanges, changeKindsByName, childCountByParent)) {
     errors.push(`${relative(metadataPath)}: ${violation}`)
   }
 }

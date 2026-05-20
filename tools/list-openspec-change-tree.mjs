@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 
 const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
-const KIND_ORDER = ["focus", "idea", "research", "dispatcher", "implement"]
+const KIND_ORDER = ["focus", "release", "idea", "research", "dispatcher", "implement", "fix"]
 
 function printUsage() {
   console.error("Использование:")

@@ -27,7 +27,8 @@ Root-карта документации:
 | --- | --- | --- |
 | Smoke-check локальной установки | `tools/smoke-local-install.mjs` | `npm run smoke` |
 | Краткая сводка актуальных OpenSpec changes | `tools/list-active-openspec-changes.mjs` | `npm run os` |
-| Дерево OpenSpec changes (`idea → research → dispatcher → implement`) | `tools/list-openspec-change-tree.mjs` | `npm run os:tree` |
+| Дерево OpenSpec changes (`focus → release → idea → research → dispatcher → implement → fix`) | `tools/list-openspec-change-tree.mjs` | `npm run os:tree` |
+| Список релизов и их состав | `tools/list-openspec-releases.mjs` | `npm run os:r` |
 | Создание нового OpenSpec change с `short` в metadata | `tools/create-openspec-change.mjs` | `npm run openspec:new -- <name>` |
 | Подсистема code quality text | `tools/quality-text/engine.mjs` | `npm run quality:text` |
 | Генерация allowlist-маркера | `tools/generate-allowlist-marker.mjs` | `npm run allowlist:marker -- user@example.com` |
@@ -78,12 +79,23 @@ Root-карта документации:
 
 ### `npm run os:tree`
 
-Печатает дерево активных changes в иерархии `idea → research → dispatcher → implement`.
+Печатает дерево активных changes в иерархии `focus → release → idea → research → dispatcher → implement → fix`.
 
 Каждая строка выводится в том же формате, что и `npm run os`:
 
 ```bash
 <change-name>\t<короткое пояснение>
+```
+
+### `npm run os:r`
+
+Печатает список активных release changes и их состав по полю `release_ref`.
+
+Формат вывода:
+
+```bash
+<release-change>\t<короткое пояснение>
+  <change>\t<короткое пояснение>
 ```
 
 ### `npm run openspec:new -- <name>`
@@ -98,6 +110,7 @@ execution_mode: "no-code"
 parent_change: ""
 strategy_root: ""
 roadmap_ref: ""
+release_ref: ""
 issue: ""
 short: "краткое описание change"
 ```

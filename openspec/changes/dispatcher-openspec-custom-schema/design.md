@@ -39,25 +39,28 @@ OpenSpec в этом change фиксирует продуктовый контр
 
 Добавить (как кандидаты):
 
-- `change_kind`: `focus | idea | research | dispatcher | implement`
+- `change_kind`: `focus | release | idea | research | dispatcher | implement | fix`
 - `status`: draft/active/paused/done/archived
 - `depends_on_change[]` (массив, не строка) — с обратной совместимостью к текущему единичному полю
 - `test_plan` (ссылка/указание команд/уровней)
 - `issue`: URL/номер главного GitHub issue для change
 - `review_sync_state`: none/needs-sync/needs-review/in-sync
-- `parent_change`: id предка для `dispatcher` и `implement`
+- `parent_change`: id предка для `dispatcher`, `implement` и `fix`
 - `strategy_root`: id корневого стратегического change
 - `roadmap_ref`: ссылка на roadmap (обязательно для `dispatcher`)
+- `release_ref`: ссылка на release change как метка принадлежности релизу
 - `execution_mode`: `no-code | code`
 
 ## Правила классификации change
 
 - `focus`: непрерывный стратегический фокус внимания; `execution_mode=no-code`; `parent_change` пустой.
+- `release`: стратегическая метка релиза; `execution_mode=no-code`; не имеет родителя и не может быть родителем.
 - `idea`: гипотеза/мысль; `execution_mode=no-code`; может быть верхнеуровневой или дочерней к `focus`.
 - `research`: стратегический слой; `execution_mode=no-code`; может быть верхнеуровневым и может ссылаться только на стратегического родителя (`focus|idea|research`).
 - `dispatcher`: тактический слой; `execution_mode=no-code`; обязательны `parent_change` и `roadmap_ref`; управляет `implement` changes.
 - `dispatcher` может иметь родителя любого типа; единственное ограничение — dispatcher не может быть верхнеуровневым.
 - `implement`: внедренческий слой; `execution_mode=code`; обязательный `parent_change` на `dispatcher`.
+- `fix`: быстрый внедренческий слой для небольших исправлений; `execution_mode=code`; обязательный `parent_change`.
 
 ## Правила синхронизации OpenSpec ↔ Issues
 
@@ -76,7 +79,7 @@ OpenSpec в этом change фиксирует продуктовый контр
 - листинг (`tools/list-active-openspec-changes.mjs`): вывод важных полей (kind/status/depends);
 - проверки (если есть): валидация схемы и статическая проверка согласованности.
   - `npm run test:traceability` валидирует `short` у активных changes по правилам кастомной схемы.
-  - `npm run test:traceability` валидирует `change_kind`, `execution_mode` и обязательные связи (`parent_change`, `roadmap_ref`).
+  - `npm run test:traceability` валидирует `change_kind`, `execution_mode`, связи (`parent_change`, `roadmap_ref`) и ссылку `release_ref`.
 
 ## Миграция
 
