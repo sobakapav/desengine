@@ -21,21 +21,25 @@
 ### Requirement: Route handlers используют переиспользуемые lab action services
 
 Система SHALL держать core logic lab action flow в переиспользуемом runtime/service слое, а route handlers использовать как HTTP boundary.
+Task service boundary SHALL строить prompt-related runtime context через PromptContext builder, а не через отдельные ad-hoc модели в start/iterate/check flows.
 
 #### Scenario: Пользователь запускает уровень через service boundary
 - **WHEN** API route запускает текущий уровень задачи
 - **THEN** route handler делегирует доменную логику runtime/service функции
 - **AND** HTTP response contract для пользователя не меняется
+- **AND** service flow строит PromptContext через общий builder
 
 #### Scenario: Пользователь уточняет задачу через service boundary
 - **WHEN** API route выполняет уточняющий prompt по текущему уровню
 - **THEN** route handler делегирует LLM-flow, запись файлов и prompt history runtime/service функции
 - **AND** HTTP response contract для пользователя не меняется
+- **AND** service flow строит PromptContext через общий builder
 
 #### Scenario: Пользователь проверяет результат через service boundary
 - **WHEN** API route проверяет результат текущего уровня
 - **THEN** route handler делегирует LLM-check, progress mutation и check-result runtime/service функции
 - **AND** HTTP response contract для пользователя не меняется
+- **AND** service flow строит PromptContext через общий builder
 
 #### Scenario: Пользователь сохраняет рабочие файлы
 - **WHEN** API route сохраняет рабочие файлы задачи
@@ -119,16 +123,16 @@
 
 ### Requirement: Sandpack preview использует настройки проекта
 
-Система SHALL собирать Sandpack preview с учётом `project.uiKitId` и `project.uiMode`, чтобы preview можно было переключать на уровне проекта без смены глобального стека.
+Система SHALL собирать Sandpack preview с учётом `project.settings.uiKitId` и `project.settings.uiMode`, чтобы preview можно было переключать на уровне проекта без смены глобального стека.
 
 #### Scenario: Sandpack preview использует project.uiKitId
-- **WHEN** клиент запрашивает Sandpack payload с `project.uiKitId` и `project.uiMode=ui-kit`
+- **WHEN** клиент запрашивает Sandpack payload с `project.settings.uiKitId` и `project.settings.uiMode=ui-kit`
 - **THEN** preview builder подключает UI kit из project settings
 - **AND** список kit'ов берётся из единого Sandpack UI kit config
 - **AND** существующие shadcn/ui-импорты не заменяются html-tags fallback'ом
 
 #### Scenario: Режим html-tags работает без UI kit
-- **WHEN** `project.uiMode=html-tags` и `project.uiKitId=none`
+- **WHEN** `project.settings.uiMode=html-tags` и `project.settings.uiKitId=none`
 - **THEN** Sandpack payload содержит только базовые React-зависимости
 - **AND** HTML JSX-теги рендерятся без дополнительных UI kit-пакетов
 
@@ -158,7 +162,7 @@
 - **AND** template context содержит данные задачи и уровня
 
 #### Scenario: Шаблонная task-specific подсказка учитывает выбранный UI kit проекта
-- **WHEN** пользователь меняет `project.uiKitId` в лаборатории
+- **WHEN** пользователь меняет `project.settings.uiKitId` в лаборатории
 - **AND** подсказка уровня описана как `tip.njk`
 - **THEN** Workbench запрашивает подсказку с текущими настройками проекта
 - **AND** template context содержит название выбранного UI kit
@@ -175,3 +179,12 @@
 #### Scenario: Подсказка уровня отсутствует
 - **WHEN** в каталоге задачи нет `tip.njk` и `tip.md`
 - **THEN** runtime возвращает пустую строку
+
+### Requirement: Task runtime предоставляет read-only projection в доменную модель
+
+Система SHALL предоставлять read-only projection текущих lab task данных в `TaskInstance`, `WorkflowInstance` и `Artifact` без изменения формата хранения.
+
+#### Scenario: Текущий runtime совместим с task-model projection
+- **WHEN** runtime имеет `TaskData`, progress, prompt history и check-result
+- **THEN** projection строит доменные сущности task/workflow/artifact
+- **AND** runtime не мигрирует storage и не создаёт второй независимый file-set contract

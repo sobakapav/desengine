@@ -1,12 +1,12 @@
 ## Tasks
 
-- [ ] 1. Зафиксировать inventory текущих готовых primitives и их архитектурные роли.
-- [ ] 2. Ввести критерии `reuse / adapt / build`.
-- [ ] 3. Определить adapter/facade policy для Sandpack, Konva, Monaco, UI kit, charts/layout primitives.
-- [ ] 4. Обновить Workbench Platform Registry requirements: новый tool/workbench обязан иметь sourcing decision.
-- [ ] 5. Добавить OpenSpec specs `component-sourcing` и связать с `workbench`, `testing-layer`.
-- [ ] 6. Добавить static/source-contract checks, когда появится первый implementation change после этой стратегии.
-- [ ] 7. Прогнать `npm run openspec`, `npm run test:traceability`.
+- [x] 1. Зафиксировать inventory текущих готовых primitives и их архитектурные роли.
+- [x] 2. Ввести критерии `reuse / adapt / build`.
+- [x] 3. Определить adapter/facade policy для Sandpack, Konva, Monaco, UI kit, charts/layout primitives.
+- [x] 4. Обновить Workbench Platform Registry requirements: новый tool/workbench обязан иметь sourcing decision.
+- [x] 5. Добавить OpenSpec specs `component-sourcing` и связать с `workbench`, `testing-layer`.
+- [x] 6. Добавить static/source-contract checks, когда появится первый implementation change после этой стратегии.
+- [x] 7. Прогнать `npx openspec validate dispatcher-platform-component-sourcing-strategy --strict`, `npm run test:traceability`.
 
 ## Тестовая часть change
 
@@ -22,7 +22,7 @@
 - live/provider: не требуется.
 
 Команды запуска:
-- `npm run openspec`
+- `npx openspec validate dispatcher-platform-component-sourcing-strategy --strict`
 - `npm run test:traceability`
 - `npm run test:unit` при добавлении code checks.
 

@@ -11,6 +11,7 @@ import { toLlmErrorResponse } from "@/lib/llm/server"
 import { isTaskStarted, readTaskData } from "@/lib/onboarding/repository"
 import { readLevelIteratePrompt, readLevelStartPrompt, readPrompt } from "@/lib/prompt/server"
 import { runTaskMutation } from "@/lib/task/mutation-boundary"
+import { buildTaskRuntimePromptContext } from "@/lib/task/prompt-context"
 import {
   clearTaskCheckResult,
   getLevelForTaskItem,
@@ -148,6 +149,21 @@ async function buildStartLlmInput(context: StartRuntimeContext) {
 
   const outputFiles = getLevelEditableWorkbenchFiles(context.labContext.editableFileIds)
   const fileList = outputFiles.map((file) => ({ id: file.id, fileName: file.fileName }))
+  const promptContext = buildTaskRuntimePromptContext({
+    taskId: context.taskItem.id,
+    taskMaxLevel: context.taskItem.maxLevel,
+    taskImages: context.labContext.images,
+    level: context.level,
+    taskData,
+    taskItem: context.taskItem,
+    workbenchFiles: outputFiles.map((file) => ({
+      ...file,
+      title: file.fileName,
+      edit: true,
+    })),
+    constraints: ["structured-json-files", "allowed-workbench-files-only"],
+    providerCapabilities: ["vision", "structured-output"],
+  })
   const fileContext = taskStartLlm.buildFileContext(fileList, taskData.contentByFileId)
   const imagesText = context.promptImages
     .map((image) => `- ${image.id}.png — ${image.width}x${image.height}`)
@@ -162,7 +178,7 @@ async function buildStartLlmInput(context: StartRuntimeContext) {
       defaultDidacticPrompt: did,
       levelIteratePrompt: levelSpecifyPrompt,
       levelStartPrompt: levelInitPrompt,
-      levelNumber: context.level.number,
+      levelNumber: promptContext.renderContext.level?.number ?? context.level.number,
       imagesText,
       ...fileContext,
     }),

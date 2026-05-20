@@ -87,14 +87,17 @@
 ### Requirement: Общий базовый промпт участвует во всех LLM-запросах
 
 Система SHALL использовать единый базовый prompt `default` и при инициирующем запуске, и при уточняющих итерациях.
+Start, iterate и check LLM flows SHALL строить PromptContext через общий builder до сборки итоговой инструкции.
 
 #### Scenario: Система выполняет start
 - **WHEN** система формирует инициирующий LLM-запрос
 - **THEN** она включает общий базовый prompt `default`
+- **AND** использует PromptContext с project, task, workflow step, artifacts, workbench, constraints и provider capabilities
 
 #### Scenario: Система выполняет iterate
 - **WHEN** система формирует уточняющий LLM-запрос
 - **THEN** она включает общий базовый prompt `default`
+- **AND** использует PromptContext с userText текущего уточнения
 
 #### Scenario: В каталоге лаборатории остался legacy-конфиг
 - **WHEN** рядом с лабораторией остаётся `.env.local`
@@ -118,6 +121,7 @@
 - **WHEN** runtime подбирает hidden prompt проверки уровня
 - **THEN** он ищет `onboarding/prompts/levels/<levelId>/check.njk`
 - **AND** если файл существует, включает его содержимое в checking instruction
+- **AND** передаёт hidden prompt template совместимый `PromptContext.renderContext`
 
 #### Scenario: Hidden prompt проверки уровня отсутствует
 - **WHEN** runtime подбирает hidden prompt проверки уровня

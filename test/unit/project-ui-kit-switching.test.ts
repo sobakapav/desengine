@@ -5,6 +5,14 @@
 // @openSpec  - "Пользователь включает режим html-tags"
 // @openSpec  - "Лаборатория показывает диагностику несовместимости UI kit"
 // @openSpec  - "Лаборатория показывает runtime-диагностику Sandpack preview"
+// @openSpec capability: projects
+// @openSpec scenarios:
+// @openSpec  - "Пользователь открывает lab в активном проекте"
+// @openSpec  - "Настройки preview сохраняются в project settings"
+// @openSpec capability: storage-adapter
+// @openSpec scenarios:
+// @openSpec  - "Runtime читает активный проект"
+// @openSpec  - "Storage backend ещё локальный"
 // @openSpec capability: task
 // @openSpec scenarios:
 // @openSpec  - "Sandpack preview использует project.uiKitId"
@@ -22,8 +30,15 @@ import {
   getProjectStorageKey,
   normalizeProject,
   normalizeProjectUiMode,
+  serializeProjectWorkspace,
   validateHtmlTagsComponentSource,
 } from "../../lib/project/runtime"
+import {
+  ACTIVE_PROJECT_ID_STORAGE_KEY,
+  PROJECT_REGISTRY_STORAGE_KEY,
+  createBrowserProjectStorage,
+  createMemoryProjectStorage,
+} from "../../lib/project/storage"
 
 const utilsSource = `export function cn(...inputs: string[]) { return inputs.filter(Boolean).join(" ") }\n`
 
@@ -49,26 +64,134 @@ function buildPayload(component: string, uiKitId = "none", uiMode = "html-tags")
   )
 }
 
+function createStorageMock(seed: Record<string, string> = {}): Storage {
+  const state = new Map(Object.entries(seed))
+
+  return {
+    get length() {
+      return state.size
+    },
+    clear() {
+      state.clear()
+    },
+    getItem(key: string) {
+      return state.get(key) ?? null
+    },
+    key(index: number) {
+      return Array.from(state.keys())[index] ?? null
+    },
+    removeItem(key: string) {
+      state.delete(key)
+    },
+    setItem(key: string, value: string) {
+      state.set(key, value)
+    },
+  }
+}
+
 describe("project UI kit switching", () => {
   it("нормализует минимальный проект и ключ хранения лаборатории", () => {
     expect(createDefaultProject("task-a")).toMatchObject({
       id: "task-a",
       title: "Локальный проект",
-      uiKitId: "shadcn",
-      uiMode: "ui-kit",
+      settings: {
+        uiKitId: "shadcn",
+        uiMode: "ui-kit",
+      },
     })
     expect(normalizeProject({ id: " p ", title: " T ", uiKitId: "antd", uiMode: "native" })).toMatchObject({
       id: "p",
       title: "T",
-      uiKitId: "ant",
-      uiMode: "html-tags",
+      settings: {
+        uiKitId: "ant",
+        uiMode: "html-tags",
+      },
     })
     expect(normalizeProject({ id: "p", title: "T", uiKitId: "none" })).toMatchObject({
-      uiKitId: "none",
-      uiMode: "html-tags",
+      settings: {
+        uiKitId: "none",
+        uiMode: "html-tags",
+      },
     })
     expect(normalizeProjectUiMode("что-то")).toBe("ui-kit")
     expect(getProjectStorageKey("task-a")).toBe("desengine:project:task-a")
+  })
+
+  it("нормализует и сериализует canonical ProjectWorkspace с settings boundary", () => {
+    const workspace = serializeProjectWorkspace({
+      id: " project-1 ",
+      title: " Workspace ",
+      createdAt: "2026-05-20T10:00:00.000Z",
+      updatedAt: "2026-05-20T10:05:00.000Z",
+      settings: {
+        uiKitId: "mui",
+        uiMode: "html-tags",
+      },
+    })
+
+    expect(workspace).toEqual({
+      id: "project-1",
+      title: "Workspace",
+      createdAt: "2026-05-20T10:00:00.000Z",
+      updatedAt: "2026-05-20T10:05:00.000Z",
+      settings: {
+        uiKitId: "mui",
+        uiMode: "html-tags",
+      },
+    })
+    expect(normalizeProject({ id: "legacy", title: "Legacy", uiKitId: "ant", uiMode: "ui-kit" })).toMatchObject({
+      settings: {
+        uiKitId: "ant",
+        uiMode: "ui-kit",
+      },
+    })
+  })
+
+  it("storage adapter сохраняет registry, active project и скрывает backend", async () => {
+    const storage = createMemoryProjectStorage()
+    const project = normalizeProject({
+      id: "task-a",
+      title: "Проект A",
+      settings: {
+        uiKitId: "ant",
+        uiMode: "ui-kit",
+      },
+    })
+
+    await storage.saveProject(project)
+    await storage.setActiveProjectId(project.id)
+
+    await expect(storage.getActiveProjectId()).resolves.toBe("task-a")
+    await expect(storage.getProject("task-a")).resolves.toMatchObject({
+      id: "task-a",
+      settings: {
+        uiKitId: "ant",
+        uiMode: "ui-kit",
+      },
+    })
+    await expect(storage.listProjects()).resolves.toHaveLength(1)
+  })
+
+  it("browser storage adapter мигрирует legacy localStorage project MVP в registry", async () => {
+    const storageMock = createStorageMock({
+      [getProjectStorageKey("task-a")]: JSON.stringify({
+        uiKitId: "mui",
+        uiMode: "ui-kit",
+      }),
+    })
+    const storage = createBrowserProjectStorage({ storage: storageMock, taskId: "task-a" })
+
+    await expect(storage.getProject("task-task-a")).resolves.toMatchObject({
+      id: "task-task-a",
+      title: "Проект task-a",
+      settings: {
+        uiKitId: "mui",
+        uiMode: "ui-kit",
+      },
+    })
+    expect(storageMock.getItem(PROJECT_REGISTRY_STORAGE_KEY)).toContain("task-task-a")
+    await storage.setActiveProjectId("task-task-a")
+    expect(storageMock.getItem(ACTIVE_PROJECT_ID_STORAGE_KEY)).toBe("task-task-a")
   })
 
   it("валидирует html-tags режим и допускает только HTML JSX-теги", () => {
@@ -97,8 +220,10 @@ describe("project UI kit switching", () => {
 
     expect(payload.project).toMatchObject({
       id: "task-demo",
-      uiKitId: "ant",
-      uiMode: "ui-kit",
+      settings: {
+        uiKitId: "ant",
+        uiMode: "ui-kit",
+      },
       effectiveUiKitId: "ant",
       compatibility: { status: "compatible" },
     })
@@ -186,18 +311,26 @@ describe("project UI kit switching", () => {
     expect(checkRoute).toContain("await request.json()")
     expect(sandpackRoute).toContain("buildSandpackPreviewPayload(sourceFiles, {")
     expect(workbench).toContain("useWorkbenchController")
-    expect(workbenchController).toContain("getProjectStorageKey(taskId)")
+    expect(workbenchController).toContain("createBrowserProjectStorage")
     expect(workbenchController).toContain("sandpackUiKitsConfig")
     expect(workbenchController).toContain("/hint?")
     expect(workbenchController).toContain("/check")
     expect(workbenchController).toContain("JSON.stringify({ project })")
-    expect(workbenchController).toContain("window.localStorage.setItem")
+    expect(workbenchController).toContain("projectStorage.saveProject")
     expect(workbenchView).toContain('uiMode: nextUiKitId === "none" ? "html-tags" : "ui-kit"')
     expect(outRender).toContain("new URLSearchParams")
-    expect(outRender).toContain("uiKitId: previewProject.uiKitId")
+    expect(outRender).toContain("uiKitId: previewProject.settings.uiKitId")
     expect(outRender).toContain('compatibility.status !== "incompatible"')
     expect(outRender).toContain("useSandpack")
     expect(outRender).toContain("SandpackRuntimeDiagnosticsNotice")
     expect(outRender).toContain("sandpack.error")
+
+    const storage = readProjectFile("lib", "project", "storage.ts")
+    expect(storage).toContain("type ProjectStorage = {")
+    expect(storage).toContain("listProjects(): Promise<ProjectWorkspace[]>")
+    expect(storage).toContain("getActiveProjectId(): Promise<string | null>")
+    expect(storage).toContain("readLegacyTaskProject")
+    expect(storage).toContain(PROJECT_REGISTRY_STORAGE_KEY)
+    expect(storage).toContain(ACTIVE_PROJECT_ID_STORAGE_KEY)
   })
 })

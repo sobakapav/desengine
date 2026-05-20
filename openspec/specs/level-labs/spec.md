@@ -329,22 +329,22 @@
 - **THEN** система показывает понятный fallback для блока предыдущего уровня
 - **AND** стартовый экран остаётся рабочим (не падает и не блокирует пользователя)
 
-### Requirement: Лаборатория создаёт локальный проект для Sandpack preview
+### Requirement: Лаборатория использует Project Workspace для Sandpack preview
 
-Система SHALL иметь минимальный локальный `Project` для лаборатории, чтобы настройки Sandpack preview были привязаны к проектному контексту, а не только к глобальному env/config.
+Система SHALL использовать `ProjectWorkspace` для лаборатории, чтобы настройки Sandpack preview были привязаны к project boundary, а не только к глобальному env/config.
 
 #### Scenario: Лаборатория создаёт локальный проект для preview
 - **WHEN** пользователь открывает рабочую лабораторию задачи
-- **THEN** система создаёт локальный проект с `id`, `title`, `uiKitId` и `uiMode`
-- **AND** настройки проекта могут сохраняться в локальном состоянии лаборатории
+- **THEN** система создаёт локальный `ProjectWorkspace` с `id`, `title`, `createdAt`, `updatedAt` и `settings`
+- **AND** `uiKitId` и `uiMode` сохраняются внутри `ProjectWorkspace.settings`
 
 #### Scenario: Пользователь переключает UI kit проекта без перезагрузки страницы
-- **WHEN** пользователь меняет `project.uiKitId` в лаборатории
+- **WHEN** пользователь меняет `project.settings.uiKitId` в лаборатории
 - **THEN** страница лаборатории не перезагружается
 - **AND** Sandpack payload запрашивается повторно для текущего проекта
 
 #### Scenario: Пользователь включает режим html-tags
-- **WHEN** пользователь выбирает режим без UI kit и `project.uiMode` равен `html-tags`
+- **WHEN** пользователь выбирает режим без UI kit и `project.settings.uiMode` равен `html-tags`
 - **THEN** лаборатория проверяет компонент на совместимость с HTML JSX-тегами
 - **AND** пользователь остаётся в текущем рабочем контексте
 
@@ -357,3 +357,23 @@
 - **WHEN** Sandpack preview сообщает runtime-ошибку после сборки payload
 - **THEN** лаборатория показывает host-level диагностическое сообщение рядом с preview
 - **AND** не отключает внутренний Sandpack error overlay
+
+### Requirement: Lab level может быть представлен как workflow step profile
+
+Система SHALL мапить текущий lab level в workflow step profile без изменения пользовательского lab UX.
+
+#### Scenario: Текущий lab level мапится в workflow step
+- **WHEN** runtime строит projection для открытого уровня лаборатории
+- **THEN** workflow step получает kind `level-lab`
+- **AND** входы шага берутся из source image artifacts
+- **AND** выходы шага берутся из текущих рабочих файлов, prompt history и check-result
+
+### Requirement: Текущая лаборатория является Workbench profile
+
+Система SHALL описывать текущую лабораторию компонента как первый profile общей Workbench platform без заметного изменения пользовательского UX.
+
+#### Scenario: Lab workbench использует platform registry
+- **WHEN** runtime описывает текущую лабораторию компонента
+- **THEN** используется profile `level-lab` и definition `lab-component-workbench`
+- **AND** редактор Monaco, Sandpack preview, prompt composer и lab controls подключены как tools registry
+- **AND** текущие controls не требуют новой runtime dependency

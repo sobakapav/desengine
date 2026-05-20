@@ -20,7 +20,7 @@ import {
 } from "@/lib/task/server"
 import type { TaskCheckResult } from "@/lib/task/types"
 
-import { buildTaskPromptContext } from "../prompt-context"
+import { buildTaskRuntimePromptContext } from "../prompt-context"
 import { taskActionShared } from "./shared"
 import type { OutputFile, TaskActionHttpResult } from "./types"
 
@@ -286,17 +286,26 @@ export const taskCheckAction = {
 
       const { context, promptImages } = loaded
       const taskData = await readTaskData(context.taskItem, context.labContext)
-      const promptContext = buildTaskPromptContext({
+      const promptContext = buildTaskRuntimePromptContext({
         taskId,
         taskMaxLevel: context.taskItem.maxLevel,
         taskImages: context.labContext.images,
         level: context.level,
         project,
+        taskData,
+        taskItem: context.taskItem,
+        workbenchFiles: context.editableFiles.map((file) => ({
+          ...file,
+          title: file.fileName,
+          edit: true,
+        })),
+        constraints: ["structured-json-check-result", "allowed-workbench-files-only"],
+        providerCapabilities: ["vision", "structured-output"],
       })
       const [defaultProductionPrompt, defaultDidacticPrompt, levelCheckPrompt] = await Promise.all([
         readPrompt("production", "default"),
         readPrompt("didactic", "default"),
-        readLevelCheckPrompt(context.level.id, promptContext),
+        readLevelCheckPrompt(context.level.id, promptContext.renderContext),
       ])
 
       let imageBase64List: string[]

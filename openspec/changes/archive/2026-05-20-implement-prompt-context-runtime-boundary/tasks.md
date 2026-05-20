@@ -1,12 +1,12 @@
 ## Tasks
 
-- [ ] 1. Ввести `PromptContext` contract.
-- [ ] 2. Реализовать builder из текущих project/task/workflow/artifact/workbench данных.
-- [ ] 3. Перевести start/iterate/check service flows на PromptContext без изменения HTTP contract.
-- [ ] 4. Зафиксировать downstream contract для `task-hints-templating` и `prompt-builder`.
-- [ ] 5. Обновить OpenSpec specs `prompt-context`, `llm`, `iteration`, `task`.
-- [ ] 6. Добавить unit/source-contract tests.
-- [ ] 7. Прогнать `npm run test:unit`, `npm run test:traceability`.
+- [x] 1. Ввести `PromptContext` contract.
+- [x] 2. Реализовать builder из текущих project/task/workflow/artifact/workbench данных.
+- [x] 3. Перевести start/iterate/check service flows на PromptContext без изменения HTTP contract.
+- [x] 4. Зафиксировать downstream contract для `task-hints-templating` и `prompt-builder`.
+- [x] 5. Обновить OpenSpec specs `prompt-context`, `llm`, `iteration`, `task`.
+- [x] 6. Добавить unit/source-contract tests.
+- [x] 7. Прогнать `npm run test:unit`, `npm run test:traceability`.
 
 ## Тестовая часть change
 

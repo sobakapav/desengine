@@ -50,8 +50,10 @@ function parseProjectFromRequest(request: Request, taskId: string) {
   return normalizeProject({
     id: searchParams.get("projectId") ?? `task-${taskId}`,
     title: searchParams.get("projectTitle") ?? "Локальный проект",
-    uiKitId: searchParams.get("uiKitId") ?? defaultSandpackUiKitId,
-    uiMode: searchParams.get("uiMode"),
+    settings: {
+      uiKitId: searchParams.get("uiKitId") ?? defaultSandpackUiKitId,
+      uiMode: searchParams.get("uiMode"),
+    },
   })
 }
 

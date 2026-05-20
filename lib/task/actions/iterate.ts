@@ -12,6 +12,7 @@ import { appendPromptHistory, isTaskStarted, readTaskData } from "@/lib/onboardi
 import { formatPromptHistoryTimestamp, TEACHING_COST_PER_ITERATION_CENTS } from "@/lib/prompt/history"
 import { readLevelIteratePrompt, readPrompt } from "@/lib/prompt/server"
 import { runTaskMutation } from "@/lib/task/mutation-boundary"
+import { buildTaskRuntimePromptContext } from "@/lib/task/prompt-context"
 import {
   clearTaskCheckResult,
   getLevelForTaskItem,
@@ -168,6 +169,22 @@ async function buildIterationLlmInput(args: {
     ...file,
     content: taskData.contentByFileId[file.id] ?? "",
   }))
+  const promptContext = buildTaskRuntimePromptContext({
+    taskId: args.taskId,
+    taskMaxLevel: args.context.taskItem.maxLevel,
+    taskImages: args.context.labContext.images,
+    level,
+    taskData,
+    taskItem: args.context.taskItem,
+    workbenchFiles: args.context.editableFiles.map((file) => ({
+      ...file,
+      title: file.fileName,
+      edit: true,
+    })),
+    userText: args.promptText,
+    constraints: ["structured-json-file-patch", "allowed-workbench-files-only"],
+    providerCapabilities: ["vision", "structured-output"],
+  })
   const instruction = taskIterateLlm.buildInstruction({
     defaultProductionPrompt: prompts[0],
     iterateProductionPrompt: prompts[1],
@@ -175,7 +192,7 @@ async function buildIterationLlmInput(args: {
     levelSpecifyPrompt: prompts[3],
     commonExplanation: args.context.labContext.commonExplanation,
     allowedFilesText: taskActionShared.formatAllowedFilesText(args.context.editableFiles),
-    promptText: args.promptText,
+    promptText: promptContext.userText ?? args.promptText,
     imagesText: args.promptImages.map((image) => `- ${image.id}.png — ${image.width}x${image.height}`).join("\n"),
     selectedFilesText: taskActionShared.formatFilesContextText(selectedFiles),
   })

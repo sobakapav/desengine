@@ -6,7 +6,8 @@ import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { taskWorkbenchFiles } from "@/lib/system/config/client";
 import { applyFileContentChange } from "@/lib/lab/editor";
 import { sandpackUiKitsConfig } from "@/lib/lab/sandpack-ui-kits.config";
-import { createDefaultProject, getProjectStorageKey, normalizeProject, type Project } from "@/lib/project/runtime";
+import { createDefaultProject, normalizeProject, type Project } from "@/lib/project/runtime";
+import { createBrowserProjectStorage } from "@/lib/project/storage";
 
 import type { WorkbenchProps } from "./props";
 import { usePromptController, usePromptInput } from "./useWorkbenchPrompt";
@@ -56,29 +57,52 @@ async function postTaskCheck(taskId: string, project: Project) {
 function useProjectController(taskId: string) {
     const [previewVersion, setPreviewVersion] = useState(0);
     const [project, setProject] = useState<Project>(() => createDefaultProject(`task-${taskId}`));
-    const projectStorageKey = useMemo(() => getProjectStorageKey(taskId), [taskId]);
+    const projectStorage = useMemo(() => {
+        if (typeof window === "undefined") return null;
+        return createBrowserProjectStorage({ storage: window.localStorage, taskId });
+    }, [taskId]);
     const uiKitOptions = useMemo(() => Object.values(sandpackUiKitsConfig), []);
 
     useEffect(() => {
-        try {
-            const raw = window.localStorage.getItem(projectStorageKey);
-            const storedProject = raw ? JSON.parse(raw) : null;
-            setProject(normalizeProject({ ...storedProject, id: `task-${taskId}`, title: `Проект ${taskId}` }));
-        } catch {
-            setProject(createDefaultProject(`task-${taskId}`));
+        let cancelled = false;
+
+        async function loadProject() {
+            const fallbackProject = normalizeProject({
+                id: `task-${taskId}`,
+                title: `Проект ${taskId}`,
+            });
+
+            if (!projectStorage) {
+                setProject(fallbackProject);
+                return;
+            }
+
+            try {
+                const taskProject = await projectStorage.getProject(`task-${taskId}`);
+                const nextProject = taskProject ?? fallbackProject;
+
+                await projectStorage.saveProject(nextProject);
+                await projectStorage.setActiveProjectId(nextProject.id);
+                if (!cancelled) setProject(nextProject);
+            } catch {
+                if (!cancelled) setProject(fallbackProject);
+            }
         }
-    }, [projectStorageKey, taskId]);
+
+        void loadProject();
+        return () => { cancelled = true; };
+    }, [projectStorage, taskId]);
 
     function updateProject(nextProject: Project) {
         const normalized = normalizeProject(nextProject);
         setProject(normalized);
         setPreviewVersion((value) => value + 1);
 
-        try {
-            window.localStorage.setItem(projectStorageKey, JSON.stringify(normalized));
-        } catch {
-            // localStorage может быть недоступен в приватном режиме; runtime продолжит работать в памяти страницы.
-        }
+        void projectStorage?.saveProject(normalized)
+            .then(() => projectStorage.setActiveProjectId(normalized.id))
+            .catch(() => {
+                // localStorage может быть недоступен в приватном режиме; runtime продолжит работать в памяти страницы.
+            });
     }
 
     return { project, previewVersion, setPreviewVersion, uiKitOptions, updateProject };
@@ -88,8 +112,8 @@ function buildTaskHintUrl(taskId: string, project: Project) {
     const params = new URLSearchParams({
         projectId: project.id,
         projectTitle: project.title,
-        uiKitId: project.uiKitId,
-        uiMode: project.uiMode,
+        uiKitId: project.settings.uiKitId,
+        uiMode: project.settings.uiMode,
     });
 
     return `/api/tasks/${encodeURIComponent(taskId)}/hint?${params.toString()}`;
@@ -120,7 +144,7 @@ function useTaskHintController(taskId: string, initialTaskTip: string, project: 
 
         void refreshTaskTip();
         return () => { cancelled = true; };
-    }, [initialTaskTip, project.id, project.title, project.uiKitId, project.uiMode, taskId]);
+    }, [initialTaskTip, project.id, project.title, project.settings.uiKitId, project.settings.uiMode, taskId]);
 
     return { taskTip };
 }

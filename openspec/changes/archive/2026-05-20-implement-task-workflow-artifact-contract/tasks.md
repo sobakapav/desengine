@@ -1,14 +1,14 @@
 ## Tasks
 
-- [ ] 1. Зафиксировать минимальные TypeScript contracts: `TaskInstance`, `WorkflowInstance`, `WorkflowStepInstance`, `Artifact`.
-- [ ] 2. Описать mapping текущего lab task/progress/file-set/check-result в новую модель.
-- [ ] 3. Ввести read-only projection helpers без миграции storage на первом шаге.
-- [ ] 4. Обновить OpenSpec specs для `task-model`, `workflow`, `artifacts`, `task`, `level-labs`.
-- [ ] 5. Добавить tests:
-  - [ ] 5.1 unit/contract для shapes;
-  - [ ] 5.2 unit для mapping текущего `TaskData`;
-  - [ ] 5.3 traceability на новые scenarios.
-- [ ] 6. Прогнать `npm run test:unit`, `npm run test:traceability`.
+- [x] 1. Зафиксировать минимальные TypeScript contracts: `TaskInstance`, `WorkflowInstance`, `WorkflowStepInstance`, `Artifact`.
+- [x] 2. Описать mapping текущего lab task/progress/file-set/check-result в новую модель.
+- [x] 3. Ввести read-only projection helpers без миграции storage на первом шаге.
+- [x] 4. Обновить OpenSpec specs для `task-model`, `workflow`, `artifacts`, `task`, `level-labs`.
+- [x] 5. Добавить tests:
+  - [x] 5.1 unit/contract для shapes;
+  - [x] 5.2 unit для mapping текущего `TaskData`;
+  - [x] 5.3 traceability на новые scenarios.
+- [x] 6. Прогнать `npm run test:unit`, `npm run test:traceability`.
 
 ## Тестовая часть change
 

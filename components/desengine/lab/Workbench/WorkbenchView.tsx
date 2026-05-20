@@ -110,14 +110,17 @@ function ProjectSettings({
     updateProject,
 }: {
     project: Project;
-    uiKitOptions: Array<{ id: Project["uiKitId"]; title: string }>;
+    uiKitOptions: Array<{ id: Project["settings"]["uiKitId"]; title: string }>;
     updateProject: (project: Project) => void;
 }) {
-    function handleUiKitChange(nextUiKitId: Project["uiKitId"]) {
+    function handleUiKitChange(nextUiKitId: Project["settings"]["uiKitId"]) {
         updateProject({
             ...project,
-            uiKitId: nextUiKitId,
-            uiMode: nextUiKitId === "none" ? "html-tags" : "ui-kit",
+            settings: {
+                ...project.settings,
+                uiKitId: nextUiKitId,
+                uiMode: nextUiKitId === "none" ? "html-tags" : "ui-kit",
+            },
         });
     }
 
@@ -127,15 +130,15 @@ function ProjectSettings({
                 <div className="space-y-1">
                     <p className="text-sm font-medium">Настройки проекта</p>
                     <p className="text-xs text-muted-foreground">
-                        UI kit меняет Sandpack preview без перезагрузки страницы. Режим: {project.uiMode === "html-tags" ? "HTML-теги" : "UI kit"}.
+                        UI kit меняет Sandpack preview без перезагрузки страницы. Режим: {project.settings.uiMode === "html-tags" ? "HTML-теги" : "UI kit"}.
                     </p>
                 </div>
                 <label className="flex flex-col gap-1 text-sm">
                     <span className="text-xs text-muted-foreground">UI kit</span>
                     <select
                         className="h-9 rounded-md border bg-background px-3 text-sm"
-                        value={project.uiKitId}
-                        onChange={(event) => handleUiKitChange(event.target.value as Project["uiKitId"])}
+                        value={project.settings.uiKitId}
+                        onChange={(event) => handleUiKitChange(event.target.value as Project["settings"]["uiKitId"])}
                     >
                         {uiKitOptions.map((kit) => <option key={kit.id} value={kit.id}>{kit.title}</option>)}
                     </select>

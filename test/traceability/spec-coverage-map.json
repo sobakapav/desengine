@@ -352,6 +352,18 @@
         "Пользователь хочет повторно обновить onboarding-контент"
       ]
     },
+    "projects": {
+      "priority": "P1",
+      "primaryLevels": [
+        "static",
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Пользователь открывает lab в активном проекте",
+        "Настройки preview сохраняются в project settings"
+      ]
+    },
     "resource-status": {
       "priority": "P2",
       "primaryLevels": [
@@ -404,6 +416,18 @@
         "Шаблонная подсказка имеет приоритет над статичной",
         "Шаблон подсказки содержит ошибку",
         "Подсказка уровня отсутствует"
+      ]
+    },
+    "storage-adapter": {
+      "priority": "P1",
+      "primaryLevels": [
+        "static",
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Runtime читает активный проект",
+        "Storage backend ещё локальный"
       ]
     },
     "task-levels": {
