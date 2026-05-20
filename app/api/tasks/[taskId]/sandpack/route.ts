@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises"
 import path from "node:path"
+import { readdir } from "node:fs/promises"
 
 import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
 import {
@@ -15,6 +16,7 @@ import { normalizeProject, resolveProjectPreviewConfig } from "@/lib/project/run
 import { getLevelsCatalog, getTaskListItemById } from "@/lib/system/server"
 import { getUserTaskFilePath } from "@/lib/user/server"
 import { readFilesRecursively } from "@/lib/system/shadcn-files"
+import { appConfig } from "@/lib/system/config/server"
 
 type Params = { taskId: string }
 
@@ -111,7 +113,21 @@ export async function GET(
   const previewLevelState = await resolvePreviewLevel(taskItem)
 
   if (previewLevelState.kind === "task-not-found") {
-    return Response.json({ ok: false, error: "Задание не найдено" }, { status: 404 })
+    const taskDirs = await readdir(appConfig.taskCatalogRoot, { withFileTypes: true }).catch(() => [])
+    const taskIds = taskDirs.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort()
+    return Response.json(
+      {
+        ok: false,
+        error: "Задание не найдено",
+        debug: {
+          taskId,
+          taskCatalogRoot: appConfig.taskCatalogRoot,
+          existsInCatalog: taskIds.includes(taskId),
+          sampleTaskIds: taskIds.slice(0, 20),
+        },
+      },
+      { status: 404 },
+    )
   }
 
   if (previewLevelState.kind === "level-not-found") {

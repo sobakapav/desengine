@@ -1,3 +1,3 @@
-# dispatcher-task-hints-templating
+# dispatcher-task-hints
 
 Перевести статичные подсказки задач на систему шаблонирования, совместимую с шаблонами промптов.

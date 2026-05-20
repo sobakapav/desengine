@@ -31,6 +31,7 @@ Root-карта документации:
 | Список релизов и их состав | `tools/list-openspec-releases.mjs` | `npm run os:r` |
 | Старт выполнения change с preflight-правилами | `tools/openspec-begin-change.mjs` | `npm run os:begin -- <change>` |
 | Диспетчеризация хотелки в implement/fix | `tools/openspec-dispatch-change.mjs` | `npm run os:dispatch -- <dispatcher> --kind fix --name <name> --description "..."` |
+| Контекст implement/fix через parent dispatcher | `tools/openspec-context.mjs` | `npm run os:ctx -- <implement-or-fix-change>` |
 | Превращение текстовой хотелки в implement/fix | `tools/openspec-request-to-exec.mjs` | `npm run os:req -- <dispatcher> --request "..." --kind fix` |
 | Закрытие implement/fix change | `tools/openspec-close-change.mjs` | `npm run os:close -- <change>` |
 | Создание нового OpenSpec change с `short` в metadata | `tools/create-openspec-change.mjs` | `npm run openspec:new -- <name>` |
@@ -118,6 +119,7 @@ npm run os:begin -- dispatcher-... --spawn-implement implement-... --description
 ```
 
 - Если `change_kind=implement|fix`, команда печатает readiness-поля (`parent_change`, `strategy_root`, `verification_level`, `verification_command`).
+- Если `change_kind=release`, команда показывает матрицу релиза (`parent dispatcher -> implement/fix`) и подсказывает команду релизной диспетчеризации.
 
 ### `npm run os:dispatch -- <dispatcher> --kind <implement|fix> --name <name>`
 
@@ -128,6 +130,22 @@ npm run os:begin -- dispatcher-... --spawn-implement implement-... --description
 ```bash
 npm run os:dispatch -- dispatcher-help --kind fix --name ai-policy-typo --description "исправить неточности в AI-политике"
 ```
+
+Для релизного диспетчерского режима:
+
+```bash
+npm run os:dispatch -- release-... --dispatcher dispatcher-... --kind fix --name <name> --description "..."
+```
+
+В этом режиме исполнительский change тактически подчиняется `dispatcher` (через `parent_change`) и одновременно входит в релиз (через `release_ref`).
+
+### `npm run os:ctx -- <implement-or-fix-change>`
+
+Печатает контекст исполнения для implement/fix:
+- какой `parent dispatcher` отвечает за тактику;
+- какой `strategy_root` задаёт стратегию;
+- к какому `release_ref` относится change;
+- быстрые пути к `proposal/design/tasks` родительского dispatcher.
 
 ### `npm run os:close -- <implement-or-fix-change>`
 
@@ -144,6 +162,12 @@ npm run os:dispatch -- dispatcher-help --kind fix --name ai-policy-typo --descri
 1. берёт текст хотелки;
 2. создаёт `implement` или `fix` change (по `--kind`, по умолчанию `fix`);
 3. привязывает его к dispatcher через `os:dispatch`.
+
+Для release-контекста:
+
+```bash
+npm run os:req -- release-... --dispatcher dispatcher-... --request "..." --kind fix
+```
 
 ### `npm run openspec:new -- <name>`
 

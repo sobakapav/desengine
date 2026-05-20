@@ -4,6 +4,7 @@ import { taskCheckAction } from "@/lib/task/actions/check"
 import { taskFilesAction } from "@/lib/task/actions/files"
 import { taskIterateAction } from "@/lib/task/actions/iterate"
 import { taskStartAction } from "@/lib/task/actions/start"
+import type { Project } from "@/lib/project/runtime"
 import type {
   ResetTaskRuntimeResult,
   SaveTaskFilesResult,
@@ -20,7 +21,7 @@ import type {
  * readPrompt("didactic", "default")
  * readLevelIteratePrompt(level.id)
  * readLevelStartPrompt(level.id)
- * readLevelCheckPrompt(level.id)
+ * readLevelCheckPrompt(level.id, promptContext)
  * target: "init"
  * target: "check"
  * runStructuredLlmRequest({
@@ -70,11 +71,11 @@ export async function iterateTaskLevel(
 /**
  * @example
  * ```ts
- * const response = await checkTaskLevel("task-1")
+ * const response = await checkTaskLevel("task-1", project)
  * ```
  */
-export async function checkTaskLevel(taskId: string): Promise<TaskActionHttpResult> {
-  return taskCheckAction.checkTaskLevel(taskId)
+export async function checkTaskLevel(taskId: string, project?: Project): Promise<TaskActionHttpResult> {
+  return taskCheckAction.checkTaskLevel(taskId, project)
 }
 
 /**

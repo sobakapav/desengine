@@ -102,6 +102,9 @@
 - **WHEN** metadata change содержит `change_kind=fix`
 - **THEN** `execution_mode` равен `code`
 - **AND** задан `parent_change`
+- **AND** `parent_change` указывает на change с `change_kind=dispatcher`
+- **AND** задан `strategy_root` на стратегический change
+- **AND** заданы `verification_level` и `verification_command`
 
 #### Scenario: Release используется как метка, а не как родитель
 - **WHEN** metadata change содержит `change_kind=release`
@@ -134,3 +137,16 @@
 - **THEN** выполняется `verification_command` change
 - **AND** выполняется `npm run test:traceability`
 - **AND** при успехе change переносится в архив
+
+### Requirement: Release работает как релизный диспетчер delivery-матрицы
+
+Система SHALL позволять release change управлять поставкой связанных implement/fix через матричную связь `release_ref`, сохраняя тактическое подчинение parent dispatcher.
+
+#### Scenario: Release-диспетчеризация новой хотелки
+- **WHEN** запускается `npm run os:dispatch -- <release-change> --dispatcher <dispatcher-change> --kind <implement|fix> --name <name>`
+- **THEN** создаётся исполнительский change с `parent_change=<dispatcher-change>`
+- **AND** у change проставляется `release_ref=<release-change>`
+
+#### Scenario: Release-контекст требует перехода в parent dispatcher
+- **WHEN** разработчик запускает `npm run os:ctx -- <implement-or-fix-change>`
+- **THEN** команда показывает parent dispatcher и его ключевые артефакты (`proposal`, `design`, `tasks`) для контекстной проработки

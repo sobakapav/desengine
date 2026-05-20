@@ -8,6 +8,7 @@ import { TaskLevelStart } from "../../task/TaskLevelStart";
 import { TaskLevelTransition } from "../../task/TaskLevelTransition";
 import { createTaskDonePath } from "@/lib/task/navigation";
 import { getLabUrl } from "@/lib/lab/navigation";
+import { getProjectStorageKey, normalizeProject, type Project } from "@/lib/project/runtime";
 import type { LevelOverview as LevelOverviewData } from "@/lib/level/types";
 import type { TaskCheckResult as TaskCheckResultData, TaskData, TaskListItem, TaskTransition } from "@/lib/task/types";
 import type { LabScreenState } from "./states";
@@ -23,8 +24,30 @@ type CheckResultHandler = (
     nextTaskData: TaskData,
 ) => void;
 
+function readStoredProject(taskId: string): Project {
+    try {
+        const raw = window.localStorage.getItem(getProjectStorageKey(taskId));
+        const storedProject = raw ? JSON.parse(raw) : null;
+
+        return normalizeProject({
+            ...storedProject,
+            id: `task-${taskId}`,
+            title: `Проект ${taskId}`,
+        });
+    } catch {
+        return normalizeProject({
+            id: `task-${taskId}`,
+            title: `Проект ${taskId}`,
+        });
+    }
+}
+
 async function fetchTaskCheck(taskId: string) {
-    const res = await fetch(`/api/tasks/${taskId}/check`, { method: "POST" });
+    const res = await fetch(`/api/tasks/${taskId}/check`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ project: readStoredProject(taskId) }),
+    });
     const data = await res.json().catch(() => null);
 
     if (!res.ok || !data?.ok || !data?.checkResult || !data?.taskData) {

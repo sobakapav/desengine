@@ -44,6 +44,15 @@ async function postFileUpdates(taskId: string, updates: FileUpdate[]) {
     }
 }
 
+async function postTaskCheck(taskId: string, project: Project) {
+    const res = await fetch(`/api/tasks/${taskId}/check`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ project }),
+    });
+    return res;
+}
+
 function useProjectController(taskId: string) {
     const [previewVersion, setPreviewVersion] = useState(0);
     const [project, setProject] = useState<Project>(() => createDefaultProject(`task-${taskId}`));
@@ -306,7 +315,12 @@ function useTaskDataReplacement({
     return replaceTaskData;
 }
 
-function useWorkbenchActions(props: WorkbenchProps, saveBeforeAction: (targetFileIds?: string[]) => Promise<boolean>, replaceTaskData: (taskData: WorkbenchProps["taskData"]) => void) {
+function useWorkbenchActions(
+    props: WorkbenchProps,
+    project: Project,
+    saveBeforeAction: (targetFileIds?: string[]) => Promise<boolean>,
+    replaceTaskData: (taskData: WorkbenchProps["taskData"]) => void,
+) {
     const [completePending, setCompletePending] = useState(false);
     const [completeError, setCompleteError] = useState("");
     const [resetPending, setResetPending] = useState(false);
@@ -316,7 +330,7 @@ function useWorkbenchActions(props: WorkbenchProps, saveBeforeAction: (targetFil
         if (!(await saveBeforeAction())) return;
         setCompletePending(true);
         setCompleteError("");
-        const res = await fetch(`/api/tasks/${props.taskItem.id}/check`, { method: "POST" });
+        const res = await postTaskCheck(props.taskItem.id, project);
         const data = await res.json().catch(() => null);
         setCompletePending(false);
 
@@ -366,7 +380,7 @@ function useWorkbenchController(props: WorkbenchProps) {
     const save = useSaveController({ refs, setDirtyFileIds: dirty.setDirtyFileIds, setPreviewVersion: project.setPreviewVersion });
     const code = useCodeController({ markFileDirtyState: dirty.markFileDirtyState, onTaskDataChange: props.onTaskDataChange, refs, setAutosaveRevision, taskData: props.taskData });
     const replaceTaskData = useTaskDataReplacement({ code, dirty, onTaskDataChange: props.onTaskDataChange, refs, save });
-    const actions = useWorkbenchActions(props, save.saveBeforeAction, replaceTaskData);
+    const actions = useWorkbenchActions(props, project.project, save.saveBeforeAction, replaceTaskData);
     const reset = useResetAction(props, save.saveBeforeAction, replaceTaskData, actions);
     const prompt = usePromptController(props, save.saveBeforeAction, replaceTaskData, project.setPreviewVersion);
     const promptInput = usePromptInput(prompt);

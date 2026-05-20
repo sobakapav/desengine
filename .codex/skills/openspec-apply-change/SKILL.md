@@ -45,6 +45,14 @@ Implement tasks from an OpenSpec change.
      ```
    - После создания implement/fix продолжать работу уже в нём.
    - Это правило действует и для "добавленных по ходу" хотелок в том же чате: каждая новая хотелка в dispatcher-контексте сначала уходит в новый implement/fix change, затем реализуется.
+   - Для release-контекста использовать матричную диспетчеризацию:
+     ```bash
+     npm run os:dispatch -- <release-name> --dispatcher <dispatcher-name> --kind fix --name <short-name> --description "..."
+     ```
+     и при необходимости получать контекст тактического родителя через:
+     ```bash
+     npm run os:ctx -- <implement-or-fix-change>
+     ```
 
 2. **Check status to understand the schema**
    ```bash

@@ -101,7 +101,7 @@ export async function readLevelStartPrompt(levelId: string) {
   }
 }
 
-export async function readLevelCheckPrompt(levelId: string) {
+export async function readLevelCheckPrompt(levelId: string, context: PromptRenderContext = {}) {
   const root = appConfig.onboardingPromptsRoot
   const templatePath = await pickPromptTemplatePath(root, path.join("levels", levelId, "check"))
 
@@ -109,7 +109,7 @@ export async function readLevelCheckPrompt(levelId: string) {
     if (templatePath.endsWith(".md")) {
       return await readFile(path.join(root, templatePath), "utf-8")
     }
-    return await renderPromptTemplateFromRoot(root, templatePath, {}, { onErrorFallbackToRaw: true })
+    return await renderPromptTemplateFromRoot(root, templatePath, context, { onErrorFallbackToRaw: true })
   } catch {
     return ""
   }

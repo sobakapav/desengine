@@ -6,6 +6,7 @@ import {
   validateSandpackUiKitsConfig,
 } from "@/lib/lab/sandpack-ui-kits.config"
 import { loadSandpackDefaultTemplates } from "@/lib/lab/sandpack-default-templates"
+import { resolveRuntimeDependencies } from "@/lib/lab/sandpack-runtime-dependencies"
 import { fallbackAppTsx } from "@/lib/lab/sandpack-template-fallback"
 import {
   createDefaultProject,
@@ -65,6 +66,14 @@ type SandpackPreviewPayload = {
   project: Project & {
     effectiveUiKitId: SandpackUiKitId
     compatibility: ProjectCompatibility
+  }
+  debug?: {
+    shimVersion: string
+    rcShimPaths: string[]
+    pickerLocaleShim?: {
+      enUsJs?: string
+      enUsIndexJs?: string
+    }
   }
 }
 
@@ -189,6 +198,66 @@ function hidden(code: string): SandpackFileEntry {
     hidden: true,
     readOnly: true,
   }
+}
+
+function buildPackageCompatibilityShimsForAntd() {
+  const shims: SandpackPreviewFiles = {}
+  const specifiers = [
+    {
+      subpath: "generate/dayjs",
+      target: "/node_modules/@rc-component/picker/es/generate/dayjs.js",
+    },
+    {
+      subpath: "locale/en_US",
+      target: "/node_modules/@rc-component/picker/es/locale/en_US.js",
+    },
+    {
+      subpath: "locale/en_GB",
+      target: "/node_modules/@rc-component/picker/es/locale/en_GB.js",
+    },
+  ]
+
+  for (const { subpath, target } of specifiers) {
+    const jsPath = `/node_modules/@rc-component/picker/${subpath}.js`
+    const indexPath = `/node_modules/@rc-component/picker/${subpath}/index.js`
+    const source = `export * from "${target}";\nexport { default } from "${target}";\n`
+    shims[jsPath] = hidden(source)
+    shims[indexPath] = hidden(source)
+  }
+
+  return {
+    shims,
+    shimPaths: Object.keys(shims).sort(),
+  }
+}
+
+function buildAntdPatchedLocaleFiles() {
+  const patched: SandpackPreviewFiles = {}
+  patched["/node_modules/antd/es/date-picker/locale/en_US.js"] = hidden(
+    `import CalendarLocale from '/node_modules/@rc-component/picker/es/locale/en_US.js';
+import TimePickerLocale from '../../time-picker/locale/en_US';
+const locale = {
+  lang: {
+    placeholder: 'Select date',
+    yearPlaceholder: 'Select year',
+    quarterPlaceholder: 'Select quarter',
+    monthPlaceholder: 'Select month',
+    weekPlaceholder: 'Select week',
+    rangePlaceholder: ['Start date', 'End date'],
+    rangeYearPlaceholder: ['Start year', 'End year'],
+    rangeQuarterPlaceholder: ['Start quarter', 'End quarter'],
+    rangeMonthPlaceholder: ['Start month', 'End month'],
+    rangeWeekPlaceholder: ['Start week', 'End week'],
+    ...CalendarLocale
+  },
+  timePickerLocale: {
+    ...TimePickerLocale
+  }
+};
+export default locale;
+`,
+  )
+  return patched
 }
 
 function rewriteRootAliasImports(code: string, relativeRoot: string) {
@@ -316,7 +385,10 @@ function buildSandpackPreviewPayload(
   const templates = loadSandpackDefaultTemplates()
   const { project, resolvedUiKitId, compatibility } = resolvePreviewProject(sourceFiles, options)
   const uiKit = sandpackUiKitsConfig[resolvedUiKitId] ?? sandpackUiKitsConfig[DEFAULT_SANDPACK_UI_KIT_ID]
-  const dependencies = { ...basePackageJson.dependencies, ...uiKit.dependencies }
+  const dependencies = {
+    ...basePackageJson.dependencies,
+    ...resolveRuntimeDependencies(uiKit.dependencies),
+  }
   const appTemplate = options.appTemplate ?? null
   const componentSource = compatibility.status === "compatible"
     ? sourceFiles.component
@@ -334,6 +406,44 @@ function buildSandpackPreviewPayload(
   if (resolvedUiKitId === "shadcn") {
     files["/components/ui/badge.tsx"] = hidden(rewriteRootAliasImports(sourceFiles.uiBadge, "../../"))
     Object.assign(files, toHiddenFiles(sourceFiles.shadcnFiles ?? {}, "../../"))
+  }
+
+  if (resolvedUiKitId === "ant") {
+    const { shims, shimPaths } = buildPackageCompatibilityShimsForAntd()
+    Object.assign(files, shims)
+    Object.assign(files, buildAntdPatchedLocaleFiles())
+
+    const pickerEnUsJs = files["/node_modules/@rc-component/picker/locale/en_US.js"]
+    const pickerEnUsIndexJs = files["/node_modules/@rc-component/picker/locale/en_US/index.js"]
+    const readCode = (entry: SandpackFileEntry | undefined) =>
+      typeof entry === "string" ? entry : entry?.code
+
+    return {
+      files,
+      customSetup: {
+        dependencies,
+        entry: "/index.tsx",
+        environment: "create-react-app",
+      },
+      options: {
+        activeFile: "/Component.tsx",
+        visibleFiles: ["/Component.tsx"],
+        externalResources: ["https://cdn.tailwindcss.com"],
+      },
+      project: {
+        ...project,
+        effectiveUiKitId: resolvedUiKitId,
+        compatibility,
+      },
+      debug: {
+        shimVersion: "2026-05-20-ant-shim-v3",
+        rcShimPaths: shimPaths,
+        pickerLocaleShim: {
+          enUsJs: readCode(pickerEnUsJs),
+          enUsIndexJs: readCode(pickerEnUsIndexJs),
+        },
+      },
+    }
   }
 
   return {

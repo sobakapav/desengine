@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process"
 function printUsage() {
   console.error("Использование:")
   console.error("  npm run os:req -- <dispatcher-change> --request \"<текст хотелки>\" [--kind implement|fix]")
+  console.error("  npm run os:req -- <release-change> --dispatcher <dispatcher-change> --request \"<текст хотелки>\" [--kind implement|fix]")
 }
 
 function parseArgs(argv) {
@@ -10,14 +11,15 @@ function parseArgs(argv) {
     return { help: true }
   }
 
-  let dispatcher = ""
+  let sourceChange = ""
   let request = ""
   let kind = "fix"
+  let targetDispatcher = ""
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
-    if (!dispatcher && !arg.startsWith("-")) {
-      dispatcher = arg
+    if (!sourceChange && !arg.startsWith("-")) {
+      sourceChange = arg
       continue
     }
     if (arg === "--request") {
@@ -34,19 +36,27 @@ function parseArgs(argv) {
       index += 1
       continue
     }
+    if (arg === "--dispatcher") {
+      targetDispatcher = (argv[index + 1] || "").trim()
+      index += 1
+      continue
+    }
     if (arg.startsWith("--kind=")) {
       kind = arg.slice("--kind=".length).trim() || "fix"
     }
+    if (arg.startsWith("--dispatcher=")) {
+      targetDispatcher = arg.slice("--dispatcher=".length).trim()
+    }
   }
 
-  if (!dispatcher || !request) {
+  if (!sourceChange || !request) {
     throw new Error("Нужны параметры dispatcher и request.")
   }
   if (!["implement", "fix"].includes(kind)) {
     throw new Error("--kind должен быть implement или fix.")
   }
 
-  return { help: false, dispatcher, request, kind }
+  return { help: false, sourceChange, request, kind, targetDispatcher }
 }
 
 function slugify(text) {
@@ -71,7 +81,7 @@ function run() {
     "run",
     "os:dispatch",
     "--",
-    parsed.dispatcher,
+    parsed.sourceChange,
     "--kind",
     parsed.kind,
     "--name",
@@ -79,6 +89,10 @@ function run() {
     "--description",
     parsed.request,
   ]
+
+  if (parsed.targetDispatcher) {
+    args.push("--dispatcher", parsed.targetDispatcher)
+  }
 
   const result = spawnSync("npm", args, { stdio: "inherit" })
   if (typeof result.status === "number" && result.status !== 0) {

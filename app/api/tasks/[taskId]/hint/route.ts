@@ -2,6 +2,8 @@ import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
 import { normalizeSandpackUiKitId } from "@/lib/lab/sandpack-ui-kits.config"
 import { normalizeProject } from "@/lib/project/runtime"
 import { getTaskLevelHint, getTaskListItemById } from "@/lib/system/server"
+import { appConfig } from "@/lib/system/config/server"
+import { readdir } from "node:fs/promises"
 
 type Params = { taskId: string }
 
@@ -40,7 +42,21 @@ export async function GET(
   const taskItem = await getTaskListItemById(taskId)
 
   if (!taskItem) {
-    return Response.json({ ok: false, error: "Задание не найдено" }, { status: 404 })
+    const taskDirs = await readdir(appConfig.taskCatalogRoot, { withFileTypes: true }).catch(() => [])
+    const taskIds = taskDirs.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort()
+    return Response.json(
+      {
+        ok: false,
+        error: "Задание не найдено",
+        debug: {
+          taskId,
+          taskCatalogRoot: appConfig.taskCatalogRoot,
+          existsInCatalog: taskIds.includes(taskId),
+          sampleTaskIds: taskIds.slice(0, 20),
+        },
+      },
+      { status: 404 },
+    )
   }
 
   const project = parseProjectFromRequest(request, taskId)

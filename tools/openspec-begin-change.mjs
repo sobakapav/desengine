@@ -86,6 +86,30 @@ function readMetadata(changeName) {
   }
 }
 
+function listChangeNames() {
+  return fs
+    .readdirSync(CHANGES_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name !== "archive")
+    .map((entry) => entry.name)
+}
+
+function releaseMembers(releaseName) {
+  const members = []
+  for (const changeName of listChangeNames()) {
+    const meta = readMetadata(changeName)
+    if (meta.releaseRef !== releaseName) {
+      continue
+    }
+    members.push({
+      name: changeName,
+      kind: meta.kind,
+      parentChange: meta.parentChange,
+      strategyRoot: meta.strategyRoot,
+    })
+  }
+  return members.sort((a, b) => a.name.localeCompare(b.name))
+}
+
 function updateMetadata(changeName, updates) {
   const metadataPath = path.join(CHANGES_DIR, changeName, ".openspec.yaml")
   let text = fs.readFileSync(metadataPath, "utf8")
@@ -238,6 +262,40 @@ function main() {
       console.log(`- автосозданы артефакты: ${createdArtifacts.join(", ")}`)
     }
     console.log(`Запусти: npm run os:begin -- ${parsed.spawnImplement}`)
+    return
+  }
+
+  if (current.kind === "release") {
+    const members = releaseMembers(parsed.changeName)
+    console.log(`Release-контекст: ${parsed.changeName}`)
+    console.log(`- Привязанных changes: ${members.length}`)
+
+    const grouped = new Map()
+    for (const member of members) {
+      if (!["implement", "fix"].includes(member.kind)) {
+        continue
+      }
+      const parent = member.parentChange || "(без dispatcher)"
+      const list = grouped.get(parent) || []
+      list.push(member)
+      grouped.set(parent, list)
+    }
+
+    if (grouped.size === 0) {
+      console.log("- В релизе пока нет implement/fix changes")
+    } else {
+      console.log("- Матрица релиза (dispatcher -> implement/fix):")
+      for (const [parent, list] of [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+        console.log(`  ${parent}`)
+        for (const item of list.sort((a, b) => a.name.localeCompare(b.name))) {
+          console.log(`    ${item.name}`)
+        }
+      }
+    }
+
+    console.log("")
+    console.log("Для новой хотелки из release-контекста:")
+    console.log(`npm run os:dispatch -- ${parsed.changeName} --dispatcher <dispatcher-change> --kind fix --name <name> --description "..."`)
     return
   }
 

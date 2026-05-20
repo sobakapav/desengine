@@ -141,6 +141,22 @@ export default function Component() {
     expect(payload.files["/index.tsx"]).toEqual(expect.objectContaining({
       code: expect.stringContaining('import "antd/dist/reset.css";'),
     }))
+    expect(payload.files["/node_modules/@rc-component/picker/locale/en_US.js"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('/node_modules/@rc-component/picker/es/locale/en_US.js'),
+    }))
+    expect(payload.files["/node_modules/@rc-component/picker/locale/en_US"]).toBeUndefined()
+    expect(payload.files["/node_modules/@rc-component/picker/locale/en_US/index.js"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('/node_modules/@rc-component/picker/es/locale/en_US.js'),
+    }))
+    expect(payload.files["/node_modules/@rc-component/picker/locale/en_GB.js"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('/node_modules/@rc-component/picker/es/locale/en_GB.js'),
+    }))
+    expect(payload.files["/node_modules/@rc-component/picker/generate/dayjs.js"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('/node_modules/@rc-component/picker/es/generate/dayjs.js'),
+    }))
+    expect(payload.files["/node_modules/antd/es/date-picker/locale/en_US.js"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('/node_modules/@rc-component/picker/es/locale/en_US.js'),
+    }))
     expect(payload.files["/components/ui/badge.tsx"]).toBeUndefined()
   })
 
