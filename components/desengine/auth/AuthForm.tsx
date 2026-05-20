@@ -12,6 +12,12 @@ type AuthFormProps = {
     handleSubmit: (event: FormEvent<HTMLFormElement>) => void
 }
 
+/**
+ * @example
+ * ```tsx
+ * <AuthForm authState="missing" configured email="" error="" isPending={false} onEmailChange={() => {}} handleSubmit={() => {}} />
+ * ```
+ */
 export default function AuthForm({
     authState,
     email,

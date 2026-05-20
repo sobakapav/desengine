@@ -22,6 +22,14 @@ function normalizeImageId(raw: string | null) {
   return value
 }
 
+/**
+ * @example
+ * ```ts
+ * await GET(new Request("http://localhost/api/tasks/task-1/image?imageId=base"), {
+ *   params: Promise.resolve({ taskId: "task-1" }),
+ * })
+ * ```
+ */
 export async function GET(
   request: Request,
   { params }: { params: Promise<Params> },

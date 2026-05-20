@@ -72,11 +72,13 @@ describe("LLM flow source contracts", () => {
 
   it("system status предупреждает о legacy-конфиге без использования его как fallback", () => {
     const source = readProjectFile("lib", "system", "resources", "internalstate.ts")
+    const sourceSections = readProjectFile("lib", "system", "resources", "internalstate-sections.ts")
     const resourceContent = readProjectFile("lib", "system", "resources", "content.json")
     const localConfig = readProjectFile("lib", "system", "config", "local.cjs")
 
     expect(source).toContain("localConfigState.hasLegacyEnv")
-    expect(source).toContain('resources.add("local-config-file", getLocalConfigCondition(localConfigState))')
+    expect(source).toContain("getLocalConfigCondition(localConfigState)")
+    expect(sourceSections).toContain('args.resources.add("local-config-file", args.localConfigCondition)')
     expect(resourceContent).toContain("Обнаружен устаревший")
     expect(resourceContent).toContain(".env.local")
     expect(resourceContent).toContain("Старый `.env.local` создаёт двусмысленность")

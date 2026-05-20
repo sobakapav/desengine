@@ -3,6 +3,9 @@ import path from "node:path"
 import { execSync } from "node:child_process"
 import ts from "typescript"
 
+import { printTextReport } from "./reporters/text.mjs"
+import { qualityTextRuleIds, qualityTextRules } from "./rules/index.mjs"
+
 const projectRoot = process.cwd()
 const subsystemRoot = path.join(projectRoot, "tools", "quality-text")
 const configPath = path.join(subsystemRoot, "config.json")
@@ -15,6 +18,12 @@ const defaultConfig = {
   maxLinesTests: 450,
   maxFunctionLines: 60,
   scopes: ["working", "branch", "repo"],
+  llm: {
+    mode: "off",
+    maxFiles: 5,
+    maxTokens: 8000,
+    fallback: "deterministic",
+  },
 }
 const config = readConfig()
 
@@ -27,6 +36,11 @@ function parseArgs(argv) {
   for (const arg of argv) {
     if (arg.startsWith("--scope=")) {
       parsed.scope = arg.slice("--scope=".length)
+      continue
+    }
+
+    if (arg.startsWith("--llm=")) {
+      parsed.llmMode = arg.slice("--llm=".length)
     }
   }
 
@@ -43,6 +57,10 @@ function readConfig() {
   return {
     ...defaultConfig,
     ...parsed,
+    llm: {
+      ...defaultConfig.llm,
+      ...(parsed.llm ?? {}),
+    },
   }
 }
 
@@ -76,7 +94,7 @@ function resolveComparisonBase() {
     try {
       return run(`git merge-base HEAD ${candidate}`)
     } catch {
-      // next candidate
+      // пробуем следующий base-ref
     }
   }
 
@@ -184,83 +202,7 @@ function isTestOrStoryFile(filePath) {
   )
 }
 
-function countCodeLines(text) {
-  const lines = text.split(/\r?\n/)
-  let inBlockComment = false
-  let count = 0
-
-  for (const line of lines) {
-    let sanitized = ""
-
-    for (let index = 0; index < line.length; index += 1) {
-      const current = line[index]
-      const next = line[index + 1]
-
-      if (inBlockComment) {
-        if (current === "*" && next === "/") {
-          inBlockComment = false
-          index += 1
-        }
-        continue
-      }
-
-      if (current === "/" && next === "*") {
-        inBlockComment = true
-        index += 1
-        continue
-      }
-
-      if (current === "/" && next === "/") {
-        break
-      }
-
-      sanitized += current
-    }
-
-    if (sanitized.trim().length > 0) {
-      count += 1
-    }
-  }
-
-  return count
-}
-
-function nodeBodyLineCount(sourceFile, node) {
-  if (!node.body) {
-    return 0
-  }
-
-  const bodyText = node.body.getText(sourceFile)
-  const innerBody = bodyText.startsWith("{") && bodyText.endsWith("}") ? bodyText.slice(1, -1) : bodyText
-  return countCodeLines(innerBody)
-}
-
-function hasExportModifier(node) {
-  return Boolean(node.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword))
-}
-
-function isBooleanTypeNode(typeNode) {
-  if (!typeNode) {
-    return false
-  }
-
-  if (typeNode.kind === ts.SyntaxKind.BooleanKeyword) {
-    return true
-  }
-
-  if (ts.isLiteralTypeNode(typeNode)) {
-    return typeNode.literal.kind === ts.SyntaxKind.TrueKeyword || typeNode.literal.kind === ts.SyntaxKind.FalseKeyword
-  }
-
-  if (ts.isUnionTypeNode(typeNode)) {
-    return typeNode.types.some(isBooleanTypeNode)
-  }
-
-  return false
-}
-
-function findReadabilityViolations(files) {
-  const violations = []
+function createProgram(files) {
   const tsConfigPath = ts.findConfigFile(projectRoot, ts.sys.fileExists, "tsconfig.json")
   const parsedConfig = tsConfigPath
     ? ts.parseJsonConfigFileContent(ts.readConfigFile(tsConfigPath, ts.sys.readFile).config, ts.sys, projectRoot)
@@ -275,78 +217,36 @@ function findReadabilityViolations(files) {
     module: ts.ModuleKind.ESNext,
   }
 
-  const program = ts.createProgram({
+  return ts.createProgram({
     rootNames: parsedConfig?.fileNames ?? files,
     options: compilerOptions,
   })
+}
+
+function findReadabilityViolations(files) {
+  const violations = []
+  const program = createProgram(files)
   const checker = program.getTypeChecker()
   const fileSet = new Set(files.map((filePath) => path.resolve(filePath)))
 
   for (const absolutePath of files) {
     const relativePath = path.relative(projectRoot, absolutePath)
     const text = fs.readFileSync(absolutePath, "utf8")
-    const codeLines = countCodeLines(text)
-    const isTestFile = isTestOrStoryFile(absolutePath)
-    const maxLines = isTestFile ? config.maxLinesTests : config.maxLinesProduction
-
-    if (codeLines > maxLines) {
-      violations.push({
-        file: relativePath,
-        rule: "file-length",
-        message: `Файл содержит ${codeLines} строк кода при лимите ${maxLines}. Разбейте на модули или зафиксируйте временное исключение.`,
-      })
-    }
-
-    checkTodoFixmeViolations(relativePath, text, violations)
-
     const sourceFile = program.getSourceFile(absolutePath)
-
-    if (!sourceFile || !fileSet.has(path.resolve(sourceFile.fileName))) {
-      continue
+    const activeSourceFile = sourceFile && fileSet.has(path.resolve(sourceFile.fileName)) ? sourceFile : null
+    const context = {
+      absolutePath,
+      relativePath,
+      text,
+      sourceFile: activeSourceFile,
+      checker,
+      config,
+      isTestFile: isTestOrStoryFile(absolutePath),
     }
 
-    walkAst(sourceFile, (node) => {
-      if (
-        ts.isFunctionDeclaration(node) ||
-        ts.isMethodDeclaration(node) ||
-        ts.isArrowFunction(node) ||
-        ts.isFunctionExpression(node)
-      ) {
-        const functionCodeLines = nodeBodyLineCount(sourceFile, node)
-
-        if (!isTestFile && functionCodeLines > config.maxFunctionLines) {
-          const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
-          violations.push({
-            file: relativePath,
-            line: position.line + 1,
-            rule: "function-length",
-            message: `Функция содержит ${functionCodeLines} строк кода при лимите ${config.maxFunctionLines}.`,
-          })
-        }
-      }
-
-      if (ts.isFunctionDeclaration(node) && hasExportModifier(node)) {
-        checkBooleanTrap(node.parameters, sourceFile, relativePath, violations)
-        checkExampleTag(node, sourceFile, relativePath, violations)
-      }
-
-      if (ts.isVariableStatement(node) && hasExportModifier(node)) {
-        for (const declaration of node.declarationList.declarations) {
-          if (!declaration.initializer) {
-            continue
-          }
-
-          if (ts.isArrowFunction(declaration.initializer) || ts.isFunctionExpression(declaration.initializer)) {
-            checkBooleanTrap(declaration.initializer.parameters, sourceFile, relativePath, violations)
-            checkExampleTag(declaration.initializer, sourceFile, relativePath, violations)
-          }
-        }
-      }
-
-      if (ts.isExpressionStatement(node)) {
-        checkFloatingPromise(node, checker, sourceFile, relativePath, violations)
-      }
-    })
+    for (const rule of qualityTextRules) {
+      violations.push(...rule.check(context))
+    }
   }
 
   return violations
@@ -366,6 +266,12 @@ function readWaivers() {
   for (const [filePath, entry] of Object.entries(entries)) {
     if (!Array.isArray(entry.rules) || entry.rules.length === 0) {
       errors.push(`${filePath}: поле rules должно быть непустым массивом`)
+    }
+
+    for (const ruleId of entry.rules ?? []) {
+      if (!qualityTextRuleIds.includes(ruleId)) {
+        errors.push(`${filePath}: неизвестное правило ${ruleId}`)
+      }
     }
 
     for (const field of ["owner", "reason", "targetStage"]) {
@@ -396,163 +302,60 @@ function isWaived(violation, waivers) {
   return entry.rules.includes(violation.rule)
 }
 
-function checkTodoFixmeViolations(relativePath, text, violations) {
-  const lines = text.split(/\r?\n/)
-  const requiredFormat = /\b(?:TODO|FIXME)\(owner:[^,\)]+,\s*targetStage:[^\)]+\):/i
+function estimateTokenBudget(files) {
+  let characters = 0
 
-  lines.forEach((line, index) => {
-    if (!/\b(?:TODO|FIXME)\b/.test(line)) {
-      return
-    }
+  for (const filePath of files) {
+    characters += fs.readFileSync(filePath, "utf8").length
+  }
 
-    const trimmed = line.trim()
-    const isCommentLine = trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*")
-
-    if (!isCommentLine) {
-      return
-    }
-
-    if (requiredFormat.test(line)) {
-      return
-    }
-
-    violations.push({
-      file: relativePath,
-      line: index + 1,
-      rule: "todo-format",
-      message: "TODO/FIXME должен иметь формат TODO(owner:<имя>, targetStage:<этап>): описание",
-    })
-  })
+  return Math.ceil(characters / 4)
 }
 
-function checkBooleanTrap(parameters, sourceFile, relativePath, violations) {
-  for (const parameter of parameters) {
-    if (!isBooleanTypeNode(parameter.type)) {
-      continue
-    }
+function resolveLlmMode(files) {
+  const llmConfig = config.llm ?? defaultConfig.llm
+  const requestedMode = args.llmMode ?? process.env.QUALITY_TEXT_LLM_MODE ?? llmConfig.mode ?? "off"
 
-    const position = sourceFile.getLineAndCharacterOfPosition(parameter.getStart(sourceFile))
-    const parameterName = parameter.name.getText(sourceFile)
-
-    violations.push({
-      file: relativePath,
-      line: position.line + 1,
-      rule: "boolean-trap",
-      message: `Параметр '${parameterName}' имеет boolean-тип. Используйте объект параметров или отдельные явные методы.`,
-    })
-  }
-}
-
-function checkExampleTag(node, sourceFile, relativePath, violations) {
-  const paramsCount = node.parameters?.length ?? 0
-  const codeLines = nodeBodyLineCount(sourceFile, node)
-  const isNonTrivial = paramsCount >= 2 || codeLines >= 20 || Boolean(node.typeParameters?.length)
-
-  if (!isNonTrivial) {
-    return
+  if (requestedMode === "off") {
+    return { mode: "off" }
   }
 
-  const tags = ts.getJSDocTags(node)
-  const hasExample = tags.some((tag) => tag.tagName.getText(sourceFile) === "example")
-
-  if (hasExample) {
-    return
+  if (requestedMode !== "optional") {
+    return { mode: `fallback:${llmConfig.fallback}`, reason: `unknown-mode:${requestedMode}` }
   }
 
-  const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
+  const maxFiles = Number(llmConfig.maxFiles)
+  const maxTokens = Number(llmConfig.maxTokens)
+  const estimatedTokens = estimateTokenBudget(files)
 
-  violations.push({
-    file: relativePath,
-    line: position.line + 1,
-    rule: "api-example",
-    message: "Нетривиальный экспортируемый API должен содержать JSDoc-тег @example.",
-  })
-}
-
-function checkFloatingPromise(node, checker, sourceFile, relativePath, violations) {
-  const expression = node.expression
-
-  if (ts.isVoidExpression(expression)) {
-    return
-  }
-
-  if (!ts.isCallExpression(expression) && !ts.isNewExpression(expression)) {
-    return
-  }
-
-  if (ts.isCallExpression(expression) && ts.isPropertyAccessExpression(expression.expression)) {
-    const methodName = expression.expression.name.getText(sourceFile)
-
-    if (methodName === "catch" || methodName === "finally") {
-      return
+  if (files.length > maxFiles || estimatedTokens > maxTokens) {
+    return {
+      mode: `fallback:${llmConfig.fallback}`,
+      reason: `budget-exceeded:files=${files.length}/${maxFiles},tokens=${estimatedTokens}/${maxTokens}`,
     }
   }
 
-  const signature = checker.getResolvedSignature(expression)
-  const returnType = signature ? checker.getReturnTypeOfSignature(signature) : checker.getTypeAtLocation(expression)
-
-  if (!isPromiseLikeType(returnType, checker)) {
-    return
-  }
-
-  const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
-  violations.push({
-    file: relativePath,
-    line: position.line + 1,
-    rule: "floating-promise",
-    message: "Promise вызван без await/void или явной обработки catch/finally.",
-  })
-}
-
-function isPromiseLikeType(type, checker) {
-  if (!type) {
-    return false
-  }
-
-  const thenProperty = type.getProperty("then")
-
-  if (!thenProperty) {
-    return false
-  }
-
-  const thenType = checker.getTypeOfSymbolAtLocation(thenProperty, thenProperty.valueDeclaration ?? thenProperty.declarations?.[0])
-  return thenType.getCallSignatures().length > 0
-}
-
-function walkAst(node, visit) {
-  visit(node)
-  node.forEachChild((child) => walkAst(child, visit))
+  return { mode: `fallback:${llmConfig.fallback}`, reason: "provider-not-configured", estimatedTokens }
 }
 
 const files = resolveScopeFiles()
-
-if (files.length === 0) {
-  console.log("Code Quality Text report")
-  console.log("Проверяемых файлов не найдено для текущего scope.")
-  process.exit(0)
-}
-
+const llmState = resolveLlmMode(files)
 const waivers = readWaivers()
-const violations = findReadabilityViolations(files)
+const violations = files.length > 0 ? findReadabilityViolations(files) : []
 const activeViolations = violations.filter((violation) => !isWaived(violation, waivers))
 const waivedCount = violations.length - activeViolations.length
 
-console.log("Code Quality Text report")
-console.log(`Scope: ${scope}`)
-console.log(`Проверено файлов: ${files.length}`)
-console.log(`Нарушений в waiver: ${waivedCount}`)
+printTextReport({
+  scope,
+  filesChecked: files.length,
+  violations: violations.length,
+  waivedViolations: waivedCount,
+  llmMode: llmState.mode,
+  activeViolations,
+})
 
 if (activeViolations.length === 0) {
-  console.log("Нарушений не найдено.")
   process.exit(0)
-}
-
-console.error("")
-console.error("Нарушения code-quality-text:")
-
-for (const violation of activeViolations) {
-  const location = violation.line ? `${violation.file}:${violation.line}` : violation.file
-  console.error(`- [${violation.rule}] ${location} — ${violation.message}`)
 }
 
 process.exit(1)

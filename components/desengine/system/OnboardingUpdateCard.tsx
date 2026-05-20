@@ -16,7 +16,7 @@ type UpdateState =
   | { kind: "success"; message: string }
   | { kind: "error"; message: string }
 
-export function OnboardingUpdateCard({ canUpdate, detail, syncState }: OnboardingUpdateCardProps) {
+function useOnboardingUpdate() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [updateState, setUpdateState] = useState<UpdateState>({ kind: "idle" })
@@ -53,6 +53,44 @@ export function OnboardingUpdateCard({ canUpdate, detail, syncState }: Onboardin
     })
   }
 
+  return { handleUpdate, isPending, updateState }
+}
+
+function UpdateStatusMessages({
+  canUpdate,
+  updateState,
+}: {
+  canUpdate: boolean
+  updateState: UpdateState
+}) {
+  return (
+    <>
+      {!canUpdate ? (
+        <p className="tool-notice-warning mt-4">
+          Сначала задайте `ONBOARDING_REPO_URL` в `desengine.config.txt`.
+        </p>
+      ) : null}
+
+      {updateState.kind === "success" ? (
+        <p className="tool-notice-success mt-4">{updateState.message}</p>
+      ) : null}
+
+      {updateState.kind === "error" ? (
+        <p className="tool-notice-error mt-4">{updateState.message}</p>
+      ) : null}
+    </>
+  )
+}
+
+/**
+ * @example
+ * ```tsx
+ * <OnboardingUpdateCard canUpdate detail="Синхронизировано" syncState="synced" />
+ * ```
+ */
+export function OnboardingUpdateCard({ canUpdate, detail, syncState }: OnboardingUpdateCardProps) {
+  const { handleUpdate, isPending, updateState } = useOnboardingUpdate()
+
   return (
     <section className="tool-panel mt-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -77,19 +115,7 @@ export function OnboardingUpdateCard({ canUpdate, detail, syncState }: Onboardin
         </Button>
       </div>
 
-      {!canUpdate ? (
-        <p className="tool-notice-warning mt-4">
-          Сначала задайте `ONBOARDING_REPO_URL` в `desengine.config.txt`.
-        </p>
-      ) : null}
-
-      {updateState.kind === "success" ? (
-        <p className="tool-notice-success mt-4">{updateState.message}</p>
-      ) : null}
-
-      {updateState.kind === "error" ? (
-        <p className="tool-notice-error mt-4">{updateState.message}</p>
-      ) : null}
+      <UpdateStatusMessages canUpdate={canUpdate} updateState={updateState} />
     </section>
   )
 }

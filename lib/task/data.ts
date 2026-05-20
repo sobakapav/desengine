@@ -1,5 +1,11 @@
 import type { TaskData, TaskLabContext } from "@/lib/task/types"
 
+/**
+ * @example
+ * ```ts
+ * const data = createEmptyTaskData("task-1", null)
+ * ```
+ */
 export function createEmptyTaskData(
   taskId: string,
   labContext: TaskLabContext | null,

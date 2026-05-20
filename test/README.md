@@ -142,6 +142,8 @@ npm run quality:text:repo
 - `tools/quality-text/waivers.json`
 
 Для waiver обязательны поля `rules`, `owner`, `reason`, `targetStage`.
+Отчёт показывает `Scope`, `Files checked`, `Violations`, `Waived violations` и `LLM mode`.
+Optional LLM-режим выключен по умолчанию, не входит в `test:full` и при ручном включении должен сработать только внутри budget caps или вернуться к `fallback:deterministic`.
 
 Совместимые алиасы migration-этапа:
 

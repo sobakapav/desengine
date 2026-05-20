@@ -3,6 +3,12 @@ import Link from "next/link"
 import { requireAccessOrRedirect } from "@/lib/auth/server"
 import { listHelpPages } from "@/lib/help/content"
 
+/**
+ * @example
+ * ```tsx
+ * <HelpPage />
+ * ```
+ */
 export default async function HelpPage() {
   await requireAccessOrRedirect("/help")
   const helpPages = await listHelpPages()

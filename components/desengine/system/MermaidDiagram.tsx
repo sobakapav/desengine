@@ -45,7 +45,7 @@ function MermaidDiagram({ chart, className }: MermaidDiagramProps) {
       }
     }
 
-    renderDiagram()
+    void renderDiagram()
 
     return () => {
       cancelled = true

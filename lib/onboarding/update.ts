@@ -44,6 +44,13 @@ async function runGit(args: string[], cwd?: string) {
   }
 }
 
+/**
+ * @example
+ * ```ts
+ * const result = await updateOnboardingFromConfig()
+ * console.log(result.commitHash)
+ * ```
+ */
 export async function updateOnboardingFromConfig(): Promise<OnboardingUpdateResult> {
   const repoUrl = getConfiguredOnboardingRepoUrl()
   if (!repoUrl) {

@@ -67,6 +67,12 @@ function buildTaskLlmUsageSummary(promptHistory: PromptHistoryEntry[]): TaskLlmU
   }
 }
 
+/**
+ * @example
+ * ```ts
+ * const data = await readTaskData({ id: "task-1" }, labContext)
+ * ```
+ */
 export async function readTaskData(
   task: { id: string },
   labContext: TaskLabContext | null = null,
@@ -117,6 +123,12 @@ function getPromptHistoryPath(taskId: string) {
   return getUserTaskFilePath(taskId, promptHistoryFileName)
 }
 
+/**
+ * @example
+ * ```ts
+ * const history = await readPromptHistory("task-1")
+ * ```
+ */
 export async function readPromptHistory(taskId: string): Promise<PromptHistoryEntry[]> {
   const filePath = getPromptHistoryPath(taskId)
 
@@ -152,6 +164,12 @@ export async function readPromptHistory(taskId: string): Promise<PromptHistoryEn
   }
 }
 
+/**
+ * @example
+ * ```ts
+ * await appendPromptHistory("task-1", { text: "Сделай кнопку заметнее", createdAt: new Date().toISOString() })
+ * ```
+ */
 export async function appendPromptHistory(taskId: string, entry: PromptHistoryEntry) {
   const history = await readPromptHistory(taskId)
   history.push(entry)

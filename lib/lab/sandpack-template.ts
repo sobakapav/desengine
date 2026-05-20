@@ -36,6 +36,12 @@ async function readTextIfExists(filePath: string) {
   }
 }
 
+/**
+ * @example
+ * ```ts
+ * const template = await readLevelSandpackTemplate("level-1", { rootDir: process.cwd() })
+ * ```
+ */
 export async function readLevelSandpackTemplate(
   levelId: string,
   options: { rootDir?: string } = {},
@@ -68,4 +74,3 @@ export function buildLevelTemplateRuntimeSource(runtime: LevelTemplateRuntime) {
 
   return `export const levelRuntime = ${json} as const;\n`
 }
-

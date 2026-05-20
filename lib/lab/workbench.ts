@@ -28,6 +28,12 @@ function hasDefaultComponentExport(fileName: string, content: string) {
   )
 }
 
+/**
+ * @example
+ * ```ts
+ * validateGeneratedFilesPayload({ component: "export default function Component() { return null }" }, outputFiles, allFiles)
+ * ```
+ */
 export function validateGeneratedFilesPayload(
   payload: Record<string, string | null>,
   outputFiles: OutputFileDescriptor[],
@@ -133,6 +139,12 @@ export function getLevelEditableWorkbenchFileMap(editableFileIds: string[]) {
   )
 }
 
+/**
+ * @example
+ * ```ts
+ * const { allowedEntries, ignoredFileIds } = filterWorkbenchPayloadByAllowlist(payload, ["component"])
+ * ```
+ */
 export function filterWorkbenchPayloadByAllowlist(
   payload: Record<string, unknown>,
   editableFileIds: string[],
@@ -157,6 +169,12 @@ export function filterWorkbenchPayloadByAllowlist(
   return { allowedEntries, ignoredFileIds }
 }
 
+/**
+ * @example
+ * ```ts
+ * const cleanup = await cleanupForbiddenWorkbenchFiles("task-1", ["component"])
+ * ```
+ */
 export async function cleanupForbiddenWorkbenchFiles(
   taskId: string,
   editableFileIds: string[],

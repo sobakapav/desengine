@@ -29,6 +29,105 @@ function resolveChangedFileNames(entry: TaskData["promptHistory"][number]) {
     return [];
 }
 
+function LlmUsageSummary({ taskData }: { taskData: TaskData }) {
+    const summary = taskData.llmUsageSummary;
+
+    return (
+        <div className="rounded-md border p-3">
+            <p>
+                <strong>Реальные метрики LLM:</strong>{" "}
+                {summary.totalCalls === 0
+                  ? "ещё не накоплены."
+                  : summary.totalTokens === null
+                    ? "провайдер не вернул токеновые данные."
+                    : `всего токенов ${summary.totalTokens} (вход: ${summary.inputTokens ?? "н/д"}, выход: ${summary.outputTokens ?? "н/д"}).`}
+            </p>
+            {summary.providersUsed.length > 0 && (
+                <p className="text-muted-foreground">
+                    Провайдеры в истории: {summary.providersUsed.join(", ")}.
+                    {summary.callsWithoutProviderMetrics > 0
+                      ? ` Запусков без метрик: ${summary.callsWithoutProviderMetrics}.`
+                      : ""}
+                </p>
+            )}
+        </div>
+    );
+}
+
+function PromptHistoryItem({
+    copiedEntryKey,
+    entry,
+    index,
+    onCopy,
+}: {
+    copiedEntryKey: string | null;
+    entry: TaskData["promptHistory"][number];
+    index: number;
+    onCopy: (text: string, key: string) => void;
+}) {
+    const entryKey = `${entry.createdAt}-${entry.text}`;
+    const changedFileNames = resolveChangedFileNames(entry);
+
+    return (
+        <div className="grid gap-3 py-2 grid-cols-[minmax(0,1fr)_20rem]">
+            <p className="whitespace-pre-wrap">{entry.text}</p>
+
+            <div className="space-y-1">
+                <div className="flex justify-end">
+                    <Button type="button" variant="outline" size="sm" onClick={() => onCopy(entry.text, entryKey)}>
+                        {copiedEntryKey === entryKey ? "Скопировано" : "Скопировать"}
+                    </Button>
+                </div>
+                <p className="text-muted-foreground">Запрос #{entry.iterationNumber ?? index + 1}</p>
+                <p className="text-muted-foreground">{entry.displayCreatedAt ?? formatPromptHistoryTimestamp(entry.createdAt)}</p>
+                <p className="text-muted-foreground">Уровень: {entry.levelNumber ?? "не указан"}</p>
+                <p className="text-muted-foreground">
+                    Изменены: {changedFileNames.length ? changedFileNames.join(", ") : "нет изменений"}
+                </p>
+                {entry.llmCall && (
+                    <p className="text-muted-foreground">
+                        LLM: {entry.llmCall.provider} / {entry.llmCall.model}.{" "}
+                        {entry.llmCall.metrics.status === "available"
+                          ? `Токены: ${entry.llmCall.metrics.totalTokens ?? "н/д"}`
+                          : "Метрики не возвращены провайдером"}
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function PromptHistoryList({
+    copiedEntryKey,
+    taskData,
+    onCopy,
+}: {
+    copiedEntryKey: string | null;
+    taskData: TaskData;
+    onCopy: (text: string, key: string) => void;
+}) {
+    return (
+        <div className="space-y-2">
+            <p className="font-medium">История уточнений</p>
+            {taskData.promptHistory.length === 0 ? (
+                <p className="text-muted-foreground">Пока пусто</p>
+            ) : (
+                <div className="space-y-2">
+                    {taskData.promptHistory.map((entry, index) => (
+                        <PromptHistoryItem
+                            key={`${entry.createdAt}-${entry.text}`}
+                            copiedEntryKey={copiedEntryKey}
+                            entry={entry}
+                            index={index}
+                            onCopy={onCopy}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 function Prompt({
     taskItem,
     taskData,
@@ -62,77 +161,12 @@ function Prompt({
                 </p>
             )}
 
-            <div className="rounded-md border p-3">
-                <p>
-                    <strong>Реальные метрики LLM:</strong>{" "}
-                    {taskData.llmUsageSummary.totalCalls === 0
-                      ? "ещё не накоплены."
-                      : taskData.llmUsageSummary.totalTokens === null
-                        ? "провайдер не вернул токеновые данные."
-                        : `всего токенов ${taskData.llmUsageSummary.totalTokens} (вход: ${taskData.llmUsageSummary.inputTokens ?? "н/д"}, выход: ${taskData.llmUsageSummary.outputTokens ?? "н/д"}).`}
-                </p>
-                {taskData.llmUsageSummary.providersUsed.length > 0 && (
-                    <p className="text-muted-foreground">
-                        Провайдеры в истории: {taskData.llmUsageSummary.providersUsed.join(", ")}.
-                        {taskData.llmUsageSummary.callsWithoutProviderMetrics > 0
-                          ? ` Запусков без метрик: ${taskData.llmUsageSummary.callsWithoutProviderMetrics}.`
-                          : ""}
-                    </p>
-                )}
-            </div>
-
-            <div className="space-y-2">
-                <p className="font-medium">История уточнений</p>
-                {taskData.promptHistory.length === 0 ? (
-                    <p className="text-muted-foreground">Пока пусто</p>
-                ) : (
-                    <div className="space-y-2">
-                        {taskData.promptHistory.map((entry, index) => {
-                            const entryKey = `${entry.createdAt}-${entry.text}`;
-                            const changedFileNames = resolveChangedFileNames(entry);
-
-                            return (
-                                <div key={entryKey} className="grid gap-3 py-2 grid-cols-[minmax(0,1fr)_20rem]">
-                                    <p className="whitespace-pre-wrap">{entry.text}</p>
-
-                                    <div className="space-y-1">
-                                        <div className="flex justify-end">
-                                            <Button
-                                              type="button"
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => void handleCopy(entry.text, entryKey)}
-                                            >
-                                              {copiedEntryKey === entryKey ? "Скопировано" : "Скопировать"}
-                                            </Button>
-                                        </div>
-                                        <p className="text-muted-foreground">
-                                            Запрос #{entry.iterationNumber ?? index + 1}
-                                        </p>
-                                        <p className="text-muted-foreground">
-                                            {entry.displayCreatedAt ?? formatPromptHistoryTimestamp(entry.createdAt)}
-                                        </p>
-                                        <p className="text-muted-foreground">
-                                          Уровень: {entry.levelNumber ?? "не указан"}
-                                        </p>
-                                        <p className="text-muted-foreground">
-                                          Изменены: {changedFileNames.length ? changedFileNames.join(", ") : "нет изменений"}
-                                        </p>
-                                        {entry.llmCall && (
-                                            <p className="text-muted-foreground">
-                                              LLM: {entry.llmCall.provider} / {entry.llmCall.model}.{" "}
-                                              {entry.llmCall.metrics.status === "available"
-                                                ? `Токены: ${entry.llmCall.metrics.totalTokens ?? "н/д"}`
-                                                : "Метрики не возвращены провайдером"}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
+            <LlmUsageSummary taskData={taskData} />
+            <PromptHistoryList
+                copiedEntryKey={copiedEntryKey}
+                taskData={taskData}
+                onCopy={(text, key) => void handleCopy(text, key)}
+            />
         </div>
     );
 }

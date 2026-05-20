@@ -1,34 +1,24 @@
 "use client";
 
-/** Типы доменной области */
-import type { LevelOverview as LevelOverviewData } from "@/lib/level/types"
-import type { TaskCheckResult as TaskCheckResultData, TaskData, TaskListItem, TaskTransition } from "@/lib/task/types";
-
-/** Функции */
-import { createTaskCheckPath, createTaskDonePath, } from "@/lib/task/navigation";
-
-/** Пропсы */
-import { LabProps } from "./props"
-
-/** Состояния */
-import { LabScreenState } from "./states"
-
-/** Хэндлеры */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-/** Компоненты */
-import { Workbench } from "../Workbench";
-import { LevelOverview } from "../../level/LevelOverview";
-import { TaskCheckResult } from "../../task/TaskCheckResult";
-import { TaskDone } from "../../task/TaskDone";
-import { TaskLevelStart } from "../../task/TaskLevelStart";
-import { TaskLevelTransition } from "../../task/TaskLevelTransition";
+import type { LevelOverview as LevelOverviewData } from "@/lib/level/types"
+import type { TaskCheckResult as TaskCheckResultData, TaskData, TaskListItem, TaskTransition } from "@/lib/task/types";
+import { createTaskCheckPath, createTaskDonePath, } from "@/lib/task/navigation";
 import { getLabUrl } from "@/lib/lab/navigation";
 import { getLevelsRootUrl, getLevelUrl } from "@/lib/level/navigation";
 
-
-
+import { LabProps } from "./props"
+import { LabScreenState } from "./states"
+import {
+    CheckScreenSection,
+    DoneScreenSection,
+    LevelScreenSection,
+    StatusNotice,
+    TaskScreenSection,
+    TransitionScreenSection,
+} from "./ScreenSections"
 
 function createDoneHref(taskId: string) {
     return createTaskDonePath(taskId);
@@ -46,22 +36,14 @@ function replaceTaskUrl(taskId: string, screen?: string | null) {
     const nextHref = getLabUrl(taskId, screen);
     const currentHref = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
-    if (currentHref === nextHref) {
-        return;
+    if (currentHref !== nextHref) {
+        window.history.replaceState(window.history.state, "", nextHref);
     }
-
-    window.history.replaceState(window.history.state, "", nextHref);
 }
 
-function Lab({initLevelOverview, initScreen, initTaskItem, initTaskData} : LabProps) {
-    const router = useRouter();
-    const [screen, setScreen] = useState<LabScreenState>(initScreen);
+function useLevelOverviewState(initLevelOverview: LevelOverviewData) {
     const [levelOverview, setLevelOverview] = useState<LevelOverviewData>(initLevelOverview);
-    const [taskItem, setTaskItem] = useState(initTaskItem);
-    const [taskData, setTaskData] = useState(initTaskData);
     const [status, setStatus] = useState<string>("");
-    const [startStatus, setStartStatus] = useState<"" | "starting">("");
-    const [startError, setStartError] = useState("");
 
     async function loadLevelOverview(levelId?: string, options?: { silent?: boolean }) {
         const ref = levelId ? `/api/levels/${levelId}` : "/api/levels/current";
@@ -81,6 +63,93 @@ function Lab({initLevelOverview, initScreen, initTaskItem, initTaskData} : LabPr
         return data.overview as LevelOverviewData;
     }
 
+    return { levelOverview, loadLevelOverview, setStatus, status };
+}
+
+function useTaskState(initTaskItem: TaskListItem | null, initTaskData: TaskData | null) {
+    const [taskItem, setTaskItem] = useState(initTaskItem);
+    const [taskData, setTaskData] = useState(initTaskData);
+
+    function handleTaskItemChange(next: TaskListItem | null) {
+        if (next) setTaskItem(next);
+    }
+
+    return { handleTaskItemChange, setTaskData, setTaskItem, taskData, taskItem };
+}
+
+function useLevelStarter({
+    setTaskData,
+    setTaskItem,
+    taskItem,
+}: Pick<ReturnType<typeof useTaskState>, "setTaskData" | "setTaskItem" | "taskItem">) {
+    const [startStatus, setStartStatus] = useState<"" | "starting">("");
+    const [startError, setStartError] = useState("");
+
+    async function handleLevelStart() {
+        if (!taskItem) return;
+        setStartStatus("starting");
+        setStartError("");
+
+        const res = await fetch(`/api/tasks/${taskItem.id}/start`, { method: "POST" });
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data?.ok) {
+            setStartError(data?.error || "Не удалось запустить уровень");
+            setStartStatus("");
+            return;
+        }
+
+        if (data.taskItem) setTaskItem(data.taskItem);
+        if (data.taskData) setTaskData(data.taskData);
+        setStartStatus("");
+    }
+
+    return { handleLevelStart, startError, startStatus };
+}
+
+function useLevelNavigation({
+    loadLevelOverview,
+    setScreen,
+    setStatus,
+    taskItem,
+}: Pick<ReturnType<typeof useLevelOverviewState>, "loadLevelOverview" | "setStatus"> & {
+    setScreen: (screen: LabScreenState) => void;
+    taskItem: TaskListItem | null;
+}) {
+    const router = useRouter();
+
+    async function handleNavigateLevel(levelId: string) {
+        router.push(getLevelUrl(levelId));
+        setScreen({ type: "level" });
+        setStatus("");
+        void loadLevelOverview(levelId, { silent: true });
+    }
+
+    async function handleReturnToLevelList(levelId?: string) {
+        router.push(levelId ? getLevelUrl(levelId) : getLevelsRootUrl());
+        setScreen({ type: "level" });
+        setStatus("");
+        void loadLevelOverview(levelId, { silent: true });
+    }
+
+    function handleScreenChange(nextScreen: string) {
+        if (!taskItem) return;
+        replaceTaskUrl(taskItem.id, nextScreen);
+        setScreen({ type: "task", screen: nextScreen });
+    }
+
+    return { handleNavigateLevel, handleReturnToLevelList, handleScreenChange, router };
+}
+
+function useTaskLoader({
+    router,
+    setScreen,
+    setStatus,
+    setTaskData,
+    setTaskItem,
+}: Pick<ReturnType<typeof useLevelNavigation>, "router"> & Pick<ReturnType<typeof useLevelOverviewState>, "setStatus"> & Pick<ReturnType<typeof useTaskState>, "setTaskData" | "setTaskItem"> & {
+    setScreen: (screen: LabScreenState) => void;
+}) {
     async function handleTaskOpen(taskId: string) {
         setStatus("Загрузка задания…");
         router.push(getLabUrl(taskId));
@@ -99,45 +168,24 @@ function Lab({initLevelOverview, initScreen, initTaskItem, initTaskData} : LabPr
         setStatus("");
     }
 
-    async function handleNavigateLevel(levelId: string) {
-        router.push(getLevelUrl(levelId));
-        setScreen({ type: "level" });
-        setStatus("");
-        void loadLevelOverview(levelId, { silent: true });
-    }
+    return { handleTaskOpen };
+}
 
-    async function handleReturnToLevelList(levelId?: string) {
-        const levelUrl = (levelId) ? getLevelUrl(levelId) : getLevelsRootUrl()
-        router.push(levelUrl);
-        setScreen({ type: "level" });
-        setStatus("");
-        void loadLevelOverview(levelId, { silent: true });
-    }
-
-    function handleTaskItemChange(next: TaskListItem | null) {
-        if (!next) return;
-        setTaskItem(next);
-    }
-
+function useTaskResultHandlers({
+    router,
+    setScreen,
+    setTaskData,
+    setTaskItem,
+}: Pick<ReturnType<typeof useLevelNavigation>, "router"> & Pick<ReturnType<typeof useTaskState>, "setTaskData" | "setTaskItem"> & {
+    setScreen: (screen: LabScreenState) => void;
+}) {
     function handleTransition(transition: TaskTransition | null) {
         if (!transition) return;
-
-        if (transition.toLevel) {
-            router.push(getLabUrl(transition.taskId));
-            setScreen({ type: "task", screen: "component" });
-            return;
-        }
-
-        router.push(createDoneHref(transition.taskId));
-        setScreen({ type: "done", transition });
+        router.push(transition.toLevel ? getLabUrl(transition.taskId) : createDoneHref(transition.taskId));
+        setScreen(transition.toLevel ? { type: "task", screen: "component" } : { type: "done", transition });
     }
 
-    function handleCheckResult(
-        result: TaskCheckResultData,
-        transition: TaskTransition | null,
-        nextTaskItem: TaskListItem | null,
-        nextTaskData: TaskData,
-    ) {
+    function handleCheckResult(result: TaskCheckResultData, transition: TaskTransition | null, nextTaskItem: TaskListItem | null, nextTaskData: TaskData) {
         if (nextTaskItem) {
             setTaskItem(nextTaskItem);
         }
@@ -146,150 +194,28 @@ function Lab({initLevelOverview, initScreen, initTaskItem, initTaskData} : LabPr
         setScreen({ type: "check", result, transition });
     }
 
-    async function handleLevelStart() {
-        if (!taskItem) return;
+    return { handleCheckResult, handleTransition };
+}
 
-        setStartStatus("starting");
-        setStartError("");
-
-        const res = await fetch(`/api/tasks/${taskItem.id}/start`, { method: "POST" });
-        const data = await res.json().catch(() => null);
-
-        if (!res.ok || !data?.ok) {
-            setStartError(data?.error || "Не удалось запустить уровень");
-            setStartStatus("");
-            return;
-        }
-
-        if (data.taskItem) {
-            setTaskItem(data.taskItem);
-        }
-        if (data.taskData) {
-            setTaskData(data.taskData);
-        }
-        setStartStatus("");
-    }
-
-    function handleScreenChange(nextScreen: string) {
-        if (!taskItem) return;
-        replaceTaskUrl(taskItem.id, nextScreen);
-        setScreen({ type: "task", screen: nextScreen });
-    }
+function Lab({initLevelOverview, initScreen, initTaskItem, initTaskData} : LabProps) {
+    const [screen, setScreen] = useState<LabScreenState>(initScreen);
+    const { levelOverview, loadLevelOverview, setStatus, status } = useLevelOverviewState(initLevelOverview);
+    const taskState = useTaskState(initTaskItem, initTaskData);
+    const navigation = useLevelNavigation({ loadLevelOverview, setScreen, setStatus, taskItem: taskState.taskItem });
+    const starter = useLevelStarter(taskState);
+    const taskLoader = useTaskLoader({ ...navigation, setScreen, setStatus, setTaskData: taskState.setTaskData, setTaskItem: taskState.setTaskItem });
+    const taskResults = useTaskResultHandlers({ ...navigation, setScreen, setTaskData: taskState.setTaskData, setTaskItem: taskState.setTaskItem });
 
     return (
         <main>
-            {status && (
-                <p className="text-muted-foreground">{status}</p>
-            )}
-
-            {screen.type === "level" ? (
-                <LevelOverview
-                    overview={levelOverview}
-                    pending={status.length > 0}
-                    onOpenTask={handleTaskOpen}
-                    onNavigateLevel={handleNavigateLevel}
-                />
-            ) : null}
-
-            {screen.type === "transition" ? (
-                <TaskLevelTransition
-                    transition={screen.transition}
-                    started={taskItem?.started ?? false}
-                    pending={status.length > 0}
-                    onContinue={() => {
-                        router.push(getLabUrl(screen.transition.taskId));
-                        setScreen({ type: "task", screen: "component" });
-                    }}
-                    onBackToLevelList={() => handleReturnToLevelList(screen.transition.toLevel?.id)}
-                />
-            ) : null}
-
-            {screen.type === "done" ? (
-                <TaskDone
-                    transition={screen.transition}
-                    started={taskItem?.started ?? false}
-                    pending={status.length > 0}
-                    onOpenTask={() => {
-                        router.push(getLabUrl(screen.transition.taskId));
-                        setScreen({ type: "task", screen: "component" });
-                    }}
-                    onBackToTaskList={() => handleReturnToLevelList()}
-                />
-            ) : null}
-
-            {screen.type === "check" ? (
-                <TaskCheckResult
-                    result={screen.result}
-                    transition={screen.transition}
-                    pending={status.length > 0}
-                    onContinue={() => {
-                        if (screen.transition?.toLevel) {
-                            router.push(getLabUrl(screen.transition.taskId));
-                            setScreen({ type: "task", screen: "component" });
-                            return;
-                        }
-
-                        if (screen.transition) {
-                            router.push(createDoneHref(screen.transition.taskId));
-                            setScreen({ type: "done", transition: screen.transition });
-                            return;
-                        }
-
-                        handleReturnToLevelList(taskItem?.progress.currentLevelId);
-                    }}
-                    onBackToLab={() => {
-                        if (!taskItem) return;
-                        router.push(getLabUrl(taskItem.id));
-                        setScreen({ type: "task", screen: "component" });
-                    }}
-                    onRetry={async () => {
-                        if (!taskItem) return;
-
-                        setStatus("Повторная проверка уровня…");
-                        const res = await fetch(`/api/tasks/${taskItem.id}/check`, { method: "POST" });
-                        const data = await res.json().catch(() => null);
-
-                        if (!res.ok || !data?.ok || !data?.checkResult || !data?.taskData) {
-                            setStatus(data?.error || "Не удалось повторить проверку");
-                            return;
-                        }
-
-                        setStatus("");
-                        handleCheckResult(
-                            data.checkResult,
-                            data.transition ?? null,
-                            data.taskItem ?? null,
-                            data.taskData,
-                        );
-                    }}
-                />
-            ) : null}
-
-            {screen.type === "task" && taskItem && taskData ? (
-                taskItem.progress.currentLevelStarted ? (
-                    <Workbench
-                        taskItem={taskItem}
-                        taskData={taskData}
-                        onTaskItemChange={handleTaskItemChange}
-                        onTaskDataChange={setTaskData}
-                        onBackToLevelList={() => handleReturnToLevelList(taskItem.progress.currentLevelId)}
-                        onCheckResult={handleCheckResult}
-                        onTransition={handleTransition}
-                        activeScreen={screen.screen}
-                        onScreenChange={handleScreenChange}
-                    />
-                ) : (
-                    <TaskLevelStart
-                        taskItem={taskItem}
-                        taskData={taskData}
-                        startStatus={startStatus}
-                        startError={startError}
-                        onStart={() => void handleLevelStart()}
-                        onBackToLevelList={() => handleReturnToLevelList(taskItem.progress.currentLevelId)}
-                    />
-                )
-            ) : null}
+            <StatusNotice status={status} />
+            {screen.type === "level" ? <LevelScreenSection {...navigation} {...taskLoader} levelOverview={levelOverview} status={status} /> : null}
+            {screen.type === "transition" ? <TransitionScreenSection {...navigation} screen={screen} setScreen={setScreen} status={status} taskItem={taskState.taskItem} /> : null}
+            {screen.type === "done" ? <DoneScreenSection {...navigation} screen={screen} setScreen={setScreen} status={status} taskItem={taskState.taskItem} /> : null}
+            {screen.type === "check" ? <CheckScreenSection {...navigation} {...taskResults} screen={screen} setScreen={setScreen} setStatus={setStatus} status={status} taskItem={taskState.taskItem} /> : null}
+            {screen.type === "task" ? <TaskScreenSection {...navigation} {...starter} {...taskResults} {...taskState} screen={screen} /> : null}
         </main>
     );
 }
+
 export { Lab }

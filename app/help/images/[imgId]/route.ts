@@ -9,6 +9,14 @@ type HelpImageRouteContext = {
   }>
 }
 
+/**
+ * @example
+ * ```ts
+ * await GET(new Request("http://localhost/help/images/diagram.png"), {
+ *   params: Promise.resolve({ imgId: "diagram.png" }),
+ * })
+ * ```
+ */
 export async function GET(_request: Request, context: HelpImageRouteContext) {
   const unauthorizedResponse = await requireAccessOrUnauthorizedResponse()
   if (unauthorizedResponse) return unauthorizedResponse

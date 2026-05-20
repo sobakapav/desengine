@@ -7,6 +7,15 @@ type Body = {
   prompt?: string
 }
 
+/**
+ * @example
+ * ```ts
+ * await POST(new Request("http://localhost/api/tasks/task-1/iterate", {
+ *   method: "POST",
+ *   body: JSON.stringify({ prompt: "Сделай кнопку заметнее" }),
+ * }), { params: Promise.resolve({ taskId: "task-1" }) })
+ * ```
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<Params> },

@@ -10,6 +10,7 @@
 "use client"
 
 import { isValidElement } from "react"
+import type { Components } from "react-markdown"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
@@ -88,109 +89,116 @@ function getCodeBlockData(children: React.ReactNode) {
   }
 }
 
+const baseMarkdownComponents = {
+  p: (props) => (
+    <p className={markdownElementClassNames.paragraph} {...props} />
+  ),
+  ul: (props) => (
+    <ul className={markdownElementClassNames.list} {...props} />
+  ),
+  ol: (props) => (
+    <ol className={markdownElementClassNames.orderedList} {...props} />
+  ),
+  li: (props) => (
+    <li className={markdownElementClassNames.listItem} {...props} />
+  ),
+  h1: (props) => (
+    <h3 className={markdownElementClassNames.heading} {...props} />
+  ),
+  h2: (props) => (
+    <h3 className={markdownElementClassNames.heading} {...props} />
+  ),
+  h3: (props) => (
+    <h4 className={markdownElementClassNames.heading} {...props} />
+  ),
+  code: ({ className, ...props }) => (
+    <code
+      className={cn(markdownElementClassNames.inlineCode, className)}
+      {...props}
+    />
+  ),
+  blockquote: (props) => (
+    <blockquote
+      className={markdownElementClassNames.blockquote}
+      {...props}
+    />
+  ),
+} satisfies Components
+
+function createLinkComponent(assetBasePath?: string): Components["a"] {
+  return ({ href, children, ...props }) => {
+    const resolvedHref = resolveMarkdownUrl(href, assetBasePath)
+    const isExternalUrl = resolvedHref
+      ? EXTERNAL_URL_PATTERN.test(resolvedHref)
+      : false
+
+    if (!resolvedHref) {
+      return <span>{children}</span>
+    }
+
+    return (
+      <a
+        {...props}
+        className={markdownElementClassNames.link}
+        href={resolvedHref}
+        rel={isExternalUrl ? "noreferrer" : undefined}
+        target={isExternalUrl ? "_blank" : undefined}
+      >
+        {children}
+      </a>
+    )
+  }
+}
+
+function createImageComponent(assetBasePath?: string): Components["img"] {
+  return ({ src, alt }) => {
+    const resolvedSrc =
+      typeof src === "string"
+        ? resolveMarkdownUrl(src, assetBasePath)
+        : undefined
+
+    if (!resolvedSrc) {
+      return null
+    }
+
+    return <img src={resolvedSrc} alt={alt ?? ""} />
+  }
+}
+
+function renderPre({ children }: { children?: React.ReactNode }) {
+  const codeBlock = getCodeBlockData(children)
+
+  if (codeBlock?.language === "mermaid") {
+    return (
+      <MermaidDiagram
+        chart={codeBlock.code}
+        className={markdownElementClassNames.mermaidBlock}
+      />
+    )
+  }
+
+  return (
+    <pre className={markdownElementClassNames.codeBlock}>
+      {children}
+    </pre>
+  )
+}
+
+function createMarkdownComponents(assetBasePath?: string): Components {
+  return {
+    ...baseMarkdownComponents,
+    a: createLinkComponent(assetBasePath),
+    img: createImageComponent(assetBasePath),
+    pre: renderPre,
+  }
+}
+
 function MarkdownContent({ content, className, assetBasePath }: MarkdownContentProps) {
   return (
     <div className={cn(markdownBlockClassName, className)}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        components={{
-          p: (props) => (
-            <p className={markdownElementClassNames.paragraph} {...props} />
-          ),
-
-          ul: (props) => (
-            <ul className={markdownElementClassNames.list} {...props} />
-          ),
-
-          ol: (props) => (
-            <ol className={markdownElementClassNames.orderedList} {...props} />
-          ),
-
-          li: (props) => (
-            <li className={markdownElementClassNames.listItem} {...props} />
-          ),
-
-          h1: (props) => (
-            <h3 className={markdownElementClassNames.heading} {...props} />
-          ),
-
-          h2: (props) => (
-            <h3 className={markdownElementClassNames.heading} {...props} />
-          ),
-
-          h3: (props) => (
-            <h4 className={markdownElementClassNames.heading} {...props} />
-          ),
-
-          a: ({ href, children, ...props }) => {
-            const resolvedHref = resolveMarkdownUrl(href, assetBasePath)
-            const isExternalUrl = resolvedHref
-              ? EXTERNAL_URL_PATTERN.test(resolvedHref)
-              : false
-
-            if (!resolvedHref) {
-              return <span>{children}</span>
-            }
-
-            return (
-              <a
-                {...props}
-                className={markdownElementClassNames.link}
-                href={resolvedHref}
-                rel={isExternalUrl ? "noreferrer" : undefined}
-                target={isExternalUrl ? "_blank" : undefined}
-              >
-                {children}
-              </a>
-            )
-          },
-
-          img: ({ src, alt }) => {
-            const resolvedSrc =
-              typeof src === "string"
-                ? resolveMarkdownUrl(src, assetBasePath)
-                : undefined
-
-            if (!resolvedSrc) {
-              return null
-            }
-
-            return <img src={resolvedSrc} alt={alt ?? ""} />
-          },
-
-          pre: ({ children }) => {
-            const codeBlock = getCodeBlockData(children)
-
-            if (codeBlock?.language === "mermaid") {
-              return (
-                <MermaidDiagram
-                  chart={codeBlock.code}
-                  className={markdownElementClassNames.mermaidBlock}
-                />
-              )
-            }
-
-            return (
-              <pre className={markdownElementClassNames.codeBlock}>
-                {children}
-              </pre>
-            )
-          },
-
-          code: ({ className, ...props }) => (
-            <code
-              className={cn(markdownElementClassNames.inlineCode, className)}
-              {...props}
-            />
-          ),
-
-          blockquote: (props) => (
-            <blockquote
-              className={markdownElementClassNames.blockquote}
-              {...props}
-            />
-          ),
-        }}
+        components={createMarkdownComponents(assetBasePath)}
       >
         {content}
       </ReactMarkdown>

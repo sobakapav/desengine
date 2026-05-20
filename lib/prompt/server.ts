@@ -27,10 +27,22 @@ async function pickPromptTemplatePath(root: string, relativePathWithoutExt: stri
   return njkPath
 }
 
+/**
+ * @example
+ * ```ts
+ * const prompt = await readPrompt("production", "default")
+ * ```
+ */
 export async function readPrompt(kind: PromptKind, name: PromptName) {
   return renderPrompt(kind, `${name}`, {})
 }
 
+/**
+ * @example
+ * ```ts
+ * const prompt = await renderPrompt("didactic", "levels/level-1/start", context)
+ * ```
+ */
 export async function renderPrompt(
   kind: PromptKind,
   name: string,
@@ -103,6 +115,12 @@ export async function readLevelCheckPrompt(levelId: string) {
   }
 }
 
+/**
+ * @example
+ * ```ts
+ * const text = await readLevelCommonExplanation("level-1", "Fallback")
+ * ```
+ */
 export async function readLevelCommonExplanation(levelId: string, fallbackText?: string) {
   const filePath = path.join(appConfig.levelsCatalogRoot, levelId, "overview.md")
 

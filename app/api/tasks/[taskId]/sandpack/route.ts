@@ -42,26 +42,20 @@ function pickPreviewLevelNumber(taskItem: { progress: { currentLevel: number, cu
   return taskItem.progress.currentLevel
 }
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<Params> },
-) {
-  const unauthorizedResponse = await requireAccessOrUnauthorizedResponse()
-  if (unauthorizedResponse) return unauthorizedResponse
-
-  const { taskId } = await params
+function parseProjectFromRequest(request: Request, taskId: string) {
   const { searchParams } = new URL(request.url)
-  const project = normalizeProject({
+
+  return normalizeProject({
     id: searchParams.get("projectId") ?? `task-${taskId}`,
     title: searchParams.get("projectTitle") ?? "Локальный проект",
     uiKitId: searchParams.get("uiKitId") ?? defaultSandpackUiKitId,
     uiMode: searchParams.get("uiMode") ?? "html-tags",
   })
-  const projectPreviewConfig = resolveProjectPreviewConfig(project)
-  const taskItem = await getTaskListItemById(taskId)
+}
 
+async function resolvePreviewLevel(taskItem: Awaited<ReturnType<typeof getTaskListItemById>>) {
   if (!taskItem) {
-    return Response.json({ ok: false, error: "Задание не найдено" }, { status: 404 })
+    return { kind: "task-not-found" as const }
   }
 
   const levels = await getLevelsCatalog()
@@ -69,29 +63,14 @@ export async function GET(
   const previewLevel = levels.find((level) => level.number === previewLevelNumber) ?? null
 
   if (!previewLevel) {
-    return Response.json(
-      { ok: false, error: `Уровень ${previewLevelNumber} не найден в каталоге` },
-      { status: 500 },
-    )
+    return { kind: "level-not-found" as const, previewLevelNumber }
   }
 
-  const [levelTemplate, levelTemplateRuntimeSource] = await Promise.all([
-    readLevelSandpackTemplate(previewLevel.id),
-    Promise.resolve(buildLevelTemplateRuntimeSource({
-      levelId: previewLevel.id,
-      levelNumber: previewLevel.number,
-      labId: previewLevel.labId,
-    })),
-  ])
+  return { kind: "ready" as const, previewLevel }
+}
 
-  const [
-    component,
-    stories,
-    styles,
-    mock,
-    props,
-    systemUtils,
-  ] = await Promise.all([
+async function readTaskPreviewSourceFiles(taskId: string, includeShadcnFiles: boolean): Promise<SandpackPreviewSourceFiles> {
+  const [component, stories, styles, mock, props, systemUtils] = await Promise.all([
     readUserTaskFile(taskId, "Component.tsx"),
     readUserTaskFile(taskId, "Component.stories.ts", "export {};\n"),
     readUserTaskFile(taskId, "styles.ts", "export const styles = {};\n"),
@@ -100,32 +79,64 @@ export async function GET(
     readFile(systemUtilsPath, "utf-8"),
   ])
 
-  const [uiBadge, shadcnFiles] = projectPreviewConfig.effectiveUiKitId === "shadcn"
+  const [uiBadge, shadcnFiles] = includeShadcnFiles
     ? await Promise.all([
       readFile(uiBadgePath, "utf-8"),
-      readFilesRecursively(
-        path.join(process.cwd(), "components", "ui"),
-        "/components/ui"
-      ),
+      readFilesRecursively(path.join(process.cwd(), "components", "ui"), "/components/ui"),
     ])
     : ["", {} as Record<string, string>]
 
-  if (!component.trim()) {
+  return { component, stories, styles, mock, props, systemUtils, uiBadge, shadcnFiles }
+}
+
+/**
+ * @example
+ * ```ts
+ * await GET(new Request("http://localhost/api/tasks/task-1/sandpack"), {
+ *   params: Promise.resolve({ taskId: "task-1" }),
+ * })
+ * ```
+ */
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<Params> },
+) {
+  const unauthorizedResponse = await requireAccessOrUnauthorizedResponse()
+  if (unauthorizedResponse) return unauthorizedResponse
+
+  const { taskId } = await params
+  const project = parseProjectFromRequest(request, taskId)
+  const projectPreviewConfig = resolveProjectPreviewConfig(project)
+  const taskItem = await getTaskListItemById(taskId)
+  const previewLevelState = await resolvePreviewLevel(taskItem)
+
+  if (previewLevelState.kind === "task-not-found") {
+    return Response.json({ ok: false, error: "Задание не найдено" }, { status: 404 })
+  }
+
+  if (previewLevelState.kind === "level-not-found") {
+    return Response.json(
+      { ok: false, error: `Уровень ${previewLevelState.previewLevelNumber} не найден в каталоге` },
+      { status: 500 },
+    )
+  }
+
+  const { previewLevel } = previewLevelState
+  const [levelTemplate, levelTemplateRuntimeSource] = await Promise.all([
+    readLevelSandpackTemplate(previewLevel.id),
+    Promise.resolve(buildLevelTemplateRuntimeSource({
+      levelId: previewLevel.id,
+      levelNumber: previewLevel.number,
+      labId: previewLevel.labId,
+    })),
+  ])
+  const sourceFiles = await readTaskPreviewSourceFiles(taskId, projectPreviewConfig.effectiveUiKitId === "shadcn")
+
+  if (!sourceFiles.component.trim()) {
     return Response.json(
       { ok: false, error: "Component.tsx пуст или недоступен" },
       { status: 404 },
     )
-  }
-
-  const sourceFiles: SandpackPreviewSourceFiles = {
-    component,
-    stories,
-    styles,
-    mock,
-    props,
-    systemUtils,
-    uiBadge,
-    shadcnFiles,
   }
 
   return Response.json(

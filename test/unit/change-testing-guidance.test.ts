@@ -66,17 +66,54 @@ describe("change testing guidance", () => {
 
   it("readability checker задаёт deterministic-правила читаемости для изменённых файлов", () => {
     const source = readProjectFile("tools", "quality-text", "engine.mjs")
+    const config = JSON.parse(readProjectFile("tools", "quality-text", "config.json")) as {
+      maxLinesProduction: number
+      maxLinesTests: number
+      maxFunctionLines: number
+      scopes: string[]
+      llm: { mode: string; maxFiles: number; maxTokens: number; fallback: string }
+    }
+    const packageJson = JSON.parse(readProjectFile("package.json")) as {
+      scripts: Record<string, string>
+    }
+    const ruleFiles = [
+      "file-length.mjs",
+      "function-length.mjs",
+      "todo-format.mjs",
+      "boolean-trap.mjs",
+      "floating-promise.mjs",
+      "api-example.mjs",
+    ]
 
     expect(source).toContain("maxLinesProduction: 300")
     expect(source).toContain("maxLinesTests: 450")
     expect(source).toContain("maxFunctionLines: 60")
-    expect(source).toContain("TODO(owner:")
-    expect(source).toContain("targetStage:")
-    expect(source).toContain("boolean-trap")
-    expect(source).toContain("floating-promise")
+    expect(source).toContain("qualityTextRules")
+    expect(source).toContain("qualityTextRuleIds")
     expect(source).toContain('const scope = args.scope ?? config.scopes[0] ?? "working"')
     expect(source).toContain('if (scope === "repo")')
     expect(source).toContain('if (scope === "branch")')
+
+    for (const ruleFile of ruleFiles) {
+      expect(fs.existsSync(path.join(process.cwd(), "tools", "quality-text", "rules", ruleFile))).toBe(true)
+    }
+
+    expect(readProjectFile("tools", "quality-text", "rules", "todo-format.mjs")).toContain("TODO(owner:")
+    expect(readProjectFile("tools", "quality-text", "rules", "todo-format.mjs")).toContain("targetStage:")
+    expect(readProjectFile("tools", "quality-text", "rules", "boolean-trap.mjs")).toContain("boolean-trap")
+    expect(readProjectFile("tools", "quality-text", "rules", "floating-promise.mjs")).toContain("floating-promise")
+
+    expect(config.maxLinesProduction).toBe(300)
+    expect(config.maxLinesTests).toBe(450)
+    expect(config.maxFunctionLines).toBe(60)
+    expect(config.scopes).toEqual(["working", "branch", "repo"])
+    expect(config.llm).toEqual({ mode: "off", maxFiles: 5, maxTokens: 8000, fallback: "deterministic" })
+    expect(packageJson.scripts["quality:text"]).not.toContain("QUALITY_TEXT_LLM_MODE")
+    expect(packageJson.scripts["quality:text"]).not.toContain("--llm=optional")
+    expect(packageJson.scripts["quality:text:branch"]).not.toContain("QUALITY_TEXT_LLM_MODE")
+    expect(packageJson.scripts["quality:text:repo"]).not.toContain("--llm=optional")
+    expect(packageJson.scripts["test:full"]).not.toContain("QUALITY_TEXT_LLM_MODE")
+    expect(packageJson.scripts["test:full"]).not.toContain("--llm=optional")
   })
 
   it("placeholder-команды не блокируют runtime и объясняют следующий этап", () => {

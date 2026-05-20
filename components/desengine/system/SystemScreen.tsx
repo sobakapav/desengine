@@ -16,6 +16,24 @@ type SystemScreenProps = {
   instructions: Instruction[]
 }
 
+function SystemNavigationLinks() {
+  return (
+    <ul>
+      <li className="text-4xl p-12"><strong><a href="/lab">Лаборатория</a></strong></li>
+      <li className="text-4xl p-12"><a href="/levels">Уровни</a></li>
+      <li className="text-4xl p-12"><a href="/tasks">Задачи</a></li>
+      <li className="text-4xl p-12"><a href="/system">Система</a></li>
+      <li className="text-4xl p-12"><a href="/help">Справка</a></li>
+    </ul>
+  )
+}
+
+/**
+ * @example
+ * ```tsx
+ * <SystemScreen authState="missing" configured={false} resources={[]} instructions={[]} />
+ * ```
+ */
 export function SystemScreen({
   authState,
   configured,
@@ -29,7 +47,7 @@ export function SystemScreen({
     event.preventDefault()
     setError("")
 
-    // TODO Убрать жёстко зашитые адреса
+    // TODO(owner:team-desengine, targetStage:6.5): убрать жёстко зашитые адреса.
     startTransition(async () => {
       const response = await fetch("/api/auth/verify", {
         method: "POST",
@@ -57,15 +75,7 @@ export function SystemScreen({
     <main className="tool-shell-page">
         <section className="flex m-5 gap-2 items-center">
           <div className="flex-1 p-8">
-          <ul>
-            <li className="text-4xl p-12"><strong><a href="/lab">Лаборатория</a></strong></li>
-            <li className="text-4xl p-12"><a href="/levels">Уровни</a></li>
-            <li className="text-4xl p-12"><a href="/tasks">Задачи</a></li>
-            <li className="text-4xl p-12"><a href="/system">Система</a></li>
-            <li className="text-4xl p-12"><a href="/help">Справка</a></li>
-
-          </ul>
-
+            <SystemNavigationLinks />
           </div>
           <div className="flex-1">
             <ResourceCardList

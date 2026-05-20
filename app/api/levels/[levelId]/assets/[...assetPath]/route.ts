@@ -23,6 +23,14 @@ function isSafePathSegment(segment: string) {
   return Boolean(segment) && segment !== "." && segment !== ".."
 }
 
+/**
+ * @example
+ * ```ts
+ * await GET(new Request("http://localhost/api/levels/level-1/assets/intro.md"), {
+ *   params: Promise.resolve({ levelId: "level-1", assetPath: ["intro.md"] }),
+ * })
+ * ```
+ */
 export async function GET(
   _request: Request,
   context: {

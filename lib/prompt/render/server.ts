@@ -42,6 +42,12 @@ function renderAsync(
   })
 }
 
+/**
+ * @example
+ * ```ts
+ * await renderPromptTemplateFromRoot(root, "levels/level-1/start.njk", context, { required: true })
+ * ```
+ */
 export async function renderPromptTemplateFromRoot(
   root: string,
   templatePath: string,

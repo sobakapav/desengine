@@ -10,6 +10,15 @@ type Body = {
   }>
 }
 
+/**
+ * @example
+ * ```ts
+ * await POST(new Request("http://localhost/api/tasks/task-1/files", {
+ *   method: "POST",
+ *   body: JSON.stringify({ updates: [{ fileId: "component", content: "export default function Component() { return null }" }] }),
+ * }), { params: Promise.resolve({ taskId: "task-1" }) })
+ * ```
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<Params> },

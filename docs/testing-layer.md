@@ -180,6 +180,8 @@ npm run quality:text:repo
 
 Временные legacy-исключения фиксируются в `tools/quality-text/waivers.json`.
 Для каждого исключения обязательны поля `rules`, `owner`, `reason`, `targetStage`.
+Отчёт подсистемы всегда показывает `Scope`, `Files checked`, `Violations`, `Waived violations` и `LLM mode`.
+Optional LLM-режим выключен по умолчанию, не входит в `test:full` и при ручном включении обязан вернуться к `fallback:deterministic`, если бюджет или безопасная provider-интеграция не позволяют продолжать.
 
 ## Live/provider-режим
 
