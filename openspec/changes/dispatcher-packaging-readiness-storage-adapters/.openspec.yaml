@@ -13,4 +13,4 @@ roadmap_ref: ""
 roadmap_refs:
   - "focus-tech/roadmaps/architecture-transformation.md"
   - "producer-task-and-workflow-entities/roadmaps/packaging-readiness-storage-adapters.md"
-producer_ref: "producer-task-and-workflow-entities"
+producer_ref: ""

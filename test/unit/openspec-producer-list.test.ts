@@ -40,7 +40,7 @@ describe("openspec producer list", () => {
     writeChange(
       fixtureRoot,
       path.join("openspec", "changes", "dispatcher-alpha"),
-      'change_kind: "dispatcher"\nparent_change: "focus-demo"\nproducer_ref: "producer-alpha"\nshort: "диспетчер alpha"',
+      'change_kind: "dispatcher"\nparent_change: "focus-demo"\nshort: "диспетчер alpha"',
     )
     writeChange(
       fixtureRoot,
@@ -67,7 +67,6 @@ describe("openspec producer list", () => {
     expect(output).toContain("  dispatcher-alpha\tдиспетчер alpha")
     expect(output).toContain("    implement-alpha\tреализация alpha")
     expect(output).toContain("    fix-alpha\tфикс alpha")
-    expect(output).toContain("\u001B[97mproducer-empty\u001B[0m\tproducer empty")
-    expect(output).toContain("(пусто)\tнет привязанных implement/fix changes")
+    expect(output).not.toContain("producer-empty")
   })
 })

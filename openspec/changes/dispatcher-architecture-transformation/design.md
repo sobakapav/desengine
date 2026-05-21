@@ -5,7 +5,7 @@
 ## Decisions
 
 1. `dispatcher-architecture-transformation` подчиняется `focus-tech`, а не producer.
-2. Producer-контекст сохраняется через `producer_ref=producer-architecture-transformation`.
+2. Producer `producer-architecture-transformation` остаётся внешним стратегическим контекстом и не записывается в metadata dispatcher.
 3. Dispatcher ведёт downstream implementation и cleanup как отдельную delivery-линию.
 
 ## Risks / Trade-offs

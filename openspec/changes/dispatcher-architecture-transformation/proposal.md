@@ -5,7 +5,7 @@
 ## What Changes
 
 - Вводится `dispatcher-architecture-transformation` под `focus-tech`.
-- Dispatcher использует технический roadmap `focus-tech` и одновременно работает в producer-контексте через `producer_ref`.
+- Dispatcher использует технический roadmap `focus-tech` и остаётся отдельным тактическим контуром по отношению к producer.
 - Dispatcher координирует downstream implementation и тактические follow-up changes архитектурной волны.
 
 ## Non-goals

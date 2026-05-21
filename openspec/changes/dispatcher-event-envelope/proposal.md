@@ -33,7 +33,7 @@
 ## Acceptance Criteria
 
 - `dispatcher-event-envelope` отображается в дереве OpenSpec как дочерний change у `focus-tech`.
-- Producer-контекст `producer-event-envelope-experience-cost-boundary` сохранён через `producer_ref`, а не через прямое родительство.
+- Producer `producer-event-envelope-experience-cost-boundary` остаётся отдельным стратегическим контекстом и не становится родителем или metadata-меткой dispatcher.
 - Зафиксированы обязательные поля общего envelope и правила, что может жить только в payload.
 - Зафиксирована карта downstream changes, которые должны использовать общий envelope.
 - В первой implement-волне у dispatcher есть не только foundation-контракт, но и наблюдаемый runtime-step screen propagation.

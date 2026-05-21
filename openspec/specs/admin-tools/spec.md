@@ -77,7 +77,7 @@
 
 #### Scenario: Разработчик выводит исполнительские задачи по producer
 - **WHEN** разработчик запускает `npm run os:p`
-- **THEN** команда печатает active producer changes
+- **THEN** команда печатает только те active producer changes, у которых есть связанные `implement` или `fix` changes
 - **AND** для каждого producer показывает связанные `implement` и `fix` changes
 - **AND** grouping выполняется через parent dispatcher этих исполнительских changes
 

@@ -140,8 +140,8 @@ short: "диспетчер workflow"`,
     )
     makeChange(
       fixtureRoot,
-      path.join("openspec", "changes", "dispatcher-demo"),
-      'change_kind: "dispatcher"\nexecution_mode: "no-code"\nparent_change: "focus-demo"\nstrategy_root: "focus-demo"\nroadmap_ref: "focus-demo/roadmaps/demo.md"\nproducer_ref: "producer-demo"\nshort: "диспетчер demo"',
+      path.join("openspec", "changes", "implement-demo"),
+      'change_kind: "implement"\nexecution_mode: "code"\nparent_change: "dispatcher-demo"\nstrategy_root: "focus-demo"\nproducer_ref: "producer-demo"\nverification_level: "unit"\nverification_command: "npm run test:unit"\nshort: "реализация demo"',
     )
 
     execFileSync(process.execPath, [path.join(process.cwd(), "tools", "rename-openspec-change.mjs"), "producer-demo", "producer-guidance"], {
@@ -149,12 +149,12 @@ short: "диспетчер workflow"`,
       encoding: "utf8",
     })
 
-    const dispatcherMeta = fs.readFileSync(
-      path.join(fixtureRoot, "openspec", "changes", "dispatcher-demo", ".openspec.yaml"),
+    const implementMeta = fs.readFileSync(
+      path.join(fixtureRoot, "openspec", "changes", "implement-demo", ".openspec.yaml"),
       "utf8",
     )
 
-    expect(dispatcherMeta).toContain('producer_ref: "producer-guidance"')
+    expect(implementMeta).toContain('producer_ref: "producer-guidance"')
   })
 
   it("запрещает голый суффикс даты в имени change", () => {

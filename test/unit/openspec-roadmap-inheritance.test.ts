@@ -5,9 +5,9 @@
 // @openSpec  - "Dispatcher использует несколько roadmap"
 // @openSpec  - "Создаётся producer change"
 // @openSpec  - "Producer передаёт delivery downstream dispatcher"
-// @openSpec  - "Dispatcher входит в producer-контекст"
-// @openSpec  - "Implement или fix наследует producer-контекст от dispatcher"
+// @openSpec  - "Implement или fix помечается producer-контекстом"
 // @openSpec  - "Dispatcher не подчиняется producer напрямую"
+// @openSpec  - "Dispatcher не может хранить producer-контекст"
 // @openSpec  - "Разработчик открывает implement/fix через `os:ctx`"
 
 import { execFileSync } from "node:child_process"
@@ -65,7 +65,6 @@ strategy_root: "producer-demo"
 roadmap_ref: "focus-demo/roadmaps/demo.md"
 roadmap_refs:
   - "producer-demo/roadmaps/extra.md"
-producer_ref: "producer-demo"
 short: "диспетчер демо"
 `,
     )
@@ -126,7 +125,6 @@ execution_mode: "no-code"
 parent_change: "producer-demo"
 strategy_root: "producer-demo"
 roadmap_ref: "producer-demo/roadmaps/extra.md"
-producer_ref: "producer-demo"
 short: "диспетчер демо"
 `,
     )
@@ -134,6 +132,43 @@ short: "диспетчер демо"
     const errors = validateChanges(fixtureRoot, path.join(fixtureRoot, "openspec", "changes"))
 
     expect(errors.join("\n")).toContain("dispatcher change не может иметь parent_change на producer")
+  })
+
+  it("не допускает producer_ref в metadata dispatcher", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-roadmaps-producer-ref-dispatcher-"))
+    tempDirs.push(fixtureRoot)
+
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "focus-demo", ".openspec.yaml"),
+      'change_kind: "focus"\nexecution_mode: "no-code"\nparent_change: ""\nstrategy_root: ""\nshort: "фокус демо"\n',
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "focus-demo", "roadmaps", "demo.md"),
+      "# demo\n",
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "producer-demo", ".openspec.yaml"),
+      'change_kind: "producer"\nexecution_mode: "no-code"\nparent_change: "focus-demo"\nstrategy_root: "focus-demo"\nshort: "producer demo"\n',
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "producer-demo", "roadmaps", "extra.md"),
+      "# extra\n",
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "dispatcher-demo", ".openspec.yaml"),
+      `change_kind: "dispatcher"
+execution_mode: "no-code"
+parent_change: "focus-demo"
+strategy_root: "focus-demo"
+roadmap_ref: "focus-demo/roadmaps/demo.md"
+producer_ref: "producer-demo"
+short: "диспетчер демо"
+`,
+    )
+
+    const errors = validateChanges(fixtureRoot, path.join(fixtureRoot, "openspec", "changes"))
+
+    expect(errors.join("\n")).toContain("dispatcher change не может иметь producer_ref")
   })
 
   it("os:ctx показывает inherited roadmap parent dispatcher", () => {
@@ -155,7 +190,6 @@ execution_mode: "no-code"
 parent_change: "focus-demo"
 strategy_root: "focus-demo"
 roadmap_ref: "focus-demo/roadmaps/demo.md"
-producer_ref: "producer-demo"
 short: "диспетчер демо"
 `,
     )

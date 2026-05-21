@@ -36,7 +36,7 @@
 ## Acceptance Criteria
 
 - `dispatcher-log-system` отображается в дереве OpenSpec как дочерний change у `focus-tech`.
-- Producer-контекст `producer-event-envelope-experience-cost-boundary` сохранён через `producer_ref`, а не через прямое родительство.
+- Producer `producer-event-envelope-experience-cost-boundary` остаётся отдельным стратегическим контекстом и не становится родителем или metadata-меткой dispatcher.
 - Зафиксирована роль product event log отдельно от event contract и downstream payload profiles.
 - Зафиксированы рамки будущих storage/lifecycle changes без преждевременной реализации.
 - Есть roadmap на последующие implement changes по log-system.

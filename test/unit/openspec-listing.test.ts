@@ -48,7 +48,7 @@ describe("openspec listing", () => {
     writeChange(
       fixtureRoot,
       path.join("openspec", "changes", "dispatcher-demo"),
-      'change_kind: "dispatcher"\nparent_change: "focus-demo"\nproducer_ref: "producer-demo"\nshort: "диспетчер демо"',
+      'change_kind: "dispatcher"\nparent_change: "focus-demo"\nshort: "диспетчер демо"',
     )
     writeChange(
       fixtureRoot,

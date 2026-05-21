@@ -105,7 +105,7 @@
 
 #### Scenario: Разработчик запускает producer-listing исполнительских задач
 - **WHEN** разработчик запускает `npm run os:p`
-- **THEN** команда печатает active producer changes
+- **THEN** команда печатает только те active producer changes, у которых есть связанные implement/fix changes
 - **AND** под каждым producer показывает связанные implement/fix changes
 - **AND** эти implement/fix сгруппированы по parent dispatcher
 
