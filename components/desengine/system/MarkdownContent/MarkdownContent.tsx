@@ -90,9 +90,9 @@ function getCodeBlockData(children: React.ReactNode) {
 }
 
 const baseMarkdownComponents = {
-  p: (props) => (
-    <p className={markdownElementClassNames.paragraph} {...props} />
-  ),
+p: (props) => (
+  <p className={markdownElementClassNames.paragraph} {...props} />
+),
   ul: (props) => (
     <ul className={markdownElementClassNames.list} {...props} />
   ),
@@ -102,15 +102,15 @@ const baseMarkdownComponents = {
   li: (props) => (
     <li className={markdownElementClassNames.listItem} {...props} />
   ),
-  h1: (props) => (
-    <h3 className={markdownElementClassNames.heading} {...props} />
-  ),
-  h2: (props) => (
-    <h3 className={markdownElementClassNames.heading} {...props} />
-  ),
-  h3: (props) => (
-    <h4 className={markdownElementClassNames.heading} {...props} />
-  ),
+h1: (props) => (
+  <h1 className={markdownElementClassNames.heading1} {...props} />
+),
+h2: (props) => (
+  <h2 className={markdownElementClassNames.heading2} {...props} />
+),
+h3: (props) => (
+  <h3 className={markdownElementClassNames.heading3} {...props} />
+),
   code: ({ className, ...props }) => (
     <code
       className={cn(markdownElementClassNames.inlineCode, className)}
