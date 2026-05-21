@@ -4,21 +4,28 @@
 
 Нужен отдельный change-диспетчер, который:
 
-- фиксирует последовательность трансформационных changes;
+- фиксирует последовательность трансформационных changes и их статус;
 - объясняет, почему они идут именно в таком порядке;
 - отделяет архитектурные prerequisites от будущих пользовательских фич;
+- отличает завершённые foundation-steps от активной очереди и follow-up cleanup;
 - включает `code-readability-practices-2026-05-19` в общую governance-орбиту без продолжения активной работы по нему сейчас.
 
 ## What Changes
 
-- Вводится roadmap внедрения новой архитектуры через последовательность changes:
-  1. `implement-project-workspace-storage-boundary`
-  2. `implement-task-workflow-artifact-contract`
-  3. `dispatcher-platform-component-sourcing-strategy`
-  4. `implement-workbench-platform-registry`
-  5. `implement-prompt-context-runtime-boundary`
-  6. `idea-event-envelope-experience-cost-boundary`
-  7. `dispatcher-packaging-readiness-storage-adapters`
+- Вводится status-aware roadmap внедрения новой архитектуры:
+  - завершённые foundation steps, архивированные 2026-05-20:
+    1. `implement-project-workspace-storage-boundary`
+    2. `implement-task-workflow-artifact-contract`
+    3. `implement-workbench-platform-registry`
+    4. `implement-prompt-context-runtime-boundary`
+  - активная очередь capability changes:
+    1. `dispatcher-platform-component-sourcing-strategy`
+    2. `idea-event-envelope-experience-cost-boundary`
+    3. `dispatcher-packaging-readiness-storage-adapters`
+  - отдельная cleanup lane для архитектурных readability follow-up:
+    - `architecture-followup-route-services`
+    - `architecture-followup-workbench-controller-split`
+    - `architecture-followup-sandpack-facade-split`
 - Фиксируется роль уже стабилизированных релизных срезов:
   - `implement-lab-runtime-contract-hardening` — выполненный фундамент service/mutation boundary;
   - `dispatcher-ui-kit` — релизный срез с seed `Project` для Sandpack preview и дальнейшим UI kit-направлением;
@@ -48,7 +55,9 @@
 ## Acceptance Criteria
 
 - Есть явная последовательность transformation changes к исполнению.
+- Roadmap различает `done`, `active`, `planned` и `cleanup` шаги.
 - Для каждого шага указаны цель, зависимости, non-goals, acceptance criteria и тестовый уровень.
 - Dispatcher объясняет, почему порядок уменьшает архитектурный риск и защищает текущий lab UX.
+- Readability follow-up cleanup привязан к roadmap, но не подменяет capability-очередь.
 - `code-readability-practices-2026-05-19` включён в roadmap как baseline, но не превращается в блокер runtime changes.
 - `npm run openspec` и `npm run test:traceability` проходят.

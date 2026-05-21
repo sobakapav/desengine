@@ -185,15 +185,17 @@ describe("PromptContext runtime boundary", () => {
 
   it("start/iterate/check service flows вызывают общий PromptContext builder", () => {
     const startSource = readProjectFile("lib", "task", "actions", "start.ts")
+    const startStageSource = readProjectFile("lib", "task", "actions", "start-stage.ts")
     const iterateSource = readProjectFile("lib", "task", "actions", "iterate.ts")
     const checkSource = readProjectFile("lib", "task", "actions", "check.ts")
 
-    for (const source of [startSource, iterateSource, checkSource]) {
+    for (const source of [startStageSource, iterateSource, checkSource]) {
       expect(source).toContain("buildTaskRuntimePromptContext")
       expect(source).toContain("providerCapabilities")
       expect(source).toContain("constraints")
     }
 
+    expect(startSource).toContain("buildStartLlmInput")
     expect(iterateSource).toContain("userText: args.promptText")
     expect(checkSource).toContain("promptContext.renderContext")
   })

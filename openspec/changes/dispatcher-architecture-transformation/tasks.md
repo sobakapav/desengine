@@ -6,7 +6,9 @@
 - [x] 4. Объяснить порядок реализации и связь с существующими active changes.
 - [x] 5. Добавить strategy change для готовых platform primitives: `dispatcher-platform-component-sourcing-strategy`.
 - [x] 6. Зафиксировать guardrails: UX lab, stack safety, единство Project/Task/Workflow/Workbench/Event shapes, sourcing decision для готовых компонентов.
-- [x] 7. Проверить `npm run openspec`, `npm run test:traceability`, `git diff --check`.
+- [x] 7. Уточнить roadmap как status-aware dispatcher: отделить завершённые foundation changes от активной очереди.
+- [x] 8. Привязать readability waiver follow-up'ы к отдельной cleanup lane без подмены capability roadmap.
+- [x] 9. Проверить `npm run openspec`, `npm run test:traceability`, `git diff --check`.
 
 ## Тестовая часть change
 
@@ -15,6 +17,7 @@
 - `code-readability`: практики читаемости используются как governance baseline.
 - `architecture-roadmap`: новая capability dispatcher'а.
 - `component-sourcing`: стратегия выбора готовых компонентов и adapter boundary.
+- `code-readability`: readability cleanup фиксируется как отдельная follow-up lane.
 
 Уровень проверки:
 - static/contract: обязательный.

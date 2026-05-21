@@ -19,12 +19,6 @@
       "owner": "team-desengine",
       "reason": "Sandpack facade теперь совмещает legacy fallback, UI kit compatibility и ProjectWorkspace settings; разнос resolver/builders нужен отдельным change после стабилизации preview boundary.",
       "targetStage": "architecture-followup-sandpack-facade-split"
-    },
-    "lib/task/actions/start.ts": {
-      "rules": ["file-length"],
-      "owner": "team-desengine",
-      "reason": "Start service получил PromptContext integration поверх уже плотного LLM flow; разбиение start context/input/stage helpers нужно отдельным service refactor без смены поведения.",
-      "targetStage": "architecture-followup-task-action-split"
     }
   }
 }
