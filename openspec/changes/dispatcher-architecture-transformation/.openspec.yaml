@@ -1,11 +1,13 @@
 schema: spec-driven
-created: 2026-05-20
+created: 2026-05-21
 short_policy: "none"
 review_sync_state: "none"
 issue: ""
-short: "диспетчер внедрения новой архитектуры"
+short: "диспетчер delivery-линии архитектурной трансформации"
 change_kind: "dispatcher"
 execution_mode: "no-code"
 parent_change: "focus-tech"
 strategy_root: "focus-tech"
-roadmap_ref: "roadmaps/architecture-transformation.md"
+roadmap_ref: "focus-tech/roadmaps/architecture-transformation.md"
+release_ref: ""
+producer_ref: "producer-architecture-transformation"

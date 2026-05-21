@@ -2,9 +2,12 @@ import fs from "node:fs"
 import path from "node:path"
 import { spawnSync } from "node:child_process"
 
+import { normalizeCreatedChangeName } from "./openspec-change-name.mjs"
+import { ensureHandoffFile, HANDOFF_FILE } from "./openspec-handoff.mjs"
+
 const METADATA_FILE = ".openspec.yaml"
 const TASKS_FILE = "tasks.md"
-const GOVERNED_PREFIXES = ["focus", "release", "idea", "research", "dispatcher", "implement", "fix"]
+const GOVERNED_PREFIXES = ["focus", "release", "idea", "producer", "dispatcher", "implement", "fix"]
 const METADATA_DEFAULTS = [
   { key: "short_policy", value: "none" },
   { key: "review_sync_state", value: "none" },
@@ -14,6 +17,7 @@ const METADATA_DEFAULTS = [
   { key: "strategy_root", value: "" },
   { key: "roadmap_ref", value: "" },
   { key: "release_ref", value: "" },
+  { key: "producer_ref", value: "" },
   { key: "verification_level", value: "" },
   { key: "verification_command", value: "" },
   { key: "issue", value: "" },
@@ -30,6 +34,8 @@ const TEST_CHECKLIST = `${TEST_CHECKLIST_HEADING}
 - [ ] Описать mock/fixture-данные и live credentials, если они нужны
 - [ ] Если покрытие откладывается, добавить запись в \`test/traceability/coverage-plan.json\` с причиной и этапом закрытия
 `
+
+// Для dispatcher с несколькими inherited roadmap используется metadata-поле roadmap_refs.
 
 function printUsage() {
   console.error("Использование:")
@@ -82,10 +88,6 @@ function parseArgs(argv) {
   return { help: false, changeName, description }
 }
 
-function normalizeChangeName(changeName) {
-  return changeName.replace(/-[0-9]{4}-[0-9]{2}-[0-9]{2}$/, "")
-}
-
 function resolveKindFromName(changeName) {
   const prefix = changeName.split("-", 1)[0]
 
@@ -123,7 +125,7 @@ function normalizeShortValue(value) {
 }
 
 function shortFromChangeName(changeName) {
-  const withoutPrefix = changeName.replace(/^(focus|release|idea|research|dispatcher|implement|fix)-/, "")
+  const withoutPrefix = changeName.replace(/^(focus|release|idea|producer|dispatcher|implement|fix)-/, "")
   return normalizeShortValue(withoutPrefix.replace(/-/g, " "))
 }
 
@@ -224,6 +226,13 @@ function ensureTestChecklist(changeDir) {
   return true
 }
 
+function handoffContextFromChange(changeName, descriptionHint = "") {
+  return {
+    changeName,
+    summary: descriptionHint.trim() || shortFromChangeName(changeName),
+  }
+}
+
 function main() {
   let parsedArgs
 
@@ -241,7 +250,7 @@ function main() {
     return
   }
 
-  const normalizedChangeName = normalizeChangeName(parsedArgs.changeName)
+  const normalizedChangeName = normalizeCreatedChangeName(parsedArgs.changeName)
   const cliArgs = [...process.argv.slice(2)]
   const changeNameArgIndex = cliArgs.findIndex((arg) => arg === parsedArgs.changeName)
 
@@ -266,6 +275,7 @@ function main() {
 
   const addedMetadata = ensureMetadataFields(changeDir, normalizedChangeName, parsedArgs.description)
   const addedTestChecklist = ensureTestChecklist(changeDir)
+  const addedHandoff = ensureHandoffFile(changeDir, handoffContextFromChange(normalizedChangeName, parsedArgs.description))
 
   if (normalizedChangeName !== parsedArgs.changeName) {
     console.log(`Имя change нормализовано: ${parsedArgs.changeName} -> ${normalizedChangeName}`)
@@ -277,6 +287,10 @@ function main() {
 
   if (addedTestChecklist) {
     console.log(`Добавлен тестовый чеклист в ${path.relative(projectRoot, path.join(changeDir, TASKS_FILE))}`)
+  }
+
+  if (addedHandoff) {
+    console.log(`Добавлен handoff-артефакт в ${path.relative(projectRoot, path.join(changeDir, HANDOFF_FILE))}`)
   }
 }
 

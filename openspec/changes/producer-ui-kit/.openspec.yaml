@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "producer"
+execution_mode: "no-code"
+parent_change: "focus-features"
+strategy_root: "focus-features"
+roadmap_ref: ""
+release_ref: ""
+producer_ref: ""
+verification_level: ""
+verification_command: ""
+issue: ""
+short: "ui kit"

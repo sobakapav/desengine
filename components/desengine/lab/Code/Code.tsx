@@ -206,9 +206,9 @@ function CodeTabs({
     <Tabs
       value={tab}
       onValueChange={(nextValue) => onActiveFileIdChange?.(nextValue)}
-      className={`${BaseStyles.frameRow} h-[34rem] gap-3 lg:flex-row`}
+      className={`${BaseStyles.frameRow} min-w-0 flex-col h-[34rem] gap-3 lg:flex-row`}
     >
-      <div className="min-h-0 flex-1 p-0">
+      <div className="min-h-0 min-w-0 flex-1 p-0">
         {codeFiles.map((file) => (
           <TabsContent
             key={file.id}

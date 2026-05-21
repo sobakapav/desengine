@@ -1,63 +1,20 @@
 ## Why
 
-После `research-architecture-capital-analysis-2026-05-19`, `implement-lab-runtime-contract-hardening` и `dispatcher-ui-kit` система получила первые реальные архитектурные границы, но следующие активные changes всё ещё выглядят как набор параллельных продуктовых направлений.
-
-Нужен отдельный change-диспетчер, который:
-
-- фиксирует последовательность трансформационных changes и их статус;
-- объясняет, почему они идут именно в таком порядке;
-- отделяет архитектурные prerequisites от будущих пользовательских фич;
-- отличает завершённые foundation-steps от активной очереди и follow-up cleanup;
-- включает `code-readability-practices-2026-05-19` в общую governance-орбиту без продолжения активной работы по нему сейчас.
+`producer-architecture-transformation` задаёт порядок и ожидания архитектурной волны, но ему не нужен прямой delivery-контур внутри себя. Нужен отдельный dispatcher под `focus-tech`, который возьмёт на себя тактическую последовательность downstream implementation без превращения producer в родителя.
 
 ## What Changes
 
-- Вводится status-aware roadmap внедрения новой архитектуры:
-  - завершённые foundation steps, архивированные 2026-05-20:
-    1. `implement-project-workspace-storage-boundary`
-    2. `implement-task-workflow-artifact-contract`
-    3. `implement-workbench-platform-registry`
-    4. `implement-prompt-context-runtime-boundary`
-  - активная очередь capability changes:
-    1. `dispatcher-platform-component-sourcing-strategy`
-    2. `idea-event-envelope-experience-cost-boundary`
-    3. `dispatcher-packaging-readiness-storage-adapters`
-  - отдельная cleanup lane для архитектурных readability follow-up:
-    - `architecture-followup-route-services`
-    - `architecture-followup-workbench-controller-split`
-    - `architecture-followup-sandpack-facade-split`
-- Фиксируется роль уже стабилизированных релизных срезов:
-  - `implement-lab-runtime-contract-hardening` — выполненный фундамент service/mutation boundary;
-  - `dispatcher-ui-kit` — релизный срез с seed `Project` для Sandpack preview и дальнейшим UI kit-направлением;
-  - `code-readability-practices-2026-05-19` — governance baseline для читаемости и ревью, без новых активных действий в этом проходе.
-- Существующие продуктовые changes (`dev-mode-project-work`, `task-and-workflow-entities-research`, `workbench-entity-workflow-step`, `user-experience-generalization`, `cost-accounting-layer`, packaging changes) становятся входными материалами и downstream-эпиками, а не конкурирующими первыми шагами.
+- Вводится `dispatcher-architecture-transformation` под `focus-tech`.
+- Dispatcher использует технический roadmap `focus-tech` и одновременно работает в producer-контексте через `producer_ref`.
+- Dispatcher координирует downstream implementation и тактические follow-up changes архитектурной волны.
 
 ## Non-goals
 
-- Не реализуем новую пользовательскую функциональность в dispatcher.
-- Не меняем стек, storage backend, Next.js, Turbopack, Node.js или Sandpack.
-- Не архивируем автоматически существующие changes.
-- Не запускаем UI kit wave до стабилизации Project/Workbench/Artifact contracts.
-- Не добавляем новые platform primitives без sourcing decision: `reuse`, `adapt` или `build`.
+- Не дублирует producer-roadmap архитектурной трансформации.
+- Не превращается в новую product strategy.
+- Не реализует код напрямую.
 
-## Capabilities
+## Impact
 
-### New Capabilities
-
-- `architecture-roadmap`: управление порядком архитектурных transformation changes.
-
-### Modified Capabilities
-
-- `testing-layer`: каждый transformation change обязан иметь понятную тестовую часть и команды проверки.
-- `code-readability`: принимается как governance baseline для будущих changes.
-- `component-sourcing`: готовые компоненты и библиотеки выбираются через явный architecture decision.
-
-## Acceptance Criteria
-
-- Есть явная последовательность transformation changes к исполнению.
-- Roadmap различает `done`, `active`, `planned` и `cleanup` шаги.
-- Для каждого шага указаны цель, зависимости, non-goals, acceptance criteria и тестовый уровень.
-- Dispatcher объясняет, почему порядок уменьшает архитектурный риск и защищает текущий lab UX.
-- Readability follow-up cleanup привязан к roadmap, но не подменяет capability-очередь.
-- `code-readability-practices-2026-05-19` включён в roadmap как baseline, но не превращается в блокер runtime changes.
-- `npm run openspec` и `npm run test:traceability` проходят.
+- Архитектурная волна получает отдельный delivery-контур.
+- Producer и dispatcher могут расходиться в ожиданиях и порядке, не ломая схему родительства.

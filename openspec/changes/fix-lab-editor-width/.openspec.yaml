@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-05-21
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "fix"
+execution_mode: "code"
+parent_change: "dispatcher-ux"
+strategy_root: "focus-quality"
+roadmap_ref: "focus-quality/roadmaps/ux-quality.md"
+release_ref: ""
+producer_ref: ""
+verification_level: "unit"
+verification_command: "npm run test:unit && npm run test:traceability"
+issue: ""
+short: "редактор лаборатории не раздувает рабочую область по ширине"

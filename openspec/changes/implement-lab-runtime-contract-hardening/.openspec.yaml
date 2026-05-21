@@ -7,8 +7,9 @@ short: "укрепление runtime-контрактов лаборатории
 change_kind: "implement"
 execution_mode: "code"
 parent_change: "dispatcher-architecture-transformation"
-strategy_root: "research-task-and-workflow-entities-research"
+strategy_root: "focus-tech"
 roadmap_ref: ""
 
 verification_level: "unit"
 verification_command: "npm run test:unit"
+producer_ref: "producer-architecture-transformation"

@@ -1,0 +1,13 @@
+schema: spec-driven
+created: 2026-05-21
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "диспетчер общего event envelope и его downstream-контрактов"
+depends_on_change: "producer-event-envelope-experience-cost-boundary"
+change_kind: "dispatcher"
+execution_mode: "no-code"
+parent_change: "focus-tech"
+strategy_root: "focus-tech"
+roadmap_ref: "focus-tech/roadmaps/event-envelope.md"
+producer_ref: "producer-event-envelope-experience-cost-boundary"

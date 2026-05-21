@@ -1,0 +1,73 @@
+// @openSpec capability: admin-tools
+// @openSpec scenarios:
+// @openSpec  - "Разработчик выводит исполнительские задачи по producer"
+
+import { execFileSync } from "node:child_process"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
+
+import { afterEach, describe, expect, it } from "vitest"
+
+function writeChange(baseDir: string, relativeDir: string, metadata: string) {
+  const changeDir = path.join(baseDir, relativeDir)
+  fs.mkdirSync(changeDir, { recursive: true })
+  fs.writeFileSync(path.join(changeDir, ".openspec.yaml"), `${metadata}\n`, "utf8")
+  fs.writeFileSync(path.join(changeDir, "proposal.md"), "## Why\n\nТестовый change.\n", "utf8")
+}
+
+const tempDirs: string[] = []
+
+describe("openspec producer list", () => {
+  afterEach(() => {
+    while (tempDirs.length > 0) {
+      const dirPath = tempDirs.pop()
+      if (dirPath) {
+        fs.rmSync(dirPath, { recursive: true, force: true })
+      }
+    }
+  })
+
+  it("показывает implement/fix changes по producer с группировкой через dispatcher", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-producer-list-"))
+    tempDirs.push(fixtureRoot)
+
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "producer-alpha"),
+      'change_kind: "producer"\nshort: "producer alpha"',
+    )
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "dispatcher-alpha"),
+      'change_kind: "dispatcher"\nparent_change: "focus-demo"\nproducer_ref: "producer-alpha"\nshort: "диспетчер alpha"',
+    )
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "implement-alpha"),
+      'change_kind: "implement"\nparent_change: "dispatcher-alpha"\nproducer_ref: "producer-alpha"\nshort: "реализация alpha"',
+    )
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "fix-alpha"),
+      'change_kind: "fix"\nparent_change: "dispatcher-alpha"\nproducer_ref: "producer-alpha"\nshort: "фикс alpha"',
+    )
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "producer-empty"),
+      'change_kind: "producer"\nshort: "producer empty"',
+    )
+
+    const output = execFileSync(process.execPath, [path.join(process.cwd(), "tools", "list-openspec-producers.mjs")], {
+      cwd: fixtureRoot,
+      encoding: "utf8",
+    })
+
+    expect(output).toContain("\u001B[97mproducer-alpha\u001B[0m\tproducer alpha")
+    expect(output).toContain("  dispatcher-alpha\tдиспетчер alpha")
+    expect(output).toContain("    implement-alpha\tреализация alpha")
+    expect(output).toContain("    fix-alpha\tфикс alpha")
+    expect(output).toContain("\u001B[97mproducer-empty\u001B[0m\tproducer empty")
+    expect(output).toContain("(пусто)\tнет привязанных implement/fix changes")
+  })
+})

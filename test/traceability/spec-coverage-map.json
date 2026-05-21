@@ -50,6 +50,18 @@
         "Пользователь открывает форму уточняющего промпта"
       ]
     },
+    "component-sourcing": {
+      "priority": "P2",
+      "primaryLevels": [
+        "static",
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Команда добавляет новый Workbench tool",
+        "Готовая библиотека не должна протекать в домен"
+      ]
+    },
     "claude": {
       "priority": "P0",
       "primaryLevels": [
@@ -500,6 +512,19 @@
         "У задачи более высокий уровень",
         "Пользователь сбрасывает задачу",
         "Пользователь удалил каталог `user/`"
+      ]
+    },
+    "workbench-tools": {
+      "priority": "P1",
+      "primaryLevels": [
+        "unit",
+        "static"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Добавляется новый локальный tool",
+        "Workbench tool фиксирует sourcing decision",
+        "Tool state сериализуется отдельно от component runtime"
       ]
     }
   }

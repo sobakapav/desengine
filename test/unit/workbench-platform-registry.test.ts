@@ -3,6 +3,10 @@
 // @openSpec  - "Lab workbench регистрируется как definition"
 // @openSpec  - "WorkbenchInstance связан с project/task/workflow step"
 // @openSpec  - "Workbench state сериализуется"
+// @openSpec capability: component-sourcing
+// @openSpec scenarios:
+// @openSpec  - "Команда добавляет новый Workbench tool"
+// @openSpec  - "Готовая библиотека не должна протекать в домен"
 // @openSpec capability: workbench-tools
 // @openSpec scenarios:
 // @openSpec  - "Добавляется новый локальный tool"
@@ -96,6 +100,39 @@ describe("workbench platform registry", () => {
       definitions: [labWorkbenchDefinition],
       tools: [{ ...labWorkbenchTools[0], appliesTo: ["other-task"] }, ...labWorkbenchTools.slice(1)],
     })).toThrow("не применим")
+
+    expect(() => createWorkbenchRegistry({
+      definitions: [labWorkbenchDefinition],
+      tools: [{
+        ...labWorkbenchTools[0],
+        sourcing: {
+          ...labWorkbenchTools[0].sourcing,
+          adapterPolicy: "",
+        },
+      }, ...labWorkbenchTools.slice(1)],
+    })).toThrow("sourcing decision неполный")
+
+    expect(() => createWorkbenchRegistry({
+      definitions: [labWorkbenchDefinition],
+      tools: [{
+        ...labWorkbenchTools[0],
+        sourcing: {
+          ...labWorkbenchTools[0].sourcing,
+          fallbackStrategy: "",
+        },
+      }, ...labWorkbenchTools.slice(1)],
+    })).toThrow("sourcing decision неполный")
+
+    expect(() => createWorkbenchRegistry({
+      definitions: [labWorkbenchDefinition],
+      tools: [{
+        ...labWorkbenchTools[0],
+        sourcing: {
+          ...labWorkbenchTools[0].sourcing,
+          testLevel: "browser" as never,
+        },
+      }, ...labWorkbenchTools.slice(1)],
+    })).toThrow("неизвестный testLevel")
   })
 
   it("фиксирует sourcing decisions для Sandpack/Monaco через adapt и lab controls без новой dependency", () => {
@@ -109,6 +146,8 @@ describe("workbench platform registry", () => {
       strategy: "adapt",
       primitive: "@monaco-editor/react + monaco-editor",
     })
+    expect(toolById.get("sandpack-preview")?.sourcing.fallbackStrategy).toContain("безопасный fallback")
+    expect(toolById.get("monaco-code-editor")?.sourcing.fallbackStrategy).toContain("fallback boundary")
     expect(toolById.get("lab-prompt-composer")?.sourcing.primitive).toContain("без новой dependency")
     expect(toolById.get("lab-command-controls")?.sourcing.primitive).toContain("без новой dependency")
   })

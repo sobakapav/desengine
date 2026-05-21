@@ -5,6 +5,9 @@ export type WorkbenchRegistry = {
   tools: WorkbenchTool[]
 }
 
+const VALID_SOURCING_STRATEGIES = new Set(["reuse", "adapt", "build"])
+const VALID_TEST_LEVELS = new Set(["static", "unit", "component", "e2e-smoke", "live"])
+
 function assertUniqueIds(items: { id: string }[], label: string) {
   const ids = new Set<string>()
 
@@ -68,8 +71,21 @@ function validateTool(tool: WorkbenchTool) {
     throw new Error(`WorkbenchTool ${tool.id}: пустой stateVersion`)
   }
 
-  if (!tool.sourcing.primitive.trim() || !tool.sourcing.ownerBoundary.trim()) {
+  if (!VALID_SOURCING_STRATEGIES.has(tool.sourcing.strategy)) {
+    throw new Error(`WorkbenchTool ${tool.id}: неизвестная sourcing strategy ${tool.sourcing.strategy}`)
+  }
+
+  if (
+    !tool.sourcing.primitive.trim() ||
+    !tool.sourcing.ownerBoundary.trim() ||
+    !tool.sourcing.adapterPolicy.trim() ||
+    !tool.sourcing.fallbackStrategy.trim()
+  ) {
     throw new Error(`WorkbenchTool ${tool.id}: sourcing decision неполный`)
+  }
+
+  if (!VALID_TEST_LEVELS.has(tool.sourcing.testLevel)) {
+    throw new Error(`WorkbenchTool ${tool.id}: неизвестный testLevel ${tool.sourcing.testLevel}`)
   }
 }
 

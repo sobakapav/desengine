@@ -26,11 +26,11 @@ Root-карта документации:
 | Назначение | Канонический файл | Каноническая команда |
 | --- | --- | --- |
 | Smoke-check локальной установки | `tools/smoke-local-install.mjs` | `npm run smoke` |
-| Краткая сводка актуальных OpenSpec changes | `tools/list-active-openspec-changes.mjs` | `npm run os` |
-| Дерево OpenSpec changes (`focus → release → idea → research → dispatcher → implement → fix`) | `tools/list-openspec-change-tree.mjs` | `npm run os:tree` |
+| Дерево активных OpenSpec changes с summary и role-эмодзи | `tools/list-active-openspec-changes.mjs` | `npm run os` |
 | Список релизов и их состав | `tools/list-openspec-releases.mjs` | `npm run os:r` |
 | Старт выполнения change с preflight-правилами | `tools/openspec-begin-change.mjs` | `npm run os:begin -- <change>` |
 | Диспетчеризация хотелки в implement/fix | `tools/openspec-dispatch-change.mjs` | `npm run os:dispatch -- <dispatcher> --kind fix --name <name> --description "..."` |
+| Переименование change с обновлением metadata-ссылок | `tools/rename-openspec-change.mjs` | `npm run os:rename -- <old-name> <new-name>` |
 | Контекст implement/fix через parent dispatcher | `tools/openspec-context.mjs` | `npm run os:ctx -- <implement-or-fix-change>` |
 | Превращение текстовой хотелки в implement/fix | `tools/openspec-request-to-exec.mjs` | `npm run os:req -- <dispatcher> --request "..." --kind fix` |
 | Закрытие implement/fix change | `tools/openspec-close-change.mjs` | `npm run os:close -- <change>` |
@@ -69,28 +69,41 @@ Root-карта документации:
 
 ### `npm run os`
 
-Печатает все актуальные OpenSpec changes, исключая:
-- archived changes из `openspec/changes/archive`;
-- changes со статусом `Suspended`.
+Печатает дерево активных changes в иерархии `focus → release → idea → producer → dispatcher → implement → fix`.
 
-Для короткой аннотации скрипт сначала читает поле `short` из `openspec/changes/<change>/.openspec.yaml`.
-Если `short` не задан или metadata-файла нет, используется fallback на сокращённый текст из секции `Why` в `proposal.md`.
+Роли помечаются эмодзи:
+- `🩸` — `focus`
+- `🌟` — `release`
+- `🦋` — `idea`
+- `🍀` — `producer`
+- `🔸` — `dispatcher`
+- `🔥` — `fix`
 
-Формат вывода:
+Для implement-строк отдельный эмодзи не используется.
+
+Можно подсветить слово в выводе:
 
 ```bash
-<change-name>\t<короткое пояснение из секции Why>
+npm run os -- dispatcher
 ```
 
-### `npm run os:tree`
-
-Печатает дерево активных changes в иерархии `focus → release → idea → research → dispatcher → implement → fix`.
+В этом режиме совпадения подсвечиваются красным ANSI-цветом, но структура дерева не меняется.
 
 Каждая строка выводится в том же формате, что и `npm run os`:
 
 ```bash
 <change-name>\t<короткое пояснение>
 ```
+
+Названия changes первого уровня в listing-командах семейства `os` подсвечиваются ярко-белым ANSI-цветом.
+
+### `npm run os:short`
+
+Печатает тот же active OpenSpec tree-listing, что и `npm run os`, но скрывает исполнительские changes:
+- `implement-*`
+- `fix-*`
+
+Это полезно, когда нужен обзор стратегических, продюсерских и диспетчерских веток без delivery-шума.
 
 ### `npm run os:r`
 
@@ -106,19 +119,36 @@ Root-карта документации:
     <child-change>\t<короткое пояснение>
 ```
 
+### `npm run os:p`
+
+Печатает только те active producer changes, у которых есть связанные implement/fix changes по producer-контексту.
+
+Формат вывода:
+
+```bash
+<producer-change>\t<короткое пояснение>
+  <dispatcher-change>\t<короткое пояснение>
+    <implement-or-fix-change>\t<короткое пояснение>
+```
+
+Команда включает только implement/fix changes по producer и группирует их через `parent_change` dispatcher. Producers без привязанных implement/fix в вывод не попадают.
+
 ### `npm run os:begin -- <change>`
 
 Запускает preflight перед началом работы над change.
 
 - Если `change_kind=dispatcher`, команда блокирует прямую реализацию и предлагает создать `implement-*` или `fix-*`.
+- Для dispatcher команда дополнительно показывает inherited roadmap стратегических владельцев, которыми нужно руководствоваться дальше.
 - Для dispatcher можно сразу создать исполнительский change:
   При таком создании команда автоматически гарантирует базовые apply-артефакты (`proposal.md`, `design.md`, `tasks.md`), чтобы старт реализации не блокировался из-за пустого scaffolding.
+  Дополнительно создаётся `handoff.md`, который нужно заполнить по существу до старта исполнения.
 
 ```bash
 npm run os:begin -- dispatcher-... --spawn-implement implement-... --description "..."
 ```
 
 - Если `change_kind=implement|fix`, команда печатает readiness-поля (`parent_change`, `strategy_root`, `verification_level`, `verification_command`).
+- Если `handoff.md` отсутствует или в нём остались плейсхолдеры, preflight завершится отказом и потребует завершить handoff.
 - Если `change_kind=release`, команда показывает матрицу релиза (`parent dispatcher -> implement/fix`) и подсказывает команду релизной диспетчеризации.
 
 ### `npm run os:dispatch -- <dispatcher> --kind <implement|fix> --name <name>`
@@ -137,7 +167,18 @@ npm run os:dispatch -- dispatcher-help --kind fix --name ai-policy-typo --descri
 npm run os:dispatch -- release-... --dispatcher dispatcher-... --kind fix --name <name> --description "..."
 ```
 
-В этом режиме исполнительский change тактически подчиняется `dispatcher` (через `parent_change`) и одновременно входит в релиз (через `release_ref`).
+В этом режиме исполнительский change тактически подчиняется `dispatcher` (через `parent_change`), одновременно входит в релиз (через `release_ref`) и при необходимости отдельно помечается `producer_ref`.
+
+Итоговое имя change проходит ту же проверку схемы, что и `openspec:new`: голый суффикс даты вида `-YYYY-MM-DD` на конце запрещён.
+Созданный change получает `handoff.md`, который создатель обязан заполнить перед передачей исполнения.
+
+### `npm run os:rename -- <old-name> <new-name>`
+
+Переименовывает change и обновляет структурные metadata-ссылки (`parent_change`, `strategy_root`, `roadmap_ref`, `roadmap_refs`, `release_ref`, `producer_ref`) в других changes.
+
+- Новое имя проходит ту же валидацию, что и создание change.
+- Голый суффикс даты вида `-YYYY-MM-DD` на конце запрещён.
+- Сам renamed change обновляет собственные текстовые упоминания старого имени в файлах каталога.
 
 ### `npm run os:ctx -- <implement-or-fix-change>`
 
@@ -145,7 +186,11 @@ npm run os:dispatch -- release-... --dispatcher dispatcher-... --kind fix --name
 - какой `parent dispatcher` отвечает за тактику;
 - какой `strategy_root` задаёт стратегию;
 - к какому `release_ref` относится change;
-- быстрые пути к `proposal/design/tasks` родительского dispatcher.
+- в каком `producer_ref` он находится, если producer-контекст задан;
+- быстрые пути к `proposal/design/tasks` родительского dispatcher;
+- быстрые пути к `proposal/design/tasks` producer, если он задан;
+- inherited roadmap стратегических владельцев dispatcher;
+- путь к локальному `handoff.md`.
 
 ### `npm run os:close -- <implement-or-fix-change>`
 
@@ -161,7 +206,8 @@ npm run os:dispatch -- release-... --dispatcher dispatcher-... --kind fix --name
 
 1. берёт текст хотелки;
 2. создаёт `implement` или `fix` change (по `--kind`, по умолчанию `fix`);
-3. привязывает его к dispatcher через `os:dispatch`.
+3. привязывает его к dispatcher через `os:dispatch`;
+4. оставляет создателю заполнить `handoff.md` перед передачей исполнения.
 
 Для release-контекста:
 
@@ -182,11 +228,17 @@ parent_change: ""
 strategy_root: ""
 roadmap_ref: ""
 release_ref: ""
+producer_ref: ""
 verification_level: ""
 verification_command: ""
 issue: ""
 short: "краткое описание change"
 ```
+
+Для dispatcher `roadmap_ref` хранит одиночную ссылку на roadmap стратегического владельца в формате `<change>/roadmaps/<file>.md`.
+Если нужен не один roadmap, используется `roadmap_refs` как YAML-список с тем же форматом ссылок.
+Если исполнительская ветка работает в контексте конкретного producer, для `implement` и `fix` используется отдельная метка `producer_ref`.
+Прямое родительство `dispatcher -> producer` запрещено, и сам `dispatcher` не может хранить `producer_ref`.
 
 Для непустого `short` в changes с `short_policy: strict-v1` действует строгий контракт кастомной схемы:
 - начинается с маленькой буквы;
@@ -200,6 +252,10 @@ npm run openspec:new -- add-level-badges
 npm run openspec:new -- add-level-badges --schema spec-driven
 npm run openspec:new -- add-level-badges --description "Пробный change"
 ```
+
+Дополнительно команда:
+- добавляет тестовый чеклист в `tasks.md`;
+- создаёт `handoff.md` для передачи контекста следующему исполнителю.
 
 ### `npm run quality:text`
 

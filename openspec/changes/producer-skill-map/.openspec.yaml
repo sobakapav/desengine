@@ -1,0 +1,13 @@
+schema: spec-driven
+created: 2026-05-19
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "карта навыков: структура, связи и навигация по аттракторам"
+depends_on_change: "producer-expertise-attractors"
+change_kind: "producer"
+execution_mode: "no-code"
+parent_change: "idea-user-experience-to-llm-skills"
+strategy_root: "idea-user-experience-to-llm-skills"
+roadmap_ref: ""
+producer_ref: ""

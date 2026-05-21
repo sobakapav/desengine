@@ -2,6 +2,8 @@ import fs from "node:fs"
 import path from "node:path"
 
 const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
+const BRIGHT_WHITE = "\u001B[97m"
+const RESET = "\u001B[0m"
 
 function printUsage() {
   console.error("Использование:")
@@ -99,7 +101,7 @@ function main() {
 
   for (let index = 0; index < releases.length; index += 1) {
     const release = releases[index]
-    console.log(`${release.name}\t${release.short}`)
+    console.log(`${BRIGHT_WHITE}${release.name}${RESET}\t${release.short}`)
 
     const members = [...byName.values()]
       .filter((change) => change.releaseRef === release.name)

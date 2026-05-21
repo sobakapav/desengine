@@ -1,6 +1,7 @@
 // @openSpec capability: admin-tools
 // @openSpec scenarios:
 // @openSpec  - "Разработчик выводит список релизов"
+// @openSpec  - "Названия root changes подсвечиваются ярко-белым"
 
 import { execFileSync } from "node:child_process"
 import fs from "node:fs"
@@ -58,7 +59,7 @@ describe("openspec release list", () => {
       encoding: "utf8",
     })
 
-    expect(output).toContain("release-live\tактуальный релиз")
+    expect(output).toContain("\u001B[97mrelease-live\u001B[0m\tактуальный релиз")
     expect(output).toContain("  implement-live\tактуальная поставка")
     expect(output).not.toContain("release-old")
     expect(output).not.toContain("архивный релиз")

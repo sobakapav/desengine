@@ -2,11 +2,49 @@ import fs from "node:fs"
 import path from "node:path"
 
 const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
+const KIND_ORDER = ["focus", "release", "idea", "producer", "dispatcher", "implement", "fix"]
+const KIND_ICONS = new Map([
+  ["focus", "🩸"],
+  ["dispatcher", "🔸"],
+  ["idea", "🦋"],
+  ["producer", "🍀"],
+  ["fix", "🔥"],
+  ["release", "🌟"],
+])
+const RED = "\u001B[31m"
+const BRIGHT_WHITE = "\u001B[97m"
+const RESET = "\u001B[0m"
 
 function printUsage() {
   console.error("Использование:")
   console.error("  npm run os")
-  console.error("  node tools/list-active-openspec-changes.mjs")
+  console.error("  npm run os:short")
+  console.error("  npm run os -- <слово>")
+  console.error("  node tools/list-active-openspec-changes.mjs [--short] [слово]")
+}
+
+function parseArgs(argv) {
+  let shortMode = false
+  let highlightNeedle = ""
+
+  for (const arg of argv) {
+    if (arg === "--short") {
+      shortMode = true
+      continue
+    }
+
+    if (arg.startsWith("-")) {
+      throw new Error(`Неизвестный флаг: ${arg}`)
+    }
+
+    if (highlightNeedle) {
+      throw new Error(`Слишком много аргументов: ${argv.join(", ")}`)
+    }
+
+    highlightNeedle = arg
+  }
+
+  return { shortMode, highlightNeedle }
 }
 
 function listChangeDirs(changesDir) {
@@ -17,42 +55,25 @@ function listChangeDirs(changesDir) {
     .sort((left, right) => path.basename(left).localeCompare(path.basename(right)))
 }
 
-function readProposal(changeDir) {
-  const proposalPath = path.join(changeDir, "proposal.md")
-
-  if (!fs.existsSync(proposalPath)) {
+function readText(filePath) {
+  if (!fs.existsSync(filePath)) {
     return null
   }
 
-  return fs.readFileSync(proposalPath, "utf8")
-}
-
-function readChangeMetadata(changeDir) {
-  const metadataPath = path.join(changeDir, ".openspec.yaml")
-
-  if (!fs.existsSync(metadataPath)) {
-    return null
-  }
-
-  return fs.readFileSync(metadataPath, "utf8")
+  return fs.readFileSync(filePath, "utf8")
 }
 
 function isSuspended(proposalText) {
   return /## Status\s+Suspended\./m.test(proposalText)
 }
 
-function extractShortSummary(metadataText) {
+function readMetaValue(metadataText, key) {
   if (!metadataText) {
     return null
   }
 
-  const match = metadataText.match(/^short:\s*(.+)\s*$/m)
-
-  if (!match) {
-    return null
-  }
-
-  return match[1].trim().replace(/^["']|["']$/g, "")
+  const match = metadataText.match(new RegExp(`^${key}:\\s*(.+)\\s*$`, "m"))
+  return match ? match[1].trim().replace(/^["']|["']$/g, "") : null
 }
 
 function extractWhySummary(proposalText) {
@@ -80,32 +101,126 @@ function extractWhySummary(proposalText) {
 
   const normalizedParagraph = firstParagraph.replace(/\s+/g, " ").trim()
   const firstSentenceMatch = normalizedParagraph.match(/^(.+?[.!?])(?:\s|$)/)
-  const sentence = (firstSentenceMatch?.[1] || normalizedParagraph).trim()
-  const compactPart = sentence.split(/: | — |; /, 1)[0]?.trim() || sentence
-  const words = compactPart.split(/\s+/).filter(Boolean)
-
-  if (words.length <= 12) {
-    return compactPart
-  }
-
-  return `${words.slice(0, 12).join(" ")}...`
+  return (firstSentenceMatch?.[1] || normalizedParagraph).trim()
 }
 
-function buildChangeSummary(changeDir) {
-  const changeName = path.basename(changeDir)
-  const metadataText = readChangeMetadata(changeDir)
-  const proposalText = readProposal(changeDir)
+function readChange(changeDir) {
+  const name = path.basename(changeDir)
+  const proposalText = readText(path.join(changeDir, "proposal.md"))
 
   if (proposalText && isSuspended(proposalText)) {
     return null
   }
 
-  const summary = extractShortSummary(metadataText) || extractWhySummary(proposalText || "")
+  const metadataText = readText(path.join(changeDir, ".openspec.yaml"))
+  const short = readMetaValue(metadataText, "short")
+  const kind = readMetaValue(metadataText, "change_kind") || "idea"
+  const parent = readMetaValue(metadataText, "parent_change") || ""
 
   return {
-    name: changeName,
-    summary: summary || "Нет краткого пояснения в секции Why.",
+    name,
+    kind,
+    parent,
+    summary: short || extractWhySummary(proposalText || "") || "Нет краткого пояснения.",
   }
+}
+
+function filterChanges(changes, shortMode) {
+  if (!shortMode) {
+    return changes
+  }
+
+  return changes.filter((change) => !["implement", "fix"].includes(change.kind))
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function highlightText(text, needle) {
+  if (!needle) {
+    return text
+  }
+
+  const pattern = new RegExp(escapeRegExp(needle), "gi")
+  return text.replace(pattern, (match) => `${RED}${match}${RESET}`)
+}
+
+function styleRootName(text, depth) {
+  if (depth !== 0) {
+    return text
+  }
+
+  return `${BRIGHT_WHITE}${text}${RESET}`
+}
+
+function iconForKind(kind) {
+  return KIND_ICONS.get(kind) || "  "
+}
+
+function kindRank(kind) {
+  const index = KIND_ORDER.indexOf(kind)
+  return index === -1 ? KIND_ORDER.length : index
+}
+
+function sortChanges(list) {
+  return list.sort(
+    (left, right) => kindRank(left.kind) - kindRank(right.kind) || left.name.localeCompare(right.name),
+  )
+}
+
+function buildTreeLines(changes, highlightNeedle) {
+  const byName = new Map(changes.map((change) => [change.name, change]))
+  const children = new Map(changes.map((change) => [change.name, []]))
+
+  for (const change of changes) {
+    if (!change.parent || !byName.has(change.parent)) {
+      continue
+    }
+    children.get(change.parent).push(change)
+  }
+
+  for (const entry of children.values()) {
+    sortChanges(entry)
+  }
+
+  const roots = sortChanges(
+    changes.filter((change) => !change.parent || !byName.has(change.parent) || kindRank(change.kind) === 0),
+  )
+
+  const visited = new Set()
+  const lines = []
+
+  function collectNode(node, depth) {
+    if (visited.has(node.name)) {
+      return
+    }
+
+    visited.add(node.name)
+
+    const indent = "  ".repeat(depth)
+    const icon = iconForKind(node.kind)
+    const name = styleRootName(highlightText(node.name, highlightNeedle), depth)
+    const summary = highlightText(node.summary, highlightNeedle)
+
+    lines.push({ depth, text: `${indent}${icon} ${name}\t${summary}` })
+
+    for (const child of children.get(node.name) || []) {
+      collectNode(child, depth + 1)
+    }
+  }
+
+  for (const root of roots) {
+    collectNode(root, 0)
+  }
+
+  const orphaned = sortChanges(changes.filter((change) => !visited.has(change.name)))
+
+  for (const orphan of orphaned) {
+    collectNode(orphan, 0)
+  }
+
+  return lines
 }
 
 function main() {
@@ -116,8 +231,12 @@ function main() {
     return
   }
 
-  if (args.length > 0) {
-    console.error(`Неизвестные аргументы: ${args.join(", ")}`)
+  let parsedArgs
+
+  try {
+    parsedArgs = parseArgs(args)
+  } catch (error) {
+    console.error(error.message)
     console.error("")
     printUsage()
     process.exit(1)
@@ -128,17 +247,23 @@ function main() {
     process.exit(1)
   }
 
-  const changes = listChangeDirs(CHANGES_DIR)
-    .map(buildChangeSummary)
-    .filter(Boolean)
+  const changes = filterChanges(listChangeDirs(CHANGES_DIR).map(readChange).filter(Boolean), parsedArgs.shortMode)
 
   if (changes.length === 0) {
     console.log("Нет актуальных changes.")
     return
   }
 
-  for (const change of changes) {
-    console.log(`${change.name}\t${change.summary}`)
+  const lines = buildTreeLines(changes, parsedArgs.highlightNeedle)
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const current = lines[index]
+    const next = lines[index + 1]
+    console.log(current.text)
+
+    if (next && next.depth < current.depth) {
+      console.log("")
+    }
   }
 }
 

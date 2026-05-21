@@ -12,7 +12,7 @@
 
 ## Зависимости
 
-Этот change зависит от `research-dev-mode-project-work`, потому что импорт должен создавать и наполнять project-scoped данные.
+Этот change зависит от `producer-dev-mode-project-work`, потому что импорт должен создавать и наполнять project-scoped данные.
 
 ## What Changes
 
@@ -53,4 +53,3 @@
 - Описан MVP набор сохраняемых артефактов.
 - Описан план безопасности и владения данными пользователем.
 - Есть roadmap на отдельные changes и тестовый план/traceability.
-

@@ -2,6 +2,8 @@ import { spawnSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 
+import { normalizeDispatchedChangeName } from "./openspec-change-name.mjs"
+
 const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
 
 function printUsage() {
@@ -78,13 +80,6 @@ function parseArgs(argv) {
   return { ...parsed, help: false }
 }
 
-function normalizeChangeName(kind, name) {
-  if (name.startsWith("implement-") || name.startsWith("fix-")) {
-    return name
-  }
-  return `${kind}-${name}`
-}
-
 function readMetadata(changeName) {
   const metadataPath = path.join(CHANGES_DIR, changeName, ".openspec.yaml")
   if (!fs.existsSync(metadataPath)) {
@@ -141,7 +136,7 @@ function run() {
     throw new Error(`Источник диспетчеризации должен быть release или dispatcher. Получено: ${sourceMeta.kind}`)
   }
 
-  const changeName = normalizeChangeName(parsed.kind, parsed.name)
+  const changeName = normalizeDispatchedChangeName(parsed.kind, parsed.name)
   const args = ["run", "os:begin", "--", dispatcherName, "--spawn-implement", changeName]
 
   if (parsed.description) {

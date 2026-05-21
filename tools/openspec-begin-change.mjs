@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { spawnSync } from "node:child_process"
+import { getHandoffReadiness, HANDOFF_FILE, writeHandoffFile } from "./openspec-handoff.mjs"
 
 const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
 const ALLOWED_IMPLEMENT_KINDS = new Set(["implement", "fix"])
@@ -59,6 +60,38 @@ function parseArgs(argv) {
   return { help: false, changeName, spawnImplement, description }
 }
 
+function parseRoadmapRefs(text) {
+  const refs = []
+  const singleMatch = text.match(/^roadmap_ref:\s*(.+)\s*$/m)
+
+  if (singleMatch) {
+    const ref = singleMatch[1].trim().replace(/^["']|["']$/g, "")
+
+    if (ref) {
+      refs.push(ref)
+    }
+  }
+
+  const listMatch = text.match(/^roadmap_refs:\s*\n((?:\s*-\s*.+\n?)*)/m)
+
+  if (listMatch) {
+    const listRefs = listMatch[1]
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("- "))
+      .map((line) => line.slice(2).trim().replace(/^["']|["']$/g, ""))
+      .filter(Boolean)
+
+    for (const ref of listRefs) {
+      if (!refs.includes(ref)) {
+        refs.push(ref)
+      }
+    }
+  }
+
+  return refs
+}
+
 function readMetadata(changeName) {
   const metadataPath = path.join(CHANGES_DIR, changeName, ".openspec.yaml")
 
@@ -79,8 +112,9 @@ function readMetadata(changeName) {
     executionMode: readValue("execution_mode"),
     parentChange: readValue("parent_change"),
     strategyRoot: readValue("strategy_root"),
-    roadmapRef: readValue("roadmap_ref"),
+    roadmapRefs: parseRoadmapRefs(text),
     releaseRef: readValue("release_ref"),
+    producerRef: readValue("producer_ref"),
     verificationLevel: readValue("verification_level"),
     verificationCommand: readValue("verification_command"),
   }
@@ -220,6 +254,11 @@ function ensureApplyArtifacts(changeName, description) {
   return created
 }
 
+function ensureHandoffArtifact(changeName, context) {
+  writeHandoffFile(path.join(CHANGES_DIR, changeName), context)
+  return true
+}
+
 function main() {
   const parsed = parseArgs(process.argv.slice(2))
 
@@ -234,6 +273,13 @@ function main() {
     if (!parsed.spawnImplement) {
       console.error(`Change ${parsed.changeName} имеет тип dispatcher.`)
       console.error("Прямая реализация кода в dispatcher запрещена.")
+      if (current.roadmapRefs.length > 0) {
+        console.error("")
+        console.error("Наследуемые roadmap:")
+        for (const ref of current.roadmapRefs) {
+          console.error(`- openspec/changes/${ref}`)
+        }
+      }
       console.error("")
       console.error("Следующий шаг:")
       console.error(`- Создать implement/fix change и связать его с ${parsed.changeName}`)
@@ -249,7 +295,18 @@ function main() {
       strategy_root: current.strategyRoot || parsed.changeName,
       release_ref: current.releaseRef || created.releaseRef,
     })
+    const finalMeta = readMetadata(parsed.spawnImplement)
     const createdArtifacts = ensureApplyArtifacts(parsed.spawnImplement, parsed.description)
+    const createdHandoff = ensureHandoffArtifact(parsed.spawnImplement, {
+      changeName: parsed.spawnImplement,
+      summary: parsed.description?.trim() || "описание реализации будет уточнено",
+      parentChange: parsed.changeName,
+      strategyRoot: finalMeta.strategyRoot,
+      releaseRef: finalMeta.releaseRef,
+      producerRef: finalMeta.producerRef,
+      verificationLevel: finalMeta.verificationLevel,
+      verificationCommand: finalMeta.verificationCommand,
+    })
 
     console.log("")
     console.log(`Создан исполнительский change: ${parsed.spawnImplement}`)
@@ -260,6 +317,10 @@ function main() {
     }
     if (createdArtifacts.length > 0) {
       console.log(`- автосозданы артефакты: ${createdArtifacts.join(", ")}`)
+    }
+    if (createdHandoff) {
+      console.log(`- создан handoff: openspec/changes/${parsed.spawnImplement}/${HANDOFF_FILE}`)
+      console.log("- перед исполнением обязательно заполнить handoff по существу")
     }
     console.log(`Запусти: npm run os:begin -- ${parsed.spawnImplement}`)
     return
@@ -305,12 +366,24 @@ function main() {
     return
   }
 
+  const handoff = getHandoffReadiness(path.join(CHANGES_DIR, parsed.changeName))
+  if (!handoff.ready) {
+    console.error(`Change ${parsed.changeName} ещё не готов к исполнению.`)
+    console.error(`- Заполни: openspec/changes/${parsed.changeName}/${HANDOFF_FILE}`)
+    for (const error of handoff.errors) {
+      console.error(`- ${error}`)
+    }
+    process.exit(2)
+  }
+
   console.log(`Готово к реализации: ${parsed.changeName}`)
   console.log(`- kind: ${current.kind}`)
   console.log(`- parent_change: ${current.parentChange || "(не задан)"}`)
   console.log(`- strategy_root: ${current.strategyRoot || "(не задан)"}`)
+  console.log(`- producer_ref: ${current.producerRef || "(не задан)"}`)
   console.log(`- verification_level: ${current.verificationLevel || "(не задан)"}`)
   console.log(`- verification_command: ${current.verificationCommand || "(не задан)"}`)
+  console.log(`- handoff: openspec/changes/${parsed.changeName}/${HANDOFF_FILE}`)
 }
 
 main()

@@ -12,7 +12,7 @@
 #### Scenario: Workbench tool фиксирует sourcing decision
 - **WHEN** registry содержит Workbench tool
 - **THEN** tool содержит sourcing decision `reuse`, `adapt` или `build`
-- **AND** decision указывает primitive, owner boundary, adapter policy и test level
+- **AND** decision указывает primitive, owner boundary, adapter policy, fallback/degradation strategy и test level
 - **AND** Sandpack и Monaco оформлены как `adapt`, а текущие lab controls не добавляют новую dependency
 
 #### Scenario: Tool state сериализуется отдельно от component runtime

@@ -20,5 +20,5 @@
 
 ## Acceptance Criteria
 
-- `focus-tech` отображается в `npm run os:tree` как верхнеуровневый фокус.
+- `focus-tech` отображается в `npm run os` как верхнеуровневый фокус.
 - Тип `focus` валидируется схемой и tooling.

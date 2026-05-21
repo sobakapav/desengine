@@ -12,6 +12,7 @@ export type WorkbenchSourcingDecision = {
   primitive: string
   ownerBoundary: string
   adapterPolicy: string
+  fallbackStrategy: string
   testLevel: "static" | "unit" | "component" | "e2e-smoke" | "live"
 }
 

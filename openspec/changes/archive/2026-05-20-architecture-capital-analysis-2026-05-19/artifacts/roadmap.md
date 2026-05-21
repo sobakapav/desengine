@@ -169,7 +169,7 @@ Scope:
 3. `dispatcher-platform-component-sourcing-strategy`
 4. `implement-workbench-platform-registry`
 5. `implement-prompt-context-runtime-boundary`
-6. `idea-event-envelope-experience-cost-boundary`
+6. `research-event-envelope-experience-cost-boundary`
 7. `dispatcher-packaging-readiness-storage-adapters`
 
 `code-readability-practices-2026-05-19` включён в эту орбиту как governance baseline: его формулировки считаются достаточно проработанными, но он не становится runtime-блокером для следующей архитектурной волны.

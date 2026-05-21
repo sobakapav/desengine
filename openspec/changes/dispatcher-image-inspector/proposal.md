@@ -15,5 +15,5 @@
 
 ## Acceptance Criteria
 
-- `dispatcher-image-inspector` отображается в `npm run os:tree` под `focus-features`.
+- `dispatcher-image-inspector` отображается в `npm run os` под `focus-features`.
 - `fix-default-image-inspector-enabled` отображается как дочерний к `dispatcher-image-inspector`.

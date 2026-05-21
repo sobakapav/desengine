@@ -3,6 +3,7 @@ import path from "node:path"
 import {
   CHANGE_KIND_PATTERN,
   PARENT_CHANGE_PATTERN,
+  PRODUCER_REF_PATTERN,
   SHORT_PATTERN,
   parseMetadataValue,
   readText,
@@ -45,7 +46,10 @@ export function collectChangeContext(changesRoot) {
   const changeDirs = readChangeDirs(changesRoot)
   const allChangeNames = new Set(changeDirs.map((dirPath) => path.basename(dirPath)))
   const changeKindsByName = new Map()
+  const changeDirByName = new Map()
   const childCountByParent = new Map()
+  const parentByChangeName = new Map()
+  const producerRefByChangeName = new Map()
 
   for (const changeDir of changeDirs) {
     const metadataPath = path.join(changeDir, ".openspec.yaml")
@@ -57,16 +61,44 @@ export function collectChangeContext(changesRoot) {
     const changeName = path.basename(changeDir)
     const changeKind = parseMetadataValue(metadata, CHANGE_KIND_PATTERN)
     const parentChange = parseMetadataValue(metadata, PARENT_CHANGE_PATTERN) || ""
+    const producerRef = parseMetadataValue(metadata, PRODUCER_REF_PATTERN) || ""
 
     if (changeKind) {
       changeKindsByName.set(changeName, changeKind)
     }
+    changeDirByName.set(changeName, changeDir)
     if (parentChange) {
+      parentByChangeName.set(changeName, parentChange)
       childCountByParent.set(parentChange, (childCountByParent.get(parentChange) || 0) + 1)
     }
+    producerRefByChangeName.set(changeName, producerRef)
   }
 
-  return { allChangeNames, changeDirs, changeKindsByName, childCountByParent }
+  return {
+    allChangeNames,
+    changeDirs,
+    changeKindsByName,
+    changeDirByName,
+    childCountByParent,
+    parentByChangeName,
+    producerRefByChangeName,
+    fileExists: (filePath) => fs.existsSync(filePath),
+    hasRoadmapFiles: (changeName) => {
+      const changeDir = changeDirByName.get(changeName)
+
+      if (!changeDir) {
+        return false
+      }
+
+      const roadmapDir = path.join(changeDir, "roadmaps")
+
+      if (!fs.existsSync(roadmapDir)) {
+        return false
+      }
+
+      return fs.readdirSync(roadmapDir, { withFileTypes: true }).some((entry) => entry.isFile() && entry.name.endsWith(".md"))
+    },
+  }
 }
 
 export function validateChanges(projectRoot, changesRoot) {
