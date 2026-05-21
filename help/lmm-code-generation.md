@@ -6,7 +6,7 @@
 
 Понять что код неверный, можно посмотрев по сторонам. Налево, направо. 
 
-![Сравнение слева и справа](https://drive.google.com/file/d/1QmWI0gESvzIlN2qKoT0GiPlZDlD1tiKp/view?usp=sharing)
+![Сравнение слева и справа](https://drive.google.com/uc?export=download&id=1QmWI0gESvzILN2qKoT0GiPlZDlD1tiKp)
 
 Вот, например совпадает ли тут лево и право. Очевидно, что нет. Ваша задача объяснить LLM так, чтобы лево и право были одинаковыми. Для этого у вас есть 3 попытки. 
 
