@@ -1,0 +1,13 @@
+schema: spec-driven
+created: 2026-05-21
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "focus"
+execution_mode: "no-code"
+parent_change: ""
+strategy_root: "focus-content"
+roadmap_ref: ""
+release_ref: ""
+producer_ref: ""
+issue: ""
+short: "стратегический фокус на документации и инженерном контенте"

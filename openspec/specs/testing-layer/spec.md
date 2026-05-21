@@ -49,6 +49,22 @@
 - **THEN** для capability существует минимум один runnable-путь проверки в едином тестовом слое (static/contract или unit)
 - **AND** `npm run test:traceability` валидирует связь его scenario с тестами или coverage-plan
 
+### Requirement: Foundation event-линия переиспользует общий harness
+
+Система SHALL удерживать единый reusable test harness для foundation event-линии, чтобы downstream changes не создавали параллельные тестовые event shape и не дублировали базовые sink-fixtures.
+
+#### Scenario: Foundation event-линия использует общий reusable harness
+
+- **WHEN** downstream change добавляет новую проверку поверх `EventEnvelope`
+- **THEN** он переиспользует общий surface builders/fixtures и contract helpers из foundation-линии
+- **AND** не вводит второй локальный baseline для тех же scope/privacy/redaction инвариантов
+
+#### Scenario: Runtime-boundary событий проверяется без storage через foundation harness
+
+- **WHEN** команда проверяет общий runtime-boundary записи product events
+- **THEN** проверка использует stub/no-op sink и foundation `EventEnvelope`
+- **AND** storage, producer wiring и live credentials не требуются
+
 ### Requirement: Обязательные тесты воспроизводимы без внешних секретов
 
 Система SHALL запускать обязательный тестовый слой на детерминированных fixtures/mock-данных без доступа к реальным внешним сервисам.
@@ -94,4 +110,3 @@
 - **WHEN** тест lab-flow записывает task files, progress или check-result
 - **THEN** он использует temp/fixture storage или полностью замоканный service boundary
 - **AND** тест не оставляет изменение пользовательских данных после завершения
-

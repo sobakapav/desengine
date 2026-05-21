@@ -34,6 +34,22 @@
 - **THEN** он строит `TaskData` через общий helper
 - **AND** `contentByFileId`, `promptHistory`, `llmUsageSummary` и `labContext` имеют стабильный shape
 
+### Requirement: Task screen распространяет один screen event contract
+
+Система SHALL собирать для MVP task/workbench flow один screen-level event contract и передавать его по цепочке `page -> LabScreen -> TaskScreenSection -> Workbench -> child consumer` без второго ad-hoc shape.
+
+#### Scenario: Пользователь открывает рабочий файл задачи
+- **WHEN** `app/lab/<taskId>/<screen>` открывает task screen
+- **THEN** route/page слой собирает один screen event input для текущего `taskId` и `activeScreen`
+- **AND** `LabScreen` строит из него единый screen event contract
+- **AND** `TaskScreenSection` и `Workbench` передают этот contract дальше без локального дублирования shape
+
+#### Scenario: Пользователь редактирует один файл и переключается на другой
+- **WHEN** child consumer внутри `Workbench` меняет `activeScreen`
+- **THEN** обновление проходит через тот же screen event contract
+- **AND** следующий active screen наблюдается потомком без второго параллельного пути состояния
+- **AND** MVP-реализация не расширяется на `check`, `done` и `transition`
+
 ### Requirement: Уровень 1 имеет собственную лабораторию
 
 Система SHALL предоставлять отдельную лабораторию для уровня 1.

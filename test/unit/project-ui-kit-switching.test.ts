@@ -300,6 +300,20 @@ describe("project UI kit switching", () => {
       "Workbench",
       "useWorkbenchController.ts",
     )
+    const workbenchPersistence = readProjectFile(
+      "components",
+      "desengine",
+      "lab",
+      "Workbench",
+      "useWorkbenchPersistence.ts",
+    )
+    const workbenchTaskActions = readProjectFile(
+      "components",
+      "desengine",
+      "lab",
+      "Workbench",
+      "useWorkbenchTaskActions.ts",
+    )
     const outRender = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "OutRender.tsx")
 
     expect(sandpackRoute).toContain('searchParams.get("uiKitId")')
@@ -314,9 +328,10 @@ describe("project UI kit switching", () => {
     expect(workbenchController).toContain("createBrowserProjectStorage")
     expect(workbenchController).toContain("sandpackUiKitsConfig")
     expect(workbenchController).toContain("/hint?")
-    expect(workbenchController).toContain("/check")
-    expect(workbenchController).toContain("JSON.stringify({ project })")
     expect(workbenchController).toContain("projectStorage.saveProject")
+    expect(workbenchTaskActions).toContain("/check")
+    expect(workbenchTaskActions).toContain("JSON.stringify({ project })")
+    expect(workbenchPersistence).toContain("/api/tasks/${taskId}/files")
     expect(workbenchView).toContain('uiMode: nextUiKitId === "none" ? "html-tags" : "ui-kit"')
     expect(outRender).toContain("new URLSearchParams")
     expect(outRender).toContain("uiKitId: previewProject.settings.uiKitId")

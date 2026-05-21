@@ -146,8 +146,8 @@ function highlightText(text, needle) {
   return text.replace(pattern, (match) => `${RED}${match}${RESET}`)
 }
 
-function styleRootName(text, depth) {
-  if (depth !== 0) {
+function styleRootName(text, depth, shortMode) {
+  if (depth !== 0 || shortMode) {
     return text
   }
 
@@ -169,7 +169,7 @@ function sortChanges(list) {
   )
 }
 
-function buildTreeLines(changes, highlightNeedle) {
+function buildTreeLines(changes, highlightNeedle, shortMode) {
   const byName = new Map(changes.map((change) => [change.name, change]))
   const children = new Map(changes.map((change) => [change.name, []]))
 
@@ -200,7 +200,7 @@ function buildTreeLines(changes, highlightNeedle) {
 
     const indent = "  ".repeat(depth)
     const icon = iconForKind(node.kind)
-    const name = styleRootName(highlightText(node.name, highlightNeedle), depth)
+    const name = styleRootName(highlightText(node.name, highlightNeedle), depth, shortMode)
     const summary = highlightText(node.summary, highlightNeedle)
 
     lines.push({ depth, text: `${indent}${icon} ${name}\t${summary}` })
@@ -254,7 +254,7 @@ function main() {
     return
   }
 
-  const lines = buildTreeLines(changes, parsedArgs.highlightNeedle)
+  const lines = buildTreeLines(changes, parsedArgs.highlightNeedle, parsedArgs.shortMode)
 
   for (let index = 0; index < lines.length; index += 1) {
     const current = lines[index]

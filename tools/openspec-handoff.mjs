@@ -37,6 +37,16 @@ function sectionBody(source, heading, nextHeadings) {
   return tail.slice(0, end).trim()
 }
 
+/**
+ * @example
+ * ```js
+ * const source = buildHandoffTemplate({
+ *   changeName: "implement-foo",
+ *   parentChange: "dispatcher-bar",
+ *   verificationCommand: "npm run test:unit",
+ * })
+ * ```
+ */
 export function buildHandoffTemplate({
   changeName,
   summary = "",
@@ -54,6 +64,7 @@ export function buildHandoffTemplate({
     `- release_ref: ${releaseRef || "(не задан)"}`,
     `- producer_ref: ${producerRef || "(не задан)"}`,
     `- Что из родительского change уже решено: ${HANDOFF_PLACEHOLDER}`,
+    `- Кто отвечает за стратегию, тактику и приёмку результата: ${HANDOFF_PLACEHOLDER}`,
   ].join("\n")
   const requiredSources = [
     parentChange ? `- openspec/changes/${parentChange}/proposal.md` : `- ${HANDOFF_PLACEHOLDER}`,
@@ -70,6 +81,7 @@ export function buildHandoffTemplate({
   return `## Миссия
 
 - Что должен изменить этот change: ${effectiveSummary}
+- Этот change меняет код только на уровне implement/fix и не пересматривает решения родительских changes.
 
 ## Унаследованный контекст
 
@@ -83,6 +95,7 @@ ${requiredSources}
 
 - Что входит в этот change: ${HANDOFF_PLACEHOLDER}
 - Что сознательно не входит в этот change: ${HANDOFF_PLACEHOLDER}
+- Какие решения уже принадлежат parent dispatcher / strategy_root и не должны переоткрываться: ${HANDOFF_PLACEHOLDER}
 
 ## Проверка результата
 
@@ -94,6 +107,15 @@ ${verification}
 `
 }
 
+/**
+ * @example
+ * ```js
+ * ensureHandoffFile("openspec/changes/implement-foo", {
+ *   changeName: "implement-foo",
+ *   parentChange: "dispatcher-bar",
+ * })
+ * ```
+ */
 export function ensureHandoffFile(changeDir, handoffContext = {}) {
   const handoffPath = path.join(changeDir, HANDOFF_FILE)
   if (fs.existsSync(handoffPath)) {
@@ -104,12 +126,28 @@ export function ensureHandoffFile(changeDir, handoffContext = {}) {
   return true
 }
 
+/**
+ * @example
+ * ```js
+ * writeHandoffFile("openspec/changes/implement-foo", {
+ *   changeName: "implement-foo",
+ *   summary: "собрать handoff для исполнителя",
+ * })
+ * ```
+ */
 export function writeHandoffFile(changeDir, handoffContext = {}) {
   const handoffPath = path.join(changeDir, HANDOFF_FILE)
   fs.writeFileSync(handoffPath, buildHandoffTemplate(handoffContext), "utf8")
   return handoffPath
 }
 
+/**
+ * @example
+ * ```js
+ * const readiness = getHandoffReadiness("openspec/changes/implement-foo")
+ * console.log(readiness.ready)
+ * ```
+ */
 export function getHandoffReadiness(changeDir) {
   const handoffPath = path.join(changeDir, HANDOFF_FILE)
   if (!fs.existsSync(handoffPath)) {

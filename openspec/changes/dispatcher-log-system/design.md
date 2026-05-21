@@ -2,7 +2,7 @@
 
 `dispatcher-event-envelope` удерживает форму события. Но сама система журналирования требует отдельного управленческого слоя: даже без немедленной реализации нужно заранее договориться, чем является product event log и чего от него не ждать на первом этапе.
 
-Обе линии идут как sibling-dispatcher ветки под `focus-tech`. Они связаны с `producer-event-envelope-experience-cost-boundary` содержательно, но не выражают эту связь через родительство или `producer_ref` в metadata dispatcher.
+Обе линии идут как sibling-dispatcher ветки внутри стратегического контура `producer-event-envelope-experience-cost-boundary`. Они связаны содержательно, но не выражают эту связь через подчинение одной ветки другой.
 
 ## Decisions
 

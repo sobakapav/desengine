@@ -7,7 +7,7 @@ short: "готовность storage adapters к packaging"
 depends_on_change: "idea-event-envelope-experience-cost-boundary"
 change_kind: "dispatcher"
 execution_mode: "no-code"
-parent_change: "dispatcher-architecture-transformation"
+parent_change: "focus-tech"
 strategy_root: "producer-task-and-workflow-entities"
 roadmap_ref: ""
 roadmap_refs:

@@ -28,7 +28,7 @@ describe("openspec producer list", () => {
     }
   })
 
-  it("показывает implement/fix changes по producer с группировкой через dispatcher", () => {
+  it("показывает implement/fix changes по producer без упоминания dispatcher", () => {
     const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-producer-list-"))
     tempDirs.push(fixtureRoot)
 
@@ -64,9 +64,10 @@ describe("openspec producer list", () => {
     })
 
     expect(output).toContain("\u001B[97mproducer-alpha\u001B[0m\tproducer alpha")
-    expect(output).toContain("  dispatcher-alpha\tдиспетчер alpha")
-    expect(output).toContain("    implement-alpha\tреализация alpha")
-    expect(output).toContain("    fix-alpha\tфикс alpha")
+    expect(output).toContain("  implement-alpha\tреализация alpha")
+    expect(output).toContain("  fix-alpha\tфикс alpha")
+    expect(output).not.toContain("dispatcher-alpha")
+    expect(output).not.toContain("диспетчер alpha")
     expect(output).not.toContain("producer-empty")
   })
 })

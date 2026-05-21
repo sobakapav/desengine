@@ -55,31 +55,9 @@ function readChange(changeDir) {
   }
 }
 
-function printTaskTree(tasks, dispatchersByName) {
-  const tasksByDispatcher = new Map()
-
-  for (const task of tasks) {
-    const parent = task.parent || "(без dispatcher)"
-    const bucket = tasksByDispatcher.get(parent) || []
-    bucket.push(task)
-    tasksByDispatcher.set(parent, bucket)
-  }
-
-  const dispatcherNames = [...tasksByDispatcher.keys()].sort((a, b) => a.localeCompare(b))
-
-  for (const dispatcherName of dispatcherNames) {
-    const dispatcher = dispatchersByName.get(dispatcherName)
-
-    if (dispatcher) {
-      console.log(`  ${dispatcher.name}\t${dispatcher.short}`)
-    } else {
-      console.log(`  ${dispatcherName}\tнет metadata dispatcher`)
-    }
-
-    const bucket = tasksByDispatcher.get(dispatcherName) || []
-    for (const task of bucket.sort((a, b) => a.name.localeCompare(b.name))) {
-      console.log(`    ${task.name}\t${task.short}`)
-    }
+function printTasks(tasks) {
+  for (const task of tasks.sort((a, b) => a.name.localeCompare(b.name))) {
+    console.log(`  ${task.name}\t${task.short}`)
   }
 }
 
@@ -108,7 +86,6 @@ function main() {
     .filter(Boolean)
     .sort((a, b) => a.name.localeCompare(b.name))
 
-  const dispatchersByName = new Map(changes.filter((change) => change.kind === "dispatcher").map((change) => [change.name, change]))
   const executableTasks = changes.filter((change) => ["implement", "fix"].includes(change.kind) && change.producerRef)
   const producers = changes
     .filter((change) => change.kind === "producer")
@@ -127,7 +104,7 @@ function main() {
       .filter((change) => change.producerRef === producer.name)
       .sort((a, b) => a.name.localeCompare(b.name))
 
-    printTaskTree(tasks, dispatchersByName)
+    printTasks(tasks)
 
     if (index < producers.length - 1) {
       console.log("")

@@ -227,8 +227,8 @@ function WorkbenchWorkArea({ controller, props }: { controller: WorkbenchControl
                 taskData={{ ...props.taskData, contentByFileId: controller.code.codeContentByFileId }}
                 onFileChange={controller.code.handleCodeChange}
                 onSaveShortcut={() => void controller.save.saveDirtyFiles()}
-                activeFileId={props.activeScreen}
-                onActiveFileIdChange={(nextFileId) => void controller.handleFileChange(nextFileId)}
+                screenEvent={props.screenEvent}
+                onScreenEventChange={(nextScreenEvent) => void controller.handleFileChange(nextScreenEvent.activeScreen)}
                 dirtyFileIds={controller.dirty.dirtyFileIds}
             />
             <Prompt taskItem={props.taskItem} taskData={props.taskData} status={controller.prompt.promptStatus} error={controller.prompt.promptError} />

@@ -107,7 +107,6 @@
 - **WHEN** разработчик запускает `npm run os:p`
 - **THEN** команда печатает только те active producer changes, у которых есть связанные implement/fix changes
 - **AND** под каждым producer показывает связанные implement/fix changes
-- **AND** эти implement/fix сгруппированы по parent dispatcher
 
 #### Scenario: Создаётся producer change
 - **WHEN** имя нового change начинается с префикса `producer-`
@@ -179,6 +178,21 @@
 - **AND** другие changes не используют этот change как `parent_change`
 - **AND** любые changes могут ссылаться на release через `release_ref`
 
+### Requirement: Только implement/fix влияют на код напрямую
+
+Система SHALL трактовать `focus`, `idea`, `producer`, `dispatcher` и `release` как управляющие роли без прямого изменения кода.
+
+#### Scenario: Preflight для неисполнительской роли запрещает прямую реализацию
+- **WHEN** запускается `npm run os:begin -- <focus|idea|producer|dispatcher|release-change>`
+- **THEN** команда явно сообщает, что код меняют только `implement` и `fix`
+- **AND** объясняет управленческую обязанность этой роли
+- **AND** подсказывает допустимый downstream-шаг
+
+#### Scenario: Preflight для implement/fix напоминает границы роли
+- **WHEN** запускается `npm run os:begin -- <implement-or-fix-change>`
+- **THEN** команда явно сообщает, что стратегия и тактика уже заданы предками
+- **AND** напоминает, что parent dispatcher отвечает за постановку и приёмку результата
+
 ### Requirement: Старт реализации проходит через preflight-команду
 
 Система SHALL перед началом реализации change использовать preflight-команду, которая блокирует прямую реализацию dispatcher и направляет работу в implement/fix changes.
@@ -187,6 +201,7 @@
 - **WHEN** запускается `npm run os:begin -- <dispatcher-change>`
 - **THEN** команда завершает preflight с отказом в прямой реализации
 - **AND** предлагает создать исполнительский change (`implement-*` или `fix-*`)
+- **AND** явно напоминает, что dispatcher обязан передавать downstream inherited roadmap и принимать результат implement/fix
 - **AND** показывает inherited roadmap, которыми должен руководствоваться исполнительский контур
 
 #### Scenario: Разработчик создаёт implement из dispatcher через preflight
@@ -194,6 +209,7 @@
 - **THEN** создаётся исполнительский change
 - **AND** в нём автоматически заполняются `parent_change` и `strategy_root` от dispatcher-контекста
 - **AND** автоматически создаются базовые apply-артефакты (`proposal.md`, `design.md`, `tasks.md`)
+- **AND** команда явно напоминает, что код меняется только в новом implement/fix, а dispatcher остаётся управляющим контуром
 
 #### Scenario: Диспетчеризация хотелки выполняется одной командой
 - **WHEN** запускается `npm run os:dispatch -- <dispatcher-change> --kind <implement|fix> --name <name>`
@@ -219,4 +235,5 @@
 - **WHEN** разработчик запускает `npm run os:ctx -- <implement-or-fix-change>`
 - **THEN** команда показывает parent dispatcher и его ключевые артефакты (`proposal`, `design`, `tasks`) для контекстной проработки
 - **AND** показывает inherited roadmap стратегических владельцев dispatcher
+- **AND** явно напоминает, что parent dispatcher отвечает за тактику и приёмку результата
 - **AND** при наличии `producer_ref` показывает producer-артефакты и сам producer-контекст

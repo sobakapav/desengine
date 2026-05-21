@@ -11,6 +11,10 @@
   - `implement-log-system-runtime-boundary`
   - `implement-event-envelope-test-harness`
   - `implement-event-envelope-docs`
+- В этот же релиз включён UX-fix:
+  - `fix-lab-editor-width`
+- В этот же релиз включён fix Sandpack runtime-зависимостей для UI kit:
+  - `fix-sandpack-ui-kit-dependency-resolution`
 
 ## Impact
 

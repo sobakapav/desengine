@@ -127,17 +127,18 @@ npm run os -- dispatcher
 
 ```bash
 <producer-change>\t<короткое пояснение>
-  <dispatcher-change>\t<короткое пояснение>
-    <implement-or-fix-change>\t<короткое пояснение>
+  <implement-or-fix-change>\t<короткое пояснение>
 ```
 
-Команда включает только implement/fix changes по producer и группирует их через `parent_change` dispatcher. Producers без привязанных implement/fix в вывод не попадают.
+Команда включает только implement/fix changes по producer. Producers без привязанных implement/fix в вывод не попадают.
 
 ### `npm run os:begin -- <change>`
 
 Запускает preflight перед началом работы над change.
 
-- Если `change_kind=dispatcher`, команда блокирует прямую реализацию и предлагает создать `implement-*` или `fix-*`.
+- Прямое изменение кода разрешено только для `implement` и `fix`.
+- `focus`, `idea`, `producer`, `dispatcher` и `release` код напрямую не меняют: они управляют downstream changes своего уровня и принимают их результат.
+- Если `change_kind=dispatcher`, команда блокирует прямую реализацию, напоминает обязанность создать `implement-*` или `fix-*`, передать inherited roadmap и принять итог работы.
 - Для dispatcher команда дополнительно показывает inherited roadmap стратегических владельцев, которыми нужно руководствоваться дальше.
 - Для dispatcher можно сразу создать исполнительский change:
   При таком создании команда автоматически гарантирует базовые apply-артефакты (`proposal.md`, `design.md`, `tasks.md`), чтобы старт реализации не блокировался из-за пустого scaffolding.
@@ -147,9 +148,9 @@ npm run os -- dispatcher
 npm run os:begin -- dispatcher-... --spawn-implement implement-... --description "..."
 ```
 
-- Если `change_kind=implement|fix`, команда печатает readiness-поля (`parent_change`, `strategy_root`, `verification_level`, `verification_command`).
+- Если `change_kind=implement|fix`, команда печатает readiness-поля (`parent_change`, `strategy_root`, `verification_level`, `verification_command`) и напоминает, что стратегия и тактика уже заданы предками.
 - Если `handoff.md` отсутствует или в нём остались плейсхолдеры, preflight завершится отказом и потребует завершить handoff.
-- Если `change_kind=release`, команда показывает матрицу релиза (`parent dispatcher -> implement/fix`) и подсказывает команду релизной диспетчеризации.
+- Если `change_kind=release`, команда показывает матрицу релиза (`parent dispatcher -> implement/fix`) и подсказывает команду релизной диспетчеризации вместо прямого вмешательства в код.
 
 ### `npm run os:dispatch -- <dispatcher> --kind <implement|fix> --name <name>`
 
@@ -187,6 +188,7 @@ npm run os:dispatch -- release-... --dispatcher dispatcher-... --kind fix --name
 - какой `strategy_root` задаёт стратегию;
 - к какому `release_ref` относится change;
 - в каком `producer_ref` он находится, если producer-контекст задан;
+- что код меняется только на уровне implement/fix, а parent dispatcher отвечает за постановку и приёмку результата;
 - быстрые пути к `proposal/design/tasks` родительского dispatcher;
 - быстрые пути к `proposal/design/tasks` producer, если он задан;
 - inherited roadmap стратегических владельцев dispatcher;

@@ -13,6 +13,7 @@ import { createBrowserProjectStorage } from "@/lib/project/storage";
 import type { LevelOverview as LevelOverviewData } from "@/lib/level/types";
 import type { TaskCheckResult as TaskCheckResultData, TaskData, TaskListItem, TaskTransition } from "@/lib/task/types";
 import type { LabScreenState } from "./states";
+import type { LabTaskScreenEvent, LabTaskScreenEventInput } from "./screen-event";
 
 type RouterLike = {
     push: (href: string) => void;
@@ -231,11 +232,11 @@ function TaskScreenSection({
     handleCheckResult,
     handleLevelStart,
     handleReturnToLevelList,
-    handleScreenChange,
     handleTaskItemChange,
     handleTransition,
+    onScreenEventChange,
+    screenEvent,
     setTaskData,
-    screen,
     startError,
     startStatus,
     taskData,
@@ -244,11 +245,11 @@ function TaskScreenSection({
     handleCheckResult: CheckResultHandler;
     handleLevelStart: () => void;
     handleReturnToLevelList: (levelId?: string) => void;
-    handleScreenChange: (nextScreen: string) => void;
     handleTaskItemChange: (next: TaskListItem | null) => void;
     handleTransition: (transition: TaskTransition | null) => void;
+    onScreenEventChange: (next: LabTaskScreenEventInput) => void;
+    screenEvent: LabTaskScreenEvent;
     setTaskData: (taskData: TaskData) => void;
-    screen: Extract<LabScreenState, { type: "task" }>;
     startError: string;
     startStatus: "" | "starting";
     taskData: TaskData | null;
@@ -267,8 +268,8 @@ function TaskScreenSection({
             onBackToLevelList={() => handleReturnToLevelList(taskItem.progress.currentLevelId)}
             onCheckResult={handleCheckResult}
             onTransition={handleTransition}
-            activeScreen={screen.screen}
-            onScreenChange={handleScreenChange}
+            screenEvent={screenEvent}
+            onScreenEventChange={onScreenEventChange}
         />
     ) : (
         <TaskLevelStart

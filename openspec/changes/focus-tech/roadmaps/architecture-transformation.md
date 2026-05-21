@@ -2,7 +2,7 @@
 
 ## Владелец
 
-`focus-tech` владеет этим roadmap и использует его для `producer-architecture-transformation` и `dispatcher-architecture-transformation`.
+`focus-tech` владеет этим roadmap и использует его для `producer-architecture-transformation` и связанных dispatcher changes технической линии.
 
 ## Что считается целью
 

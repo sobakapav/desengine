@@ -12,10 +12,12 @@
    - перестраивают команды тестового запуска;
    - вводят общие mock/fixture-подходы;
    - описывают live/provider-проверки и их guardrails.
+   - меняют test runtime/tooling через отдельные downstream `implement`/`fix` changes под контролем dispatcher.
 
 2. Dispatcher не выполняет реализацию сам:
-   - анализ текущего состояния выносится в `producer-test-system-current-state`;
-   - runtime и tooling-изменения выполняются отдельными implement changes.
+   - анализ текущего состояния выносится в `research-test-system-current-state`;
+   - runtime и tooling-изменения выполняются отдельными implement/fix changes;
+   - dispatcher создаёт, направляет и контролирует эти исполнительские changes как часть собственной зоны ответственности.
 
 3. В каждый downstream behavior-change по тестовой линии обязательно включается человеко-понятная тестовая часть:
    - затронутые capability/scenarios;
@@ -28,10 +30,15 @@
 4. Для foundation event-линии тестовый dispatcher координирует отдельный implement-step:
    - `implement-event-envelope-test-harness`.
 
+5. Контракт `testing-layer` должен прямо отражать эту модель управления:
+   - сам dispatcher остаётся no-code change;
+   - код и tooling меняются через дочерние `implement`/`fix` changes;
+   - downstream changes не считаются самостоятельной тестовой стратегией вне контекста `dispatcher-test-system`.
+
 ## Risks / Trade-offs
 
 - [Риск] Dispatcher останется декларативным и не повлияет на практику.
-  → Mitigation: привязывать к нему конкретные producer/implement changes тестовой подсистемы.
+  → Mitigation: привязывать к нему конкретные research/implement changes тестовой подсистемы.
 
 - [Риск] Тестовый слой будет расти бессистемно из-за смешения локальных и live-проверок.
   → Mitigation: держать единые guardrails и отдельную классификацию уровней проверки.

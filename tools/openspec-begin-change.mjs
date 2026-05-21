@@ -1,10 +1,70 @@
-import fs from "node:fs"
 import path from "node:path"
-import { spawnSync } from "node:child_process"
 import { getHandoffReadiness, HANDOFF_FILE, writeHandoffFile } from "./openspec-handoff.mjs"
+import {
+  createImplementChange,
+  ensureApplyArtifacts,
+  readMetadata,
+  releaseMembers,
+  updateMetadata,
+} from "./openspec-change-state.mjs"
 
 const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
 const ALLOWED_IMPLEMENT_KINDS = new Set(["implement", "fix"])
+
+function printRoadmapRefs(roadmapRefs) {
+  if (roadmapRefs.length === 0) {
+    return
+  }
+
+  console.log("")
+  console.log("Наследуемые roadmap:")
+  for (const ref of roadmapRefs) {
+    console.log(`- openspec/changes/${ref}`)
+  }
+}
+
+function printNonExecutableGuidance(changeName, current) {
+  console.log(`Change ${changeName}: kind=${current.kind}, execution_mode=${current.executionMode}`)
+  console.log("Прямое изменение кода здесь запрещено. Код меняют только implement/fix.")
+
+  if (current.kind === "focus") {
+    console.log("Focus задаёт стратегию и управляет downstream idea/producer/dispatcher changes.")
+    console.log("Если нужен код, сначала переведи решение в producer или dispatcher, а затем в implement/fix.")
+    return
+  }
+
+  if (current.kind === "idea") {
+    console.log("Idea уточняет гипотезу и передаёт delivery вниз, но не меняет код напрямую.")
+    console.log("Если решение созрело, оформи следующий producer или dispatcher change.")
+    return
+  }
+
+  if (current.kind === "producer") {
+    console.log("Producer формирует roadmap и ожидания, но не создаёт код напрямую.")
+    console.log("Producer обязан работать через downstream dispatcher changes и принимать их результат на своём уровне.")
+    return
+  }
+
+  if (current.kind === "release") {
+    console.log("Release не меняет код напрямую.")
+    console.log("Release управляет delivery implement/fix через os:dispatch и проверяет состав поставки.")
+    console.log(`Следующий шаг: npm run os:dispatch -- ${changeName} --dispatcher <dispatcher-change> --kind fix --name <name> --description "..."`)
+    return
+  }
+
+  if (current.kind === "dispatcher") {
+    console.log("Dispatcher не меняет код напрямую.")
+    console.log("Dispatcher обязан создавать implement/fix changes, передавать им inherited roadmap и принимать результат их работы.")
+    printRoadmapRefs(current.roadmapRefs)
+    console.log("")
+    console.log("Следующий шаг:")
+    console.log(`- Создать implement/fix change и связать его с ${changeName}`)
+    console.log(`- Пример: npm run os:begin -- ${changeName} --spawn-implement implement-<имя> --description "..."`)
+    return
+  }
+
+  console.log("Это не исполнительский change.")
+}
 
 function printUsage() {
   console.error("Использование:")
@@ -60,202 +120,8 @@ function parseArgs(argv) {
   return { help: false, changeName, spawnImplement, description }
 }
 
-function parseRoadmapRefs(text) {
-  const refs = []
-  const singleMatch = text.match(/^roadmap_ref:\s*(.+)\s*$/m)
-
-  if (singleMatch) {
-    const ref = singleMatch[1].trim().replace(/^["']|["']$/g, "")
-
-    if (ref) {
-      refs.push(ref)
-    }
-  }
-
-  const listMatch = text.match(/^roadmap_refs:\s*\n((?:\s*-\s*.+\n?)*)/m)
-
-  if (listMatch) {
-    const listRefs = listMatch[1]
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.startsWith("- "))
-      .map((line) => line.slice(2).trim().replace(/^["']|["']$/g, ""))
-      .filter(Boolean)
-
-    for (const ref of listRefs) {
-      if (!refs.includes(ref)) {
-        refs.push(ref)
-      }
-    }
-  }
-
-  return refs
-}
-
-function readMetadata(changeName) {
-  const metadataPath = path.join(CHANGES_DIR, changeName, ".openspec.yaml")
-
-  if (!fs.existsSync(metadataPath)) {
-    throw new Error(`Change не найден: ${changeName}`)
-  }
-
-  const text = fs.readFileSync(metadataPath, "utf8")
-
-  const readValue = (key) => {
-    const match = text.match(new RegExp(`^${key}:\\s*(.+)\\s*$`, "m"))
-    return match ? match[1].trim().replace(/^["']|["']$/g, "") : ""
-  }
-
-  return {
-    metadataPath,
-    kind: readValue("change_kind"),
-    executionMode: readValue("execution_mode"),
-    parentChange: readValue("parent_change"),
-    strategyRoot: readValue("strategy_root"),
-    roadmapRefs: parseRoadmapRefs(text),
-    releaseRef: readValue("release_ref"),
-    producerRef: readValue("producer_ref"),
-    verificationLevel: readValue("verification_level"),
-    verificationCommand: readValue("verification_command"),
-  }
-}
-
-function listChangeNames() {
-  return fs
-    .readdirSync(CHANGES_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && entry.name !== "archive")
-    .map((entry) => entry.name)
-}
-
-function releaseMembers(releaseName) {
-  const members = []
-  for (const changeName of listChangeNames()) {
-    const meta = readMetadata(changeName)
-    if (meta.releaseRef !== releaseName) {
-      continue
-    }
-    members.push({
-      name: changeName,
-      kind: meta.kind,
-      parentChange: meta.parentChange,
-      strategyRoot: meta.strategyRoot,
-    })
-  }
-  return members.sort((a, b) => a.name.localeCompare(b.name))
-}
-
-function updateMetadata(changeName, updates) {
-  const metadataPath = path.join(CHANGES_DIR, changeName, ".openspec.yaml")
-  let text = fs.readFileSync(metadataPath, "utf8")
-
-  for (const [key, value] of Object.entries(updates)) {
-    const line = `${key}: "${String(value).replaceAll('"', '\\"')}"`
-    const pattern = new RegExp(`^${key}:\\s*.*$`, "m")
-
-    if (pattern.test(text)) {
-      text = text.replace(pattern, line)
-    } else {
-      text = `${text.endsWith("\n") ? text : `${text}\n`}${line}\n`
-    }
-  }
-
-  fs.writeFileSync(metadataPath, text, "utf8")
-}
-
-function createImplementChange(dispatcherName, implementName, description) {
-  if (!implementName.startsWith("implement-") && !implementName.startsWith("fix-")) {
-    throw new Error("Имя исполнительского change должно начинаться с implement- или fix-.")
-  }
-
-  const args = [path.join("tools", "create-openspec-change.mjs"), implementName]
-  if (description) {
-    args.push("--description", description)
-  }
-
-  const result = spawnSync("node", args, { cwd: process.cwd(), stdio: "inherit" })
-
-  if (typeof result.status === "number" && result.status !== 0) {
-    process.exit(result.status)
-  }
-}
-
-function ensureFile(filePath, content) {
-  if (fs.existsSync(filePath)) {
-    return false
-  }
-  fs.mkdirSync(path.dirname(filePath), { recursive: true })
-  fs.writeFileSync(filePath, content, "utf8")
-  return true
-}
-
-function ensureApplyArtifacts(changeName, description) {
-  const changeDir = path.join(CHANGES_DIR, changeName)
-  const summary = description?.trim() || "описание реализации будет уточнено"
-  const created = []
-
-  if (
-    ensureFile(
-      path.join(changeDir, "proposal.md"),
-      `## Why
-
-Нужен исполнительский change для реализации задачи диспетчера.
-
-## What Changes
-
-- Реализовать: ${summary}
-
-## Impact
-
-- Изменение закрывает конкретный исполнительский срез в рамках текущего dispatcher.
-`,
-    )
-  ) {
-    created.push("proposal.md")
-  }
-
-  if (
-    ensureFile(
-      path.join(changeDir, "design.md"),
-      `## Контекст
-
-- Родительский dispatcher управляет приоритетом и порядком реализации.
-
-## Решение
-
-- Реализация уточняется в рамках задач этого change.
-`,
-    )
-  ) {
-    created.push("design.md")
-  }
-
-  if (
-    ensureFile(
-      path.join(changeDir, "tasks.md"),
-      `## Tasks
-
-- [ ] 1. Уточнить постановку и границы реализации
-- [ ] 2. Внести кодовые изменения
-- [ ] 3. Выполнить проверку по verification_command из metadata
-
-## Тестовая часть change
-
-- [ ] Указать затронутые OpenSpec capability/scenarios
-- [ ] Выбрать уровень проверки
-- [ ] Добавить или обновить тесты
-- [ ] Зафиксировать команду проверки
-- [ ] Описать mock/fixture-данные и live credentials, если нужны
-`,
-    )
-  ) {
-    created.push("tasks.md")
-  }
-
-  return created
-}
-
 function ensureHandoffArtifact(changeName, context) {
-  writeHandoffFile(path.join(CHANGES_DIR, changeName), context)
+  writeHandoffFile(`openspec/changes/${changeName}`, context)
   return true
 }
 
@@ -271,23 +137,11 @@ function main() {
 
   if (current.kind === "dispatcher") {
     if (!parsed.spawnImplement) {
-      console.error(`Change ${parsed.changeName} имеет тип dispatcher.`)
-      console.error("Прямая реализация кода в dispatcher запрещена.")
-      if (current.roadmapRefs.length > 0) {
-        console.error("")
-        console.error("Наследуемые roadmap:")
-        for (const ref of current.roadmapRefs) {
-          console.error(`- openspec/changes/${ref}`)
-        }
-      }
-      console.error("")
-      console.error("Следующий шаг:")
-      console.error(`- Создать implement/fix change и связать его с ${parsed.changeName}`)
-      console.error(`- Пример: npm run os:begin -- ${parsed.changeName} --spawn-implement implement-<имя> --description \"...\"`)
+      printNonExecutableGuidance(parsed.changeName, current)
       process.exit(2)
     }
 
-    createImplementChange(parsed.changeName, parsed.spawnImplement, parsed.description)
+    createImplementChange(parsed.spawnImplement, parsed.description)
     const created = readMetadata(parsed.spawnImplement)
 
     updateMetadata(parsed.spawnImplement, {
@@ -322,6 +176,8 @@ function main() {
       console.log(`- создан handoff: openspec/changes/${parsed.spawnImplement}/${HANDOFF_FILE}`)
       console.log("- перед исполнением обязательно заполнить handoff по существу")
     }
+    console.log("- код меняется только в этом implement/fix change; dispatcher остаётся управляющим контуром")
+    console.log("- после реализации dispatcher обязан принять результат через verification и traceability-слой")
     console.log(`Запусти: npm run os:begin -- ${parsed.spawnImplement}`)
     return
   }
@@ -329,6 +185,8 @@ function main() {
   if (current.kind === "release") {
     const members = releaseMembers(parsed.changeName)
     console.log(`Release-контекст: ${parsed.changeName}`)
+    console.log("Прямое изменение кода здесь запрещено. Код меняют только implement/fix.")
+    console.log("Release управляет delivery implement/fix через os:dispatch и проверяет состав поставки.")
     console.log(`- Привязанных changes: ${members.length}`)
 
     const grouped = new Map()
@@ -355,14 +213,13 @@ function main() {
     }
 
     console.log("")
-    console.log("Для новой хотелки из release-контекста:")
+    console.log("Следующий шаг для новой хотелки из release-контекста:")
     console.log(`npm run os:dispatch -- ${parsed.changeName} --dispatcher <dispatcher-change> --kind fix --name <name> --description "..."`)
     return
   }
 
   if (!ALLOWED_IMPLEMENT_KINDS.has(current.kind)) {
-    console.log(`Change ${parsed.changeName}: kind=${current.kind}, execution_mode=${current.executionMode}`)
-    console.log("Это не исполнительский change. Реализацию кода запускать не нужно.")
+    printNonExecutableGuidance(parsed.changeName, current)
     return
   }
 
@@ -377,12 +234,14 @@ function main() {
   }
 
   console.log(`Готово к реализации: ${parsed.changeName}`)
+  console.log("- код меняется только в implement/fix; стратегия и тактика уже заданы предками")
   console.log(`- kind: ${current.kind}`)
   console.log(`- parent_change: ${current.parentChange || "(не задан)"}`)
   console.log(`- strategy_root: ${current.strategyRoot || "(не задан)"}`)
   console.log(`- producer_ref: ${current.producerRef || "(не задан)"}`)
   console.log(`- verification_level: ${current.verificationLevel || "(не задан)"}`)
   console.log(`- verification_command: ${current.verificationCommand || "(не задан)"}`)
+  console.log("- parent dispatcher отвечает за постановку и приёмку результата")
   console.log(`- handoff: openspec/changes/${parsed.changeName}/${HANDOFF_FILE}`)
 }
 

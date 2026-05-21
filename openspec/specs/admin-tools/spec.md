@@ -79,7 +79,6 @@
 - **WHEN** разработчик запускает `npm run os:p`
 - **THEN** команда печатает только те active producer changes, у которых есть связанные `implement` или `fix` changes
 - **AND** для каждого producer показывает связанные `implement` и `fix` changes
-- **AND** grouping выполняется через parent dispatcher этих исполнительских changes
 
 ### Requirement: Child change получает отдельный handoff-артефакт для передачи исполнения
 
@@ -144,6 +143,22 @@
 - **THEN** он согласует её через dispatcher changes
 - **AND** implement/fix changes не используют producer как `parent_change`
 
+### Requirement: Код меняют только implement/fix, остальные roles управляют потомками
+
+Система SHALL трактовать `focus`, `idea`, `producer`, `dispatcher` и `release` как неисполнительские роли: они принимают решения своего уровня, порождают downstream changes и проверяют их результат, но не меняют код напрямую.
+
+#### Scenario: Разработчик пытается начать неисполнительский change
+- **WHEN** разработчик запускает `npm run os:begin -- <focus|idea|producer|dispatcher|release-change>`
+- **THEN** команда явно сообщает, что прямое изменение кода запрещено
+- **AND** объясняет, какими downstream changes должен управлять этот change
+- **AND** подсказывает следующий допустимый шаг вместо прямой реализации
+
+#### Scenario: Разработчик начинает implement/fix change
+- **WHEN** разработчик запускает `npm run os:begin -- <implement-or-fix-change>`
+- **THEN** команда явно сообщает, что код меняется только на уровне implement/fix
+- **AND** напоминает, что стратегия и тактика уже заданы предками
+- **AND** напоминает, что parent dispatcher отвечает за постановку и приёмку результата
+
 ### Requirement: Producer-контекст задаётся только на исполнительских changes
 
 Система SHALL поддерживать поле `producer_ref` только для `implement` и `fix`, чтобы исполнительская ветка могла явно знать свой producer-контекст без превращения producer в иерархического родителя.
@@ -171,6 +186,7 @@
 - **WHEN** разработчик запускает `npm run os:ctx -- <implement-or-fix-change>`
 - **THEN** команда показывает `proposal/design/tasks` parent dispatcher
 - **AND** дополнительно показывает все inherited roadmap, на которые ссылается dispatcher
+- **AND** явно напоминает, что parent dispatcher отвечает за тактику и приёмку результата
 - **AND** при наличии `producer_ref` показывает producer-артефакты и сам producer-контекст
 
 ### Requirement: Голый суффикс даты запрещён при создании, диспетчеризации и переименовании change

@@ -87,6 +87,7 @@ function run() {
   }
 
   console.log(`Контекст исполнения: ${parsed.changeName}`)
+  console.log("- код меняется только в implement/fix; этот change не пересматривает стратегию и тактику")
   console.log(`- parent dispatcher: ${meta.parentChange || "(не задан)"}`)
   console.log(`- strategy_root: ${meta.strategyRoot || "(не задан)"}`)
   console.log(`- release_ref: ${meta.releaseRef || "(не задан)"}`)
@@ -99,6 +100,7 @@ function run() {
     console.log(`- dispatcher proposal: openspec/changes/${meta.parentChange}/proposal.md`)
     console.log(`- dispatcher design: openspec/changes/${meta.parentChange}/design.md`)
     console.log(`- dispatcher tasks: openspec/changes/${meta.parentChange}/tasks.md`)
+    console.log("- parent dispatcher отвечает за тактику, постановку implement/fix и приёмку результата")
 
     if (dispatcherMeta.roadmapRefs.length > 0) {
       for (const ref of dispatcherMeta.roadmapRefs) {
@@ -112,6 +114,7 @@ function run() {
     console.log(`- producer design: openspec/changes/${meta.producerRef}/design.md`)
     console.log(`- producer tasks: openspec/changes/${meta.producerRef}/tasks.md`)
     console.log(`- producer roadmaps: openspec/changes/${meta.producerRef}/roadmaps`)
+    console.log("- producer задаёт ожидания и рамки, но не подменяет parent dispatcher")
   }
   console.log(`- local handoff: openspec/changes/${parsed.changeName}/${HANDOFF_FILE}`)
 }

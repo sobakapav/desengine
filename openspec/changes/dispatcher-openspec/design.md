@@ -92,6 +92,8 @@ OpenSpec-слой в этом репозитории состоит из трё�
 - `implement`: внедренческий слой; `execution_mode=code`; обязательный `parent_change` на `dispatcher`, а также `strategy_root`, `verification_level`, `verification_command`.
 - `fix`: быстрый внедренческий слой для небольших исправлений; `execution_mode=code`; обязательный `parent_change` на `dispatcher`, а также `strategy_root`, `verification_level`, `verification_command`.
 - `implement/fix` могут иметь собственный `producer_ref`, если исполнительская задача входит в producer-контекст. Это позволяет видеть producer-контекст без перевода producer в иерархического владельца.
+- Прямое изменение кода допускается только в `implement` и `fix`.
+- `focus`, `idea`, `producer`, `dispatcher` и `release` обязаны заниматься только решениями своего уровня, порождать downstream changes и принимать их результат, не подменяя исполнительский слой.
 
 ## Delivery-матрица release ↔ dispatcher
 
@@ -123,7 +125,9 @@ OpenSpec-слой в этом репозитории состоит из трё�
 - проверки: валидация схемы, traceability и статическая проверка согласованности.
   - `npm run test:traceability` валидирует `short` у активных changes по правилам кастомной схемы.
   - `npm run test:traceability` валидирует `change_kind`, `execution_mode`, связи (`parent_change`, `strategy_root`, `roadmap_ref`, `roadmap_refs`), ссылки `release_ref` и `producer_ref`, а также implement-поля проверки.
-  - `npm run os:begin -- <change>` выполняет preflight: dispatcher не может перейти в режим прямой реализации и должен породить implement/fix change.
+  - `npm run os:begin -- <change>` выполняет preflight: любой неисполнительский change получает явный запрет на прямое изменение кода и обязан перейти к downstream changes своего уровня.
+  - `npm run os:begin -- <dispatcher-change>` отдельно напоминает, что dispatcher должен породить implement/fix change, передать ему inherited roadmap и потом принять результат.
+  - `npm run os:begin -- <implement-or-fix-change>` отдельно напоминает, что код меняется только здесь, а стратегия и тактика уже заданы предками.
   - `npm run os:dispatch -- <dispatcher> --kind <implement|fix> --name <name>` создаёт и привязывает исполнительский change как основной путь обработки новых хотелок в dispatcher-контексте.
   - `npm run os:dispatch -- <release> --dispatcher <dispatcher> --kind <implement|fix> --name <name>` создаёт исполнительский change в delivery-матрице release↔dispatcher.
   - `npm run os:ctx -- <implement-or-fix-change>` выводит контекст parent dispatcher для release-чата, включая inherited roadmap стратегических владельцев.
