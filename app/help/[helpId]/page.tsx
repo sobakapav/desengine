@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { redirect } from "next/navigation"
 
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { MarkdownContent } from "@/components/desengine/system/MarkdownContent"
 import { requireAccessOrRedirect } from "@/lib/auth/server"
 import { getHelpErrorUrl, getHelpRootUrl } from "@/lib/help/navigation"
@@ -31,12 +32,28 @@ export default async function HelpMarkdownPage({ params }: HelpMarkdownPageProps
   return (
     <main>
       <div>
-        <section>
+        <section className="pb-16">
           <div className="mb-6 border-b border-black/10 pb-5">
-            <Link href={getHelpRootUrl()}>
-              Справка
-            </Link>
-            <h1 className="tool-page-title mt-3">{page.title}</h1>
+<Breadcrumb>
+  <BreadcrumbList>
+    <BreadcrumbItem>
+      <BreadcrumbLink asChild>
+        <Link href={getHelpRootUrl()}>
+          Справка
+        </Link>
+      </BreadcrumbLink>
+    </BreadcrumbItem>
+
+    <BreadcrumbSeparator />
+
+    <BreadcrumbItem>
+      <BreadcrumbPage>
+        {page.title}
+      </BreadcrumbPage>
+    </BreadcrumbItem>
+  </BreadcrumbList>
+</Breadcrumb>
+
           </div>
 
           <MarkdownContent content={page.content} assetBasePath={getHelpRootUrl()} />
