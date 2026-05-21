@@ -14,5 +14,5 @@
 
 ## Acceptance Criteria
 
-- `focus-workflow` отображается в `npm run os:tree`.
-- `dispatcher-openspec-custom-schema` привязан как потомок `focus-workflow`.
+- `focus-workflow` отображается в `npm run os`.
+- `dispatcher-openspec` привязан как потомок `focus-workflow`.

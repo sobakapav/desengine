@@ -1,0 +1,13 @@
+schema: spec-driven
+created: 2026-05-19
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "исследование сущности roadmap проекта и её связи с задачами"
+depends_on_change: "producer-dev-mode-project-work"
+change_kind: "producer"
+execution_mode: "no-code"
+parent_change: "focus-product"
+strategy_root: "focus-product"
+roadmap_ref: ""
+producer_ref: ""

@@ -2,9 +2,8 @@ import fs from "node:fs"
 import path from "node:path"
 
 const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
-const ARCHIVE_DIR = path.join(CHANGES_DIR, "archive")
-const ANSI_GRAY = "\u001b[90m"
-const ANSI_RESET = "\u001b[0m"
+const BRIGHT_WHITE = "\u001B[97m"
+const RESET = "\u001B[0m"
 
 function printUsage() {
   console.error("Использование:")
@@ -17,17 +16,6 @@ function listActiveChangeDirs(changesDir) {
     .readdirSync(changesDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name !== "archive")
     .map((entry) => path.join(changesDir, entry.name))
-}
-
-function listArchivedChangeDirs(archiveDir) {
-  if (!fs.existsSync(archiveDir)) {
-    return []
-  }
-
-  return fs
-    .readdirSync(archiveDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => path.join(archiveDir, entry.name))
 }
 
 function readText(filePath) {
@@ -54,7 +42,7 @@ function canonicalNameFromPath(changeDir) {
   return name.replace(/^[0-9]{4}-[0-9]{2}-[0-9]{2}-/, "")
 }
 
-function readChange(changeDir, archived) {
+function readChange(changeDir) {
   const name = canonicalNameFromPath(changeDir)
   const metadata = readText(path.join(changeDir, ".openspec.yaml"))
   const proposal = readText(path.join(changeDir, "proposal.md"))
@@ -69,15 +57,7 @@ function readChange(changeDir, archived) {
     short: readMetaValue(metadata, "short") || "нет краткого описания",
     parent: readMetaValue(metadata, "parent_change") || "",
     releaseRef: readMetaValue(metadata, "release_ref"),
-    archived,
   }
-}
-
-function colorizeArchived(text, archived) {
-  if (!archived) {
-    return text
-  }
-  return `${ANSI_GRAY}${text}${ANSI_RESET}`
 }
 
 function main() {
@@ -100,16 +80,14 @@ function main() {
     process.exit(1)
   }
 
-  const changes = [
-    ...listActiveChangeDirs(CHANGES_DIR).map((dirPath) => readChange(dirPath, false)),
-    ...listArchivedChangeDirs(ARCHIVE_DIR).map((dirPath) => readChange(dirPath, true)),
-  ]
+  const changes = listActiveChangeDirs(CHANGES_DIR)
+    .map((dirPath) => readChange(dirPath))
     .filter(Boolean)
     .sort((a, b) => a.name.localeCompare(b.name))
 
   const byName = new Map()
   for (const change of changes) {
-    if (!byName.has(change.name) || (byName.get(change.name).archived && !change.archived)) {
+    if (!byName.has(change.name)) {
       byName.set(change.name, change)
     }
   }
@@ -123,7 +101,7 @@ function main() {
 
   for (let index = 0; index < releases.length; index += 1) {
     const release = releases[index]
-    console.log(colorizeArchived(`${release.name}\t${release.short}`, release.archived))
+    console.log(`${BRIGHT_WHITE}${release.name}${RESET}\t${release.short}`)
 
     const members = [...byName.values()]
       .filter((change) => change.releaseRef === release.name)
@@ -157,7 +135,7 @@ function main() {
         }
         visited.add(node.name)
         const indent = "  ".repeat(depth + 1)
-        console.log(colorizeArchived(`${indent}${node.name}\t${node.short}`, node.archived))
+        console.log(`${indent}${node.name}\t${node.short}`)
         for (const child of children.get(node.name) || []) {
           printNode(child, depth + 1)
         }

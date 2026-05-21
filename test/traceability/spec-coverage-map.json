@@ -50,6 +50,18 @@
         "Пользователь открывает форму уточняющего промпта"
       ]
     },
+    "component-sourcing": {
+      "priority": "P2",
+      "primaryLevels": [
+        "static",
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Команда добавляет новый Workbench tool",
+        "Готовая библиотека не должна протекать в домен"
+      ]
+    },
     "claude": {
       "priority": "P0",
       "primaryLevels": [
@@ -95,6 +107,26 @@
         "Команда перепроверяет документацию локального запуска",
         "Читатель открывает инструкцию первого запуска",
         "Читателю нужны подробности по частной теме"
+      ]
+    },
+    "event-envelope": {
+      "priority": "P1",
+      "primaryLevels": [
+        "static",
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Runtime создаёт project-scoped событие",
+        "Runtime создаёт task-scoped событие",
+        "Runtime создаёт workflow-step-scoped событие",
+        "Runtime создаёт workbench-instance-scoped событие",
+        "Envelope без обязательного поля отклоняется",
+        "Смешанный scope отклоняется",
+        "Privacy и redaction значения валидируются",
+        "Experience payload использует общий envelope",
+        "Action payload использует общий envelope",
+        "Cost payload использует общий envelope"
       ]
     },
     "google-gemini": {
@@ -352,6 +384,19 @@
         "Пользователь хочет повторно обновить onboarding-контент"
       ]
     },
+    "projects": {
+      "priority": "P1",
+      "primaryLevels": [
+        "static",
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Пользователь открывает lab в активном проекте",
+        "Настройки preview сохраняются в project settings",
+        "Runtime записывает product event через единую project boundary"
+      ]
+    },
     "resource-status": {
       "priority": "P2",
       "primaryLevels": [
@@ -406,6 +451,18 @@
         "Подсказка уровня отсутствует"
       ]
     },
+    "storage-adapter": {
+      "priority": "P1",
+      "primaryLevels": [
+        "static",
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Runtime читает активный проект",
+        "Storage backend ещё локальный"
+      ]
+    },
     "task-levels": {
       "priority": "P1",
       "primaryLevels": [
@@ -444,6 +501,30 @@
         ]
       }
     },
+    "testing-layer": {
+      "priority": "P1",
+      "primaryLevels": [
+        "static",
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Разработчик запускает быстрый локальный тестовый слой",
+        "Разработчик запускает полный локальный тестовый слой",
+        "Разработчик запускает проверки по capability",
+        "Тестовый файл покрывает OpenSpec-сценарий",
+        "Capability временно не имеет полного покрытия",
+        "Добавляется capability с quality-правилами читаемости",
+        "Foundation event-линия использует общий reusable harness",
+        "Runtime-boundary событий проверяется без storage через foundation harness",
+        "Credentials не заданы",
+        "Разработчик запускает live/provider-проверку",
+        "Тестовый слой ещё покрывает не все specs",
+        "Добавляется новый behavior-change",
+        "Разработчик проверяет lab runtime после hardening",
+        "Проверка использует временное пользовательское состояние"
+      ]
+    },
     "ui-foundation": {
       "priority": "P2",
       "primaryLevels": [
@@ -476,6 +557,19 @@
         "У задачи более высокий уровень",
         "Пользователь сбрасывает задачу",
         "Пользователь удалил каталог `user/`"
+      ]
+    },
+    "workbench-tools": {
+      "priority": "P1",
+      "primaryLevels": [
+        "unit",
+        "static"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Добавляется новый локальный tool",
+        "Workbench tool фиксирует sourcing decision",
+        "Tool state сериализуется отдельно от component runtime"
       ]
     }
   }

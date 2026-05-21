@@ -14,5 +14,5 @@
 
 ## Acceptance Criteria
 
-- `focus-features` отображается в `npm run os:tree`.
+- `focus-features` отображается в `npm run os`.
 - `dispatcher-ui-kit` привязан как потомок `focus-features`.

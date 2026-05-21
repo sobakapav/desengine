@@ -1,0 +1,13 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "producer"
+execution_mode: "no-code"
+parent_change: "focus-onboarding"
+strategy_root: "focus-onboarding"
+roadmap_ref: ""
+release_ref: ""
+producer_ref: ""
+issue: ""
+short: "осознать проблему первой задачи и предложить конкретные шаги решения"

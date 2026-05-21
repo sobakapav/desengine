@@ -1,5 +1,24 @@
 {
   "mode": "migration",
-  "description": "Временные readability-исключения для legacy-участков. Для ближайшего релиза список пуст: текущая кодовая база нормализована по правилам code-quality-text.",
-  "waivers": {}
+  "description": "Временные readability-исключения для legacy-участков. Новые исключения требуют явной причины и этапа закрытия.",
+  "waivers": {
+    "app/api/tasks/[taskId]/sandpack/route.ts": {
+      "rules": ["function-length"],
+      "owner": "team-desengine",
+      "reason": "Route ещё объединяет parsing ProjectWorkspace и сборку Sandpack payload; декомпозиция должна идти отдельным route-service refactor без изменения HTTP-контракта.",
+      "targetStage": "architecture-followup-route-services"
+    },
+    "components/desengine/lab/Workbench/useWorkbenchController.ts": {
+      "rules": ["file-length"],
+      "owner": "team-desengine",
+      "reason": "Controller уже был крупным orchestration-модулем; ProjectWorkspace storage boundary добавил integration glue, а выделение project/workbench hooks нужно делать отдельным UI-safe refactor.",
+      "targetStage": "architecture-followup-workbench-controller-split"
+    },
+    "lib/lab/sandpack-preview.ts": {
+      "rules": ["file-length", "function-length"],
+      "owner": "team-desengine",
+      "reason": "Sandpack facade теперь совмещает legacy fallback, UI kit compatibility и ProjectWorkspace settings; разнос resolver/builders нужен отдельным change после стабилизации preview boundary.",
+      "targetStage": "architecture-followup-sandpack-facade-split"
+    }
+  }
 }

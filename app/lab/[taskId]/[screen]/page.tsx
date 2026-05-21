@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation"
 
 import { Lab } from "@/components/desengine/lab/LabScreen"
+import { createLabTaskScreenEventInput } from "@/components/desengine/lab/LabScreen/screen-event"
 import { requireAccessOrRedirect } from "@/lib/auth/server"
 import { createLabUrl, isAccessibleTaskScreen } from "@/lib/system/navigation"
 import { getLevelOverview, getTaskLabContext, getTaskListItemById, isTaskStarted, readTaskData } from "@/lib/system/server"
@@ -56,6 +57,7 @@ export default async function TaskScreenPage({
       initScreen={{ type: "task", screen }}
       initTaskItem={taskItem}
       initTaskData={taskData}
+      initTaskScreenEventInput={createLabTaskScreenEventInput(taskId, screen)}
     />
   )
 }

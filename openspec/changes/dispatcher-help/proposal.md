@@ -4,7 +4,7 @@
 
 ## What Changes
 
-- Создаётся `dispatcher-help` под `focus-content`.
+- Создаётся `dispatcher-help` под `focus-public`.
 - Фиксируется поэтапный поток создания и публикации help-страниц в системе.
 
 ## Impact

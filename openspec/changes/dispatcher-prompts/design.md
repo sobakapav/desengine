@@ -10,7 +10,7 @@
 2. Authoring-contract хранится в capability `onboarding-repo`: где лежат файлы, какие из них обязательны, как использовать shared partials/base templates, как вести совместимость с legacy-форматом.
 3. Runtime-contract хранится в capability `llm`: как lookup prompt-файлов связывается с `levelId`, какой context передаётся в шаблон и как система деградирует при отсутствии/ошибке optional prompt.
 4. Все concrete реализации prompt-слоя ведутся отдельными child implement changes. Первый child change — `implement-prompts-njk-templating`.
-5. Первый implement привязывается к ближайшему релизному потоку `release-2026-05-20-evening`, чтобы prompt-слой появился в релизной трассировке сразу.
+5. Первый implement привязывается к ближайшему релизному потоку `release-2026-05-21-day`, чтобы prompt-слой появился в релизной трассировке сразу.
 
 ## Scope Boundaries
 

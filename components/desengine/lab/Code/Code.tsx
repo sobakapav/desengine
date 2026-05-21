@@ -17,6 +17,10 @@ import {
 import { TabsStyles } from "./styles"
 import { isEditorSaveHotkey } from "@/lib/lab/editor";
 import { taskWorkbenchFiles } from "@/lib/system/config/client";
+import {
+  changeLabTaskScreenEventInput,
+  readLabTaskScreenEventActiveScreen,
+} from "../LabScreen/screen-event";
 
 type CodeHeaderProps = {
   fileName: string;
@@ -102,7 +106,7 @@ function Code({
   onFileChange,
   onSaveShortcut,
   dirtyFileIds = [],
-}: CodeProps & { id: string }) {
+}: Omit<CodeProps, "screenEvent" | "onScreenEventChange"> & { id: string }) {
   const currentFile = id ? taskWorkbenchFiles.find((file) => file.id === id) : null;
   const isDirty = id ? dirtyFileIds.includes(id) : false;
   const fileContent = id ? taskData.contentByFileId[id] ?? "" : "";
@@ -185,13 +189,14 @@ function CodeTabs({
   onTaskDataChange,
   onFileChange,
   onSaveShortcut,
-  activeFileId,
-  onActiveFileIdChange,
+  screenEvent,
+  onScreenEventChange,
   dirtyFileIds = [],
 } : CodeProps) {
   const editableFileIds = taskData.labContext?.editableFileIds ?? [];
   const codeFiles = taskWorkbenchFiles.filter((f) => f.edit === true && editableFileIds.includes(f.id));
   const fallbackTab = codeFiles[0]?.id ?? "component"
+  const activeFileId = readLabTaskScreenEventActiveScreen(screenEvent);
   const tab = codeFiles.some((file) => file.id === activeFileId) ? activeFileId : fallbackTab
 
   if (codeFiles.length === 0) {
@@ -205,10 +210,14 @@ function CodeTabs({
   return (
     <Tabs
       value={tab}
-      onValueChange={(nextValue) => onActiveFileIdChange?.(nextValue)}
-      className={`${BaseStyles.frameRow} h-[34rem] gap-3 lg:flex-row`}
+      onValueChange={(nextValue) => onScreenEventChange?.(changeLabTaskScreenEventInput({
+        taskId: screenEvent.scope.taskId,
+        activeScreen: tab,
+      }, nextValue))}
+      data-screen-event-id={screenEvent.eventId}
+      className={`${BaseStyles.frameRow} min-w-0 flex-col h-[34rem] gap-3 lg:flex-row`}
     >
-      <div className="min-h-0 flex-1 p-0">
+      <div className="min-h-0 min-w-0 flex-1 p-0">
         {codeFiles.map((file) => (
           <TabsContent
             key={file.id}
@@ -251,8 +260,8 @@ function CodeList({
   onTaskDataChange,
   onFileChange,
   onSaveShortcut,
-  activeFileId,
-  onActiveFileIdChange,
+  screenEvent,
+  onScreenEventChange,
   dirtyFileIds = [],
 } : CodeProps) {
   return (
@@ -261,8 +270,8 @@ function CodeList({
       onTaskDataChange={onTaskDataChange}
       onFileChange={onFileChange}
       onSaveShortcut={onSaveShortcut}
-      activeFileId={activeFileId}
-      onActiveFileIdChange={onActiveFileIdChange}
+      screenEvent={screenEvent}
+      onScreenEventChange={onScreenEventChange}
       dirtyFileIds={dirtyFileIds}
     />
   );

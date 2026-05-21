@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { LevelOverview as LevelOverviewData } from "@/lib/level/types"
@@ -11,6 +11,11 @@ import { getLevelsRootUrl, getLevelUrl } from "@/lib/level/navigation";
 
 import { LabProps } from "./props"
 import { LabScreenState } from "./states"
+import {
+    buildLabTaskScreenEvent,
+    createLabTaskScreenEventInput,
+    syncLabTaskScreenEventInput,
+} from "./screen-event"
 import {
     CheckScreenSection,
     DoneScreenSection,
@@ -197,7 +202,7 @@ function useTaskResultHandlers({
     return { handleCheckResult, handleTransition };
 }
 
-function Lab({initLevelOverview, initScreen, initTaskItem, initTaskData} : LabProps) {
+function Lab({initLevelOverview, initScreen, initTaskItem, initTaskData, initTaskScreenEventInput} : LabProps) {
     const [screen, setScreen] = useState<LabScreenState>(initScreen);
     const { levelOverview, loadLevelOverview, setStatus, status } = useLevelOverviewState(initLevelOverview);
     const taskState = useTaskState(initTaskItem, initTaskData);
@@ -205,6 +210,29 @@ function Lab({initLevelOverview, initScreen, initTaskItem, initTaskData} : LabPr
     const starter = useLevelStarter(taskState);
     const taskLoader = useTaskLoader({ ...navigation, setScreen, setStatus, setTaskData: taskState.setTaskData, setTaskItem: taskState.setTaskItem });
     const taskResults = useTaskResultHandlers({ ...navigation, setScreen, setTaskData: taskState.setTaskData, setTaskItem: taskState.setTaskItem });
+    const taskScreenEventInput = useMemo(() => {
+        if (screen.type !== "task") {
+            return null;
+        }
+
+        const fallbackTaskId = taskState.taskItem?.id ?? taskState.taskData?.taskId ?? initTaskScreenEventInput?.taskId ?? "";
+        return syncLabTaskScreenEventInput({
+            activeScreen: screen.screen,
+            fallbackTaskId,
+            input: initTaskScreenEventInput ?? createLabTaskScreenEventInput(fallbackTaskId, screen.screen),
+        });
+    }, [initTaskScreenEventInput, screen, taskState.taskData?.taskId, taskState.taskItem?.id]);
+    const taskScreenEvent = useMemo(() => {
+        if (!taskScreenEventInput) {
+            return null;
+        }
+
+        const levelNumber = taskState.taskItem?.progress.currentLevel ?? taskState.taskData?.labContext?.levelNumber ?? 1;
+        return buildLabTaskScreenEvent({
+            input: taskScreenEventInput,
+            levelNumber,
+        });
+    }, [taskScreenEventInput, taskState.taskData?.labContext?.levelNumber, taskState.taskItem?.progress.currentLevel]);
 
     return (
         <main>
@@ -213,7 +241,16 @@ function Lab({initLevelOverview, initScreen, initTaskItem, initTaskData} : LabPr
             {screen.type === "transition" ? <TransitionScreenSection {...navigation} screen={screen} setScreen={setScreen} status={status} taskItem={taskState.taskItem} /> : null}
             {screen.type === "done" ? <DoneScreenSection {...navigation} screen={screen} setScreen={setScreen} status={status} taskItem={taskState.taskItem} /> : null}
             {screen.type === "check" ? <CheckScreenSection {...navigation} {...taskResults} screen={screen} setScreen={setScreen} setStatus={setStatus} status={status} taskItem={taskState.taskItem} /> : null}
-            {screen.type === "task" ? <TaskScreenSection {...navigation} {...starter} {...taskResults} {...taskState} screen={screen} /> : null}
+            {screen.type === "task" && taskScreenEvent ? (
+                <TaskScreenSection
+                    {...navigation}
+                    {...starter}
+                    {...taskResults}
+                    {...taskState}
+                    screenEvent={taskScreenEvent}
+                    onScreenEventChange={(nextInput) => navigation.handleScreenChange(nextInput.activeScreen)}
+                />
+            ) : null}
         </main>
     );
 }

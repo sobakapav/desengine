@@ -2,7 +2,7 @@
 export const TabsStyles = {
   list: [
     "w-full flex flex-col gap-2 rounded-2xl border border-black/10 bg-[#f5efe4] p-2",
-    "md:max-w-[18rem]",
+    "md:w-[18rem] md:max-w-[18rem] md:flex-none",
   ].join(" "),
 
   trigger: [
@@ -15,5 +15,5 @@ export const TabsStyles = {
     "data-[state=active]:text-black data-[state=active]:shadow-sm",
   ].join(" "),
 
-  content: "w-full h-full mt-0",
+  content: "mt-0 h-full min-w-0 w-full",
 }

@@ -1,0 +1,13 @@
+schema: spec-driven
+created: 2026-05-19
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "точки концентрации экспертизы: выявление и упаковка для повтора"
+depends_on_change: "producer-user-experience-generalization"
+change_kind: "producer"
+execution_mode: "no-code"
+parent_change: "idea-user-experience-to-llm-skills"
+strategy_root: "idea-user-experience-to-llm-skills"
+roadmap_ref: ""
+producer_ref: ""

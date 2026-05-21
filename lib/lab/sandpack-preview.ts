@@ -301,16 +301,18 @@ function resolvePreviewProject(
 ): ResolvedPreviewProject {
   const project = normalizeProject(options.project ?? {
     ...createDefaultProject(),
-    uiKitId: typeof options.uiKitId === "string"
-      ? normalizeSandpackUiKitId(options.uiKitId)
-      : (options.uiKitId ?? DEFAULT_SANDPACK_UI_KIT_ID),
-    uiMode: options.uiMode ?? undefined,
+    settings: {
+      uiKitId: typeof options.uiKitId === "string"
+        ? normalizeSandpackUiKitId(options.uiKitId)
+        : (options.uiKitId ?? DEFAULT_SANDPACK_UI_KIT_ID),
+      uiMode: options.uiMode ?? undefined,
+    },
   })
   const projectPreviewConfig = resolveProjectPreviewConfig(project)
   const resolvedUiKitId = projectPreviewConfig.effectiveUiKitId
 
   const shouldValidateHtmlTags = Boolean(options.project || options.uiMode)
-  const compatibility = shouldValidateHtmlTags && project.uiMode === "html-tags"
+  const compatibility = shouldValidateHtmlTags && project.settings.uiMode === "html-tags"
     ? validateHtmlTagsComponentSource(sourceFiles.component)
     : { status: "compatible" as const, message: "Режим проекта совместим с выбранным UI kit." }
 

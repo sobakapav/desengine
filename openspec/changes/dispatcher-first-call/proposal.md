@@ -4,7 +4,7 @@
 
 ## What Changes
 
-- Создаётся `dispatcher-first-call` под `focus-content`.
+- Создаётся `dispatcher-first-call` под `focus-public`.
 - Определяется структура созвона, артефакты фиксации наблюдений и формат последующей продуктовой обработки.
 
 ## Impact

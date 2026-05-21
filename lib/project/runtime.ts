@@ -6,12 +6,20 @@ import {
 
 export type ProjectUiMode = "ui-kit" | "html-tags"
 
-export type Project = {
-  id: string
-  title: string
+export type ProjectSettings = {
   uiKitId: SandpackUiKitId
   uiMode: ProjectUiMode
 }
+
+export type ProjectWorkspace = {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  settings: ProjectSettings
+}
+
+export type Project = ProjectWorkspace
 
 export type ProjectCompatibilityStatus = "compatible" | "incompatible"
 
@@ -23,11 +31,18 @@ export type ProjectCompatibility = {
 export type RawProject = {
   id?: string | null
   title?: string | null
+  createdAt?: string | null
+  updatedAt?: string | null
+  settings?: {
+    uiKitId?: string | null
+    uiMode?: string | null
+  } | null
   uiKitId?: string | null
   uiMode?: string | null
 }
 
 const DEFAULT_PROJECT_UI_MODE: ProjectUiMode = "ui-kit"
+const DEFAULT_PROJECT_TIMESTAMP = "1970-01-01T00:00:00.000Z"
 
 const allowedHtmlTagNames = new Set([
   "a",
@@ -96,28 +111,57 @@ function normalizeProjectUiMode(rawUiMode?: string | null): ProjectUiMode {
   return DEFAULT_PROJECT_UI_MODE
 }
 
+function normalizeProjectTimestamp(rawTimestamp: string | null | undefined, fallback = DEFAULT_PROJECT_TIMESTAMP) {
+  if (typeof rawTimestamp !== "string" || !rawTimestamp.trim()) return fallback
+  const date = new Date(rawTimestamp)
+  if (Number.isNaN(date.getTime())) return fallback
+  return date.toISOString()
+}
+
+function createProjectTimestamp() {
+  return new Date().toISOString()
+}
+
 function createDefaultProject(id = "lab-local-project"): Project {
+  const now = createProjectTimestamp()
+
   return {
     id,
     title: "Локальный проект",
-    uiKitId: DEFAULT_SANDPACK_UI_KIT_ID,
-    uiMode: DEFAULT_PROJECT_UI_MODE,
+    createdAt: now,
+    updatedAt: now,
+    settings: {
+      uiKitId: DEFAULT_SANDPACK_UI_KIT_ID,
+      uiMode: DEFAULT_PROJECT_UI_MODE,
+    },
   }
 }
 
 function normalizeProject(rawProject: RawProject | null | undefined): Project {
   const fallback = createDefaultProject(rawProject?.id || undefined)
-  const uiKitId = normalizeSandpackUiKitId(rawProject?.uiKitId)
-  const uiMode = rawProject?.uiMode == null && uiKitId === "none"
+  const rawSettings = rawProject?.settings ?? null
+  const rawUiKitId = rawSettings?.uiKitId ?? rawProject?.uiKitId
+  const rawUiMode = rawSettings?.uiMode ?? rawProject?.uiMode
+  const uiKitId = normalizeSandpackUiKitId(rawUiKitId)
+  const uiMode = rawUiMode == null && uiKitId === "none"
     ? "html-tags"
-    : normalizeProjectUiMode(rawProject?.uiMode)
+    : normalizeProjectUiMode(rawUiMode)
+  const createdAt = normalizeProjectTimestamp(rawProject?.createdAt, fallback.createdAt)
 
   return {
     id: typeof rawProject?.id === "string" && rawProject.id.trim() ? rawProject.id.trim() : fallback.id,
     title: typeof rawProject?.title === "string" && rawProject.title.trim() ? rawProject.title.trim() : fallback.title,
-    uiKitId,
-    uiMode,
+    createdAt,
+    updatedAt: normalizeProjectTimestamp(rawProject?.updatedAt, createdAt),
+    settings: {
+      uiKitId,
+      uiMode,
+    },
   }
+}
+
+function serializeProjectWorkspace(project: RawProject | ProjectWorkspace): ProjectWorkspace {
+  return normalizeProject(project)
 }
 
 function getProjectStorageKey(taskId: string) {
@@ -233,7 +277,7 @@ function validateHtmlTagsComponentSource(componentSource: string): ProjectCompat
 function resolveProjectPreviewConfig(project: Project) {
   return {
     ...project,
-    effectiveUiKitId: project.uiMode === "html-tags" ? "none" : project.uiKitId,
+    effectiveUiKitId: project.settings.uiMode === "html-tags" ? "none" : project.settings.uiKitId,
   }
 }
 
@@ -244,6 +288,7 @@ export {
   getProjectStorageKey,
   normalizeProject,
   normalizeProjectUiMode,
+  serializeProjectWorkspace,
   resolveProjectPreviewConfig,
   validateHtmlTagsComponentSource,
 }

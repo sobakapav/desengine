@@ -1,0 +1,16 @@
+schema: spec-driven
+created: 2026-05-21
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "реализовать общий test harness для EventEnvelope и log boundary"
+depends_on_change: "implement-log-system-runtime-boundary"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "dispatcher-test-system"
+strategy_root: "focus-quality"
+roadmap_ref: ""
+release_ref: "release-2026-05-21-day"
+producer_ref: "producer-test-system-current-state"
+verification_level: "unit"
+verification_command: "npm run test:unit && npm run test:traceability"

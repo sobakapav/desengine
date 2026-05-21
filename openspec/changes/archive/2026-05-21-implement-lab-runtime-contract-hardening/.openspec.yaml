@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-05-19
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "укрепление runtime-контрактов лаборатории без смены ux"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "dispatcher-runtime"
+strategy_root: "focus-tech"
+roadmap_ref: "focus-tech/roadmaps/architecture-transformation.md"
+
+verification_level: "unit"
+verification_command: "npm run test:unit"
+producer_ref: "producer-architecture-transformation"

@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-05-20
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "граница project workspace и storage"
+depends_on_change: "dispatcher-ui-kit"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "producer-architecture-transformation"
+strategy_root: "producer-task-and-workflow-entities"
+roadmap_ref: ""
+
+verification_level: "unit"
+verification_command: "npm run test:unit"

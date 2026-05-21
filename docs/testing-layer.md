@@ -158,6 +158,23 @@ npm run test:traceability
 - Если capability покрыт не полностью, он должен быть описан в `test/traceability/coverage-plan.json`.
 - Файл `openspec/specs/spec.md` считается обзорной wiki-страницей и не участвует в traceability capability-списке.
 
+### Event envelope MVP
+
+Для текущей MVP event-линии обязательны как минимум две команды:
+
+```bash
+npm run test:unit
+npm run test:traceability
+```
+
+Они должны подтверждать три слоя:
+
+- foundation `EventEnvelope` и source-contract;
+- runtime-boundary `recordEvent`;
+- screen propagation в цепочке `page.tsx` → `LabScreen` → `TaskScreenSection` → `Workbench` → `CodeList`.
+
+Подробный инженерный контракт этой линии описан в [docs/event-envelope-mvp.md](./event-envelope-mvp.md).
+
 ## Code Quality Text
 
 Быстрый режим для рабочих изменений:

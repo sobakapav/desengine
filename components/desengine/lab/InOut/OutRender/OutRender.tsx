@@ -32,8 +32,8 @@ function ProjectCompatibilityNotice({ payload }: { payload: SandpackPreviewPaylo
     return (
         <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
             <p className="font-medium">
-                Project UI: {payload.project.uiKitId}, режим {payload.project.uiMode}
-                {payload.project.effectiveUiKitId !== payload.project.uiKitId ? `, runtime ${payload.project.effectiveUiKitId}` : ""}
+                Project UI: {payload.project.settings.uiKitId}, режим {payload.project.settings.uiMode}
+                {payload.project.effectiveUiKitId !== payload.project.settings.uiKitId ? `, runtime ${payload.project.effectiveUiKitId}` : ""}
             </p>
             <p className="mt-1">{compatibility.message}</p>
         </div>
@@ -61,7 +61,7 @@ function SandpackRuntimeDiagnosticsNotice({ payload }: { payload: SandpackPrevie
     return (
         <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
             <p className="font-medium">
-                Sandpack runtime: {payload.project.uiKitId}, режим {payload.project.uiMode}
+                Sandpack runtime: {payload.project.settings.uiKitId}, режим {payload.project.settings.uiMode}
             </p>
             <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
             {payload.debug ? (
@@ -199,12 +199,12 @@ function OutRender({ task, started, reloadKey, startStatus, project }: OutRender
                 runtimeVersion: SANDBOX_RUNTIME_VERSION,
                 projectId: previewProject.id,
                 projectTitle: previewProject.title,
-                uiKitId: previewProject.uiKitId,
-                uiMode: previewProject.uiMode,
+                uiKitId: previewProject.settings.uiKitId,
+                uiMode: previewProject.settings.uiMode,
             });
             return `/api/tasks/${task}/sandpack?${params.toString()}`;
         },
-        [previewProject.id, previewProject.title, previewProject.uiKitId, previewProject.uiMode, task, reloadKey],
+        [previewProject.id, previewProject.title, previewProject.settings.uiKitId, previewProject.settings.uiMode, task, reloadKey],
     );
     const { error, previewPayload } = usePreviewPayload({ moduleUrl, started });
 

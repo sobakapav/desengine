@@ -8,10 +8,12 @@ import { TaskLevelStart } from "../../task/TaskLevelStart";
 import { TaskLevelTransition } from "../../task/TaskLevelTransition";
 import { createTaskDonePath } from "@/lib/task/navigation";
 import { getLabUrl } from "@/lib/lab/navigation";
-import { getProjectStorageKey, normalizeProject, type Project } from "@/lib/project/runtime";
+import { normalizeProject, type Project } from "@/lib/project/runtime";
+import { createBrowserProjectStorage } from "@/lib/project/storage";
 import type { LevelOverview as LevelOverviewData } from "@/lib/level/types";
 import type { TaskCheckResult as TaskCheckResultData, TaskData, TaskListItem, TaskTransition } from "@/lib/task/types";
 import type { LabScreenState } from "./states";
+import type { LabTaskScreenEvent, LabTaskScreenEventInput } from "./screen-event";
 
 type RouterLike = {
     push: (href: string) => void;
@@ -24,21 +26,18 @@ type CheckResultHandler = (
     nextTaskData: TaskData,
 ) => void;
 
-function readStoredProject(taskId: string): Project {
-    try {
-        const raw = window.localStorage.getItem(getProjectStorageKey(taskId));
-        const storedProject = raw ? JSON.parse(raw) : null;
+async function readStoredProject(taskId: string): Promise<Project> {
+    const fallbackProject = normalizeProject({
+        id: `task-${taskId}`,
+        title: `Проект ${taskId}`,
+    });
 
-        return normalizeProject({
-            ...storedProject,
-            id: `task-${taskId}`,
-            title: `Проект ${taskId}`,
-        });
+    try {
+        const storage = createBrowserProjectStorage({ storage: window.localStorage, taskId });
+        const project = await storage.getProject(`task-${taskId}`);
+        return project ?? fallbackProject;
     } catch {
-        return normalizeProject({
-            id: `task-${taskId}`,
-            title: `Проект ${taskId}`,
-        });
+        return fallbackProject;
     }
 }
 
@@ -46,7 +45,7 @@ async function fetchTaskCheck(taskId: string) {
     const res = await fetch(`/api/tasks/${taskId}/check`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ project: readStoredProject(taskId) }),
+        body: JSON.stringify({ project: await readStoredProject(taskId) }),
     });
     const data = await res.json().catch(() => null);
 
@@ -233,11 +232,11 @@ function TaskScreenSection({
     handleCheckResult,
     handleLevelStart,
     handleReturnToLevelList,
-    handleScreenChange,
     handleTaskItemChange,
     handleTransition,
+    onScreenEventChange,
+    screenEvent,
     setTaskData,
-    screen,
     startError,
     startStatus,
     taskData,
@@ -246,11 +245,11 @@ function TaskScreenSection({
     handleCheckResult: CheckResultHandler;
     handleLevelStart: () => void;
     handleReturnToLevelList: (levelId?: string) => void;
-    handleScreenChange: (nextScreen: string) => void;
     handleTaskItemChange: (next: TaskListItem | null) => void;
     handleTransition: (transition: TaskTransition | null) => void;
+    onScreenEventChange: (next: LabTaskScreenEventInput) => void;
+    screenEvent: LabTaskScreenEvent;
     setTaskData: (taskData: TaskData) => void;
-    screen: Extract<LabScreenState, { type: "task" }>;
     startError: string;
     startStatus: "" | "starting";
     taskData: TaskData | null;
@@ -269,8 +268,8 @@ function TaskScreenSection({
             onBackToLevelList={() => handleReturnToLevelList(taskItem.progress.currentLevelId)}
             onCheckResult={handleCheckResult}
             onTransition={handleTransition}
-            activeScreen={screen.screen}
-            onScreenChange={handleScreenChange}
+            screenEvent={screenEvent}
+            onScreenEventChange={onScreenEventChange}
         />
     ) : (
         <TaskLevelStart

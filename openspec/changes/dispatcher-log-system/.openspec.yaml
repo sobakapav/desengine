@@ -1,0 +1,13 @@
+schema: spec-driven
+created: 2026-05-21
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "диспетчер системы журналирования продуктовых событий"
+depends_on_change: "dispatcher-event-envelope"
+change_kind: "dispatcher"
+execution_mode: "no-code"
+parent_change: "focus-tech"
+strategy_root: "focus-tech"
+roadmap_ref: "focus-tech/roadmaps/log-system.md"
+producer_ref: ""

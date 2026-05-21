@@ -39,6 +39,9 @@ describe("change testing guidance", () => {
     )
     expect(packageJson.scripts["test:spec"]).toBe("node tools/testing/pending-layer.mjs spec")
     expect(packageJson.scripts["test:live"]).toBe("node tools/testing/pending-layer.mjs live")
+    expect(packageJson.scripts.os).toBe("node tools/list-active-openspec-changes.mjs")
+    expect(packageJson.scripts["os:p"]).toBe("node tools/list-openspec-producers.mjs")
+    expect(packageJson.scripts["os:tree"]).toBeUndefined()
     expect(packageJson.scripts["test:full"]).not.toContain("test:live")
   })
 
@@ -54,6 +57,8 @@ describe("change testing guidance", () => {
     expect(source).toContain("execution_mode")
     expect(source).toContain("parent_change")
     expect(source).toContain("roadmap_ref")
+    expect(source).toContain("roadmap_refs")
+    expect(source).toContain("producer_ref")
     expect(source).toContain("суффикс даты в имени change не допускается")
     expect(source).toContain("должно начинаться с маленькой буквы")
     expect(source).toContain("должно быть не длиннее 75 символов")
@@ -138,6 +143,8 @@ describe("change testing guidance", () => {
 
   it("генератор OpenSpec change добавляет тестовый чеклист в tasks.md", () => {
     const source = readProjectFile("tools", "create-openspec-change.mjs")
+    const nameSource = readProjectFile("tools", "openspec-change-name.mjs")
+    const handoffSource = readProjectFile("tools", "openspec-handoff.mjs")
 
     expect(source).toContain("TEST_CHECKLIST_HEADING")
     expect(source).toContain("## Тестовая часть change")
@@ -151,15 +158,23 @@ describe("change testing guidance", () => {
     expect(source).toContain("parent_change")
     expect(source).toContain("strategy_root")
     expect(source).toContain("roadmap_ref")
+    expect(source).toContain("roadmap_refs")
+    expect(source).toContain("producer_ref")
     expect(source).toContain('"none"')
     expect(source).toContain("краткое описание change")
     expect(source).toContain("normalizeShortValue")
-    expect(source).toContain("normalizeChangeName")
+    expect(source).toContain("normalizeCreatedChangeName")
     expect(source).toContain("Имя change нормализовано")
     expect(source).toContain("кратко ")
     expect(source).toContain("ensureTestChecklist(changeDir)")
+    expect(source).toContain("ensureHandoffFile")
     expect(source).toContain("test/traceability/coverage-plan.json")
     expect(source).toContain("Обновлены поля metadata")
+    expect(nameSource).toContain("assertValidChangeName")
+    expect(nameSource).toContain("суффикс даты в имени change не допускается")
+    expect(handoffSource).toContain("HANDOFF_FILE")
+    expect(handoffSource).toContain("## Миссия")
+    expect(handoffSource).toContain("[заполнить]")
   })
 
   it("документация показывает пример тестовой части и правило coverage-plan", () => {
@@ -172,5 +187,20 @@ describe("change testing guidance", () => {
     expect(source).toContain("Если полный тест сейчас нельзя добавить")
     expect(source).toContain("targetStage")
     expect(source).toContain("quality:text")
+  })
+
+  it("документация admin-tools использует npm run os как основной tree-listing", () => {
+    const source = readProjectFile("tools", "README.md")
+
+    expect(source).toContain("### `npm run os`")
+    expect(source).toContain("### `npm run os:short`")
+    expect(source).toContain("### `npm run os:p`")
+    expect(source).toContain("🩸")
+    expect(source).toContain("🍀")
+    expect(source).toContain("npm run os -- dispatcher")
+    expect(source).toContain("ярко-белым ANSI-цветом")
+    expect(source).toContain("implement/fix changes по producer")
+    expect(source).toContain("скрывает исполнительские changes")
+    expect(source).not.toContain("### `npm run os:tree`")
   })
 })

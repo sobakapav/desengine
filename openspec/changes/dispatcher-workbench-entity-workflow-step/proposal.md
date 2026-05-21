@@ -16,7 +16,7 @@
 
 ## Зависимости
 
-Этот change зависит от `research-task-and-workflow-entities-research`, потому что верстак привязывается к задаче и (часто) к шагу workflow.
+Этот change зависит от `producer-task-and-workflow-entities`, потому что верстак привязывается к задаче и (часто) к шагу workflow.
 
 ## What Changes
 
@@ -57,4 +57,3 @@
 - Зафиксирован контракт Workbench и связь с Task/WorkflowStep.
 - Зафиксирован контракт инструментов и реестр (как добавлять новый tool без хака).
 - Есть план внедрения (эпики/changes) и тестовый план/traceability.
-
