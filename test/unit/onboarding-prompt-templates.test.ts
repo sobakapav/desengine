@@ -43,4 +43,14 @@ describe("onboarding prompt templates (nunjucks)", () => {
     expect(out.startsWith("\n")).toBe(false)
     expect(out).toContain("Приоритеты:")
   })
+
+  it("level-3 check требует канонический styles.ts", async () => {
+    const root = path.join(process.cwd(), "onboarding", "prompts")
+
+    const out = await renderPromptTemplateFromRoot(root, path.join("levels", "level-3", "check.njk"), {}, { required: true })
+
+    expect(out.startsWith("\n")).toBe(false)
+    expect(out).toContain("`Component.tsx` и `styles.ts`")
+    expect(out).not.toContain("style.ts")
+  })
 })

@@ -8,7 +8,7 @@ import { promisify } from "node:util"
 
 const execFileAsync = promisify(execFile)
 const require = createRequire(import.meta.url)
-const { loadLocalConfig, readLocalConfig, getLocalConfigPath } = require("../lib/local-config.cjs")
+const { loadLocalConfig, readLocalConfig, getLocalConfigPath } = require("../lib/system/config/local.cjs")
 
 const rootDir = process.cwd()
 const envPath = getLocalConfigPath(rootDir)
@@ -29,6 +29,34 @@ async function pathExists(targetPath) {
   } catch {
     return false
   }
+}
+
+function isCrossDeviceError(error) {
+  return error instanceof Error && "code" in error && error.code === "EXDEV"
+}
+
+async function replaceDirectory(sourcePath, targetPath) {
+  if (await pathExists(targetPath)) {
+    await rm(targetPath, { recursive: true, force: true })
+  }
+
+  try {
+    await rename(sourcePath, targetPath)
+    return
+  } catch (error) {
+    if (!isCrossDeviceError(error)) {
+      throw error
+    }
+  }
+
+  try {
+    await fs.promises.cp(sourcePath, targetPath, { recursive: true, force: true })
+  } catch (error) {
+    await rm(targetPath, { recursive: true, force: true })
+    throw error
+  }
+
+  await rm(sourcePath, { recursive: true, force: true })
 }
 
 async function validateOnboardingLayout(root) {
@@ -110,10 +138,7 @@ async function main() {
       "utf-8",
     )
 
-    if (await pathExists(appConfig.onboardingRoot)) {
-      await rm(appConfig.onboardingRoot, { recursive: true, force: true })
-    }
-    await rename(checkoutDir, appConfig.onboardingRoot)
+    await replaceDirectory(checkoutDir, appConfig.onboardingRoot)
 
     process.stdout.write(
       `${JSON.stringify({ ok: true, repoUrl, commitHash }, null, 2)}\n`,
