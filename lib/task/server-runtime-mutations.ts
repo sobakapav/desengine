@@ -87,7 +87,6 @@ export const taskServerMutations = {
     }
 
     levelProgress.status = "in_progress"
-    levelProgress.promptsUsed += 1
     levelProgress.checkingState = "idle"
     context.taskProgress.updatedAt = new Date().toISOString()
 

@@ -18,7 +18,7 @@
 
 ## Как задать
 
-Переименуй [desengine.config-example.txt](desengine.config-example.txt:1) в `desengine.config.txt` и проверь значения блока доступа по email:
+Переименуй [desengine.config-example.txt](../desengine.config-example.txt) в `desengine.config.txt` и проверь значения блока доступа по email:
 
 ```bash
 ALLOWLIST_BASE_URL=https://example.com/allowlist/
@@ -73,8 +73,8 @@ ALLOWLIST_SALT=... npm run allowlist:marker -- user@example.com
 3. Создай на статическом хостинге пустой файл с этим именем.
 4. Убедись, что URL `<ALLOWLIST_BASE_URL>/<marker>` возвращает `200`.
 
-Каноническая инструкция по admin tools собрана в [tools/README.md](tools/README.md).
-Пошаговый первый запуск собран в [INSTALL.md](INSTALL.md).
+Каноническая инструкция по admin tools собрана в [tools/README.md](../tools/README.md).
+Пошаговый первый запуск собран в [INSTALL.md](../INSTALL.md).
 
 ## Как удалить email из allowlist
 

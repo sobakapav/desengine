@@ -18,6 +18,7 @@ import {
   type ProjectUiMode,
   type RawProject,
 } from "@/lib/project/runtime"
+import rootPackageJson from "../../package.json"
 
 type SandpackFileEntry = string | {
   code: string
@@ -87,12 +88,29 @@ const defaultStylesSource = "export const styles = {};\n"
 const defaultMockSource = "export const mock = {};\n"
 const defaultPropsSource = "export {};\n"
 
+function getRootPackageVersion(name: string) {
+  const rootPackages = rootPackageJson as {
+    dependencies?: Record<string, string>
+    devDependencies?: Record<string, string>
+  }
+  const version = rootPackages.dependencies?.[name] ?? rootPackages.devDependencies?.[name]
+
+  if (!version) {
+    throw new Error(`В корневом package.json не задана зависимость '${name}', но она нужна Sandpack preview`)
+  }
+
+  return version
+}
+
 const baseDependencies = {
   "@types/react": "^19.0.8",
   "@types/react-dom": "^19.0.3",
+  "@tailwindcss/postcss": getRootPackageVersion("@tailwindcss/postcss"),
+  postcss: getRootPackageVersion("postcss"),
   react: "^19.0.0",
   "react-dom": "^19.0.0",
   "react-scripts": "^5.0.1",
+  tailwindcss: getRootPackageVersion("tailwindcss"),
   typescript: "^5.0.0",
 }
 
@@ -430,7 +448,7 @@ function buildSandpackPreviewPayload(
       options: {
         activeFile: "/Component.tsx",
         visibleFiles: ["/Component.tsx"],
-        externalResources: ["https://cdn.tailwindcss.com"],
+        externalResources: [],
       },
       project: {
         ...project,
@@ -458,7 +476,7 @@ function buildSandpackPreviewPayload(
     options: {
       activeFile: "/Component.tsx",
       visibleFiles: ["/Component.tsx"],
-      externalResources: ["https://cdn.tailwindcss.com"],
+      externalResources: [],
     },
     project: {
       ...project,

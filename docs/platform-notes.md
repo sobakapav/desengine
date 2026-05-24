@@ -39,6 +39,6 @@
 
 ## Связанные документы
 
-- [README.md](README.md) — карта ролей и точек входа.
-- [INSTALL.md](INSTALL.md) — канонический первый запуск.
-- [tools/README.md](tools/README.md) — административные команды и утилиты.
+- [README.md](../README.md) — карта ролей и точек входа.
+- [INSTALL.md](../INSTALL.md) — канонический первый запуск.
+- [tools/README.md](../tools/README.md) — административные команды и утилиты.

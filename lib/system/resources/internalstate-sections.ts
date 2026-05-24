@@ -126,6 +126,7 @@ export function addAccessAndReleaseResources(args: {
   args.resources.add("system-release", args.systemRelease.condition, {
     branch: args.systemRelease.branch,
     currentVersion: getReleaseVersionText(args.systemRelease.currentVersion),
+    dirtyWorkspaceNote: args.systemRelease.dirtyWorkspaceNote ?? "",
     latestVersion: args.systemRelease.latestVersion ?? "неизвестен",
     message: args.systemRelease.message,
     nearestVersion: args.systemRelease.nearestVersion ?? "не найден",

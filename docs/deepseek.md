@@ -17,7 +17,7 @@
 
 ## Как задать
 
-Переименуй [desengine.config-example.txt](desengine.config-example.txt:1) в `desengine.config.txt` и укажи в нём DeepSeek как активный провайдер:
+Переименуй [desengine.config-example.txt](../desengine.config-example.txt) в `desengine.config.txt` и укажи в нём DeepSeek как активный провайдер:
 
 ```env
 LLM_PROVIDER=deepseek
@@ -32,6 +32,6 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com
 
 В текущей версии адаптера DeepSeek запросы лаборатории выполняются в text-only режиме: если у уровня есть картинки, они не передаются в DeepSeek API. Текстовый контекст задачи и ограничения по JSON-ответу при этом сохраняются.
 
-Для доступа по email см. [access-control.md](docs/access-control.md).
-Для onboarding-источника и ручного обновления см. [onboarding.md](docs/onboarding.md).
-Админские команды сопровождения и smoke-check собраны в [tools/README.md](tools/README.md).
+Для доступа по email см. [access-control.md](./access-control.md).
+Для onboarding-источника и ручного обновления см. [onboarding.md](./onboarding.md).
+Админские команды сопровождения и smoke-check собраны в [tools/README.md](../tools/README.md).

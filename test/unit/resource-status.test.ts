@@ -8,6 +8,7 @@
 // @openSpec  - "Карточка ресурса показывает встроенный контрол исправления"
 // @openSpec  - "Старая версия системы показывается предупреждением"
 // @openSpec  - "Нерелизное Git-состояние не блокирует систему"
+// @openSpec  - "Локальные изменения поверх точного релизного тега не маскируют релизную версию"
 // @openSpec  - "Недоступность remote-релизов не создаёт ложную тревогу при точном релизном теге"
 // @openSpec  - "Разработчик запускает unit-проверку статусов ресурсов"
 // @openSpec  - "Разработчик запускает traceability-проверку"
@@ -30,6 +31,7 @@ import {
 } from "@/lib/system/resources/remediation"
 import {
   compareReleaseTags,
+  getDirtyWorkspaceNote,
   getSystemReleaseCondition,
   selectLatestReleaseTag,
 } from "@/lib/system/release"
@@ -220,10 +222,38 @@ describe("resource status resolver", () => {
     expect(
       getSystemReleaseCondition({
         currentVersion: "v0.1.6",
+        dirty: true,
         latestVersion: null,
         nearestVersion: "v0.1.6",
       }),
     ).toBe("upToDate")
+  })
+
+  it("не маскирует точный релизный тег как development только из-за dirty worktree", () => {
+    expect(
+      getSystemReleaseCondition({
+        currentVersion: "v0.1.6",
+        dirty: true,
+        latestVersion: "v0.1.6",
+        nearestVersion: "v0.1.6",
+      }),
+    ).toBe("upToDate")
+
+    const resolved = resolveResourceStatus({
+      id: "system-release",
+      condition: "upToDate",
+      values: {
+        currentVersion: "v0.1.6",
+        dirtyWorkspaceNote: getDirtyWorkspaceNote({
+          currentVersion: "v0.1.6",
+          dirty: true,
+        }),
+        latestVersion: "v0.1.6",
+      },
+    })
+
+    expect(resolved.resource.state).toBe("ready")
+    expect(resolved.resource.detail).toContain("Есть локальные изменения поверх релизного тега")
   })
 
   it("явно падает при неизвестном condition ресурса", () => {
