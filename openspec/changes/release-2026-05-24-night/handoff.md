@@ -14,10 +14,10 @@
 
 ## Обязательные источники
 
-- openspec/changes/release-2026-05-21-night/proposal.md
+- openspec/changes/release-2026-05-24-night/proposal.md
 - openspec/changes/dispatcher-bugfix/artifacts/2026-05-21-user-complaints-triage.md
 - openspec/changes/dispatcher-openspec/design.md
-- Какие ещё файлы и спецификации обязательны к чтению для release-2026-05-21-night: metadata и proposal всех fixes, которые получают `release_ref=release-2026-05-21-night`.
+- Какие ещё файлы и спецификации обязательны к чтению для release-2026-05-24-night: metadata и proposal всех fixes, которые получают `release_ref=release-2026-05-24-night`.
 
 ## Границы исполнения
 
