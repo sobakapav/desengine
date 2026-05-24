@@ -17,7 +17,7 @@
 
 ## Как задать
 
-Переименуй [desengine.config-example.txt](desengine.config-example.txt:1) в `desengine.config.txt` и укажи в нём Gemini как активный провайдер:
+Переименуй [desengine.config-example.txt](../desengine.config-example.txt) в `desengine.config.txt` и укажи в нём Gemini как активный провайдер:
 
 ```env
 LLM_PROVIDER=gemini
@@ -30,6 +30,6 @@ GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 
 Текущая версия адаптера Gemini поддерживает те же входы лаборатории, что и другие сетевые адаптеры: текстовый запрос, изображения уровня и structured JSON-ответ.
 
-Для доступа по email см. [access-control.md](docs/access-control.md).
-Для onboarding-источника и ручного обновления см. [onboarding.md](docs/onboarding.md).
-Админские команды сопровождения и smoke-check собраны в [tools/README.md](tools/README.md).
+Для доступа по email см. [access-control.md](./access-control.md).
+Для onboarding-источника и ручного обновления см. [onboarding.md](./onboarding.md).
+Админские команды сопровождения и smoke-check собраны в [tools/README.md](../tools/README.md).

@@ -147,6 +147,11 @@ Task service boundary SHALL строить prompt-related runtime context чер
 - **THEN** `project.compatibility` остаётся `compatible`
 - **AND** лаборатория показывает host-level runtime-диагностику рядом с preview
 
+#### Scenario: Preview применяет Tailwind arbitrary values и ширину компонента
+- **WHEN** компонент preview или подключённый UI-компонент использует Tailwind utility classes, включая arbitrary values и width-утилиты
+- **THEN** Sandpack preview компилирует эти классы внутри виртуального проекта без CDN-заглушек
+- **AND** компонент получает ожидаемую ширину и стили в preview
+
 ### Requirement: Task-specific подсказки уровня поддерживают статичный и шаблонный формат
 
 Система SHALL читать task-specific подсказку уровня из каталога задачи и поддерживать как статичный Markdown, так и шаблон Nunjucks, совместимый с prompt templates.

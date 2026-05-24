@@ -60,6 +60,7 @@ type SystemReleaseStatus = {
   condition: SystemReleaseCondition
   currentVersion: string | null
   dirty: boolean
+  dirtyWorkspaceNote: string
   latestVersion: string | null
   message: string
   nearestVersion: string | null
@@ -137,6 +138,7 @@ function selectLatestReleaseTag(tags: string[]) {
 
 function getSystemReleaseCondition(params: {
   currentVersion: string | null
+  dirty?: boolean
   latestVersion: string | null
   nearestVersion: string | null
 }): SystemReleaseCondition {
@@ -172,6 +174,21 @@ function getSystemReleaseCondition(params: {
   }
 
   return "upToDate"
+}
+
+function getDirtyWorkspaceNote(params: {
+  currentVersion: string | null
+  dirty: boolean
+}) {
+  if (!params.dirty) {
+    return ""
+  }
+
+  if (params.currentVersion) {
+    return " Есть локальные изменения поверх релизного тега; это не меняет номер текущего релиза, но обновление поверх этих изменений нужно выполнять вручную."
+  }
+
+  return " В рабочем дереве есть локальные изменения."
 }
 
 async function runGit(args: string[], options: { timeout?: number } = {}) {
@@ -228,6 +245,7 @@ async function getSystemReleaseStatus(): Promise<SystemReleaseStatus> {
       condition: "unavailable",
       currentVersion: null,
       dirty: false,
+      dirtyWorkspaceNote: "",
       latestVersion: null,
       message: "каталог не выглядит как Git-репозиторий",
       nearestVersion: null,
@@ -250,10 +268,11 @@ async function getSystemReleaseStatus(): Promise<SystemReleaseStatus> {
     : null
   const baseCondition = getSystemReleaseCondition({
     currentVersion,
+    dirty,
     latestVersion,
     nearestVersion,
   })
-  const condition = dirty && baseCondition === "upToDate" ? "development" : baseCondition
+  const condition = baseCondition
   const updateSafety = getUpdateSafety({
     condition,
     currentVersion,
@@ -266,6 +285,10 @@ async function getSystemReleaseStatus(): Promise<SystemReleaseStatus> {
     condition,
     currentVersion,
     dirty,
+    dirtyWorkspaceNote: getDirtyWorkspaceNote({
+      currentVersion,
+      dirty,
+    }),
     latestVersion,
     message: remoteTagsOutput ? "проверка релизов выполнена" : "не удалось получить список тегов с origin",
     nearestVersion,
@@ -308,6 +331,7 @@ export type {
 
 export {
   compareReleaseTags,
+  getDirtyWorkspaceNote,
   getSystemReleaseCondition,
   getSystemReleaseStatus,
   selectLatestReleaseTag,

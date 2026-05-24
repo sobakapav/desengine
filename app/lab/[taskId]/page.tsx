@@ -3,9 +3,9 @@ import { notFound, redirect } from "next/navigation"
 import { Lab } from "@/components/desengine/lab/LabScreen"
 import { requireAccessOrRedirect } from "@/lib/auth/server"
 import { getLabUrl } from "@/lib/lab/navigation"
-import { getLevelOverview, getTaskLabContext, getTaskListItemById, isTaskStarted, readTaskData } from "@/lib/system/server"
+import { getLevelOverview, getTaskLabContext, getTaskListItemById } from "@/lib/system/server"
 import { getDefaultCodeScreen, isAccessibleCodeScreen } from "@/lib/lab/editor"
-import { createEmptyTaskData } from "@/lib/task/data"
+import { buildCurrentTaskScreenData } from "@/lib/task/task-screen-data"
 
 type Params = {
   taskId: string
@@ -45,10 +45,7 @@ export default async function LabTaskPage({
     redirect(getLabUrl(taskId, allowedScreens[0]))
   }
 
-  const started = await isTaskStarted(taskId)
-  const taskData = started
-    ? await readTaskData(taskItem, labContext)
-    : createEmptyTaskData(taskId, labContext)
+  const { taskData } = await buildCurrentTaskScreenData({ taskId, taskItem, labContext })
   const levelOverview = await getLevelOverview(taskItem.progress.currentLevelId)
 
   return (

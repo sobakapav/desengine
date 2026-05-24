@@ -1,11 +1,9 @@
 import "server-only"
 
-import { isTaskStarted, readTaskData } from "@/lib/onboarding/repository"
-import { createEmptyTaskData } from "@/lib/task/data"
-
 import { readTaskImageBuffer } from "../image-source"
 import { getTaskLabContext } from "../server"
 import type { TaskData, TaskLabContext, TaskListItem } from "../types"
+import { buildCurrentTaskScreenData } from "../task-screen-data"
 import type {
   FilesPayload,
   OutputFile,
@@ -90,15 +88,8 @@ export const taskActionShared = {
     )
   },
   async buildTaskResponse(taskId: string, taskItem: TaskListItem) {
-    const started = await isTaskStarted(taskId)
     const labContext = await getTaskLabContext(taskItem)
-
-    return {
-      started,
-      taskData: started
-        ? await readTaskData(taskItem, labContext)
-        : createEmptyTaskData(taskId, labContext),
-    }
+    return buildCurrentTaskScreenData({ taskId, taskItem, labContext })
   },
 }
 

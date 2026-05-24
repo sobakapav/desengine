@@ -73,7 +73,7 @@
       "upToDate": {
         "state": "ready",
         "summary": "Система обновлена до актуального релиза",
-        "detail": "Локальная версия: {{currentVersion}}. Последний релиз на origin: {{latestVersion}}."
+        "detail": "Локальная версия: {{currentVersion}}. Последний релиз на origin: {{latestVersion}}.{{dirtyWorkspaceNote}}"
       },
       "updateAvailable": {
         "state": "warning",
