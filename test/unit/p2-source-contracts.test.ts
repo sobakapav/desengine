@@ -131,7 +131,22 @@ describe("P2 source contracts", () => {
     expect(repair).toContain("process.env.ONBOARDING_REPO_URL")
     expect(repair).toContain('["clone", "--depth", "1", repoUrl, checkoutDir]')
     expect(repair).toContain("validateOnboardingLayout(checkoutDir)")
+    expect(repair).toContain('error.code === "EXDEV"')
+    expect(repair).toContain("fs.promises.cp(sourcePath, targetPath")
     expect(repair).toContain("repoUrl, syncedAt")
+  })
+
+  it("install-tools используют канонический модуль локального конфига без legacy-import пути", () => {
+    const toolFiles = [
+      readProjectFile("tools", "smoke-local-install.mjs"),
+      readProjectFile("tools", "repair-onboarding.mjs"),
+      readProjectFile("tools", "generate-allowlist-marker.mjs"),
+    ]
+
+    for (const source of toolFiles) {
+      expect(source).toContain("../lib/system/config/local.cjs")
+      expect(source).not.toContain("../lib/local-config.cjs")
+    }
   })
 
   it("локальная документация согласована по config, onboarding, routes и allowlist-flow", () => {

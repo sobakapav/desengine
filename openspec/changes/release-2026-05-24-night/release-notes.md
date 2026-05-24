@@ -57,3 +57,27 @@
   1. Открыть задачу на уровне, где виден счётчик использованных prompt-ов.
   2. Отправить ровно один пользовательский prompt через обычный runtime flow.
   3. Убедиться, что `promptsUsed` увеличился только на `1`, а оставшийся лимит уменьшился тоже ровно на одну попытку.
+
+### `fix-smoke-local-config-imports`
+
+- Что исправлено: install/smoke tools больше не используют устаревший путь `../lib/local-config.cjs` и берут локальный конфиг из канонического модуля `../lib/system/config/local.cjs`.
+- Ручная проверка:
+  1. Открыть [tools/smoke-local-install.mjs](/Users/op/dev/sobakapav/desengine/tools/smoke-local-install.mjs), [tools/repair-onboarding.mjs](/Users/op/dev/sobakapav/desengine/tools/repair-onboarding.mjs) и [tools/generate-allowlist-marker.mjs](/Users/op/dev/sobakapav/desengine/tools/generate-allowlist-marker.mjs).
+  2. Убедиться, что во всех трёх местах импорт local config идёт через `../lib/system/config/local.cjs`, а legacy-путь `../lib/local-config.cjs` отсутствует.
+  3. При ручном запуске соответствующих CLI-команд проверить, что они стартуют без ошибки `Cannot find module '../lib/local-config.cjs'`.
+
+### `fix-level-3-style-file-contract`
+
+- Что исправлено: level 3 в onboarding и hidden check теперь согласованно требуют канонический файл `styles.ts`, а не устаревший `style.ts`.
+- Ручная проверка:
+  1. Открыть [onboarding/levels/level-3/overview.md](/Users/op/dev/sobakapav/desengine/onboarding/levels/level-3/overview.md) и [onboarding/prompts/levels/level-3/check.njk](/Users/op/dev/sobakapav/desengine/onboarding/prompts/levels/level-3/check.njk).
+  2. Проверить, что в обоих файлах фигурирует пара `Component.tsx` и `styles.ts`, без упоминания `style.ts`.
+  3. В самой задаче level 3 убедиться, что текст уровня и hidden check больше не требуют несуществующее имя style-файла.
+
+### `fix-onboarding-cross-device-sync`
+
+- Что исправлено: синхронизация `/onboarding` и repair-path теперь переживают cross-device сценарий с `EXDEV` через fallback `copy + remove`, а не падают на голом `rename`.
+- Ручная проверка:
+  1. Настроить сценарий, где временный checkout onboarding оказывается на другом диске или устройстве относительно целевого каталога проекта.
+  2. Запустить обновление onboarding обычным путём или через repair-flow и дождаться замены каталога `/onboarding`.
+  3. Убедиться, что операция не падает на `EXDEV`, каталог заменяется корректно, а содержимое onboarding после sync остаётся валидным.

@@ -1,11 +1,12 @@
 import "server-only"
 
 import { execFile } from "node:child_process"
-import { access, mkdtemp, rename, rm } from "node:fs/promises"
+import { access, mkdtemp, rm } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 import { promisify } from "node:util"
 
+import { replaceDirectory } from "@/lib/onboarding/replace-directory"
 import { appConfig } from "@/lib/system/config/server"
 import {
   getConfiguredOnboardingRepoUrl,
@@ -77,10 +78,7 @@ export async function updateOnboardingFromConfig(): Promise<OnboardingUpdateResu
       commitHash,
     })
 
-    if (await pathExists(appConfig.onboardingRoot)) {
-      await rm(appConfig.onboardingRoot, { recursive: true, force: true })
-    }
-    await rename(checkoutDir, appConfig.onboardingRoot)
+    await replaceDirectory(checkoutDir, appConfig.onboardingRoot)
 
     return {
       commitHash,
