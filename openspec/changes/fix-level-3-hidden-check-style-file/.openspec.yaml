@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-05-24
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "fix"
+execution_mode: "code"
+parent_change: "dispatcher-prompts"
+strategy_root: "focus-onboarding"
+roadmap_ref: "focus-onboarding/roadmaps/prompts.md"
+release_ref: "release-2026-05-24-night"
+producer_ref: ""
+verification_level: "unit"
+verification_command: "npm run test:unit"
+issue: ""
+short: "согласовать hidden check level 3 с каноническим именем style-файла"

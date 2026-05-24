@@ -4,7 +4,7 @@
 
 ## What Changes
 
-- Создан release change `release-2026-05-21-night`.
+- Создан release change `release-2026-05-24-night`.
 - В релиз включена bugfix-wave по triage пользовательского документа:
   - `fix-install-onboarding-first-run-clarity`
   - `fix-task-reentry-and-reset-determinism`

@@ -1,3 +1,3 @@
-# dispatcher-workbench-entity-workflow-step
+# dispatcher-workbench
 
 Выделить сущность 'верстак' под задачу и этап workflow: модель, реестр верстаков, навигация и план развития.
