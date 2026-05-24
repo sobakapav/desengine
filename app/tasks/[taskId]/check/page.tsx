@@ -3,8 +3,8 @@ import { notFound, redirect } from "next/navigation"
 import { Lab } from "@/components/desengine/lab/LabScreen"
 import { requireAccessOrRedirect } from "@/lib/auth/server"
 import { createLabUrl, createTaskCheckPath } from "@/lib/system/navigation"
-import { getLevelOverview, getTaskCheckResult, getTaskDoneTransition, getTaskLabContext, getTaskListItemById, getTaskPendingTransition, isTaskStarted, readTaskData } from "@/lib/system/server"
-import { createEmptyTaskData } from "@/lib/task/data"
+import { getLevelOverview, getTaskCheckResult, getTaskDoneTransition, getTaskLabContext, getTaskListItemById, getTaskPendingTransition } from "@/lib/system/server"
+import { buildCurrentTaskScreenData } from "@/lib/task/task-screen-data"
 
 type Params = {
   taskId: string
@@ -46,10 +46,7 @@ export default async function TaskCheckPage({
     : null
 
   const labContext = await getTaskLabContext(taskItem)
-  const started = await isTaskStarted(taskId)
-  const taskData = started
-    ? await readTaskData(taskItem, labContext)
-    : createEmptyTaskData(taskId, labContext)
+  const { taskData } = await buildCurrentTaskScreenData({ taskId, taskItem, labContext })
   const levelOverview = await getLevelOverview(taskItem.progress.currentLevelId)
 
   return (

@@ -19,7 +19,7 @@ Z.AI — самостоятельная LLM-платформа для GLM-мод
 
 ## Как задать
 
-Переименуй [desengine.config-example.txt](desengine.config-example.txt:1) в `desengine.config.txt` и укажи в нём Z.AI как активный провайдер:
+Переименуй [desengine.config-example.txt](../desengine.config-example.txt) в `desengine.config.txt` и укажи в нём Z.AI как активный провайдер:
 
 ```env
 LLM_PROVIDER=zai
@@ -32,6 +32,6 @@ ZAI_BASE_URL=https://api.z.ai/api/paas/v4
 
 Текущая версия адаптера Z.AI использует Chat Completions endpoint `/chat/completions`, `Authorization: Bearer`, `response_format=json_object` и non-streaming режим. Изображения уровня передаются как OpenAI-compatible `image_url` content-блоки. Для задач с изображениями выбирайте Z.AI-модель с visual-входом, например `glm-5v-turbo`; текстовые модели могут не принять картинки.
 
-Для доступа по email см. [access-control.md](docs/access-control.md).
-Для onboarding-источника и ручного обновления см. [onboarding.md](docs/onboarding.md).
-Админские команды сопровождения и smoke-check собраны в [tools/README.md](tools/README.md).
+Для доступа по email см. [access-control.md](./access-control.md).
+Для onboarding-источника и ручного обновления см. [onboarding.md](./onboarding.md).
+Админские команды сопровождения и smoke-check собраны в [tools/README.md](../tools/README.md).

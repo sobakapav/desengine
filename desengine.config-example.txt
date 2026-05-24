@@ -1,4 +1,8 @@
 # Переименуйте этот файл в desengine.config.txt перед первым локальным запуском.
+# Для первого прохода обычно достаточно:
+# 1. выбрать LLM в LLM_PROVIDER;
+# 2. вставить ключ только для выбранного провайдера;
+# 3. остальные значения оставить как есть, если нет отдельной инструкции.
 
 # # # # # # # # # # # # # # # # # # # # #
 
@@ -42,20 +46,14 @@ ZAI_BASE_URL=https://api.z.ai/api/paas/v4
 
 # # # # # # # # # # # # # # # # # # # # #
 
-# UI kit
-# Варианты: none | shadcn | ant | mui
-SANDPACK_UI_KIT=shadcn
-
-# # # # # # # # # # # # # # # # # # # # #
-
-# Ниже всё уже настроено, можно не менять
+# Ниже всё уже настроено, на первом запуске обычно можно не менять
 
 # Доступ по email в рабочую часть лаборатории
 ALLOWLIST_BASE_URL=https://sobakapav.ru/allowlist/
 ALLOWLIST_SALT=68vBN7EWDTDsMLzoTyOghApJ5zDBI/Mg1ZNGpbrxvIY=
 
 # Источник обучающего контента
-# Вы можете собрать свой собственный
+# Если своего onboarding-репозитория пока нет, оставьте канонический URL как есть
 ONBOARDING_REPO_URL=https://github.com/sobakapav/desengine-onboarding.git
 
 # # # # # # # # # # # # # # # # # # # # #

@@ -2,11 +2,9 @@ import {
   getLevelForTaskItem,
   getTaskLabContext,
   getTaskListItemById,
-  isTaskStarted,
-  readTaskData,
 } from "@/lib/system/server"
 import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
-import { createEmptyTaskData } from "@/lib/task/data"
+import { buildCurrentTaskScreenData } from "@/lib/task/task-screen-data"
 
 type Params = { taskId: string }
 
@@ -33,11 +31,8 @@ export async function GET(
     return Response.json({ ok: false, error: "Задание не найдено" }, { status: 404 })
   }
 
-  const started = await isTaskStarted(taskId)
   const labContext = await getTaskLabContext(taskItem)
-  const taskData = started
-    ? await readTaskData(taskItem, labContext)
-    : createEmptyTaskData(taskId, labContext)
+  const { started, taskData } = await buildCurrentTaskScreenData({ taskId, taskItem, labContext })
   const level = await getLevelForTaskItem(taskItem)
 
   return Response.json({

@@ -2,7 +2,7 @@ import crypto from "node:crypto"
 import { createRequire } from "node:module"
 
 const require = createRequire(import.meta.url)
-const { loadLocalConfig } = require("../lib/local-config.cjs")
+const { loadLocalConfig } = require("../lib/system/config/local.cjs")
 
 loadLocalConfig()
 

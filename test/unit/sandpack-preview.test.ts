@@ -9,6 +9,7 @@
 // @openSpec  - "Пользователь отключает UI kit"
 // @openSpec  - "Пользователь включает Ant Design"
 // @openSpec  - "Пользователь включает Material UI"
+// @openSpec  - "Preview применяет Tailwind arbitrary values и ширину компонента"
 // @openSpec capability: ui-foundation
 // @openSpec scenarios:
 // @openSpec  - "Команда работает с динамическим render-островком"
@@ -197,33 +198,45 @@ export default function Component() {
       code: expect.stringContaining("export const levelRuntime"),
     }))
     expect(payload.files["/styles.css"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining('[class~="hover:bg-muted"]:hover'),
+      code: expect.stringContaining('@import "tailwindcss";'),
+    }))
+    expect(payload.files["/postcss.config.js"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('"@tailwindcss/postcss"'),
     }))
     expect(payload.customSetup.environment).toBe("create-react-app")
     expect(payload.customSetup.entry).toBe("/index.tsx")
     expect(payload.customSetup.dependencies).toMatchObject({
+      "@tailwindcss/postcss": expect.any(String),
       "class-variance-authority": expect.any(String),
+      postcss: expect.any(String),
+      tailwindcss: expect.any(String),
     })
+    expect(payload.options.externalResources).toEqual([])
   })
 
-  it("передаёт в Sandpack готовый CSS для variant-классов Badge", () => {
+  it("готовит preview к arbitrary Tailwind values и полной ширине компонента", () => {
     const payload = buildSandpackPreviewPayload({
-      component: `import { Badge } from "@/components/ui/badge";
-
-export default function Component() {
-  return <Badge variant="ghost">Четверг</Badge>;
+      component: `export default function Component() {
+  return (
+    <section className="w-full">
+      <div className="min-w-[220px] h-[16.6px] text-[11px] bg-[Canvas] text-[CanvasText]">
+        Tailwind arbitrary values
+      </div>
+    </section>
+  );
 }
 `,
       uiBadge: badgeSource,
       systemUtils: utilsSource,
     })
-    const previewCss = payload.files["/styles.css"]
-
-    expect(previewCss).toEqual(expect.objectContaining({
-      code: expect.stringContaining('[class~="hover:text-muted-foreground"]:hover'),
+    expect(payload.files["/Component.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('className="w-full"'),
     }))
-    expect(previewCss).toEqual(expect.objectContaining({
-      code: expect.stringContaining("--muted-foreground"),
+    expect(payload.files["/styles.css"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("--card-foreground"),
+    }))
+    expect(payload.files["/tailwind.config.js"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('content: ["./**/*.{js,jsx,ts,tsx}"]'),
     }))
   })
 })

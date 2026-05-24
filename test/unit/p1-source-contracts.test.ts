@@ -139,6 +139,17 @@ describe("P1 source contracts", () => {
     expect(source).toContain("requireTaskImage")
   })
 
+  it("level-3 onboarding-контракт согласован по editable files, overview и hidden check", () => {
+    const levelConfig = readProjectFile("onboarding", "levels", "level-3", "config.json")
+    const overview = readProjectFile("onboarding", "levels", "level-3", "overview.md")
+    const checkPrompt = readProjectFile("onboarding", "prompts", "levels", "level-3", "check.njk")
+
+    expect(levelConfig).toContain('"styles"')
+    expect(overview).toContain("`styles.ts`")
+    expect(checkPrompt).toContain("`Component.tsx` и `styles.ts`")
+    expect(checkPrompt).not.toContain("style.ts")
+  })
+
   it("user progress читается и пишется только через user-owned progress storage", () => {
     const source = readProjectFile("lib", "task", "server.ts")
     const configSchema = readProjectFile("lib", "system", "schema.ts")
@@ -179,6 +190,9 @@ describe("P1 source contracts", () => {
     const taskDonePageExists = fs.existsSync(path.join(process.cwd(), "app", "tasks", "[taskId]", "done", "page.tsx"))
     const taskCheckPage = readProjectFile("app", "tasks", "[taskId]", "check", "page.tsx")
     const taskDonePage = readProjectFile("app", "tasks", "[taskId]", "done", "page.tsx")
+    const taskRoute = readProjectFile("app", "api", "tasks", "[taskId]", "route.ts")
+    const taskPage = readProjectFile("app", "lab", "[taskId]", "page.tsx")
+    const taskScreenPage = readProjectFile("app", "lab", "[taskId]", "[screen]", "page.tsx")
     const levelsPage = readProjectFile("app", "levels", "page.tsx")
 
     expect(levelPageExists).toBe(true)
@@ -189,6 +203,10 @@ describe("P1 source contracts", () => {
     expect(taskCheckPage).toContain('initScreen={{ type: "check"')
     expect(taskDonePage).toContain("createTaskDonePath")
     expect(taskDonePage).toContain('initScreen={{ type: "done"')
+    expect(taskRoute).toContain("buildCurrentTaskScreenData")
+    expect(taskPage).toContain("buildCurrentTaskScreenData")
+    expect(taskScreenPage).toContain("buildCurrentTaskScreenData")
+    expect(taskCheckPage).toContain("buildCurrentTaskScreenData")
     expect(levelsPage).toContain("getAllLevelOverviews")
   })
 
