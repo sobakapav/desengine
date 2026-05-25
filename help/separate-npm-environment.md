@@ -14,14 +14,14 @@
 
 Вставить туда:
 
-`registry=https://registry.npmjs.org/
-save-exact=true`
+`registry=https://registry.npmjs.org/`
+`save-exact=true`
 
 Сохранить:
 
-`Ctrl + O
-Enter
-Ctrl + X`
+`Ctrl + O`
+`Enter`
+`Ctrl + X`
 
 3. Создать алиас для запуска npm с этим конфигом
 
@@ -30,6 +30,7 @@ Ctrl + X`
 `nano ~/.zshrc`
 
 Если файла нет — он создастся.
+
 Добавить строку:
 
 `alias npm-desengine='NPM_CONFIG_USERCONFIG=~/.npmrc-desengine npm'`
@@ -45,7 +46,8 @@ Ctrl + X`
 Должно быть:
 https://registry.npmjs.org/
 
-5. Устанавливать зависимости задачника только так
+5. Устанавливать зависимости задачника только так.
+
 Перейти в папку задачника:
 
 `cd путь/до/desengine`
@@ -59,7 +61,8 @@ https://registry.npmjs.org/
 `npm-desengine run smoke
 npm-desengine run dev`
 
-Главное правило
+### Главное правило
+
 Для задачника использовать:
 
 `npm-desengine install`
