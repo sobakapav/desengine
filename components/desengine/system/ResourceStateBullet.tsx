@@ -4,34 +4,33 @@ import { Badge } from "@/components/ui/badge"
 
 const ResourceStateBulletVariants = {
   ready: {
-    className: "border-lime-600 bg-lime-600 text-white",
-    sign: "•",
+    className: "!border-emerald-600 text-emerald-700",
+    sign: "ГОТОВО",
   },
   warning: {
-    className: "border-amber-500 bg-amber-500 text-white",
-    sign: "?",
+    className: "!border-amber-500 text-amber-600",
+    sign: "ПРОВЕРИТЬ",
   },
   blocked: {
-    className: "border-red-700 bg-red-700 text-white",
-    sign: "!",
+    className: "!border-red-500 text-red-600",
+    sign: "НЕТ ДОСТУПА",
   },
 } as const
 
 type ResourceStateBulletProps = BaseProps & {
-    state: ResourceState,
+  state: ResourceState
 }
 
-function ResourceStateBullet({
-    state
-} : ResourceStateBulletProps) {
-
-    return (
-        <Badge className={ResourceStateBulletVariants[state].className}>
-            {ResourceStateBulletVariants[state].sign}
-        </Badge>
-    )
+function ResourceStateBullet({ state }: ResourceStateBulletProps) {
+  return (
+<Badge
+  className={`h-6 rounded-md border bg-transparent px-2 text-xs font-semibold uppercase leading-none ${ResourceStateBulletVariants[state].className}`}
+>
+  {ResourceStateBulletVariants[state].sign}
+</Badge>
+  )
 }
 
 export {
-    ResourceStateBullet
+  ResourceStateBullet
 }

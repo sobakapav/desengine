@@ -12,12 +12,12 @@ export default async function AuthPage() {
     redirect(getLabRootUrl())
   }
 
-  return (
-    <AuthScreen
-      authState={resources.authState}
-      configured={resources.allowlistConfigured}
-      resources={resources.items}
-      instructions={resources.instructions}
-    />
-  )
+ return (
+  <AuthScreen
+    authState={resources.authState}
+    configured={resources.allowlistConfigured}
+    resources={resources.items}
+    instructions={resources.instructions}
+  />
+)
 }

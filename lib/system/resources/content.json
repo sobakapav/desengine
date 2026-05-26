@@ -171,10 +171,10 @@
         "detail": "Базовый URL и salt заданы. Всё в порядке."
       },
       "missing": {
-        "state": "blocked",
-        "summary": "Схема проверки не настроена не настроен",
-        "detail": "Нужно указать `ALLOWLIST_BASE_URL` и `ALLOWLIST_SALT` в `desengine.config.txt`. Обычно они уже правильно настроены в `dedengine.config-text.txt`. Если вы взяли эти настройки, а они не работают — пожалуйста, напишите нам: [edu@eduhund.ru](mailto:edu@eduhund.ru)"
-      }
+  "state": "blocked",
+  "summary": "Схема проверки доступа не настроена",
+  "detail": "Нужно указать `ALLOWLIST_BASE_URL` и `ALLOWLIST_SALT` в `desengine.config.txt`. Обычно эти значения уже есть в `desengine.config-example.txt`: скопируйте их в локальный конфиг и перезапустите проект. Если вы перенесли настройки, но проверка всё равно не работает — напишите нам: [edu@eduhund.ru](mailto:edu@eduhund.ru)"
+}
     },
     "instructions": {
       "missing": {
