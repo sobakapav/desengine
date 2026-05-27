@@ -4,15 +4,15 @@ import { Badge } from "@/components/ui/badge"
 
 const ResourceStateBulletVariants = {
   ready: {
-    className: "!border-emerald-600 text-emerald-700",
+    className: "!border-emerald-500 text-emerald-600",
     sign: "ГОТОВО",
   },
   warning: {
-    className: "!border-amber-500 text-amber-600",
-    sign: "ПРОВЕРИТЬ",
+    className: "!border-yellow-500 text-yellow-600",
+    sign: "НЕ КРИТИЧНО",
   },
-  blocked: {
-    className: "!border-red-500 text-red-600",
+   blocked: {
+    className: "!border-red-500 text-red-500",
     sign: "НЕТ ДОСТУПА",
   },
 } as const

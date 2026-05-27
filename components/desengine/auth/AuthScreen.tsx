@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation"
 import { getTasksRootUrl } from "@/lib/task/navigation"
 import { Instruction, Resource } from "@/lib/system/types"
 import { ResourceCardList } from "../system/ResourceCardList"
-import ScreenSummary from "../system/ScreenSummary"
 import { ResourceRemediationControl } from "../system/ResourceRemediationControl"
 import { AuthState } from "@/lib/auth/types"
 
@@ -64,6 +63,11 @@ const activeResource =
   resources.find((resource) => resource.state === "warning") ||
   resources[0]
 
+  const helpLinksByResourceId: Partial<Record<Resource["id"], string>> = {
+  "llm-config": "/help/llm-api-keys",
+  "llm-network": "/help/llm-api-keys",
+  "system-release": "/help/version-error",
+}
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -94,33 +98,27 @@ const activeResource =
 
 return (
   <main className="min-h-screen bg-slate-800 text-white">
-    <section className="grid min-h-screen w-full grid-cols-[360px_1fr] gap-16 px-32 py-24">
-      <div>
-        <ScreenSummary
-          title="Допуск в лабораторию"
-          description="Показываем что уже настроено, а что еще нужно настроить"
-        />
-
-        <div className="mt-8">
-          <ResourceCardList
-            resources={resources}
-            instructions={instructions}
-          />
-        </div>
-      </div>
+    <section className="grid min-h-screen w-full grid-cols-[360px_1fr] gap-16 px-32 py-16 ">
+<div>
+  <ResourceCardList
+    resources={resources}
+    instructions={instructions}
+  />
+</div>
 
 <div className="min-h-[640px] rounded-xl bg-white p-12 text-slate-900">
   {activeResource ? (
-    <ResourceRemediationControl
-      email={email}
-      error={error}
-      isPending={isPending}
-      authState={authState}
-      configured={configured}
-      onEmailChange={setEmail}
-      handleSubmit={handleSubmit}
-      resource={activeResource}
-    />
+<ResourceRemediationControl
+  email={email}
+  error={error}
+  isPending={isPending}
+  authState={authState}
+  configured={configured}
+  onEmailChange={setEmail}
+  handleSubmit={handleSubmit}
+  resource={activeResource}
+  helpHref={helpLinksByResourceId[activeResource.id]}
+/>
   ) : null}
 </div>
     </section>

@@ -20,6 +20,7 @@ type ResourceRemediationControlProps = {
   isPending: boolean
   onEmailChange: (email: string) => void
   resource: Resource
+  helpHref?: string
 }
 
 function ResourceRemediationControl({
@@ -31,6 +32,7 @@ function ResourceRemediationControl({
   isPending,
   onEmailChange,
   resource,
+  helpHref,
 }: ResourceRemediationControlProps) {
   if (resource.remediationControl?.kind === "auth-form") {
     return (
@@ -108,6 +110,16 @@ function ResourceRemediationControl({
     {resource.detail}
   </ReactMarkdown>
 </div>
+
+{helpHref && resource.state === "blocked" ? (
+  <a
+    href={helpHref}
+    className="mt-6 inline-flex text-sm font-medium text-slate-900 underline underline-offset-2"
+  >
+    Открыть справку
+  </a>
+) : null}
+
     </div>
   </div>
 )
