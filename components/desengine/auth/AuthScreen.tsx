@@ -62,11 +62,14 @@ const activeResource =
   resources.find((resource) => resource.state === "blocked") ||
   resources.find((resource) => resource.state === "warning") ||
   resources[0]
+console.log(activeResource.id, activeResource.label, activeResource.state) 
 
   const helpLinksByResourceId: Partial<Record<Resource["id"], string>> = {
   "llm-config": "/help/llm-api-keys",
   "llm-network": "/help/llm-api-keys",
   "system-release": "/help/version-error",
+  "onboarding-config": "/help/onboarding-config",
+  "onboarding-content": "/help/onboarding-config",
 }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
