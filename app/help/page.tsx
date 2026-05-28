@@ -10,7 +10,7 @@ import { listHelpPages } from "@/lib/help/content"
  * ```
  */
 export default async function HelpPage() {
-  await requireAccessOrRedirect("/help")
+//  await requireAccessOrRedirect("/help")
   const helpPages = await listHelpPages()
 
   return (
