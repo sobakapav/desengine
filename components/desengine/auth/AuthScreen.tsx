@@ -62,7 +62,6 @@ const activeResource =
   resources.find((resource) => resource.state === "blocked") ||
   resources.find((resource) => resource.state === "warning") ||
   resources[0]
-console.log(activeResource.id, activeResource.label, activeResource.state) 
 
   const helpLinksByResourceId: Partial<Record<Resource["id"], string>> = {
   "llm-config": "/help/llm-api-keys",
