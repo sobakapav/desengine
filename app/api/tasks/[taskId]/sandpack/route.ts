@@ -157,22 +157,35 @@ export async function GET(
     )
   }
 
-  return Response.json(
-    {
-      ok: true,
-      ...buildSandpackPreviewPayload(sourceFiles, {
-        project,
-        appTemplate: {
-          appTsx: levelTemplate.appTsx,
-          previewCss: levelTemplate.previewCss,
-          levelTemplateRuntime: levelTemplateRuntimeSource,
-        },
-      }),
-    },
-    {
-      headers: {
-        "cache-control": "no-store, no-cache, must-revalidate",
+  try {
+    const previewPayload = await buildSandpackPreviewPayload(sourceFiles, {
+      project,
+      appTemplate: {
+        appTsx: levelTemplate.appTsx,
+        previewCss: levelTemplate.previewCss,
+        levelTemplateRuntime: levelTemplateRuntimeSource,
       },
-    },
-  )
+    })
+
+    return Response.json(
+      {
+        ok: true,
+        ...previewPayload,
+      },
+      {
+        headers: {
+          "cache-control": "no-store, no-cache, must-revalidate",
+        },
+      },
+    )
+  } catch (error) {
+    console.error("[sandpack-preview] build failed", error)
+    return Response.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Не удалось собрать Sandpack preview",
+      },
+      { status: 500 },
+    )
+  }
 }

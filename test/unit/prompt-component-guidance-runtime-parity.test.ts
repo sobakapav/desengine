@@ -57,8 +57,8 @@ describe("prompt component guidance runtime parity", () => {
     }
   })
 
-  it("дефолтный Sandpack runtime не притворяется Next/router-окружением", () => {
-    const payload = buildSandpackPreviewPayload({
+  it("дефолтный Sandpack runtime не притворяется Next/router-окружением", async () => {
+    const payload = await buildSandpackPreviewPayload({
       component: `export default function Component() {
   return <div>Preview</div>;
 }

@@ -30,9 +30,9 @@ function readInstalledPackageDependencies(packageName: string) {
 }
 
 describe("sandpack ant runtime dependencies", () => {
-  it("payload для ant включает полный набор прямых runtime-зависимостей antd", () => {
+  it("payload для ant включает полный набор прямых runtime-зависимостей antd", async () => {
     const antdDependencies = readInstalledAntdDependencies()
-    const payload = buildSandpackPreviewPayload(
+    const payload = await buildSandpackPreviewPayload(
       {
         component: "export default function Component() { return null }\n",
         uiBadge: "export function Badge() { return null }\n",
@@ -49,9 +49,9 @@ describe("sandpack ant runtime dependencies", () => {
     }
   })
 
-  it("payload для mui включает прямые runtime-зависимости @mui/material", () => {
+  it("payload для mui включает прямые runtime-зависимости @mui/material", async () => {
     const muiDependencies = readInstalledPackageDependencies("@mui/material")
-    const payload = buildSandpackPreviewPayload(
+    const payload = await buildSandpackPreviewPayload(
       {
         component: "export default function Component() { return null }\n",
         uiBadge: "export function Badge() { return null }\n",
@@ -68,9 +68,9 @@ describe("sandpack ant runtime dependencies", () => {
     }
   })
 
-  it("payload по умолчанию для shadcn включает runtime-зависимости Radix", () => {
+  it("payload по умолчанию для shadcn включает runtime-зависимости Radix", async () => {
     const radixDialogDependencies = readInstalledPackageDependencies("@radix-ui/react-dialog")
-    const payload = buildSandpackPreviewPayload({
+    const payload = await buildSandpackPreviewPayload({
       component: "export default function Component() { return <div>ok</div> }\n",
       uiBadge: "export function Badge() { return null }\n",
       systemUtils: "export function cn() { return \"\" }\n",

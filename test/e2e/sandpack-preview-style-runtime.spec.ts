@@ -209,18 +209,13 @@ export default function Component() {
     await expect(page.locator(".sp-preview-iframe")).toBeVisible({ timeout: 20_000 })
     const previewFrame = page.frameLocator(".sp-preview-iframe")
     const contractHtml = previewFrame.locator("html")
+    await expect(contractHtml).toHaveAttribute("data-desengine-preview-contract", "ready", { timeout: 20_000 })
+    await expect(page.getByText("Preview отрисовал DOM без подтверждённого style contract.")).toBeHidden()
 
-    try {
-      await expect(contractHtml).toHaveAttribute("data-desengine-preview-contract", "ready", { timeout: 20_000 })
-
-      const previewCard = previewFrame.locator("div").first()
-      await expect(previewCard).toHaveCSS("background-color", "rgb(229, 231, 235)")
-      await expect(previewCard).toHaveCSS("width", "57px")
-      await expect(previewCard).toHaveCSS("height", "16px")
-    } catch {
-      await expect(page.getByText("Preview отрисовал DOM без подтверждённого style contract.")).toBeVisible({ timeout: 20_000 })
-      await expect(page.getByText(/Sandpack runtime не подтвердил загрузку превью|Sandpack отрисовал DOM, но preview CSS\/Tailwind не применились к probe-элементу\./)).toBeVisible({ timeout: 20_000 })
-    }
+    const previewCard = previewFrame.locator("div").first()
+    await expect(previewCard).toHaveCSS("background-color", "rgb(229, 231, 235)")
+    await expect(previewCard).toHaveCSS("width", "57px")
+    await expect(previewCard).toHaveCSS("height", "16px")
   })
 
   test("показывает incompatibility fallback вместо ложного успешного рендера", async ({ baseURL, context, page }) => {

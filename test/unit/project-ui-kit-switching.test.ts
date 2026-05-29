@@ -215,8 +215,8 @@ describe("project UI kit switching", () => {
     })
   })
 
-  it("передаёт project.uiKitId в Sandpack payload и пересборку можно запускать query-state'ом", () => {
-    const payload = buildPayload(`export default function Component() { return <div>HTML</div> }`, "ant", "ui-kit")
+  it("передаёт project.uiKitId в Sandpack payload и пересборку можно запускать query-state'ом", async () => {
+    const payload = await buildPayload(`export default function Component() { return <div>HTML</div> }`, "ant", "ui-kit")
 
     expect(payload.project).toMatchObject({
       id: "task-demo",
@@ -231,26 +231,26 @@ describe("project UI kit switching", () => {
       antd: expect.any(String),
       "@rc-component/picker": expect.any(String),
     })
-    expect(payload.files["/index.tsx"]).toEqual(expect.objectContaining({
+    expect(payload.files["/src/index.tsx"]).toEqual(expect.objectContaining({
       code: expect.stringContaining('import "antd/dist/reset.css";'),
     }))
   })
 
-  it("режим html-tags стабильно работает без UI kit", () => {
-    const payload = buildPayload(`export default function Component() { return <main><h1>HTML</h1></main> }`, "none")
+  it("режим html-tags стабильно работает без UI kit", async () => {
+    const payload = await buildPayload(`export default function Component() { return <main><h1>HTML</h1></main> }`, "none")
 
     expect(payload.project.effectiveUiKitId).toBe("none")
     expect(payload.customSetup.dependencies).not.toMatchObject({
       antd: expect.any(String),
       "@mui/material": expect.any(String),
     })
-    expect(payload.files["/Component.tsx"]).toEqual(expect.objectContaining({
+    expect(payload.files["/src/Component.tsx"]).toEqual(expect.objectContaining({
       code: expect.stringContaining("<main>"),
     }))
   })
 
-  it("режим ui-kit сохраняет shadcn preview для существующих компонентов", () => {
-    const payload = buildSandpackPreviewPayload(
+  it("режим ui-kit сохраняет shadcn preview для существующих компонентов", async () => {
+    const payload = await buildSandpackPreviewPayload(
       {
         component: `import { Badge } from "@/components/ui/badge"; export default function Component() { return <Badge /> }`,
         uiBadge: "export function Badge() { return <span /> }\n",
@@ -267,22 +267,22 @@ describe("project UI kit switching", () => {
     )
 
     expect(payload.project.compatibility).toMatchObject({ status: "compatible" })
-    expect(payload.files["/Component.tsx"]).toEqual(expect.objectContaining({
+    expect(payload.files["/src/Component.tsx"]).toEqual(expect.objectContaining({
       code: expect.stringContaining('from "./components/ui/badge"'),
     }))
-    expect(payload.files["/Component.tsx"]).not.toEqual(expect.objectContaining({
+    expect(payload.files["/src/Component.tsx"]).not.toEqual(expect.objectContaining({
       code: expect.stringContaining("Preview переключён в безопасный режим"),
     }))
   })
 
-  it("при несовместимости html-tags отдаёт безопасный fallback вместо падающего компонента", () => {
-    const payload = buildPayload(`import { Badge } from "@/components/ui/badge"; export default function Component() { return <Badge /> }`, "none")
+  it("при несовместимости html-tags отдаёт безопасный fallback вместо падающего компонента", async () => {
+    const payload = await buildPayload(`import { Badge } from "@/components/ui/badge"; export default function Component() { return <Badge /> }`, "none")
 
     expect(payload.project.compatibility).toMatchObject({ status: "incompatible" })
-    expect(payload.files["/Component.tsx"]).toEqual(expect.objectContaining({
+    expect(payload.files["/src/Component.tsx"]).toEqual(expect.objectContaining({
       code: expect.stringContaining("Preview переключён в безопасный режим"),
     }))
-    expect(payload.files["/Component.tsx"]).not.toEqual(expect.objectContaining({
+    expect(payload.files["/src/Component.tsx"]).not.toEqual(expect.objectContaining({
       code: expect.stringContaining("@/components/ui/badge"),
     }))
   })
