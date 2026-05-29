@@ -17,13 +17,11 @@ export default async function HelpPage() {
     <main>
       <div>
         <section>
-          <div className="space-y-3 border-b border-black/10 pb-5">
-            <div>desengine help</div>
-            <h1>Справка</h1>
-            <p>
-              Markdown-страницы из каталога help. Заголовки берутся из первого H1 в каждом файле.
-            </p>
-          </div>
+      <div className="space-y-3 border-b border-black/10 pb-5">
+       <h1 className="font-semibold text-foreground text-4xl leading-tight">
+        Справка
+        </h1>
+      </div>
 
           {helpPages.length > 0 ? (
             <nav className="mt-6 grid gap-3" aria-label="Страницы справки">
