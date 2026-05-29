@@ -14,11 +14,23 @@
 - анализ использования mock/fixture-данных и live credentials;
 - перечень основных проблем и направлений для последующих dispatcher/implement changes.
 
+## Capabilities
+
+### Modified Capabilities
+
+- `testing-layer`: появляется baseline-описание текущего состояния тестовой подсистемы, её команд, уровней проверки и пробелов покрытия, на которое могут опираться downstream changes под `focus-quality`.
+
 ## Non-goals
 
 - Не меняет тестовый runtime и не реорганизует команды запуска в рамках этого change.
 - Не добавляет новые тесты как часть исследования.
 - Не меняет install-critical инфраструктуру.
+
+## Impact
+
+- Даёт `focus-quality` и `dispatcher-test-system` общий baseline для решений о тестовой подсистеме.
+- Делает видимыми расхождения между документированным traceability-слоем и фактическими входными точками тестирования.
+- Подготавливает постановку follow-up changes без расширения runtime scope текущего change.
 
 ## Acceptance Criteria
 

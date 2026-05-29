@@ -9,6 +9,7 @@
 // @openSpec  - "Dispatcher не подчиняется producer напрямую"
 // @openSpec  - "Dispatcher не может хранить producer-контекст"
 // @openSpec  - "Разработчик открывает implement/fix через `os:ctx`"
+// @openSpec  - "Разработчик открывает implement/fix из release-контекста через `os:ctx`"
 
 import { execFileSync } from "node:child_process"
 import fs from "node:fs"
@@ -207,11 +208,16 @@ short: "диспетчер демо"
 execution_mode: "code"
 parent_change: "dispatcher-demo"
 strategy_root: "focus-demo"
+release_ref: "release-demo"
 producer_ref: "producer-demo"
 verification_level: "unit"
 verification_command: "npm run test:unit"
 short: "реализация демо"
 `,
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "release-demo", ".openspec.yaml"),
+      'change_kind: "release"\nexecution_mode: "no-code"\nshort: "релиз демо"\n',
     )
     writeFile(path.join(fixtureRoot, "openspec", "changes", "implement-demo", "handoff.md"), "# handoff\n")
 
@@ -221,8 +227,10 @@ short: "реализация демо"
     })
 
     expect(output).toContain("dispatcher proposal")
+    expect(output).toContain("release_ref: release-demo")
     expect(output).toContain("inherited roadmap: openspec/changes/focus-demo/roadmaps/demo.md")
     expect(output).toContain("producer_ref: producer-demo")
     expect(output).toContain("producer proposal")
+    expect(output).toContain("local handoff: openspec/changes/implement-demo/handoff.md")
   })
 })

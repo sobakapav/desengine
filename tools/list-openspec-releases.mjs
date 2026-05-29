@@ -110,10 +110,26 @@ function main() {
     if (members.length === 0) {
       console.log(`  (пусто)\tнет привязанных changes`)
     } else {
-      const membersByName = new Map(members.map((member) => [member.name, member]))
-      const children = new Map(members.map((member) => [member.name, []]))
+      const matrixNodes = new Map(members.map((member) => [member.name, member]))
 
       for (const member of members) {
+        if (!member.parent) {
+          continue
+        }
+
+        const parent = byName.get(member.parent)
+        if (!parent || parent.kind !== "dispatcher" || matrixNodes.has(parent.name)) {
+          continue
+        }
+
+        matrixNodes.set(parent.name, parent)
+      }
+
+      const matrix = [...matrixNodes.values()].sort((a, b) => a.name.localeCompare(b.name))
+      const membersByName = new Map(matrix.map((member) => [member.name, member]))
+      const children = new Map(matrix.map((member) => [member.name, []]))
+
+      for (const member of matrix) {
         if (!member.parent || !membersByName.has(member.parent)) {
           continue
         }
@@ -124,7 +140,7 @@ function main() {
         nodeChildren.sort((left, right) => left.name.localeCompare(right.name))
       }
 
-      const roots = members
+      const roots = matrix
         .filter((member) => !member.parent || !membersByName.has(member.parent))
         .sort((left, right) => left.name.localeCompare(right.name))
       const visited = new Set()
@@ -145,7 +161,7 @@ function main() {
         printNode(root, 0)
       }
 
-      const orphans = members.filter((member) => !visited.has(member.name)).sort((a, b) => a.name.localeCompare(b.name))
+      const orphans = matrix.filter((member) => !visited.has(member.name)).sort((a, b) => a.name.localeCompare(b.name))
       for (const orphan of orphans) {
         printNode(orphan, 0)
       }

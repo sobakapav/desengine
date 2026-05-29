@@ -13,6 +13,7 @@ import {
   normalizeProject,
   resolveProjectPreviewConfig,
   validateHtmlTagsComponentSource,
+  validateUiKitComponentSource,
   type Project,
   type ProjectCompatibility,
   type ProjectUiMode,
@@ -84,6 +85,9 @@ type SandpackAppTemplateOptions = {
   levelTemplateRuntime: string
 }
 
+const previewRuntimeContractImport = 'import { PreviewRuntimeContractBoundary } from "./preview-runtime-contract";'
+const previewRuntimeContractMarkerSource = "desengine-sandpack-preview"
+
 const defaultStylesSource = "export const styles = {};\n"
 const defaultMockSource = "export const mock = {};\n"
 const defaultPropsSource = "export {};\n"
@@ -129,6 +133,178 @@ type SandpackUiKitConfig = (typeof sandpackUiKitsConfig)[SandpackUiKitId]
 function buildMainTsx(indexTsxTemplate: string, indexTsxImports: string[] = []) {
   const extraImports = indexTsxImports.length ? `${indexTsxImports.join("\n")}\n` : ""
   return indexTsxTemplate.replace("/* __EXTRA_IMPORTS__ */", extraImports)
+}
+
+function buildPreviewRuntimeContractSource() {
+  return `import React, { useEffect } from "react";
+
+const PREVIEW_SOURCE = "${previewRuntimeContractMarkerSource}";
+const READY_STATUS = "ready";
+const UNSTYLED_STATUS = "unstyled-dom";
+const RENDER_ERROR_STATUS = "render-error";
+const PROBE_DATASET_ATTR = "data-desengine-preview-contract";
+const probeExpectations = {
+  backgroundColor: "rgb(1, 2, 3)",
+  color: "rgb(4, 5, 6)",
+  width: "137px",
+  minWidth: "219px",
+} as const;
+
+function updateHost(status: string, message = "") {
+  document.documentElement.setAttribute(PROBE_DATASET_ATTR, status);
+  window.parent?.postMessage({
+    source: PREVIEW_SOURCE,
+    type: "contract",
+    status,
+    message,
+  }, "*");
+}
+
+function renderErrorNotice(message: string) {
+  return (
+    <section
+      style={{
+        border: "1px solid rgba(220, 38, 38, 0.35)",
+        borderRadius: 12,
+        padding: 16,
+        background: "rgba(254, 242, 242, 0.95)",
+        color: "#991b1b",
+        fontFamily: '"Segoe UI", sans-serif',
+      }}
+    >
+      <h2 style={{ margin: "0 0 8px", fontSize: 16 }}>Компонент не удалось отрендерить в preview</h2>
+      <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{message}</pre>
+    </section>
+  );
+}
+
+function getRenderErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  return "Неизвестная ошибка React-рендера внутри preview.";
+}
+
+class PreviewRuntimeErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { errorMessage: string | null }
+> {
+  state = { errorMessage: null };
+
+  static getDerivedStateFromError(error: unknown) {
+    return { errorMessage: getRenderErrorMessage(error) };
+  }
+
+  componentDidCatch(error: unknown) {
+    updateHost(RENDER_ERROR_STATUS, getRenderErrorMessage(error));
+  }
+
+  render() {
+    if (this.state.errorMessage) {
+      return renderErrorNotice(this.state.errorMessage);
+    }
+
+    return this.props.children;
+  }
+}
+
+function PreviewRuntimeProbe() {
+  useEffect(() => {
+    let cancelled = false;
+    const attempts = [80, 300, 900, 2000];
+    let timeoutId = 0;
+    let attemptIndex = 0;
+
+    const evaluateProbe = () => {
+      if (cancelled) return;
+
+      const probe = document.querySelector<HTMLElement>("[data-desengine-preview-probe='tailwind']");
+      if (!probe) {
+        updateHost(UNSTYLED_STATUS, "Preview runtime не смог подготовить Tailwind probe.");
+        return;
+      }
+
+      const style = window.getComputedStyle(probe);
+      const ready = style.backgroundColor === probeExpectations.backgroundColor
+        && style.color === probeExpectations.color
+        && style.width === probeExpectations.width
+        && style.minWidth === probeExpectations.minWidth;
+
+      if (ready) {
+        updateHost(READY_STATUS);
+        return;
+      }
+
+      const hasNextAttempt = attemptIndex < attempts.length - 1;
+      const message = "Sandpack отрисовал DOM, но preview CSS/Tailwind не применились к probe-элементу.";
+
+      if (!hasNextAttempt) {
+        updateHost(UNSTYLED_STATUS, message);
+        return;
+      }
+
+      attemptIndex += 1;
+      timeoutId = window.setTimeout(evaluateProbe, attempts[attemptIndex]);
+    };
+
+    timeoutId = window.setTimeout(evaluateProbe, attempts[attemptIndex]);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  return (
+    <div
+      aria-hidden="true"
+      data-desengine-preview-probe="tailwind"
+      className="w-[137px] min-w-[219px] bg-[rgb(1,2,3)] text-[rgb(4,5,6)]"
+      style={{
+        position: "fixed",
+        top: -9999,
+        left: -9999,
+        pointerEvents: "none",
+        opacity: 0,
+      }}
+    >
+      probe
+    </div>
+  );
+}
+
+function PreviewRuntimeContractBoundary({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <PreviewRuntimeProbe />
+      <PreviewRuntimeErrorBoundary>{children}</PreviewRuntimeErrorBoundary>
+    </>
+  );
+}
+
+export { PreviewRuntimeContractBoundary };
+`
+}
+
+function injectPreviewRuntimeContract(appTsx: string) {
+  const withImport = appTsx.includes(previewRuntimeContractImport)
+    ? appTsx
+    : appTsx.replace(
+        'import { levelRuntime } from "./level-template-runtime"',
+        `import { levelRuntime } from "./level-template-runtime"\n${previewRuntimeContractImport}`,
+      )
+
+  if (withImport.includes("<PreviewRuntimeContractBoundary>")) {
+    return withImport.replace(
+      /<PreviewRuntimeContractBoundary>\s*<Component \{\.\.\.pickPreviewProps\(\)\} \/>\s*<\/PreviewRuntimeContractBoundary>/,
+      `<PreviewRuntimeContractBoundary>\n        <Component {...pickPreviewProps()} />\n      </PreviewRuntimeContractBoundary>`,
+    )
+  }
+
+  return withImport.replace(
+    "<Component {...pickPreviewProps()} />",
+    `<PreviewRuntimeContractBoundary>
+        <Component {...pickPreviewProps()} />
+      </PreviewRuntimeContractBoundary>`,
+  )
 }
 
 // const previewCssSource = `
@@ -329,9 +505,13 @@ function resolvePreviewProject(
   const projectPreviewConfig = resolveProjectPreviewConfig(project)
   const resolvedUiKitId = projectPreviewConfig.effectiveUiKitId
 
-  const shouldValidateHtmlTags = Boolean(options.project || options.uiMode)
-  const compatibility = shouldValidateHtmlTags && project.settings.uiMode === "html-tags"
-    ? validateHtmlTagsComponentSource(sourceFiles.component)
+  const shouldValidateCompatibility = Boolean(options.project || options.uiMode)
+  const compatibility = shouldValidateCompatibility
+    ? (
+        project.settings.uiMode === "html-tags"
+          ? validateHtmlTagsComponentSource(sourceFiles.component)
+          : validateUiKitComponentSource(sourceFiles.component, resolvedUiKitId)
+      )
     : { status: "compatible" as const, message: "Режим проекта совместим с выбранным UI kit." }
 
   return { project, resolvedUiKitId, compatibility }
@@ -359,7 +539,7 @@ function createBaseSandpackFiles(args: {
 }): SandpackPreviewFiles {
   const { sourceFiles, templates, dependencies, appTemplate, componentSource, resolvedPreviewCss, uiKit } = args
   const packageJsonBase = templates.packageJson
-  const resolvedAppTsx = appTemplate?.appTsx ?? fallbackAppTsx
+  const resolvedAppTsx = injectPreviewRuntimeContract(appTemplate?.appTsx ?? fallbackAppTsx)
   const resolvedLevelRuntime = appTemplate?.levelTemplateRuntime ?? "export const levelRuntime = {} as const;\n"
 
   return {
@@ -368,6 +548,7 @@ function createBaseSandpackFiles(args: {
     "/tsconfig.json": hidden(JSON.stringify(templates.tsconfigJson, null, 2)),
     "/index.tsx": hidden(buildMainTsx(templates.indexTsxTemplate, uiKit.indexTsxImports)),
     "/App.tsx": hidden(resolvedAppTsx || ""),
+    "/preview-runtime-contract.tsx": hidden(buildPreviewRuntimeContractSource()),
     "/level-template-runtime.ts": hidden(resolvedLevelRuntime),
     "/Component.tsx": {
       code: rewriteRootAliasImports(componentSource, "./"),

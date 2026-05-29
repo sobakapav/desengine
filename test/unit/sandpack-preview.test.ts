@@ -161,6 +161,27 @@ export default function Component() {
     expect(payload.files["/components/ui/badge.tsx"]).toBeUndefined()
   })
 
+  it("классифицирует shadcn-импорты как incompatibility для Ant Design проекта", () => {
+    const payload = buildSandpackPreviewPayload(
+      {
+        component: `import { Tabs } from "@/components/ui/tabs";
+
+export default function Component() {
+  return <Tabs />;
+}
+`,
+        uiBadge: badgeSource,
+        systemUtils: utilsSource,
+      },
+      { uiKitId: "ant", uiMode: "ui-kit" },
+    )
+
+    expect(payload.project.compatibility).toEqual({
+      status: "incompatible",
+      message: expect.stringContaining("не подключает imports из components/ui"),
+    })
+  })
+
   it("подключает Material UI через адаптер (@mui/material + emotion)", () => {
     const payload = buildSandpackPreviewPayload(
       {
@@ -237,6 +258,27 @@ export default function Component() {
     }))
     expect(payload.files["/tailwind.config.js"]).toEqual(expect.objectContaining({
       code: expect.stringContaining('content: ["./**/*.{js,jsx,ts,tsx}"]'),
+    }))
+  })
+
+  it("встраивает runtime contract для диагностики styled preview", () => {
+    const payload = buildSandpackPreviewPayload({
+      component: `export default function Component() {
+  return <div className="w-full h-24 bg-gray-100">Preview</div>;
+}
+`,
+      uiBadge: badgeSource,
+      systemUtils: utilsSource,
+    })
+
+    expect(payload.files["/preview-runtime-contract.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("desengine-sandpack-preview"),
+    }))
+    expect(payload.files["/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("PreviewRuntimeContractBoundary"),
+    }))
+    expect(payload.files["/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('from "./preview-runtime-contract"'),
     }))
   })
 })

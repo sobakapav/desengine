@@ -2,8 +2,17 @@
 
 import { type KeyboardEvent as ReactKeyboardEvent, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import type { IterateTaskSuccessBody } from "@/lib/task/actions/types";
 
 import type { WorkbenchProps } from "./props";
+
+function resolvePromptRunSuccessState(data: Pick<IterateTaskSuccessBody, "message" | "resultKind">) {
+    return {
+        status: data.message,
+        clearPrompt: data.resultKind === "applied",
+        refreshPreview: data.resultKind === "applied",
+    };
+}
 
 function usePromptController(
     props: WorkbenchProps,
@@ -29,9 +38,14 @@ function usePromptController(
         props.onTaskItemChange(data.taskItem ?? null);
         replaceTaskData(data.taskData);
         props.onTransition(data.transition ?? null);
-        setPreviewVersion((current) => current + 1);
-        setPromptText("");
-        setPromptStatus("Уточнение применено");
+        const nextState = resolvePromptRunSuccessState(data);
+        if (nextState.refreshPreview) {
+            setPreviewVersion((current) => current + 1);
+        }
+        if (nextState.clearPrompt) {
+            setPromptText("");
+        }
+        setPromptStatus(nextState.status);
     }
 
     return { handlePromptRun, promptError, promptPending, promptStatus, promptText, setPromptError, setPromptStatus, setPromptText };
@@ -63,4 +77,4 @@ function usePromptInput(prompt: ReturnType<typeof usePromptController>) {
     return { handlePromptChange, handlePromptKeyDown };
 }
 
-export { usePromptController, usePromptInput };
+export { resolvePromptRunSuccessState, usePromptController, usePromptInput };

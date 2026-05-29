@@ -28,6 +28,8 @@ import {
 import { taskIterateLlm } from "./iterate-llm"
 import { taskActionShared } from "./shared"
 import type {
+  IterateNoopReason,
+  IterateTaskSuccessBody,
   NullableFilesPayload,
   OutputFile,
   TaskActionHttpResult,
@@ -275,18 +277,72 @@ function logIterationAllowlist(args: {
   })
 }
 
-async function completeIterationTaskLevel(taskId: string) {
+function resolveIterationNoopReason(args: {
+  written: IterationWriteResult
+  cleanupBeforeIteration: Awaited<ReturnType<typeof cleanupForbiddenWorkbenchFiles>>
+}): IterateNoopReason {
+  if (args.written.ignoredFileIds.length > 0) {
+    return "allowlist_filtered"
+  }
+
+  if (
+    args.cleanupBeforeIteration.deletedFileIds.length > 0
+    || args.written.deletedAfterIterationFileIds.length > 0
+  ) {
+    return "cleanup_enforced"
+  }
+
+  return "unchanged_files"
+}
+
+function getIterationNoopMessage(reason: IterateNoopReason) {
+  switch (reason) {
+    case "allowlist_filtered":
+      return "Изменения не применились: ответ модели затронул только недоступные для этого уровня файлы."
+    case "cleanup_enforced":
+      return "Изменения не применились: результат был очищен правилами рабочего набора этого уровня."
+    default:
+      return "Модель не изменила ни один рабочий файл. Уточните запрос и повторите попытку."
+  }
+}
+
+async function completeIterationTaskLevel(taskId: string): Promise<TaskActionHttpResult> {
   await clearTaskCheckResult(taskId)
   const progressUpdate = await registerPromptForCurrentLevel(taskId)
   const nextTaskItem = await getTaskListItemById(taskId)
   const nextLabContext = nextTaskItem ? await getTaskLabContext(nextTaskItem) : null
   const nextTaskData = await readTaskData({ id: taskId }, nextLabContext)
-  return taskActionShared.jsonResult({
+  const body: IterateTaskSuccessBody = {
     ok: true,
+    resultKind: "applied",
+    message: "Уточнение применено",
     taskData: nextTaskData,
     taskItem: nextTaskItem ? { ...nextTaskItem, progress: progressUpdate.summary } : null,
     transition: progressUpdate.transition,
+  }
+  return taskActionShared.jsonResult(body)
+}
+
+function buildNoopIterationResponse(args: {
+  context: IterationContext
+  taskData: Awaited<ReturnType<typeof readTaskData>>
+  written: IterationWriteResult
+  cleanupBeforeIteration: Awaited<ReturnType<typeof cleanupForbiddenWorkbenchFiles>>
+}): TaskActionHttpResult {
+  const noopReason = resolveIterationNoopReason({
+    written: args.written,
+    cleanupBeforeIteration: args.cleanupBeforeIteration,
   })
+  const body: IterateTaskSuccessBody = {
+    ok: true,
+    resultKind: "noop",
+    noopReason,
+    message: getIterationNoopMessage(noopReason),
+    taskData: args.taskData,
+    taskItem: args.context.taskItem,
+    transition: null,
+  }
+  return taskActionShared.jsonResult(body)
 }
 
 async function runIterateTaskLevelMutation(taskId: string, promptText: string): Promise<TaskActionHttpResult> {
@@ -321,8 +377,18 @@ async function runIterateTaskLevelMutation(taskId: string, promptText: string): 
     editableFileIds: context.labContext.editableFileIds,
     contentByFileId: llmInput.taskData.contentByFileId,
   })
-  await appendIterationEntry({ taskId, promptText, context, taskData: llmInput.taskData, written, llmCall: llmStage.llmCall })
   logIterationAllowlist({ taskId, written, cleanupBeforeIteration })
+
+  if (written.changedFileIds.length === 0) {
+    return buildNoopIterationResponse({
+      context,
+      taskData: llmInput.taskData,
+      written,
+      cleanupBeforeIteration,
+    })
+  }
+
+  await appendIterationEntry({ taskId, promptText, context, taskData: llmInput.taskData, written, llmCall: llmStage.llmCall })
   return completeIterationTaskLevel(taskId)
 }
 

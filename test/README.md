@@ -44,6 +44,8 @@ Live/provider-проверки не входят в обычный обязат�
 npm run test:live
 ```
 
+Сейчас эта команда проверяет только локальную готовность env активного provider. Если обязательной переменной не хватает, preflight завершится с кодом `1`, перечислит недостающие имена и не покажет секретные значения.
+
 ## Команды
 
 | Команда | Назначение |
@@ -58,7 +60,7 @@ npm run test:live
 | `npm run test:storybook` | Browser/component проверки Storybook; пока успешно проходит без story-файлов. |
 | `npm run test:e2e` | Playwright route smoke без live credentials. |
 | `npm run test:integration` | Зарезервировано для server/API-flow на fixtures. |
-| `npm run test:live` | Зарезервировано для явных проверок с реальными credentials. |
+| `npm run test:live` | Env-aware preflight для активного provider без реальных сетевых вызовов. |
 | `npm run test:spec -- <capability>` | Зарезервировано для выборочного запуска по OpenSpec capability. |
 
 ## Структура
@@ -193,7 +195,7 @@ E2E helper делает snapshot каталога `user/` до и после а�
 
 Секреты нельзя хранить в git. Для live/provider-проверок использовать только env или локальные некоммитимые файлы.
 
-Переменные для будущих live-проверок:
+Переменные для live preflight:
 
 - OpenAI: `LLM_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL`.
 - DeepSeek: `LLM_PROVIDER`, `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL`, `DEEPSEEK_BASE_URL`.

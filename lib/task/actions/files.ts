@@ -8,6 +8,7 @@ import {
   clearTaskCheckResult,
   getTaskLabContext,
   getTaskListItemById,
+  resetCurrentTaskLevel,
   resetTask,
 } from "@/lib/task/server"
 import {
@@ -17,6 +18,7 @@ import {
 
 import { getLevelEditableWorkbenchFileMap } from "../../lab/workbench"
 import type {
+  ResetCurrentTaskLevelRuntimeResult,
   ResetTaskRuntimeResult,
   SaveTaskFilesResult,
   TaskFileUpdate,
@@ -87,6 +89,33 @@ export const taskFilesAction = {
         taskItem: nextTaskItem,
         taskData: nextTaskItem ? createEmptyTaskData(taskId, labContext) : null,
         started: false,
+      }
+    })
+  },
+  async resetCurrentTaskLevelRuntime(taskId: string): Promise<ResetCurrentTaskLevelRuntimeResult> {
+    return runTaskMutation(taskId, async () => {
+      const taskItem = await getTaskListItemById(taskId)
+
+      if (!taskItem) {
+        return { kind: "not_found", error: "Задание не найдено" }
+      }
+
+      try {
+        const progress = await resetCurrentTaskLevel(taskId)
+        const nextTaskItem = await getTaskListItemById(taskId)
+        const labContext = nextTaskItem ? await getTaskLabContext(nextTaskItem) : null
+
+        return {
+          kind: "level_reset",
+          taskItem: nextTaskItem ? { ...nextTaskItem, progress } : nextTaskItem,
+          taskData: nextTaskItem ? createEmptyTaskData(taskId, labContext) : null,
+          started: Boolean(nextTaskItem?.started),
+        }
+      } catch (error) {
+        return {
+          kind: "snapshot_missing",
+          error: error instanceof Error ? error.message : "Не удалось сбросить текущий уровень",
+        }
       }
     })
   },

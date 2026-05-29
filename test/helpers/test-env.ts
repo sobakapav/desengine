@@ -1,3 +1,14 @@
+import {
+  LIVE_ALLOWLIST_ENV,
+  LIVE_ONBOARDING_ENV,
+  LIVE_PROVIDER_ENV,
+  describeMissingTestEnv,
+  readLiveProviderEnv,
+  readRequiredTestEnv,
+  resolveLiveProvider,
+  runLiveProviderPreflight,
+} from "../../tools/testing/live-provider-preflight.mjs"
+
 type TestEnv = Record<string, string | undefined>
 
 type RequiredEnvResult =
@@ -14,46 +25,34 @@ type RequiredEnvResult =
 
 type ProviderName = "openai" | "deepseek" | "gemini" | "claude" | "zai"
 
-const LIVE_PROVIDER_ENV: Record<ProviderName, string[]> = {
-  openai: ["LLM_PROVIDER", "OPENAI_API_KEY", "OPENAI_MODEL", "OPENAI_BASE_URL"],
-  deepseek: ["LLM_PROVIDER", "DEEPSEEK_API_KEY", "DEEPSEEK_MODEL", "DEEPSEEK_BASE_URL"],
-  gemini: ["LLM_PROVIDER", "GEMINI_API_KEY", "GEMINI_MODEL", "GEMINI_BASE_URL"],
-  claude: ["LLM_PROVIDER", "CLAUDE_API_KEY", "CLAUDE_MODEL", "CLAUDE_BASE_URL", "CLAUDE_MAX_TOKENS"],
-  zai: ["LLM_PROVIDER", "ZAI_API_KEY", "ZAI_MODEL", "ZAI_BASE_URL"],
-}
-
-const LIVE_ALLOWLIST_ENV = ["ALLOWLIST_BASE_URL", "ALLOWLIST_SALT"]
-const LIVE_ONBOARDING_ENV = ["ONBOARDING_REPO_URL"]
-
-function readRequiredTestEnv(names: string[], env: TestEnv = process.env): RequiredEnvResult {
-  const values: Record<string, string> = {}
-  const missing: string[] = []
-
-  for (const name of names) {
-    const value = env[name]?.trim()
-
-    if (!value) {
-      missing.push(name)
-      continue
+type LiveProviderResolution =
+  | {
+      ok: true
+      provider: ProviderName
+    }
+  | {
+      ok: false
+      missing: string[]
+      message: string
     }
 
-    values[name] = value
-  }
-
-  if (missing.length > 0) {
-    return { ok: false, values, missing }
-  }
-
-  return { ok: true, values, missing: [] }
-}
-
-function describeMissingTestEnv(names: string[]) {
-  return `Для live-проверки не хватает переменных окружения: ${names.join(", ")}`
-}
-
-function readLiveProviderEnv(provider: ProviderName, env: TestEnv = process.env) {
-  return readRequiredTestEnv(LIVE_PROVIDER_ENV[provider], env)
-}
+type LiveProviderPreflightResult =
+  | {
+      checkedEnv: string[]
+      exitCode: 0
+      lines: string[]
+      missing: []
+      ok: true
+      provider: ProviderName
+    }
+  | {
+      checkedEnv: string[]
+      exitCode: 1
+      lines: string[]
+      missing: string[]
+      ok: false
+      provider?: ProviderName
+    }
 
 export {
   LIVE_ALLOWLIST_ENV,
@@ -62,5 +61,13 @@ export {
   describeMissingTestEnv,
   readLiveProviderEnv,
   readRequiredTestEnv,
+  resolveLiveProvider,
+  runLiveProviderPreflight,
 }
-export type { ProviderName, RequiredEnvResult, TestEnv }
+export type {
+  LiveProviderPreflightResult,
+  LiveProviderResolution,
+  ProviderName,
+  RequiredEnvResult,
+  TestEnv,
+}

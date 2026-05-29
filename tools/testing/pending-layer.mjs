@@ -14,11 +14,6 @@ const LAYERS = {
     nextTask: "5. Browser, Storybook и e2e smoke",
     command: "npm run test:e2e",
   },
-  live: {
-    title: "Provider/live",
-    nextTask: "3. Credentials и mock-данные",
-    command: "npm run test:live",
-  },
   spec: {
     title: "Выборочный запуск по OpenSpec capability",
     nextTask: "2. Traceability MVP",

@@ -1,8 +1,21 @@
 import type { TaskData, TaskListItem } from "@/lib/task/types"
+import type { TaskTransition } from "@/lib/task/types"
 
 export type TaskFileUpdate = {
   fileId: string
   content: string
+}
+
+export type IterateNoopReason = "unchanged_files" | "allowlist_filtered" | "cleanup_enforced"
+
+export type IterateTaskSuccessBody = {
+  ok: true
+  resultKind: "applied" | "noop"
+  message: string
+  taskData: TaskData
+  taskItem: TaskListItem | null
+  transition: TaskTransition | null
+  noopReason?: IterateNoopReason
 }
 
 export type TaskActionHttpResult = {
@@ -42,5 +55,21 @@ export type ResetTaskRuntimeResult =
     }
   | {
       kind: "not_found"
+      error: string
+    }
+
+export type ResetCurrentTaskLevelRuntimeResult =
+  | {
+      kind: "level_reset"
+      taskItem: TaskListItem | null
+      taskData: TaskData | null
+      started: boolean
+    }
+  | {
+      kind: "not_found"
+      error: string
+    }
+  | {
+      kind: "snapshot_missing"
       error: string
     }

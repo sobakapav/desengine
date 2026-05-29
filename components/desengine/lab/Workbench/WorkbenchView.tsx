@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { type KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { MarkdownContent } from "../../system/MarkdownContent";
@@ -30,14 +31,18 @@ function WorkbenchHeader({
     completePending,
     onBackToLevelList,
     onCheck,
-    onReset,
+    onResetLevel,
+    onResetTask,
+    resetError,
     resetPending,
     taskItem,
 }: Pick<WorkbenchProps, "taskItem"> & {
     completePending: boolean;
     onBackToLevelList: () => void;
     onCheck: () => void;
-    onReset: () => void;
+    onResetLevel: () => Promise<boolean>;
+    onResetTask: () => Promise<boolean>;
+    resetError: string;
     resetPending: boolean;
 }) {
     return (
@@ -57,7 +62,9 @@ function WorkbenchHeader({
                 completePending={completePending}
                 onBackToLevelList={onBackToLevelList}
                 onCheck={onCheck}
-                onReset={onReset}
+                onResetLevel={onResetLevel}
+                onResetTask={onResetTask}
+                resetError={resetError}
                 resetPending={resetPending}
             />
         </div>
@@ -69,31 +76,99 @@ function WorkbenchHeaderActions({
     completePending,
     onBackToLevelList,
     onCheck,
-    onReset,
+    onResetLevel,
+    onResetTask,
+    resetError,
     resetPending,
 }: {
     canCompleteCurrentLevel: boolean;
     completePending: boolean;
     onBackToLevelList: () => void;
     onCheck: () => void;
-    onReset: () => void;
+    onResetLevel: () => Promise<boolean>;
+    onResetTask: () => Promise<boolean>;
+    resetError: string;
     resetPending: boolean;
 }) {
+    const [levelResetDialogOpen, setLevelResetDialogOpen] = useState(false);
+    const [taskResetDialogOpen, setTaskResetDialogOpen] = useState(false);
+
+    async function handleLevelResetConfirm() {
+        const success = await onResetLevel();
+        if (success) {
+            setLevelResetDialogOpen(false);
+        }
+    }
+
+    async function handleTaskResetConfirm() {
+        const success = await onResetTask();
+        if (success) {
+            setTaskResetDialogOpen(false);
+        }
+    }
+
     return (
         <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={onBackToLevelList}>К списку задач уровня</Button>
-            <AlertDialog>
+            <AlertDialog open={levelResetDialogOpen} onOpenChange={setLevelResetDialogOpen}>
+                <AlertDialogTrigger asChild>
+                    <Button variant="outline" disabled={completePending || resetPending || !canCompleteCurrentLevel}>
+                        {resetPending ? "Сброс…" : "Сбросить уровень"}
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent size="sm">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Сбросить текущий уровень?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Будут удалены рабочие файлы, история уточнений и проверки только у текущего уровня. Уже пройденные уровни сохранятся.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    {levelResetDialogOpen && resetError ? (
+                        <pre className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive whitespace-pre-wrap">
+                            {resetError}
+                        </pre>
+                    ) : null}
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={resetPending}>Отмена</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            disabled={resetPending}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                void handleLevelResetConfirm();
+                            }}
+                        >
+                            {resetPending ? "Сбрасываем уровень…" : "Подтвердить сброс уровня"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <AlertDialog open={taskResetDialogOpen} onOpenChange={setTaskResetDialogOpen}>
                 <AlertDialogTrigger asChild>
                     <Button variant="outline" disabled={completePending || resetPending}>{resetPending ? "Сброс…" : "Сбросить задачу"}</Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent size="sm">
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Сбросить задачу?</AlertDialogTitle>
+                        <AlertDialogTitle>Сбросить всю задачу?</AlertDialogTitle>
                         <AlertDialogDescription>Будут удалены рабочие файлы и история уточнений. Задача снова станет не начатой.</AlertDialogDescription>
                     </AlertDialogHeader>
+                    {taskResetDialogOpen && resetError ? (
+                        <pre className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive whitespace-pre-wrap">
+                            {resetError}
+                        </pre>
+                    ) : null}
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Отмена</AlertDialogCancel>
-                        <AlertDialogAction variant="destructive" onClick={onReset}>Подтвердить сброс</AlertDialogAction>
+                        <AlertDialogCancel disabled={resetPending}>Отмена</AlertDialogCancel>
+                        <AlertDialogAction
+                            variant="destructive"
+                            disabled={resetPending}
+                            onClick={(event) => {
+                                event.preventDefault();
+                                void handleTaskResetConfirm();
+                            }}
+                        >
+                            {resetPending ? "Сбрасываем задачу…" : "Подтвердить полный сброс"}
+                        </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -182,7 +257,9 @@ function WorkbenchBody({ controller, props }: { controller: WorkbenchController;
                 resetPending={controller.actions.resetPending}
                 onBackToLevelList={() => void controller.handleBackToLevelList()}
                 onCheck={() => void controller.actions.handleCheck()}
-                onReset={() => void controller.reset.handleReset()}
+                onResetLevel={() => controller.reset.handleLevelReset()}
+                onResetTask={() => controller.reset.handleTaskReset()}
+                resetError={controller.actions.resetError}
             />
             <InOut task={props.taskItem.id} taskData={props.taskData} started={props.taskItem.started} reloadKey={controller.project.previewVersion} startStatus="" project={controller.project.project} />
             {props.taskData.labContext && <TaskTip content={controller.hint.taskTip} />}

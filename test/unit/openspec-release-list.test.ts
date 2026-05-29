@@ -66,4 +66,39 @@ describe("openspec release list", () => {
     expect(output).not.toContain("implement-old")
     expect(output).not.toContain("архивная поставка")
   })
+
+  it("печатает активный состав релиза как матрицу dispatcher -> implement/fix", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-release-matrix-"))
+    tempDirs.push(fixtureRoot)
+
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "release-live"),
+      'change_kind: "release"\nshort: "актуальный релиз"',
+    )
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "dispatcher-alpha"),
+      'change_kind: "dispatcher"\nshort: "диспетчер альфа"\nparent_change: "focus-demo"',
+    )
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "implement-a"),
+      'change_kind: "implement"\nshort: "поставка а"\nparent_change: "dispatcher-alpha"\nrelease_ref: "release-live"',
+    )
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "fix-b"),
+      'change_kind: "fix"\nshort: "поставка б"\nparent_change: "dispatcher-alpha"\nrelease_ref: "release-live"',
+    )
+
+    const output = execFileSync(process.execPath, [path.join(process.cwd(), "tools", "list-openspec-releases.mjs")], {
+      cwd: fixtureRoot,
+      encoding: "utf8",
+    })
+
+    expect(output).toContain("  dispatcher-alpha\tдиспетчер альфа")
+    expect(output).toContain("    fix-b\tпоставка б")
+    expect(output).toContain("    implement-a\tпоставка а")
+  })
 })

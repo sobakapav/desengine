@@ -13,6 +13,7 @@ const labContext: TaskLabContext = {
   labId: "intro-lab",
   commonExplanation: "Общее объяснение",
   taskTip: "Подсказка",
+  taskCheckContract: "Контракт проверки",
   editableFileIds: ["component"],
   images: [
     {

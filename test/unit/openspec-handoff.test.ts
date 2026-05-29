@@ -4,6 +4,7 @@
 // @openSpec  - "Разработчик пытается начать implement/fix без заполненного handoff"
 // @openSpec  - "Разработчик пытается начать неисполнительский change"
 // @openSpec  - "Разработчик начинает implement/fix change"
+// @openSpec  - "Release-диспетчеризация новой хотелки"
 
 import { execFileSync, spawnSync } from "node:child_process"
 import fs from "node:fs"
@@ -312,5 +313,134 @@ verification_command: "npm run test:unit"
 
     expect(output).toContain("код меняется только в implement/fix; стратегия и тактика уже заданы предками")
     expect(output).toContain("parent dispatcher отвечает за постановку и приёмку результата")
+  })
+
+  it("os:dispatch в release-режиме создаёт implement change вместе с handoff", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-dispatch-handoff-"))
+    tempDirs.push(fixtureRoot)
+    const binDir = path.join(fixtureRoot, "bin")
+    const npmShimPath = path.join(binDir, "npm")
+    const openspecShimPath = path.join(binDir, "openspec")
+    const fixtureToolsDir = path.join(fixtureRoot, "tools")
+
+    fs.mkdirSync(binDir, { recursive: true })
+    fs.mkdirSync(fixtureToolsDir, { recursive: true })
+    fs.symlinkSync(path.join(process.cwd(), "tools", "create-openspec-change.mjs"), path.join(fixtureToolsDir, "create-openspec-change.mjs"))
+    fs.symlinkSync(path.join(process.cwd(), "tools", "openspec-change-name.mjs"), path.join(fixtureToolsDir, "openspec-change-name.mjs"))
+    fs.symlinkSync(path.join(process.cwd(), "tools", "openspec-handoff.mjs"), path.join(fixtureToolsDir, "openspec-handoff.mjs"))
+
+    fs.writeFileSync(
+      npmShimPath,
+      `#!/bin/zsh
+if [[ "$1" == "run" && "$2" == "os:begin" ]]; then
+  shift 3
+  exec ${process.execPath} ${path.join(process.cwd(), "tools", "openspec-begin-change.mjs")} "$@"
+fi
+echo "unsupported mock npm args: $*" >&2
+exit 1
+`,
+      "utf8",
+    )
+    fs.chmodSync(npmShimPath, 0o755)
+    fs.writeFileSync(
+      openspecShimPath,
+      `#!/bin/zsh
+if [[ "$1" == "new" && "$2" == "change" && -n "$3" ]]; then
+  change_name="$3"
+  change_dir="openspec/changes/$change_name"
+  mkdir -p "$change_dir"
+  cat > "$change_dir/.openspec.yaml" <<'EOF'
+schema: spec-driven
+created: 2026-05-24
+EOF
+  cat > "$change_dir/tasks.md" <<'EOF'
+## Tasks
+
+- [ ] 1. Уточнить постановку и границы реализации
+- [ ] 2. Внести кодовые изменения
+- [ ] 3. Выполнить проверку по verification_command из metadata
+EOF
+  exit 0
+fi
+echo "unsupported mock openspec args: $*" >&2
+exit 1
+`,
+      "utf8",
+    )
+    fs.chmodSync(openspecShimPath, 0o755)
+
+    fs.writeFileSync(
+      path.join(fixtureRoot, "package.json"),
+      JSON.stringify(
+        {
+          scripts: {
+            "os:begin": `node ${path.join(process.cwd(), "tools", "openspec-begin-change.mjs")}`,
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    )
+
+    const dispatcherDir = path.join(fixtureRoot, "openspec", "changes", "dispatcher-demo")
+    const releaseDir = path.join(fixtureRoot, "openspec", "changes", "release-demo")
+    fs.mkdirSync(dispatcherDir, { recursive: true })
+    fs.mkdirSync(releaseDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(dispatcherDir, ".openspec.yaml"),
+      `change_kind: "dispatcher"
+execution_mode: "no-code"
+parent_change: "focus-demo"
+strategy_root: "focus-demo"
+roadmap_ref: "focus-demo/roadmaps/demo.md"
+release_ref: ""
+`,
+      "utf8",
+    )
+    fs.writeFileSync(
+      path.join(releaseDir, ".openspec.yaml"),
+      `change_kind: "release"
+execution_mode: "no-code"
+`,
+      "utf8",
+    )
+
+    const createdDir = path.join(fixtureRoot, "openspec", "changes", "implement-demo-task")
+
+    execFileSync(
+      process.execPath,
+      [
+        path.join(process.cwd(), "tools", "openspec-dispatch-change.mjs"),
+        "release-demo",
+        "--dispatcher",
+        "dispatcher-demo",
+        "--kind",
+        "implement",
+        "--name",
+        "demo-task",
+        "--description",
+        "подготовить демонстрационный implement change",
+      ],
+      {
+        cwd: fixtureRoot,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PATH: `${binDir}:${process.env.PATH || ""}`,
+        },
+      },
+    )
+
+    expect(fs.existsSync(path.join(createdDir, ".openspec.yaml"))).toBe(true)
+    expect(fs.existsSync(path.join(createdDir, "handoff.md"))).toBe(true)
+
+    const metadata = fs.readFileSync(path.join(createdDir, ".openspec.yaml"), "utf8")
+    const handoff = fs.readFileSync(path.join(createdDir, "handoff.md"), "utf8")
+    expect(metadata).toContain('parent_change: "dispatcher-demo"')
+    expect(metadata).toContain('release_ref: "release-demo"')
+    expect(handoff).toContain("## Миссия")
+    expect(handoff).toContain("parent_change: dispatcher-demo")
+    expect(handoff).toContain("Что должен изменить этот change: подготовить демонстрационный implement change")
   })
 })

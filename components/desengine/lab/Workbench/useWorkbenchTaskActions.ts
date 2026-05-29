@@ -52,15 +52,15 @@ export function useResetAction(
   replaceTaskData: (taskData: WorkbenchProps["taskData"]) => void,
   actionState: ReturnType<typeof useWorkbenchActions>,
 ) {
-  async function handleReset() {
-    if (!(await saveBeforeAction())) return;
+  async function runResetRequest(pathname: string, fallbackError: string) {
+    if (!(await saveBeforeAction())) return false;
     actionState.setResetPending(true);
     actionState.setResetError("");
 
     try {
-      const res = await fetch(`/api/tasks/${props.taskItem.id}/reset`, { method: "POST" });
+      const res = await fetch(pathname, { method: "POST" });
       const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.ok) throw new Error(data?.error || "Не удалось сбросить задачу");
+      if (!res.ok || !data?.ok) throw new Error(data?.error || fallbackError);
       if (data.taskItem) props.onTaskItemChange(data.taskItem);
       if (data.taskData) replaceTaskData(data.taskData);
       props.onTransition(null);
@@ -68,12 +68,28 @@ export function useResetAction(
         taskId: props.screenEvent.scope.taskId,
         activeScreen: readLabTaskScreenEventActiveScreen(props.screenEvent),
       }, "component"));
+      return true;
     } catch (error) {
-      actionState.setResetError(error instanceof Error ? error.message : "Не удалось сбросить задачу");
+      actionState.setResetError(error instanceof Error ? error.message : fallbackError);
+      return false;
     } finally {
       actionState.setResetPending(false);
     }
   }
 
-  return { handleReset };
+  async function handleLevelReset() {
+    return runResetRequest(
+      `/api/tasks/${props.taskItem.id}/reset-level`,
+      "Не удалось сбросить текущий уровень",
+    );
+  }
+
+  async function handleTaskReset() {
+    return runResetRequest(
+      `/api/tasks/${props.taskItem.id}/reset`,
+      "Не удалось сбросить задачу",
+    );
+  }
+
+  return { handleLevelReset, handleTaskReset };
 }

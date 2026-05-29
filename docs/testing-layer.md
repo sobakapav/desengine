@@ -34,10 +34,10 @@ npm run test:unit
 | `npm run test:traceability` | работает в мягком режиме | Проверяет `@openSpec` metadata в тестах и сверяет её с `openspec/specs/**`. |
 | `npm run test:integration` | placeholder | Зарезервировано для server/API-flow тестов на mock/fixtures. |
 | `npm run test:e2e` | работает частично | Запускает Playwright route smoke без live credentials; runtime-зависимые маршруты могут быть явно skipped с причиной. |
-| `npm run test:live` | placeholder | Зарезервировано для явных provider/live-проверок с реальными credentials. |
+| `npm run test:live` | preflight | Проверяет env активного provider без сетевых вызовов и честно сообщает о недостающих переменных. |
 | `npm run test:spec -- <capability>` | placeholder | Зарезервировано для выборочного запуска по OpenSpec capability. |
 
-Placeholder-команды завершаются успешно и печатают, какой этап `testing-layer` должен наполнить команду реальной проверкой. Это сделано намеренно: первый слой должен дать стабильные точки входа, но не должен ломать обычную разработку из-за ещё не реализованных уровней.
+Placeholder-команды завершаются успешно и печатают, какой этап `testing-layer` должен наполнить команду реальной проверкой. Это сделано намеренно для ещё не реализованных `test:integration` и `test:spec`: первый слой должен дать стабильные точки входа, но не должен ломать обычную разработку из-за ещё не реализованных уровней.
 
 `test:traceability` уже не placeholder: команда валидирует существующие связи тестов со specs. Пока она работает в миграционном режиме: неполное покрытие существующих specs допустимо только если capability есть в `test/traceability/coverage-plan.json`.
 
@@ -216,7 +216,9 @@ Live/provider-проверки запускаются только явно:
 npm run test:live
 ```
 
-На текущем этапе это placeholder. В дальнейшем команда будет читать credentials только из env или локальных некоммитимых файлов и будет отдельно объяснять, каких переменных не хватает.
+На текущем этапе это env-aware preflight без сетевых вызовов. Команда проверяет `LLM_PROVIDER` и provider-specific переменные активного провайдера, завершает запуск с кодом `1`, если чего-то не хватает, и не печатает значения секретов.
+
+Если credentials лежат в локальном некоммитимом файле, сначала экспортируй их в env текущего shell, а затем запускай `npm run test:live`.
 
 Обычные команды `npm test` и `npm run test:full` не должны требовать live credentials.
 
@@ -237,7 +239,7 @@ LLM provider-проверки используют только выбранны
 - allowlist: `ALLOWLIST_BASE_URL`, `ALLOWLIST_SALT`;
 - onboarding: `ONBOARDING_REPO_URL`.
 
-Секреты не коммитятся. Для локального запуска используй env процесса или локальный `desengine.config.txt`; тестовые helpers не должны печатать значения секретов в диагностике.
+Секреты не коммитятся. Для локального запуска используй env процесса или локальный некоммитимый файл, значения из которого заранее экспортированы в env; тестовые helpers не должны печатать значения секретов в диагностике.
 
 ## Fixtures и helpers
 
@@ -285,7 +287,7 @@ LLM provider-проверки используют только выбранны
 - `component/browser` — UI-состояния в Storybook/Vitest browser.
 - `integration` — API/server-flow на mock/fixtures.
 - `e2e smoke` — короткий сквозной browser route smoke без live credentials.
-- `live/provider` — только явная проверка с реальными внешними сервисами; не входит в обязательный `test:full`.
+- `live/provider` — явный live-контур: на текущем этапе `test:live` реализован как env-aware preflight без сетевых вызовов и не входит в обязательный `test:full`; реальные внешние проверки остаются отдельным следующим шагом.
 
 Если полный тест сейчас нельзя добавить без крупной runtime-работы, это нормально, но отсрочка должна быть видимой: добавь capability в `test/traceability/coverage-plan.json`, укажи причину, `targetStage` и минимальный follow-up.
 

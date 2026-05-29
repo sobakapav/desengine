@@ -48,6 +48,23 @@
 - **WHEN** разработчик запускает `npm run os:r`
 - **THEN** в вывод попадают только changes из `openspec/changes/*`
 - **AND** archived changes из `openspec/changes/archive/*` не печатаются ни как release, ни как элементы состава
+- **AND** активный состав релиза печатается как delivery-матрица `parent dispatcher -> implement/fix`, если у элементов состава задан `parent_change`
+
+### Requirement: Release оркестрирует delivery-матрицу, не подменяя dispatcher
+
+Система SHALL позволять release change управлять составом поставки через связь `release_ref`, сохраняя тактическое подчинение исполнительских changes их parent dispatcher.
+
+#### Scenario: Release-диспетчеризация новой хотелки
+- **WHEN** разработчик запускает `npm run os:dispatch -- <release-change> --dispatcher <dispatcher-change> --kind <implement|fix> --name <name>`
+- **THEN** создаётся исполнительский change с `parent_change=<dispatcher-change>`
+- **AND** у него проставляется `release_ref=<release-change>`
+- **AND** дальнейшая реализация выполняется только в этом implement/fix change
+
+#### Scenario: Разработчик открывает implement/fix из release-контекста через `os:ctx`
+- **WHEN** разработчик запускает `npm run os:ctx -- <implement-or-fix-change>`, у которого задан `release_ref`
+- **THEN** команда показывает `release_ref`, parent dispatcher и его ключевые артефакты
+- **AND** показывает inherited roadmap стратегических владельцев dispatcher
+- **AND** явно напоминает, что parent dispatcher отвечает за тактику и приёмку результата
 
 ### Requirement: Команда `npm run os` показывает иерархию active changes
 

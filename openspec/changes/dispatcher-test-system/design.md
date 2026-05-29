@@ -15,7 +15,7 @@
    - меняют test runtime/tooling через отдельные downstream `implement`/`fix` changes под контролем dispatcher.
 
 2. Dispatcher не выполняет реализацию сам:
-   - анализ текущего состояния выносится в `research-test-system-current-state`;
+   - анализ текущего состояния выносится в `producer-test-system-current-state`;
    - runtime и tooling-изменения выполняются отдельными implement/fix changes;
    - dispatcher создаёт, направляет и контролирует эти исполнительские changes как часть собственной зоны ответственности.
 
@@ -38,7 +38,7 @@
 ## Risks / Trade-offs
 
 - [Риск] Dispatcher останется декларативным и не повлияет на практику.
-  → Mitigation: привязывать к нему конкретные research/implement changes тестовой подсистемы.
+  → Mitigation: привязывать к нему конкретные producer/implement changes тестовой подсистемы.
 
 - [Риск] Тестовый слой будет расти бессистемно из-за смешения локальных и live-проверок.
   → Mitigation: держать единые guardrails и отдельную классификацию уровней проверки.

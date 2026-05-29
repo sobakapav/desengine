@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { describeMissingTestEnv, readLiveProviderEnv, readRequiredTestEnv } from "../helpers/test-env"
+import {
+  describeMissingTestEnv,
+  readLiveProviderEnv,
+  readRequiredTestEnv,
+  resolveLiveProvider,
+} from "../helpers/test-env"
 
 describe("test env helpers", () => {
   it("возвращает только заполненные env-значения и список отсутствующих переменных", () => {
@@ -40,6 +45,21 @@ describe("test env helpers", () => {
         GEMINI_MODEL: "gemini-test",
         GEMINI_BASE_URL: "https://example.com/gemini",
       },
+      missing: [],
+    })
+  })
+
+  it("определяет активный provider для live preflight", () => {
+    expect(resolveLiveProvider({ LLM_PROVIDER: " claude " })).toEqual({
+      ok: true,
+      provider: "claude",
+    })
+  })
+
+  it("даёт понятную ошибку для неподдерживаемого provider", () => {
+    expect(resolveLiveProvider({ LLM_PROVIDER: "local" })).toEqual({
+      ok: false,
+      message: "Неподдерживаемый LLM_PROVIDER: local. Поддерживаются: openai, deepseek, gemini, claude, zai.",
       missing: [],
     })
   })

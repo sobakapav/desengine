@@ -35,11 +35,23 @@ Task service boundary SHALL строить prompt-related runtime context чер
 - **AND** HTTP response contract для пользователя не меняется
 - **AND** service flow строит PromptContext через общий builder
 
+#### Scenario: Service boundary возвращает явный no-op iterate результат
+- **WHEN** API route выполняет уточняющий prompt по текущему уровню
+- **AND** runtime не изменил ни один рабочий файл
+- **THEN** service boundary возвращает отдельный no-op результат вместо ложного success-сообщения
+- **AND** route handler сохраняет этот контракт без ad-hoc переинтерпретации
+
 #### Scenario: Пользователь проверяет результат через service boundary
 - **WHEN** API route проверяет результат текущего уровня
 - **THEN** route handler делегирует LLM-check, progress mutation и check-result runtime/service функции
 - **AND** HTTP response contract для пользователя не меняется
 - **AND** service flow строит PromptContext через общий builder
+
+#### Scenario: Hidden check не требует элементы вне task contract
+- **WHEN** API route проверяет результат текущего уровня
+- **AND** task-specific contract уровня явно запрещает домысливать отсутствующий элемент
+- **THEN** hidden check не считает этот элемент обязательным
+- **AND** причина провала опирается только на task contract, hidden-check contract и видимые референсы уровня
 
 #### Scenario: Пользователь сохраняет рабочие файлы
 - **WHEN** API route сохраняет рабочие файлы задачи
@@ -50,6 +62,11 @@ Task service boundary SHALL строить prompt-related runtime context чер
 - **WHEN** API route сбрасывает задачу
 - **THEN** route handler делегирует доменную логику runtime/service функции
 - **AND** HTTP response contract для пользователя не меняется
+
+#### Scenario: Пользователь сбрасывает текущий уровень через service boundary
+- **WHEN** API route сбрасывает только текущий уровень
+- **THEN** route handler делегирует level-scoped reset отдельной runtime/service функции
+- **AND** не переиспользует полный reset задачи как скрытую реализацию
 
 #### Scenario: Route handlers используют переиспользуемые lab action services
 - **WHEN** разработчик меняет route handlers ключевых lab actions
@@ -184,6 +201,11 @@ Task service boundary SHALL строить prompt-related runtime context чер
 #### Scenario: Подсказка уровня отсутствует
 - **WHEN** в каталоге задачи нет `tip.njk` и `tip.md`
 - **THEN** runtime возвращает пустую строку
+
+#### Scenario: Task-specific подсказка не требует неподдерживаемый preview runtime
+- **WHEN** task-specific подсказка объясняет рекомендуемые компоненты или импорты
+- **THEN** она опирается на текущий preview/runtime contract
+- **AND** не требует framework/router-компоненты, для которых preview не поднимает штатное окружение
 
 ### Requirement: Task runtime предоставляет read-only projection в доменную модель
 

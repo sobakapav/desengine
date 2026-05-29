@@ -165,3 +165,7 @@ export async function clearTaskCheckResult(taskId: string) {
 export async function resetTask(taskId: string, options?: { preserveCheckResult?: boolean }) {
   await taskServerMutations.resetTask(taskId, options)
 }
+
+export async function resetCurrentTaskLevel(taskId: string) {
+  return taskServerMutations.resetCurrentTaskLevel(taskId)
+}

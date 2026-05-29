@@ -38,7 +38,7 @@ describe("change testing guidance", () => {
       "npm run test:unit && npm run test:traceability && npm run quality:text",
     )
     expect(packageJson.scripts["test:spec"]).toBe("node tools/testing/pending-layer.mjs spec")
-    expect(packageJson.scripts["test:live"]).toBe("node tools/testing/pending-layer.mjs live")
+    expect(packageJson.scripts["test:live"]).toBe("node tools/testing/live-provider-preflight.mjs")
     expect(packageJson.scripts.os).toBe("node tools/list-active-openspec-changes.mjs")
     expect(packageJson.scripts["os:p"]).toBe("node tools/list-openspec-producers.mjs")
     expect(packageJson.scripts["os:tree"]).toBeUndefined()
@@ -125,7 +125,6 @@ describe("change testing guidance", () => {
     const source = readProjectFile("tools", "testing", "pending-layer.mjs")
 
     expect(source).toContain("integration")
-    expect(source).toContain("live")
     expect(source).toContain("spec")
     expect(source).toContain("слой ещё не реализован")
     expect(source).toContain("Сейчас этот placeholder завершается успешно")

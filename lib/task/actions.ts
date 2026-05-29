@@ -6,6 +6,7 @@ import { taskIterateAction } from "@/lib/task/actions/iterate"
 import { taskStartAction } from "@/lib/task/actions/start"
 import type { Project } from "@/lib/project/runtime"
 import type {
+  ResetCurrentTaskLevelRuntimeResult,
   ResetTaskRuntimeResult,
   SaveTaskFilesResult,
   TaskActionHttpResult,
@@ -95,4 +96,10 @@ export async function resetTaskRuntime(
   taskId: string,
 ): Promise<ResetTaskRuntimeResult> {
   return taskFilesAction.resetTaskRuntime(taskId)
+}
+
+export async function resetCurrentTaskLevelRuntime(
+  taskId: string,
+): Promise<ResetCurrentTaskLevelRuntimeResult> {
+  return taskFilesAction.resetCurrentTaskLevelRuntime(taskId)
 }

@@ -1,0 +1,4 @@
+- [x] 1. Формализовать no-op iterate как отдельный исход вместо молчаливого `ok: true`.
+- [x] 2. Развести в runtime реальные изменения, allowlist-filtered ответы и полные no-op случаи.
+- [x] 3. Обновить UI feedback и prompt-limit semantics для no-op результата.
+- [x] 4. Добавить unit coverage на no-op iterate contract и handoff для внешней проверки.

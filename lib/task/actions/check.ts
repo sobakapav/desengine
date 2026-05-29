@@ -91,6 +91,7 @@ function buildCheckInstruction(args: {
   defaultDidacticPrompt: string
   levelCheckPrompt: string
   commonExplanation: string
+  taskCheckContract: string
   allowedFilesText: string
   imagesText: string
   selectedFilesText: string
@@ -104,6 +105,13 @@ ${args.levelCheckPrompt}
 
 ОБЩЕЕ ПОЯСНЕНИЕ УРОВНЯ:
 ${args.commonExplanation}
+
+TASK-SPECIFIC HIDDEN CHECK CONTRACT:
+${args.taskCheckContract || "Не задан. Опирайся только на видимые элементы изображений и явный task tip."}
+
+Если task-specific contract запрещает элемент, не считай его обязательным.
+Если contract перечисляет приоритет причин провала, выбирай первую реально нарушенную причину и не подменяй её другой при том же состоянии кода.
+Не придумывай обязательные элементы, которых нет в task contract, task tip или на изображениях текущего уровня.
 
 ПРОВЕРЬ РЕЗУЛЬТАТ ТЕКУЩЕГО УРОВНЯ.
 Используй только содержательный итог.
@@ -290,6 +298,8 @@ export const taskCheckAction = {
         taskId,
         taskMaxLevel: context.taskItem.maxLevel,
         taskImages: context.labContext.images,
+        levelTaskTip: context.labContext.taskTip,
+        levelTaskCheckContract: context.labContext.taskCheckContract,
         level: context.level,
         project,
         taskData,
@@ -324,6 +334,7 @@ export const taskCheckAction = {
         defaultDidacticPrompt,
         levelCheckPrompt,
         commonExplanation: context.labContext.commonExplanation,
+        taskCheckContract: context.labContext.taskCheckContract,
         allowedFilesText: taskActionShared.formatAllowedFilesText(context.editableFiles),
         imagesText: promptImages.map((image) => `- ${image.id}.png — ${image.width}x${image.height}`).join("\n"),
         selectedFilesText: taskActionShared.formatFilesContextText(selectedFiles),
