@@ -25,6 +25,8 @@
   --radius-sm: calc(var(--radius) - 4px);
 }
 
+@import "tailwindcss";
+
 :root {
   --background: #ffffff;
   --foreground: #111318;

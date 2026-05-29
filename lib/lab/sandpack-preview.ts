@@ -113,6 +113,20 @@ function getRootPackageVersion(name: string) {
   return version
 }
 
+function getRootPackageVersion(name: string) {
+  const rootPackages = rootPackageJson as {
+    dependencies?: Record<string, string>
+    devDependencies?: Record<string, string>
+  }
+  const version = rootPackages.dependencies?.[name] ?? rootPackages.devDependencies?.[name]
+
+  if (!version) {
+    throw new Error(`В корневом package.json не задана зависимость '${name}', но она нужна Sandpack preview`)
+  }
+
+  return version
+}
+
 const baseDependencies = {
   "@types/react": "^19.0.8",
   "@types/react-dom": "^19.0.3",

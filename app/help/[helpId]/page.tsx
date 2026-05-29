@@ -21,7 +21,7 @@ type HelpMarkdownPageProps = {
  */
 export default async function HelpMarkdownPage({ params }: HelpMarkdownPageProps) {
   const { helpId } = await params
-  await requireAccessOrRedirect(`/help/${helpId}`)
+//  await requireAccessOrRedirect(`/help/${helpId}`)
 
   const page = await readHelpMarkdownPage(helpId)
 
