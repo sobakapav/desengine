@@ -24,6 +24,8 @@ type BuildTaskPromptContextInput = {
   taskId: string
   taskMaxLevel: number
   taskImages: unknown
+  levelTaskTip?: string
+  levelTaskCheckContract?: string
   level: Pick<LevelConfig, "id" | "number" | "title" | "labId" | "editableFileIds">
   project?: Project
 }
@@ -70,6 +72,8 @@ function buildPromptRenderContext(input: BuildPromptRenderContextInput): PromptR
       id: input.taskId,
       maxLevel: input.taskMaxLevel,
       images: input.taskImages,
+      tip: input.levelTaskTip,
+      checkContract: input.levelTaskCheckContract,
     },
     level: {
       id: input.level.id,

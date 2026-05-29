@@ -102,6 +102,7 @@ const uiKitImportPatterns = [
   /(?:from\s+|import\s+)["']lucide-react(?:["']|\/)/,
   /(?:from\s+|import\s+)["']@radix-ui\//,
 ]
+const shadcnImportPattern = /(?:from\s+|import\s+)["']@\/components\/ui\//
 
 function normalizeProjectUiMode(rawUiMode?: string | null): ProjectUiMode {
   const raw = rawUiMode?.trim().toLowerCase()
@@ -274,6 +275,20 @@ function validateHtmlTagsComponentSource(componentSource: string): ProjectCompat
   }
 }
 
+function validateUiKitComponentSource(componentSource: string, uiKitId: SandpackUiKitId): ProjectCompatibility {
+  if (uiKitId !== "shadcn" && shadcnImportPattern.test(componentSource)) {
+    return {
+      status: "incompatible",
+      message: `Проект с UI kit ${uiKitId} не подключает imports из components/ui: переключите проект на shadcn или уберите shadcn-компоненты.`,
+    }
+  }
+
+  return {
+    status: "compatible",
+    message: "Режим проекта совместим с выбранным UI kit.",
+  }
+}
+
 function resolveProjectPreviewConfig(project: Project) {
   return {
     ...project,
@@ -290,5 +305,6 @@ export {
   normalizeProjectUiMode,
   serializeProjectWorkspace,
   resolveProjectPreviewConfig,
+  validateUiKitComponentSource,
   validateHtmlTagsComponentSource,
 }

@@ -187,12 +187,16 @@ export const taskServerProgress = {
     return changed
   },
   buildTaskListItem(task: TaskCatalogItem, levels: LevelConfig[], taskProgress: TaskProgress): TaskListItem {
+    const progress = summarizeTaskProgress(levels, task.config, taskProgress)
+
     return {
       id: task.id,
       image: task.config.image,
-      started: isLevelStarted(taskProgress.levels["1"]),
+      started:
+        progress.currentLevelStarted
+        || Object.values(taskProgress.levels).some((levelProgress) => isLevelStarted(levelProgress)),
       maxLevel: task.config.maxLevel,
-      progress: summarizeTaskProgress(levels, task.config, taskProgress),
+      progress,
     }
   },
   buildPassedTaskItem(taskItem: TaskListItem, nextUnlockedLevel: number | null): LevelOverviewTaskItem {

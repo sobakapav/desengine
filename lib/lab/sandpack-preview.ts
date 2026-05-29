@@ -1,3 +1,6 @@
+import fs from "node:fs"
+import path from "node:path"
+
 import {
   DEFAULT_SANDPACK_UI_KIT_ID,
   normalizeSandpackUiKitId,
@@ -13,11 +16,13 @@ import {
   normalizeProject,
   resolveProjectPreviewConfig,
   validateHtmlTagsComponentSource,
+  validateUiKitComponentSource,
   type Project,
   type ProjectCompatibility,
   type ProjectUiMode,
   type RawProject,
 } from "@/lib/project/runtime"
+import { compile as compileTailwindCss } from "tailwindcss"
 import rootPackageJson from "../../package.json"
 
 type SandpackFileEntry = string | {
@@ -29,10 +34,11 @@ type SandpackFileEntry = string | {
 function toHiddenFiles(
   files: Record<string, string>,
   relativeRoot: string,
+  targetRoot = "",
 ): SandpackPreviewFiles {
   return Object.fromEntries(
     Object.entries(files).map(([filePath, code]) => [
-      filePath,
+      `${targetRoot}${filePath}`,
       hidden(rewriteRootAliasImports(code, relativeRoot)),
     ]),
   )
@@ -84,9 +90,28 @@ type SandpackAppTemplateOptions = {
   levelTemplateRuntime: string
 }
 
+const previewRuntimeContractImport = 'import { PreviewRuntimeContractBoundary } from "./preview-runtime-contract";'
+const previewRuntimeContractMarkerSource = "desengine-sandpack-preview"
+
 const defaultStylesSource = "export const styles = {};\n"
 const defaultMockSource = "export const mock = {};\n"
 const defaultPropsSource = "export {};\n"
+const previewStylesheetVirtualPath = "/src/styles.css"
+const previewCompiledCssCache = new Map<string, Promise<string>>()
+
+function getRootPackageVersion(name: string) {
+  const rootPackages = rootPackageJson as {
+    dependencies?: Record<string, string>
+    devDependencies?: Record<string, string>
+  }
+  const version = rootPackages.dependencies?.[name] ?? rootPackages.devDependencies?.[name]
+
+  if (!version) {
+    throw new Error(`В корневом package.json не задана зависимость '${name}', но она нужна Sandpack preview`)
+  }
+
+  return version
+}
 
 function getRootPackageVersion(name: string) {
   const rootPackages = rootPackageJson as {
@@ -115,7 +140,7 @@ const baseDependencies = {
 }
 
 const basePackageJson = {
-  main: "/index.tsx",
+  main: "/src/index.tsx",
   dependencies: baseDependencies,
 }
 
@@ -129,6 +154,178 @@ type SandpackUiKitConfig = (typeof sandpackUiKitsConfig)[SandpackUiKitId]
 function buildMainTsx(indexTsxTemplate: string, indexTsxImports: string[] = []) {
   const extraImports = indexTsxImports.length ? `${indexTsxImports.join("\n")}\n` : ""
   return indexTsxTemplate.replace("/* __EXTRA_IMPORTS__ */", extraImports)
+}
+
+function buildPreviewRuntimeContractSource() {
+  return `import React, { useEffect } from "react";
+
+const PREVIEW_SOURCE = "${previewRuntimeContractMarkerSource}";
+const READY_STATUS = "ready";
+const UNSTYLED_STATUS = "unstyled-dom";
+const RENDER_ERROR_STATUS = "render-error";
+const PROBE_DATASET_ATTR = "data-desengine-preview-contract";
+const probeExpectations = {
+  backgroundColor: "rgb(1, 2, 3)",
+  color: "rgb(4, 5, 6)",
+  width: "137px",
+  height: "19px",
+} as const;
+
+function updateHost(status: string, message = "") {
+  document.documentElement.setAttribute(PROBE_DATASET_ATTR, status);
+  window.parent?.postMessage({
+    source: PREVIEW_SOURCE,
+    type: "contract",
+    status,
+    message,
+  }, "*");
+}
+
+function renderErrorNotice(message: string) {
+  return (
+    <section
+      style={{
+        border: "1px solid rgba(220, 38, 38, 0.35)",
+        borderRadius: 12,
+        padding: 16,
+        background: "rgba(254, 242, 242, 0.95)",
+        color: "#991b1b",
+        fontFamily: '"Segoe UI", sans-serif',
+      }}
+    >
+      <h2 style={{ margin: "0 0 8px", fontSize: 16 }}>Компонент не удалось отрендерить в preview</h2>
+      <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{message}</pre>
+    </section>
+  );
+}
+
+function getRenderErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  return "Неизвестная ошибка React-рендера внутри preview.";
+}
+
+class PreviewRuntimeErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { errorMessage: string | null }
+> {
+  state = { errorMessage: null };
+
+  static getDerivedStateFromError(error: unknown) {
+    return { errorMessage: getRenderErrorMessage(error) };
+  }
+
+  componentDidCatch(error: unknown) {
+    updateHost(RENDER_ERROR_STATUS, getRenderErrorMessage(error));
+  }
+
+  render() {
+    if (this.state.errorMessage) {
+      return renderErrorNotice(this.state.errorMessage);
+    }
+
+    return this.props.children;
+  }
+}
+
+function PreviewRuntimeProbe() {
+  useEffect(() => {
+    let cancelled = false;
+    const attempts = [80, 300, 900, 2000];
+    let timeoutId = 0;
+    let attemptIndex = 0;
+
+    const evaluateProbe = () => {
+      if (cancelled) return;
+
+      const probe = document.querySelector<HTMLElement>("[data-desengine-preview-probe='tailwind']");
+      if (!probe) {
+        updateHost(UNSTYLED_STATUS, "Preview runtime не смог подготовить Tailwind probe.");
+        return;
+      }
+
+      const style = window.getComputedStyle(probe);
+      const ready = style.backgroundColor === probeExpectations.backgroundColor
+        && style.color === probeExpectations.color
+        && style.width === probeExpectations.width
+        && style.height === probeExpectations.height;
+
+      if (ready) {
+        updateHost(READY_STATUS);
+        return;
+      }
+
+      const hasNextAttempt = attemptIndex < attempts.length - 1;
+      const message = "Sandpack отрисовал DOM, но preview CSS/Tailwind не применились к probe-элементу.";
+
+      if (!hasNextAttempt) {
+        updateHost(UNSTYLED_STATUS, message);
+        return;
+      }
+
+      attemptIndex += 1;
+      timeoutId = window.setTimeout(evaluateProbe, attempts[attemptIndex]);
+    };
+
+    timeoutId = window.setTimeout(evaluateProbe, attempts[attemptIndex]);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  return (
+    <div
+      aria-hidden="true"
+      data-desengine-preview-probe="tailwind"
+      className="w-[137px] h-[19px] bg-[rgb(1,2,3)] text-[rgb(4,5,6)]"
+      style={{
+        position: "fixed",
+        top: -9999,
+        left: -9999,
+        pointerEvents: "none",
+        opacity: 0,
+      }}
+    >
+      probe
+    </div>
+  );
+}
+
+function PreviewRuntimeContractBoundary({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <PreviewRuntimeProbe />
+      <PreviewRuntimeErrorBoundary>{children}</PreviewRuntimeErrorBoundary>
+    </>
+  );
+}
+
+export { PreviewRuntimeContractBoundary };
+`
+}
+
+function injectPreviewRuntimeContract(appTsx: string) {
+  const withImport = appTsx.includes(previewRuntimeContractImport)
+    ? appTsx
+    : appTsx.replace(
+        'import { levelRuntime } from "./level-template-runtime"',
+        `import { levelRuntime } from "./level-template-runtime"\n${previewRuntimeContractImport}`,
+      )
+
+  if (withImport.includes("<PreviewRuntimeContractBoundary>")) {
+    return withImport.replace(
+      /<PreviewRuntimeContractBoundary>\s*<Component \{\.\.\.pickPreviewProps\(\)\} \/>\s*<\/PreviewRuntimeContractBoundary>/,
+      `<PreviewRuntimeContractBoundary>\n        <Component {...pickPreviewProps()} />\n      </PreviewRuntimeContractBoundary>`,
+    )
+  }
+
+  return withImport.replace(
+    "<Component {...pickPreviewProps()} />",
+    `<PreviewRuntimeContractBoundary>
+        <Component {...pickPreviewProps()} />
+      </PreviewRuntimeContractBoundary>`,
+  )
 }
 
 // const previewCssSource = `
@@ -309,6 +506,138 @@ function buildHtmlTagsFallbackComponent(message: string) {
 `
 }
 
+function extractTailwindCandidates(source: string) {
+  const tokens = new Set<string>()
+
+  for (const match of source.matchAll(/(["'`])((?:\\.|(?!\1)[\s\S])*)\1/g)) {
+    const literalContent = match[2]
+    if (!literalContent) continue
+
+    for (const token of literalContent.split(/\s+/)) {
+      const normalizedToken = token.trim()
+      if (!normalizedToken) continue
+      tokens.add(normalizedToken)
+    }
+  }
+
+  return [...tokens]
+}
+
+function resolveTailwindBase(base: string | undefined) {
+  if (typeof base === "string" && base.length > 0) {
+    return base
+  }
+
+  return path.posix.dirname(previewStylesheetVirtualPath)
+}
+
+function resolveTailwindVirtualPath(id: string, base: string | undefined) {
+  const resolvedBase = resolveTailwindBase(base)
+
+  if (id.startsWith(".")) {
+    if (resolvedBase.startsWith("/")) {
+      return path.posix.normalize(path.posix.join(resolvedBase, id))
+    }
+
+    return path.resolve(resolvedBase, id)
+  }
+
+  return id
+}
+
+async function buildPrecompiledPreviewCss(args: {
+  componentSource: string
+  resolvedAppTsx: string
+  resolvedLevelRuntime: string
+  resolvedPreviewCss: string
+  sourceFiles: SandpackPreviewSourceFiles
+}) {
+  const {
+    componentSource,
+    resolvedAppTsx,
+    resolvedLevelRuntime,
+    resolvedPreviewCss,
+    sourceFiles,
+  } = args
+  const runtimeContractSource = buildPreviewRuntimeContractSource()
+  const candidateSources = [
+    componentSource,
+    sourceFiles.stories ?? "",
+    sourceFiles.styles ?? defaultStylesSource,
+    sourceFiles.mock ?? defaultMockSource,
+    sourceFiles.props ?? defaultPropsSource,
+    sourceFiles.uiBadge,
+    ...Object.values(sourceFiles.shadcnFiles ?? {}),
+    resolvedAppTsx,
+    resolvedLevelRuntime,
+    runtimeContractSource,
+  ]
+  const candidates = [...new Set(candidateSources.flatMap((source) => extractTailwindCandidates(source)))].sort()
+  const cacheKey = JSON.stringify({
+    candidates,
+    previewCss: resolvedPreviewCss,
+  })
+  const cachedCompiledCss = previewCompiledCssCache.get(cacheKey)
+
+  if (cachedCompiledCss) {
+    return cachedCompiledCss
+  }
+
+  const compilePromise = (async () => {
+    const virtualFiles = new Map<string, string>([
+      [previewStylesheetVirtualPath, resolvedPreviewCss],
+    ])
+
+    const compiled = await compileTailwindCss(resolvedPreviewCss, {
+      base: "/",
+      from: previewStylesheetVirtualPath,
+      loadStylesheet: async (id, base) => {
+        if (typeof id !== "string" || id.length === 0) {
+          throw new Error(`Tailwind stylesheet loader получил пустой import id (base=${String(base)})`)
+        }
+
+        const resolvedPath = resolveTailwindVirtualPath(id, base)
+        const source = virtualFiles.get(resolvedPath)
+
+        if (typeof source === "string") {
+          return {
+            path: resolvedPath,
+            base: path.posix.dirname(resolvedPath),
+            content: source,
+          }
+        }
+
+        if (id === "tailwindcss") {
+          const absolutePath = path.join(process.cwd(), "node_modules", "tailwindcss", "index.css")
+          return {
+            path: absolutePath,
+            base: path.dirname(absolutePath),
+            content: fs.readFileSync(absolutePath, "utf-8"),
+          }
+        }
+
+        const absolutePath = path.resolve(resolveTailwindBase(base), id)
+        return {
+          path: absolutePath,
+          base: path.dirname(absolutePath),
+          content: fs.readFileSync(absolutePath, "utf-8"),
+        }
+      },
+    })
+
+    return compiled.build(candidates)
+  })()
+
+  previewCompiledCssCache.set(cacheKey, compilePromise)
+
+  try {
+    return await compilePromise
+  } catch (error) {
+    previewCompiledCssCache.delete(cacheKey)
+    throw error
+  }
+}
+
 function resolvePreviewProject(
   sourceFiles: SandpackPreviewSourceFiles,
   options: {
@@ -329,9 +658,13 @@ function resolvePreviewProject(
   const projectPreviewConfig = resolveProjectPreviewConfig(project)
   const resolvedUiKitId = projectPreviewConfig.effectiveUiKitId
 
-  const shouldValidateHtmlTags = Boolean(options.project || options.uiMode)
-  const compatibility = shouldValidateHtmlTags && project.settings.uiMode === "html-tags"
-    ? validateHtmlTagsComponentSource(sourceFiles.component)
+  const shouldValidateCompatibility = Boolean(options.project || options.uiMode)
+  const compatibility = shouldValidateCompatibility
+    ? (
+        project.settings.uiMode === "html-tags"
+          ? validateHtmlTagsComponentSource(sourceFiles.component)
+          : validateUiKitComponentSource(sourceFiles.component, resolvedUiKitId)
+      )
     : { status: "compatible" as const, message: "Режим проекта совместим с выбранным UI kit." }
 
   return { project, resolvedUiKitId, compatibility }
@@ -352,34 +685,43 @@ function createBaseSandpackFiles(args: {
   sourceFiles: SandpackPreviewSourceFiles
   templates: ReturnType<typeof loadSandpackDefaultTemplates>
   dependencies: Record<string, string>
-  appTemplate: SandpackAppTemplateOptions | null
   componentSource: string
-  resolvedPreviewCss: string
+  compiledPreviewCss: string
+  resolvedAppTsx: string
+  resolvedLevelRuntime: string
   uiKit: SandpackUiKitConfig
 }): SandpackPreviewFiles {
-  const { sourceFiles, templates, dependencies, appTemplate, componentSource, resolvedPreviewCss, uiKit } = args
+  const {
+    sourceFiles,
+    templates,
+    dependencies,
+    componentSource,
+    compiledPreviewCss,
+    resolvedAppTsx,
+    resolvedLevelRuntime,
+    uiKit,
+  } = args
   const packageJsonBase = templates.packageJson
-  const resolvedAppTsx = appTemplate?.appTsx ?? fallbackAppTsx
-  const resolvedLevelRuntime = appTemplate?.levelTemplateRuntime ?? "export const levelRuntime = {} as const;\n"
 
   return {
     "/public/index.html": hidden(templates.indexHtml),
     "/package.json": hidden(JSON.stringify({ ...packageJsonBase, ...basePackageJson, dependencies }, null, 2)),
     "/tsconfig.json": hidden(JSON.stringify(templates.tsconfigJson, null, 2)),
-    "/index.tsx": hidden(buildMainTsx(templates.indexTsxTemplate, uiKit.indexTsxImports)),
-    "/App.tsx": hidden(resolvedAppTsx || ""),
-    "/level-template-runtime.ts": hidden(resolvedLevelRuntime),
-    "/Component.tsx": {
+    "/src/index.tsx": hidden(buildMainTsx(templates.indexTsxTemplate, uiKit.indexTsxImports)),
+    "/src/App.tsx": hidden(resolvedAppTsx || ""),
+    "/src/preview-runtime-contract.tsx": hidden(buildPreviewRuntimeContractSource()),
+    "/src/level-template-runtime.ts": hidden(resolvedLevelRuntime),
+    "/src/Component.tsx": {
       code: rewriteRootAliasImports(componentSource, "./"),
       readOnly: true,
     },
-    "/Component.stories.ts": hidden(sourceFiles.stories ?? ""),
-    "/styles.ts": hidden(sourceFiles.styles ?? defaultStylesSource),
-    "/mock.ts": hidden(sourceFiles.mock ?? defaultMockSource),
-    "/props.ts": hidden(sourceFiles.props ?? defaultPropsSource),
-    "/styles.css": hidden(resolvedPreviewCss),
-    "/lib/system/utils.ts": hidden(sourceFiles.systemUtils),
-    "/lib/utils.ts": hidden(`
+    "/src/Component.stories.ts": hidden(sourceFiles.stories ?? ""),
+    "/src/styles.ts": hidden(sourceFiles.styles ?? defaultStylesSource),
+    "/src/mock.ts": hidden(sourceFiles.mock ?? defaultMockSource),
+    "/src/props.ts": hidden(sourceFiles.props ?? defaultPropsSource),
+    "/src/styles.css": hidden(compiledPreviewCss),
+    "/src/lib/system/utils.ts": hidden(sourceFiles.systemUtils),
+    "/src/lib/utils.ts": hidden(`
       import { clsx, type ClassValue } from "clsx"
       import { twMerge } from "tailwind-merge"
       export function cn(...inputs: ClassValue[]) {
@@ -391,7 +733,7 @@ function createBaseSandpackFiles(args: {
   }
 }
 
-function buildSandpackPreviewPayload(
+async function buildSandpackPreviewPayload(
   sourceFiles: SandpackPreviewSourceFiles,
   options: {
     uiKitId?: SandpackUiKitId | string | null
@@ -399,7 +741,7 @@ function buildSandpackPreviewPayload(
     project?: RawProject | null
     appTemplate?: SandpackAppTemplateOptions | null
   } = {},
-): SandpackPreviewPayload {
+): Promise<SandpackPreviewPayload> {
   validateSandpackUiKitsConfig()
 
   const templates = loadSandpackDefaultTemplates()
@@ -413,19 +755,29 @@ function buildSandpackPreviewPayload(
   const componentSource = compatibility.status === "compatible"
     ? sourceFiles.component
     : buildHtmlTagsFallbackComponent(compatibility.message)
+  const resolvedAppTsx = injectPreviewRuntimeContract(appTemplate?.appTsx ?? fallbackAppTsx)
+  const resolvedLevelRuntime = appTemplate?.levelTemplateRuntime ?? "export const levelRuntime = {} as const;\n"
+  const compiledPreviewCss = await buildPrecompiledPreviewCss({
+    componentSource,
+    resolvedAppTsx,
+    resolvedLevelRuntime,
+    resolvedPreviewCss: resolvePreviewCss(sourceFiles, templates, appTemplate),
+    sourceFiles,
+  })
   const files = createBaseSandpackFiles({
     sourceFiles,
     templates,
     dependencies,
-    appTemplate,
     componentSource,
-    resolvedPreviewCss: resolvePreviewCss(sourceFiles, templates, appTemplate),
+    compiledPreviewCss,
+    resolvedAppTsx,
+    resolvedLevelRuntime,
     uiKit,
   })
 
   if (resolvedUiKitId === "shadcn") {
-    files["/components/ui/badge.tsx"] = hidden(rewriteRootAliasImports(sourceFiles.uiBadge, "../../"))
-    Object.assign(files, toHiddenFiles(sourceFiles.shadcnFiles ?? {}, "../../"))
+    files["/src/components/ui/badge.tsx"] = hidden(rewriteRootAliasImports(sourceFiles.uiBadge, "../../"))
+    Object.assign(files, toHiddenFiles(sourceFiles.shadcnFiles ?? {}, "../../", "/src"))
   }
 
   if (resolvedUiKitId === "ant") {
@@ -442,12 +794,12 @@ function buildSandpackPreviewPayload(
       files,
       customSetup: {
         dependencies,
-        entry: "/index.tsx",
+        entry: "/src/index.tsx",
         environment: "create-react-app",
       },
       options: {
-        activeFile: "/Component.tsx",
-        visibleFiles: ["/Component.tsx"],
+        activeFile: "/src/Component.tsx",
+        visibleFiles: ["/src/Component.tsx"],
         externalResources: [],
       },
       project: {
@@ -470,12 +822,12 @@ function buildSandpackPreviewPayload(
     files,
     customSetup: {
       dependencies,
-      entry: "/index.tsx",
+      entry: "/src/index.tsx",
       environment: "create-react-app",
     },
     options: {
-      activeFile: "/Component.tsx",
-      visibleFiles: ["/Component.tsx"],
+      activeFile: "/src/Component.tsx",
+      visibleFiles: ["/src/Component.tsx"],
       externalResources: [],
     },
     project: {

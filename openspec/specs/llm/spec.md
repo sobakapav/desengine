@@ -104,6 +104,15 @@ Start, iterate и check LLM flows SHALL строить PromptContext через 
 - **THEN** система явно предупреждает, что канонический локальный конфиг лежит в `desengine.config.txt`
 - **AND** пользователь получает инструкцию убрать legacy-файл, чтобы настройки не были двусмысленными
 
+### Requirement: Базовый prompt не обещает неподдерживаемый preview runtime
+
+Система SHALL рекомендовать в общем onboarding prompt только те компоненты и импорты, которые текущий preview/runtime может исполнить без дополнительного framework- или router-окружения.
+
+#### Scenario: Базовый prompt описывает безопасный путь для preview по умолчанию
+- **WHEN** система рендерит общий prompt `default` для task/lab flow
+- **THEN** guidance рекомендует React-примитивы, существующие локальные UI-компоненты и стандартные HTML-теги как fallback
+- **AND** не описывает неподдерживаемые framework/router-компоненты как безопасный путь по умолчанию
+
 ### Requirement: Level-specific prompts читаются из скрытого onboarding prompt-слоя
 
 Система SHALL читать level-specific prompts класса `start`, `iterate` и `check` из скрытого onboarding prompt-слоя.
@@ -122,6 +131,17 @@ Start, iterate и check LLM flows SHALL строить PromptContext через 
 - **THEN** он ищет `onboarding/prompts/levels/<levelId>/check.njk`
 - **AND** если файл существует, включает его содержимое в checking instruction
 - **AND** передаёт hidden prompt template совместимый `PromptContext.renderContext`
+
+#### Scenario: Hidden check получает task-specific contract
+- **WHEN** runtime подбирает hidden prompt проверки уровня
+- **AND** у текущей task/level комбинации есть task-specific contract проверки
+- **THEN** checking instruction включает этот contract как отдельную hidden-check секцию
+- **AND** contract участвует в оценке наравне с level-specific hidden prompt и изображениями уровня
+
+#### Scenario: Task-specific contract имеет приоритет над общим tip
+- **WHEN** hidden check получает и task-specific contract, и общий task tip
+- **THEN** runtime трактует task-specific contract как более строгий источник hidden-check требований
+- **AND** не позволяет общему tip ослабить или переопределить этот contract
 
 #### Scenario: Hidden prompt проверки уровня отсутствует
 - **WHEN** runtime подбирает hidden prompt проверки уровня

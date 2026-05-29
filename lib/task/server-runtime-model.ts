@@ -38,9 +38,10 @@ async function buildTaskLabContext(
   level: LevelConfig,
   taskConfig: TaskConfig,
 ): Promise<TaskLabContext> {
-  const [commonExplanation, taskTip] = await Promise.all([
+  const [commonExplanation, taskTip, taskCheckContract] = await Promise.all([
     readLevelCommonExplanation(level.id, level.description),
     taskServerStorage.readTaskLevelTip(taskId, level, taskConfig),
+    taskServerStorage.readTaskLevelCheckContract(taskId, level, taskConfig),
   ])
   const images = await Promise.all(level.images.map(async (imageConfig) => {
     const size = requireTaskImage(taskConfig, imageConfig.id)
@@ -61,6 +62,7 @@ async function buildTaskLabContext(
     labId: level.labId,
     commonExplanation,
     taskTip,
+    taskCheckContract,
     editableFileIds: normalizeEditableFileIds(level),
     images,
   }

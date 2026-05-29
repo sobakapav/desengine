@@ -173,6 +173,10 @@ export async function readPromptHistory(taskId: string): Promise<PromptHistoryEn
 export async function appendPromptHistory(taskId: string, entry: PromptHistoryEntry) {
   const history = await readPromptHistory(taskId)
   history.push(entry)
+  await writePromptHistory(taskId, history)
+}
+
+export async function writePromptHistory(taskId: string, history: PromptHistoryEntry[]) {
   const filePath = getPromptHistoryPath(taskId)
   await ensureParentDir(filePath)
   await writeFile(filePath, JSON.stringify(history, null, 2), "utf-8")

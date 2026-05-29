@@ -35,6 +35,16 @@
         "Разработчик добавляет новый модуль в `lib`"
       ]
     },
+    "artifacts": {
+      "priority": "P1",
+      "primaryLevels": [
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Рабочий файл становится code artifact"
+      ]
+    },
     "component-file-set": {
       "priority": "P2",
       "primaryLevels": [
@@ -75,6 +85,37 @@
         "Claude включён как активный провайдер",
         "Start или iterate выполняется с картинками через Claude",
         "Авторизация Claude не прошла"
+      ]
+    },
+    "code-readability": {
+      "priority": "P2",
+      "primaryLevels": [
+        "static",
+        "unit"
+      ],
+      "status": "planned",
+      "requiredScenarios": [
+        "Добавляется новая экспортируемая функция",
+        "Добавляется новый экспортируемый тип или константа",
+        "Создаётся нетривиальный файл",
+        "В код добавляется новое имя функции или переменной",
+        "В бизнес-логику добавляется литерал",
+        "Значение имеет физическую или техническую единицу",
+        "Функция в PR становится перегруженной",
+        "В PR добавляется сложная логика с исключениями",
+        "Изменяемый production-файл превышает размер",
+        "Изменяемый test/storybook-файл превышает размер",
+        "Функция превышает soft-limit",
+        "Функция возвращает ошибку в доменной логике",
+        "На вход модуля приходит nullable-значение",
+        "В экспортируемую функцию предлагается добавить флаг",
+        "Реализуется бизнес-правило, требующее внешнего доступа",
+        "В модуле запускается асинхронная операция",
+        "Добавляется нетривиальный экспортируемый API",
+        "В код добавляется `TODO` или `FIXME`",
+        "Переименование или удаление публичной сущности",
+        "Разработчик запускает обязательные проверки change",
+        "Часть сценариев временно не автоматизирована"
       ]
     },
     "deepseek": {
@@ -180,6 +221,18 @@
         "Пользователь открывает Mermaid-страницу help",
         "Пользователь открывает отсутствующую Mermaid-страницу help",
         "Пользователь попадает на страницу ошибки help"
+      ]
+    },
+    "image-inspector": {
+      "priority": "P2",
+      "primaryLevels": [
+        "unit",
+        "e2e-smoke"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Пользователь получает метаданные исходного изображения",
+        "Пользователь делает zoom и pan в инспекторе изображения"
       ]
     },
     "iteration": {
@@ -384,6 +437,21 @@
         "Пользователь хочет повторно обновить onboarding-контент"
       ]
     },
+    "prompt-context": {
+      "priority": "P1",
+      "primaryLevels": [
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Iterate flow строит context через общий builder",
+        "Builder включает project/task/workflow/artifacts/workbench",
+        "Builder включает constraints и provider capabilities",
+        "Legacy prompt templates получают совместимый renderContext",
+        "Task hints templating использует PromptContext-compatible context",
+        "Prompt builder получает canonical input"
+      ]
+    },
     "projects": {
       "priority": "P1",
       "primaryLevels": [
@@ -463,6 +531,16 @@
         "Storage backend ещё локальный"
       ]
     },
+    "task-model": {
+      "priority": "P1",
+      "primaryLevels": [
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Текущая lab task проецируется в TaskInstance"
+      ]
+    },
     "task-levels": {
       "priority": "P1",
       "primaryLevels": [
@@ -525,6 +603,18 @@
         "Проверка использует временное пользовательское состояние"
       ]
     },
+    "workbench": {
+      "priority": "P1",
+      "primaryLevels": [
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Lab workbench регистрируется как definition",
+        "WorkbenchInstance связан с project/task/workflow step",
+        "Workbench state сериализуется"
+      ]
+    },
     "ui-foundation": {
       "priority": "P2",
       "primaryLevels": [
@@ -557,6 +647,17 @@
         "У задачи более высокий уровень",
         "Пользователь сбрасывает задачу",
         "Пользователь удалил каталог `user/`"
+      ]
+    },
+    "workflow": {
+      "priority": "P1",
+      "primaryLevels": [
+        "unit"
+      ],
+      "status": "ready",
+      "requiredScenarios": [
+        "Lab level является workflow step",
+        "Workflow step ссылается на WorkbenchInstance"
       ]
     },
     "workbench-tools": {

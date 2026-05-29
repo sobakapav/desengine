@@ -13,6 +13,7 @@ function ClientDemo() {
     labId: "level-1",
     commonExplanation: "",
     taskTip: "",
+    taskCheckContract: "",
     editableFileIds: ["App.tsx"],
     images: [
       {

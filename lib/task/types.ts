@@ -72,6 +72,7 @@ export type TaskLabContext = {
   labId: string
   commonExplanation: string
   taskTip: string
+  taskCheckContract: string
   editableFileIds: string[]
   images: TaskLabImage[]
 }

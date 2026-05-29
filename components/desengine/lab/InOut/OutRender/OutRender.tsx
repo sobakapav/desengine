@@ -8,6 +8,22 @@ import { createDefaultProject } from "@/lib/project/runtime";
 
 import { OutRenderProps } from "./props";
 const SANDBOX_RUNTIME_VERSION = "2026-05-20-ant-shim-v3";
+const PREVIEW_RUNTIME_CONTRACT_TIMEOUT_MS = 12_000;
+
+type PreviewRuntimeContractStatus = "idle" | "ready" | "unstyled-dom" | "render-error";
+type PreviewRuntimeContractMessage = {
+    source: "desengine-sandpack-preview";
+    type: "contract";
+    status: Exclude<PreviewRuntimeContractStatus, "idle">;
+    message?: string;
+};
+
+function isPreviewRuntimeContractMessage(value: unknown): value is PreviewRuntimeContractMessage {
+    if (typeof value !== "object" || value === null) return false;
+
+    return (value as PreviewRuntimeContractMessage).source === "desengine-sandpack-preview"
+        && (value as PreviewRuntimeContractMessage).type === "contract";
+}
 
 function getErrorMessage(error: unknown, fallbackMessage: string) {
     return error instanceof Error && error.message ? error.message : fallbackMessage;
@@ -18,6 +34,15 @@ function PreviewErrorNotice({ message }: { message: string }) {
         <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
             <p className="font-medium text-destructive">Не удалось показать превью компонента.</p>
             <pre className="text-destructive whitespace-pre-wrap break-words">{message}</pre>
+        </div>
+    );
+}
+
+function PreviewStyleContractNotice({ message }: { message: string }) {
+    return (
+        <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+            <p className="font-medium">Preview отрисовал DOM без подтверждённого style contract.</p>
+            <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
         </div>
     );
 }
@@ -76,6 +101,53 @@ function SandpackRuntimeDiagnosticsNotice({ payload }: { payload: SandpackPrevie
     );
 }
 
+function usePreviewRuntimeContract(moduleUrl: string, enabled: boolean) {
+    const [contractState, setContractState] = useState<{
+        status: PreviewRuntimeContractStatus;
+        message: string;
+    }>({
+        status: "idle",
+        message: "",
+    });
+
+    useEffect(() => {
+        setContractState({ status: "idle", message: "" });
+
+        if (!enabled) return;
+
+        function handleMessage(event: MessageEvent) {
+            if (!isPreviewRuntimeContractMessage(event.data)) {
+                return;
+            }
+
+            setContractState({
+                status: event.data.status,
+                message: event.data.message ?? "",
+            });
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            setContractState((current) => (
+                current.status === "idle"
+                    ? {
+                        status: "render-error",
+                        message:
+                            "Sandpack runtime не подтвердил загрузку превью. Возможно, внешний bundler недоступен или отдал challenge-страницу вместо preview.",
+                    }
+                    : current
+            ));
+        }, PREVIEW_RUNTIME_CONTRACT_TIMEOUT_MS);
+
+        window.addEventListener("message", handleMessage);
+        return () => {
+            window.clearTimeout(timeoutId);
+            window.removeEventListener("message", handleMessage);
+        };
+    }, [enabled, moduleUrl]);
+
+    return contractState;
+}
+
 function usePreviewPayload({ moduleUrl, started }: { moduleUrl: string; started: boolean }) {
     const [error, setError] = useState<string>("");
     const [previewPayload, setPreviewPayload] = useState<SandpackPreviewPayload | null>(null);
@@ -127,9 +199,27 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
     moduleUrl: string;
     previewPayload: SandpackPreviewPayload;
 }) {
+    const compatibility = previewPayload.project.compatibility;
+    const runtimeContract = usePreviewRuntimeContract(
+        moduleUrl,
+        compatibility.status === "compatible",
+    );
+
+    if (compatibility.status === "incompatible") {
+        return (
+            <div className="w-full">
+                <ProjectCompatibilityNotice payload={previewPayload} />
+            </div>
+        );
+    }
+
     return (
         <div className="w-full">
-            <ProjectCompatibilityNotice payload={previewPayload} />
+            {runtimeContract.status === "unstyled-dom" || runtimeContract.status === "render-error" ? (
+                <PreviewStyleContractNotice
+                    message={runtimeContract.message || "Sandpack runtime не подтвердил применение preview CSS/Tailwind."}
+                />
+            ) : null}
             <SandpackProvider
                 key={`${moduleUrl}:${previewPayload.debug?.shimVersion ?? "no-debug"}`}
                 template="react-ts"

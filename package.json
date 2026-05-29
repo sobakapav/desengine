@@ -21,7 +21,7 @@
     "test:integration": "node tools/testing/pending-layer.mjs integration",
     "test:e2e": "playwright test -c playwright.e2e.config.ts",
     "test:full": "npm run test:unit && npm run test:traceability && npm run quality:text",
-    "test:live": "node tools/testing/pending-layer.mjs live",
+    "test:live": "node tools/testing/live-provider-preflight.mjs",
     "test:spec": "node tools/testing/pending-layer.mjs spec",
     "smoke": "node tools/smoke-local-install.mjs",
     "onboarding:repair": "node tools/repair-onboarding.mjs",

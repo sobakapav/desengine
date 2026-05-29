@@ -17,6 +17,7 @@ import { UserProgressStoreSchema } from "@/lib/user/schema"
 import type { UserProgressStore } from "@/lib/user/types"
 
 import { taskServerProgress } from "./server-runtime-progress"
+import { renderTaskCheckContract } from "./check-contract"
 import { renderTaskHint } from "./hints"
 import type { LevelConfig } from "../level/types"
 import type { Project } from "../project/runtime"
@@ -181,6 +182,21 @@ async function readTaskLevelTip(
   })
 }
 
+async function readTaskLevelCheckContract(
+  taskId: string,
+  level: LevelConfig,
+  taskConfig: TaskConfig,
+  project?: Project,
+) {
+  return renderTaskCheckContract({
+    taskCatalogRoot: appConfig.taskCatalogRoot,
+    taskId,
+    level,
+    taskConfig,
+    project,
+  })
+}
+
 export const taskServerStorage = {
   forcedTaskMaxLevel: FORCED_TASK_MAX_LEVEL,
   readLevelsCatalogRaw,
@@ -191,4 +207,5 @@ export const taskServerStorage = {
   readTaskConfig,
   readTaskCatalog,
   readTaskLevelTip,
+  readTaskLevelCheckContract,
 }

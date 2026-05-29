@@ -106,6 +106,7 @@ const taskData: TaskData = {
     labId: "intro",
     commonExplanation: "Общее объяснение",
     taskTip: "Подсказка",
+    taskCheckContract: "Контракт проверки",
     editableFileIds: ["component", "styles"],
     images: [
       {
@@ -129,6 +130,8 @@ describe("PromptContext runtime boundary", () => {
       taskId: "intro-card",
       taskMaxLevel: 3,
       taskImages: taskData.labContext?.images ?? [],
+      levelTaskTip: taskData.labContext?.taskTip,
+      levelTaskCheckContract: taskData.labContext?.taskCheckContract,
       level,
       project,
       taskData,
@@ -169,6 +172,10 @@ describe("PromptContext runtime boundary", () => {
     expect(context.constraints).toContain("allowed-workbench-files-only")
     expect(context.providerCapabilities).toEqual(["vision", "structured-output"])
     expect(context.renderContext.user?.designSystemName).toBe("Ant Design")
+    expect(context.renderContext.task).toMatchObject({
+      tip: "Подсказка",
+      checkContract: "Контракт проверки",
+    })
     expect(context.renderContext.level?.editableFileIds).toEqual(["component", "styles"])
   })
 

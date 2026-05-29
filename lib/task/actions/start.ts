@@ -1,6 +1,7 @@
 import "server-only"
 
 import { runTaskMutation } from "@/lib/task/mutation-boundary"
+import { saveCurrentTaskLevelSnapshot } from "@/lib/task/level-reset-storage"
 
 import {
   loadStartRuntimeContext,
@@ -29,6 +30,12 @@ async function runStartTaskLevelMutation(taskId: string, startedAt: number): Pro
   }
 
   const llmInput = await buildStartLlmInput(context)
+  await saveCurrentTaskLevelSnapshot(
+    taskId,
+    context.level.number,
+    context.labContext.editableFileIds,
+    llmInput.taskData.contentByFileId,
+  )
   const llmStage = await runStartLlmStage(taskId, startedAt, context, llmInput.fileList, llmInput.instruction)
   if ("response" in llmStage) return llmStage.response
 

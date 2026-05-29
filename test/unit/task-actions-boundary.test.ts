@@ -33,6 +33,7 @@ const mocks = vi.hoisted(() => ({
   getLevelEditableWorkbenchFileMap: vi.fn(),
   getLevelEditableWorkbenchFiles: vi.fn(),
   getLevelForTaskItem: vi.fn(),
+  saveCurrentTaskLevelSnapshot: vi.fn(),
   getTaskLabContext: vi.fn(),
   getTaskListItemById: vi.fn(),
   getUserTaskFilePath: vi.fn(),
@@ -47,6 +48,7 @@ const mocks = vi.hoisted(() => ({
   readLevelStartPrompt: vi.fn(),
   readPrompt: vi.fn(),
   readTaskData: vi.fn(),
+  resetCurrentTaskLevel: vi.fn(),
   registerPromptForCurrentLevel: vi.fn(),
   resetTask: vi.fn(),
   runStructuredLlmRequest: vi.fn(),
@@ -115,9 +117,14 @@ vi.mock("@/lib/task/server", () => ({
   markCurrentTaskLevelInitialized: mocks.markCurrentTaskLevelInitialized,
   markTaskLevelInProgress: mocks.markTaskLevelInProgress,
   passCurrentTaskLevelCheck: mocks.passCurrentTaskLevelCheck,
+  resetCurrentTaskLevel: mocks.resetCurrentTaskLevel,
   registerPromptForCurrentLevel: mocks.registerPromptForCurrentLevel,
   resetTask: mocks.resetTask,
   saveTaskCheckResult: mocks.saveTaskCheckResult,
+}))
+
+vi.mock("@/lib/task/level-reset-storage", () => ({
+  saveCurrentTaskLevelSnapshot: mocks.saveCurrentTaskLevelSnapshot,
 }))
 
 vi.mock("@/lib/user/server", () => ({
@@ -255,8 +262,10 @@ describe("task action service boundary", () => {
     mocks.readLevelStartPrompt.mockResolvedValue("start prompt")
     mocks.readPrompt.mockResolvedValue("base prompt")
     mocks.readTaskData.mockResolvedValue(taskData)
+    mocks.resetCurrentTaskLevel.mockResolvedValue(progress)
     mocks.registerPromptForCurrentLevel.mockResolvedValue({ summary: progress, transition: null })
     mocks.resetTask.mockResolvedValue(undefined)
+    mocks.saveCurrentTaskLevelSnapshot.mockResolvedValue(undefined)
     mocks.runStructuredLlmRequest.mockResolvedValue(createLlmCall(JSON.stringify({
       component: "export default function Component() { return <div /> }",
       styles: "export {};",
@@ -311,6 +320,35 @@ describe("task action service boundary", () => {
 
     expect(mocks.resetTask).toHaveBeenCalledWith("task-a")
     expect(mocks.clearTaskCheckResult).toHaveBeenCalledWith("task-a")
+  })
+
+  it("resetCurrentTaskLevelRuntime возвращает отдельный contract без полного reset задачи", async () => {
+    const { resetCurrentTaskLevelRuntime } = await import("@/lib/task/actions")
+
+    await expect(resetCurrentTaskLevelRuntime("task-a")).resolves.toMatchObject({
+      kind: "level_reset",
+      taskItem: { id: "task-a", progress },
+      taskData: {
+        taskId: "task-a",
+        contentByFileId: {},
+        promptHistory: [],
+        llmUsageSummary: {
+          totalCalls: 0,
+          teachingCostCents: 0,
+          providersUsed: [],
+          inputTokens: null,
+          outputTokens: null,
+          totalTokens: null,
+          callsWithoutProviderMetrics: 0,
+        },
+        labContext,
+      },
+      started: true,
+    })
+
+    expect(mocks.resetCurrentTaskLevel).toHaveBeenCalledWith("task-a")
+    expect(mocks.resetTask).not.toHaveBeenCalled()
+    expect(mocks.clearTaskCheckResult).not.toHaveBeenCalled()
   })
 
   it("startTaskLevel выполняет LLM-flow и возвращает прежний HTTP body через service boundary", async () => {

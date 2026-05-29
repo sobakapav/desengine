@@ -1,11 +1,15 @@
 import "server-only"
 
-import { readPromptHistory } from "@/lib/onboarding/repository"
+import { readPromptHistory, writePromptHistory } from "@/lib/onboarding/repository"
 import {
   removeTaskCheckResult,
   removeUserTaskDir,
 } from "@/lib/user/server"
 
+import {
+  readTaskLevelSnapshot,
+  restoreTaskLevelSnapshot,
+} from "./level-reset-storage"
 import { summarizeTaskProgress } from "./progress"
 import { taskServerModel } from "./server-runtime-model"
 import { taskServerOverview } from "./server-runtime-overview"
@@ -34,6 +38,16 @@ async function loadMutationContext(taskId: string) {
     promptHistory,
   )
   return { levels, store, taskConfig, taskProgress, changed }
+}
+
+function buildResetLevelProgress() {
+  return {
+    status: "available" as const,
+    isPassed: false,
+    promptsUsed: 0,
+    checkAttemptsUsed: 0,
+    checkingState: "idle" as const,
+  }
 }
 
 export const taskServerMutations = {
@@ -183,5 +197,28 @@ export const taskServerMutations = {
     if (!options?.preserveCheckResult) {
       await removeTaskCheckResult(taskId)
     }
+  },
+  async resetCurrentTaskLevel(taskId: string) {
+    const context = await loadMutationContext(taskId)
+    const currentLevelNumber = context.taskProgress.currentLevel
+    const currentLevel = taskServerModel.requireLevel(context.levels, currentLevelNumber)
+    const snapshot = await readTaskLevelSnapshot(taskId, currentLevelNumber)
+
+    if (!snapshot) {
+      throw new Error("Для этого уровня ещё нет сохранённой стартовой точки. Откройте уровень заново после следующего перехода.")
+    }
+
+    const promptHistory = (await readPromptHistory(taskId))
+      .filter((entry) => (entry.levelNumber ?? 1) !== currentLevelNumber)
+    await restoreTaskLevelSnapshot(taskId, snapshot, currentLevel.editableFileIds)
+
+    context.taskProgress.levels[String(currentLevelNumber)] = buildResetLevelProgress()
+    context.taskProgress.updatedAt = new Date().toISOString()
+
+    await taskServerStorage.writeUserProgressStore(context.store)
+    await removeTaskCheckResult(taskId)
+    await writePromptHistory(taskId, promptHistory)
+
+    return summarizeTaskProgress(context.levels, context.taskConfig, context.taskProgress)
   },
 }
