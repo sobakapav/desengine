@@ -23,7 +23,7 @@ import type { LevelConfig } from "../level/types"
 import type { Project } from "../project/runtime"
 import type { TaskCheckResult, TaskConfig, TaskProgress } from "./types"
 
-const FORCED_TASK_MAX_LEVEL = 3
+const FORCED_TASK_MAX_LEVEL = 5
 
 async function readLevelsCatalogRaw() {
   const levelsRoot = appConfig.levelsCatalogRoot
