@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation"
 import { getTasksRootUrl } from "@/lib/task/navigation"
 import { Instruction, Resource } from "@/lib/system/types"
 import { ResourceCardList } from "../system/ResourceCardList"
-import ScreenSummary from "../system/ScreenSummary"
 import { ResourceRemediationControl } from "../system/ResourceRemediationControl"
 import { AuthState } from "@/lib/auth/types"
 
@@ -27,6 +26,50 @@ function AuthScreen({
   const [email, setEmail] = useState("")
   const [error, setError] = useState("")
   const [isPending, startTransition] = useTransition()
+
+
+const activeResource =
+  resources.find(
+    (resource) =>
+      resource.state === "blocked" &&
+      resource.id === "local-config-file"
+  ) ||
+  resources.find(
+    (resource) =>
+      resource.state === "blocked" &&
+      resource.id === "llm-network"
+  ) ||
+  resources.find(
+    (resource) =>
+      resource.state === "blocked" &&
+      resource.id === "llm-config"
+  ) ||
+  resources.find(
+    (resource) =>
+      resource.state === "blocked" &&
+      resource.id === "allowlist-config"
+  ) ||
+  resources.find(
+    (resource) =>
+      resource.state === "blocked" &&
+      resource.id === "allowlist-network"
+  ) ||
+  resources.find(
+    (resource) =>
+      resource.state === "blocked" &&
+      resource.id !== "access-session"
+  ) ||
+  resources.find((resource) => resource.state === "blocked") ||
+  resources.find((resource) => resource.state === "warning") ||
+  resources[0]
+
+  const helpLinksByResourceId: Partial<Record<Resource["id"], string>> = {
+  "llm-config": "/help/llm-api-keys",
+  "llm-network": "/help/llm-api-keys",
+  "system-release": "/help/version-error",
+  "onboarding-config": "/help/onboarding-config",
+  "onboarding-content": "/help/onboarding-config",
+}
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -55,38 +98,34 @@ function AuthScreen({
     })
   }
 
-  return (
-    <main>
-      <section className="flex m-10 gap-10">         
-        <div className="flex-1">
-          <ScreenSummary
-            title="Авторизация"
-            description="Введите, пожалуйста, свой email"
-          />
-        </div>
-        <div className="flex-1">
-          <ResourceCardList
-            resources={resources}
-            instructions={instructions}
-            renderRemediationControl={(resource) => {
-              return (
-                <ResourceRemediationControl
-                  email={email}
-                  error={error}
-                  isPending={isPending}
-                  authState={authState}
-                  configured={configured}
-                  onEmailChange={setEmail}
-                  handleSubmit={handleSubmit}
-                  resource={resource}
-                />
-              )
-            }}
-          />
-        </div>
-      </section>
-    </main>
-  )
+return (
+  <main className="min-h-screen bg-slate-800 text-white">
+    <section className="grid min-h-screen w-full grid-cols-[360px_1fr] gap-16 px-32 py-16 ">
+<div>
+  <ResourceCardList
+    resources={resources}
+    instructions={instructions}
+  />
+</div>
+
+<div className="min-h-[640px] rounded-xl bg-white p-12 text-slate-900">
+  {activeResource ? (
+<ResourceRemediationControl
+  email={email}
+  error={error}
+  isPending={isPending}
+  authState={authState}
+  configured={configured}
+  onEmailChange={setEmail}
+  handleSubmit={handleSubmit}
+  resource={activeResource}
+  helpHref={helpLinksByResourceId[activeResource.id]}
+/>
+  ) : null}
+</div>
+    </section>
+  </main>
+)
 }
 
 export {

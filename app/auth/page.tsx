@@ -12,12 +12,22 @@ export default async function AuthPage() {
     redirect(getLabRootUrl())
   }
 
-  return (
+return (
+  <>
+    <style>
+      {`
+        body {
+          background: #1e293b;
+        }
+      `}
+    </style>
+
     <AuthScreen
       authState={resources.authState}
       configured={resources.allowlistConfigured}
       resources={resources.items}
       instructions={resources.instructions}
     />
-  )
+  </>
+)
 }

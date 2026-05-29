@@ -11,28 +11,34 @@ type ResourceCardProps = BaseProps & {
 }
 
 function ResourceCard({
-    children,
-    resource
-} : ResourceCardProps) {
-    return (
-        <div className="grid grid-cols-[max-content_1fr] w-full items-center gap-x-2 py-2">
-            <ResourceStateBullet state={resource.state} className="flex-1"/>
-            <div className="text-2xl">{resource.label}</div>
+  children,
+  resource
+}: ResourceCardProps) {
+  return (
+    <div className="w-full py-3">
+      <div className="flex items-center gap-2">
+<div className="min-w-0 text-lg font-semibold leading-snug">
+  {resource.label}
+</div>
 
-            <div />
-            <ResourceMarkdown text={resource.summary} />
+        <ResourceStateBullet state={resource.state} />
+      </div>
 
-            <div />
-            <ResourceMarkdown text={resource.detail} />
+<div className="mt-1 text-base font-medium leading-snug opacity-90">
+  <ResourceMarkdown text={resource.summary} />
+</div>
 
-            {children ? (
-              <>
-                <div />
-                <div className="min-w-0">{children}</div>
-              </>
-            ) : null}
+<div className="mt-1 text-base leading-snug opacity-60">
+  <ResourceMarkdown text={resource.detail} />
+</div>
+
+      {children ? (
+        <div className="mt-3 min-w-0">
+          {children}
         </div>
-    )
+      ) : null}
+    </div>
+  )
 }
 
 function ResourceMarkdown({ text }: { text: string }) {

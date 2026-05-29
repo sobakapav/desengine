@@ -18,12 +18,24 @@ type SystemScreenProps = {
 
 function SystemNavigationLinks() {
   return (
-    <ul>
-      <li className="text-4xl p-12"><strong><a href="/lab">Лаборатория</a></strong></li>
-      <li className="text-4xl p-12"><a href="/levels">Уровни</a></li>
-      <li className="text-4xl p-12"><a href="/tasks">Задачи</a></li>
-      <li className="text-4xl p-12"><a href="/system">Система</a></li>
-      <li className="text-4xl p-12"><a href="/help">Справка</a></li>
+    <ul className="space-y-4">
+<li className="text-2xl">
+  <a href="/lab">Лаборатория</a>
+</li>
+<li className="text-2xl">
+  <a href="/levels">Уровни</a>
+</li>
+<li className="text-2xl">
+  <a href="/tasks">Задачи</a>
+</li>
+<li className="text-2xl">
+  <strong>
+    <a href="/system">Система</a>
+  </strong>
+</li>
+<li className="text-2xl">
+  <a href="/help">Справка</a>
+</li>
     </ul>
   )
 }
@@ -71,33 +83,22 @@ export function SystemScreen({
     })
   }
 
-  return (
-    <main>
-        <section className="flex m-5 gap-2 items-center">
-          <div className="flex-1 p-8">
-            <SystemNavigationLinks />
-          </div>
-          <div className="flex-1">
-            <ResourceCardList
-              resources={resources}
-              instructions={instructions}
-              renderRemediationControl={(resource) => {
-                return (
-                  <ResourceRemediationControl
-                    email={email}
-                    error={error}
-                    isPending={isPending}
-                    authState={authState}
-                    configured={configured}
-                    onEmailChange={setEmail}
-                    handleSubmit={handleSubmit}
-                    resource={resource}
-                  />
-                )
-              }}
-            />
-          </div>
-        </section>
-    </main>
-  )
+return (
+  <main className="min-h-screen bg-background text-foreground">
+    <div className="flex justify-center">
+      <section className="grid min-h-screen grid-cols-[220px_36rem] gap-8 py-24">
+        <aside>
+          <SystemNavigationLinks />
+        </aside>
+
+        <div className="min-w-0">
+          <ResourceCardList
+            resources={resources}
+            instructions={instructions}
+          />
+        </div>
+      </section>
+    </div>
+  </main>
+)
 }
