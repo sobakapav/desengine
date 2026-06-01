@@ -6,7 +6,7 @@
 
 - parent_change: dispatcher-ux
 - strategy_root: focus-quality
-- release_ref: (не задан)
+- release_ref: release-2026-06-02-quality
 - producer_ref: (не задан)
 - Что из родительского change уже решено: `dispatcher-ux` уже зафиксировал этот контур как downstream UX-improvement и перевёл его на уровень прямой реализации.
 - Кто отвечает за стратегию, тактику и приёмку результата: стратегию держит `focus-quality`, тактику и приёмку этого UX-среза держит `dispatcher-ux`.

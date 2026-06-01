@@ -27,6 +27,7 @@ const mocks = vi.hoisted(() => ({
   iterateTaskLevel: vi.fn(),
   normalizeProject: vi.fn(),
   requireAccessOrUnauthorizedResponse: vi.fn(),
+  resetCurrentTaskLevelRuntime: vi.fn(),
   resetTaskRuntime: vi.fn(),
   saveTaskFiles: vi.fn(),
   startTaskLevel: vi.fn(),
@@ -39,6 +40,7 @@ vi.mock("@/lib/auth/server", () => ({
 vi.mock("@/lib/task/actions", () => ({
   checkTaskLevel: mocks.checkTaskLevel,
   iterateTaskLevel: mocks.iterateTaskLevel,
+  resetCurrentTaskLevelRuntime: mocks.resetCurrentTaskLevelRuntime,
   resetTaskRuntime: mocks.resetTaskRuntime,
   saveTaskFiles: mocks.saveTaskFiles,
   startTaskLevel: mocks.startTaskLevel,
@@ -61,6 +63,7 @@ vi.mock("@/lib/task/task-screen-data", () => ({
 import { POST as postCheck } from "@/app/api/tasks/[taskId]/check/route"
 import { POST as postFiles } from "@/app/api/tasks/[taskId]/files/route"
 import { POST as postIterate } from "@/app/api/tasks/[taskId]/iterate/route"
+import { POST as postResetLevel } from "@/app/api/tasks/[taskId]/reset-level/route"
 import { POST as postReset } from "@/app/api/tasks/[taskId]/reset/route"
 import { GET as getTask } from "@/app/api/tasks/[taskId]/route"
 import { POST as postStart } from "@/app/api/tasks/[taskId]/start/route"
@@ -236,6 +239,63 @@ describe("task route integration wave", () => {
     await expect(readJsonResponse(response)).resolves.toEqual({
       ok: false,
       error: "Задание не найдено",
+    })
+  })
+
+  it("маршрутизирует reset-level в level-reset boundary и маппит snapshot_missing в 409", async () => {
+    mocks.resetCurrentTaskLevelRuntime.mockResolvedValue({
+      kind: "snapshot_missing",
+      error: "Снимок текущего уровня не найден",
+    })
+
+    const response = await postResetLevel(
+      new Request("http://localhost/api/tasks/task-1/reset-level", { method: "POST" }),
+      { params: Promise.resolve({ taskId: "task-1" }) },
+    )
+
+    expect(mocks.resetCurrentTaskLevelRuntime).toHaveBeenCalledWith("task-1")
+    expect(mocks.resetTaskRuntime).not.toHaveBeenCalled()
+    expect(response.status).toBe(409)
+    await expect(readJsonResponse(response)).resolves.toEqual({
+      ok: false,
+      error: "Снимок текущего уровня не найден",
+    })
+  })
+
+  it("возвращает level-reset payload без деградации в полный reset задачи", async () => {
+    const taskItem = {
+      id: "task-1",
+      started: true,
+      progress: {
+        currentLevel: 2,
+        levels: {
+          "1": { status: "completed", isPassed: true, promptsUsed: 1 },
+          "2": { status: "available", isPassed: false, promptsUsed: 0 },
+        },
+      },
+    }
+    const taskData = { taskId: "task-1", promptHistory: [] }
+
+    mocks.resetCurrentTaskLevelRuntime.mockResolvedValue({
+      kind: "level_reset",
+      taskItem,
+      taskData,
+      started: true,
+    })
+
+    const response = await postResetLevel(
+      new Request("http://localhost/api/tasks/task-1/reset-level", { method: "POST" }),
+      { params: Promise.resolve({ taskId: "task-1" }) },
+    )
+
+    expect(mocks.resetCurrentTaskLevelRuntime).toHaveBeenCalledWith("task-1")
+    expect(mocks.resetTaskRuntime).not.toHaveBeenCalled()
+    expect(response.status).toBe(200)
+    await expect(readJsonResponse(response)).resolves.toEqual({
+      ok: true,
+      taskItem,
+      taskData,
+      started: true,
     })
   })
 

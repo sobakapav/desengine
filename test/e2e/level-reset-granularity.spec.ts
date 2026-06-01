@@ -153,7 +153,11 @@ test.describe("level reset granularity", () => {
 
     await page.goto(`/lab/${taskId}`)
     await expect(page.getByText("Рабочий стол")).toBeVisible()
-    await expect(page.getByText("Уровень 2 из 3. Промптов: 2 / 3.")).toBeVisible()
+    const contextStatus = page.getByTestId("workbench-context-status")
+    await expect(contextStatus).toContainText("Уровень")
+    await expect(contextStatus).toContainText("2 из 5")
+    await expect(contextStatus).toContainText("Промпты")
+    await expect(contextStatus).toContainText("2 / 3")
     const resetLevelButton = page.locator("button").filter({ hasText: "Сбросить уровень" }).first()
     const resetTaskButton = page.locator("button").filter({ hasText: "Сбросить задачу" }).first()
     await expect(resetLevelButton).toBeVisible({ timeout: 20_000 })

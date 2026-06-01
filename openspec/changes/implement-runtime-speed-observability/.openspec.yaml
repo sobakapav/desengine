@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-01
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "dispatcher-runtime"
+strategy_root: "focus-tech"
+roadmap_ref: "focus-tech/roadmaps/architecture-transformation.md"
+release_ref: "release-2026-06-02-quality"
+producer_ref: "producer-speed-and-load"
+verification_level: "unit"
+verification_command: "npm run test:unit -- test/unit/task-actions-boundary.test.ts test/unit/sandpack-preview.test.ts"
+issue: ""
+short: "добавить runtime observability для speed/load линии"

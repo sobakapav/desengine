@@ -2,6 +2,18 @@
 
 После перехода от `dispatcher-architecture-transformation` к `producer-architecture-transformation` стратегический roadmap остался, но часть старых implement changes потеряла корректный tactical parent. Для `implement-lab-runtime-contract-hardening` это создало ложную привязку к `dispatcher-dataflow`, хотя содержательно change укрепляет lab runtime, а не общий контур передачи данных.
 
+## Goals
+
+- Выделить `dispatcher-runtime` как тактического владельца линии lab runtime foundation.
+- Удержать корректную lineage для runtime-hardening implement/fix changes.
+- Сохранить связь runtime-line с roadmap `focus-tech/roadmaps/architecture-transformation.md` без подмены producer-level контекста.
+
+## Non-goals
+
+- Не пересобирать producer-level roadmap и не переносить его решения в dispatcher metadata.
+- Не расширять `dispatcher-runtime` до event, packaging, log-system или иных соседних technical lines.
+- Не вводить новый runtime behavior и не менять продуктовый scope.
+
 ## Decisions
 
 1. `dispatcher-runtime` отвечает за тактическую delivery-линию lab runtime foundation:
@@ -18,7 +30,7 @@
 
 4. Если появятся follow-up runtime refactor changes, не меняющие продуктовую волну, они должны ссылаться на `dispatcher-runtime`, пока речь идёт именно про lab runtime foundation.
 
-## Scope Dispatcher
+## Scope
 
 Dispatcher обязан удерживать:
 

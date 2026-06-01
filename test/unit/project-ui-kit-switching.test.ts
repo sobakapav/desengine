@@ -1,6 +1,7 @@
 // @openSpec capability: level-labs
 // @openSpec scenarios:
 // @openSpec  - "Лаборатория создаёт локальный проект для preview"
+// @openSpec  - "Лаборатория переводит локальные project settings на shadcn/ui при rehydration"
 // @openSpec  - "Пользователь переключает UI kit проекта без перезагрузки страницы"
 // @openSpec  - "Пользователь включает режим html-tags"
 // @openSpec  - "Лаборатория показывает диагностику несовместимости UI kit"

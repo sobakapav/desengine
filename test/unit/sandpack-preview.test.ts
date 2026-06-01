@@ -27,6 +27,7 @@ import {
   normalizeSandpackUiKitId,
   validateSandpackUiKitsConfig,
 } from "../../lib/lab/sandpack-ui-kits.config"
+import { readFilesRecursively } from "../../lib/system/shadcn-files"
 
 const badgeSource = `import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -59,6 +60,20 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 `
+
+async function readRepositoryShadcnSourceFiles() {
+  const [shadcnFiles, useMobileHook] = await Promise.all([
+    readFilesRecursively(path.join(process.cwd(), "components", "ui"), "/components/ui"),
+    fs.promises.readFile(path.join(process.cwd(), "hooks", "use-mobile.ts"), "utf-8"),
+  ])
+
+  return {
+    shadcnFiles,
+    supportFiles: {
+      "/hooks/use-mobile.ts": useMobileHook,
+    },
+  }
+}
 
 async function readLevel5AppTemplateOptions() {
   const template = await readLevelSandpackTemplate("level-5", { rootDir: process.cwd() })
@@ -231,6 +246,43 @@ export const mock = [{ title: "Первый" }, { title: "Второй" }];
 
   it("держит внешний конфиг UI kit'ов валидным", () => {
     expect(() => validateSandpackUiKitsConfig()).not.toThrow()
+  })
+
+  it("возвращает исключённые shadcn-компоненты в Sandpack dependency graph", async () => {
+    const repositorySources = await readRepositoryShadcnSourceFiles()
+    const payload = await buildSandpackPreviewPayload({
+      component: `import * as UI from "@/components/ui";
+
+export default function Component() {
+  return <div>{Object.keys(UI).join(",")}</div>;
+}
+`,
+      uiBadge: badgeSource,
+      systemUtils: utilsSource,
+      ...repositorySources,
+    })
+
+    expect(payload.files["/src/components/ui/index.ts"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('export * from "./alert-dialog"'),
+    }))
+    expect(payload.files["/src/components/ui/index.ts"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('export * from "./sidebar"'),
+    }))
+    expect(payload.files["/src/hooks/use-mobile.ts"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("useIsMobile"),
+    }))
+    expect(payload.files["/src/components/ui/sidebar-context.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('from "../../hooks/use-mobile"'),
+    }))
+    expect(payload.customSetup.dependencies).toMatchObject({
+      "@base-ui/react": expect.any(String),
+      "input-otp": expect.any(String),
+      "next-themes": expect.any(String),
+      "react-resizable-panels": expect.any(String),
+      recharts: expect.any(String),
+      sonner: expect.any(String),
+      vaul: expect.any(String),
+    })
   })
 
   it("собирает preview-проект с настоящим Badge вместо HTML-заглушки", async () => {
@@ -467,10 +519,18 @@ export default function Component() {
 `,
       uiBadge: badgeSource,
       systemUtils: utilsSource,
+    }, {
+      previewSessionId: "session-123",
     })
 
     expect(payload.files["/src/preview-runtime-contract.tsx"]).toEqual(expect.objectContaining({
       code: expect.stringContaining("desengine-sandpack-preview"),
+    }))
+    expect(payload.files["/src/preview-runtime-contract.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('const PREVIEW_SESSION_ID = "session-123"'),
+    }))
+    expect(payload.files["/src/preview-runtime-contract.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("previewSessionId: PREVIEW_SESSION_ID"),
     }))
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
       code: expect.stringContaining("PreviewRuntimeContractBoundary"),

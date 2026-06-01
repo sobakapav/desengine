@@ -12,6 +12,7 @@ import {
   addLlmResources,
   addOnboardingResources,
   createResourceCollector,
+  type ResourceCollector,
 } from "@/lib/system/resources/internalstate-sections"
 import { updateOnboardingFromConfig } from "@/lib/onboarding/update"
 import { getSystemReleaseStatus } from "@/lib/system/release"
@@ -55,6 +56,11 @@ function getLocalConfigCondition(localConfigState: ReturnType<typeof localConfig
   return localConfigState.hasConfig ? "ready" : "missing"
 }
 
+function appendCollectedResources(target: ResourceCollector, source: ResourceCollector) {
+  target.items.push(...source.items)
+  target.instructions.push(...source.instructions)
+}
+
 /**
  * @example
  * ```ts
@@ -74,6 +80,8 @@ export async function getResourceStates(): Promise<ResourceStatesModel> {
   const accessConfig = getAccessControlConfig()
   const localConfigState = localConfig.getLocalConfigState()
   const resources = createResourceCollector()
+  const llmResources = createResourceCollector()
+  const allowlistResources = createResourceCollector()
 
   addAccessAndReleaseResources({
     resources,
@@ -82,8 +90,12 @@ export async function getResourceStates(): Promise<ResourceStatesModel> {
     localConfigCondition: getLocalConfigCondition(localConfigState),
     systemRelease,
   })
-  await addLlmResources(resources, llmStatus)
-  await addAllowlistResources(resources, accessConfig)
+  await Promise.all([
+    addLlmResources(llmResources, llmStatus),
+    addAllowlistResources(allowlistResources, accessConfig),
+  ])
+  appendCollectedResources(resources, llmResources)
+  appendCollectedResources(resources, allowlistResources)
   addOnboardingResources({ resources, onboardingRepoUrl, onboardingContent })
 
   return {

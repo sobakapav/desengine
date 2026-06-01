@@ -24,8 +24,20 @@
 - Не становится владельцем общего runtime или UX.
 - Не меняет install-critical стек без отдельного change и явного разрешения.
 
+## Capabilities
+
+### Modified Capabilities
+
+- `external-local-onboarding`: install-time onboarding sync остаётся частью локального setup-контура и должен маршрутизироваться через install-line, когда проблема лежит в tooling или preflight-подготовке.
+- `testing-layer`: downstream install behavior-change обязан иметь человеко-понятную тестовую часть с уровнем проверки, командой запуска и traceability-следом.
+
 ## Acceptance Criteria
 
 - `dispatcher-install` существует как отдельный technical dispatcher под `focus-tech`.
 - Setup/tooling bugs могут передаваться сюда из `dispatcher-bugfix`.
 - У dispatcher есть собственный roadmap для install и preflight-контуров.
+
+## Impact
+
+- Появляется отдельный тактический контур для setup/tooling проблем, не смешанный с общим bugfix-потоком.
+- Install-related fixes получают явного родителя и единые guardrails по воспроизведению, проверке и traceability.

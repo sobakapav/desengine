@@ -17,7 +17,8 @@
    - `DESENGINE_E2E_RUNNER=browser-wrapper`;
    - default browser channel `chromium`;
    - shell preflight + внешний browser path.
-3. На уровне `os:close` автоматически переводить `component/browser` verification-command на wrapper, если metadata указывает прямой `npm run test:e2e -- test/e2e/*.spec.ts`.
+3. На уровне `os:close` автоматически переводить direct `component/browser` verification-command на wrapper, если metadata указывает прямой `npm run test:e2e -- test/e2e/*.spec.ts`.
+   - Для `fix` с `verification_level=component/browser` дополнительно выполнять обязательный browser preflight до product-specific verdict.
 4. Обновить docs/test contract, чтобы direct sandboxed run больше не считался нормальным browser verdict.
 
 ## Проверочный слой
@@ -35,5 +36,5 @@ Unit-слой должен доказывать:
 
 - default channel и wrapper-flag согласованы;
 - Codex seatbelt без wrapper немедленно получает понятный gate;
-- `os:close` знает про auto-wrap для `component/browser` changes;
+- `os:close` знает про auto-wrap для direct `component/browser` verification-command и про обязательный preflight для `fix` с таким уровнем проверки;
 - docs и tool contracts описывают именно wrapper-path, а не старый direct-run.

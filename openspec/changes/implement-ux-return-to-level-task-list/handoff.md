@@ -6,7 +6,7 @@
 
 - parent_change: dispatcher-ux
 - strategy_root: focus-quality
-- release_ref: (не задан)
+- release_ref: release-2026-06-02-quality
 - producer_ref: (не задан)
 - Что из родительского change уже решено: `dispatcher-ux` уже перевёл эту тему на уровень прямой реализации как change UX-маршрута после успеха.
 - Кто отвечает за стратегию, тактику и приёмку результата: стратегию держит `focus-quality`, тактику и приёмку результата держит `dispatcher-ux`.

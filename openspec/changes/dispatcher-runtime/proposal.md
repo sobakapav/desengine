@@ -31,6 +31,11 @@
 - `architecture-roadmap`: у runtime-foundation line появляется отдельный tactical dispatcher.
 - `testing-layer`: runtime-hardening changes остаются обязаны иметь понятный verification layer и команды запуска.
 
+## Impact
+
+- `focus-tech` получает отдельный tactical dispatcher для lab runtime foundation вместо ложной привязки runtime-line к соседним technical lanes.
+- Downstream runtime-hardening changes получают корректного родителя без расширения product scope и без смены стратегического контекста.
+
 ## Acceptance Criteria
 
 - `dispatcher-runtime` отображается в дереве OpenSpec как дочерний change у `focus-tech`.

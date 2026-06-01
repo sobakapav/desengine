@@ -23,23 +23,20 @@ function resolveBrowserVerificationChangePath(...parts: string[]) {
     process.cwd(),
     "openspec",
     "changes",
-    "fix-browser-verification-runtime",
+    "fix-codex-browser-verification-gate",
+  )
+  if (fs.existsSync(activePath)) {
+    return path.join(activePath, ...parts)
+  }
+
+  return path.join(
+    process.cwd(),
+    "openspec",
+    "changes",
+    "archive",
+    "2026-06-01-fix-codex-browser-verification-gate",
     ...parts,
   )
-
-  if (fs.existsSync(activePath)) {
-    return activePath
-  }
-
-  const archiveRoot = path.join(process.cwd(), "openspec", "changes", "archive")
-  const archivedEntry = fs.readdirSync(archiveRoot)
-    .find((entry) => /fix-browser-verification-runtime$/.test(entry))
-
-  if (!archivedEntry) {
-    throw new Error("Не удалось найти active или archived fix-browser-verification-runtime.")
-  }
-
-  return path.join(archiveRoot, archivedEntry, ...parts)
 }
 
 describe("browser verification runtime contract", () => {
@@ -165,9 +162,13 @@ describe("browser verification runtime contract", () => {
     expect(message).toContain("Не интерпретируй этот verdict как product failure")
   })
 
-  it("документация и handoff запрещают принимать downstream browser-fix без валидного preflight", () => {
+  it("документация и change удерживают wrapper-path как канонический browser verification contract", () => {
     const docs = fs.readFileSync(path.join(process.cwd(), "docs", "testing-layer.md"), "utf8")
     const readme = fs.readFileSync(path.join(process.cwd(), "test", "README.md"), "utf8")
+    const metadata = fs.readFileSync(
+      resolveBrowserVerificationChangePath(".openspec.yaml"),
+      "utf8",
+    )
     const tasks = fs.readFileSync(
       resolveBrowserVerificationChangePath("tasks.md"),
       "utf8",
@@ -180,6 +181,8 @@ describe("browser verification runtime contract", () => {
     expect(docs).toContain("не считается валидным browser verification path")
     expect(docs).toContain("shell-level target preflight")
     expect(readme).toContain("Если preflight невалиден, downstream browser-fix нельзя считать принятым")
+    expect(metadata).toContain('release_ref: "release-2026-06-01-grooming"')
+    expect(handoff).toContain("release_ref: release-2026-06-01-grooming")
 
     for (const source of [tasks, handoff]) {
       expect(source).toContain("fix-sandpack-tailwind-preview-pipeline")
@@ -188,6 +191,25 @@ describe("browser verification runtime contract", () => {
       expect(source).toMatch(/(невалидный preflight|валидного preflight)/)
       expect(source).toMatch(/(блокирует `os:close`|нельзя закрывать|нельзя считать принятым|закрываются только после)/)
     }
+  })
+
+  it("change хранит собственные delta-specs для testing-layer и admin-tools", () => {
+    const testingLayerDelta = fs.readFileSync(
+      resolveBrowserVerificationChangePath("specs", "testing-layer", "spec.md"),
+      "utf8",
+    )
+    const adminToolsDelta = fs.readFileSync(
+      resolveBrowserVerificationChangePath("specs", "admin-tools", "spec.md"),
+      "utf8",
+    )
+
+    expect(testingLayerDelta).toContain("## MODIFIED Requirements")
+    expect(testingLayerDelta).toContain("Разработчик запускает browser verification preflight")
+    expect(testingLayerDelta).toContain("не считается валидным verification path")
+
+    expect(adminToolsDelta).toContain("## MODIFIED Requirements")
+    expect(adminToolsDelta).toContain("Browser-fix не закрывается без валидного preflight")
+    expect(adminToolsDelta).toContain("не архивирует change")
   })
 
   it("os:close запускает browser preflight до product verdict для component/browser fixes", () => {
@@ -238,7 +260,12 @@ describe("browser verification runtime contract", () => {
     expect(wrapper).toContain('DESENGINE_E2E_RUNNER: "browser-wrapper"')
     expect(wrapper).toContain('const DEFAULT_CHANNEL = "chromium"')
     expect(wrapper).toContain('"npm"')
-    expect(wrapper).toContain('node_modules", ".bin", "next"')
+    expect(wrapper).toContain('const NEXT_DEV_LOCK_PATH = path.join(process.cwd(), ".next", "dev", "lock")')
+    expect(wrapper).toContain("readNextDevLock")
+    expect(wrapper).toContain("waitForProcessExit")
+    expect(wrapper).toContain("removeNextDevLock")
+    expect(wrapper).toContain("process.execPath")
+    expect(wrapper).toContain('node_modules", "next", "dist", "bin", "next"')
     expect(wrapper).toContain('"dev", "--hostname", "127.0.0.1"')
     expect(wrapper).toContain('"/api/status/llm"')
     expect(wrapper).toContain("browser-target-preflight.mjs")
@@ -246,5 +273,8 @@ describe("browser verification runtime contract", () => {
     expect(wrapper).toContain("DESENGINE_E2E_ACCESS_SALT")
     expect(wrapper).toContain("localConfig.loadLocalConfig()")
     expect(wrapper).toContain("переиспользует существующий target server")
+    expect(wrapper).toContain('source: "next-dev-lock"')
+    expect(wrapper).toContain('server.kill("SIGTERM")')
+    expect(wrapper).toContain('serverProcess.kill("SIGKILL")')
   })
 })

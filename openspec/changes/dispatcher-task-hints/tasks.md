@@ -1,28 +1,37 @@
 ## Tasks
 
-Технический backlog реализации ведётся в issue:
-- https://github.com/sobakapav/desengine/issues/9
-
-Ниже остаются продуктовые шаги и тестовая трассировка change.
-
-- [ ] 1. Зафиксировать OpenSpec сценарии для подсказок задач (статичные vs шаблонные).
-- [ ] 2. Описать контракт шаблонных подсказок (источник, синтаксис, контекст).
-- [ ] 3. Реализовать рендер подсказок через существующий шаблонизатор промптов.
-- [ ] 4. Обратная совместимость и поэтапная миграция:
-  - [ ] 4.1 Поддержка старого формата
-  - [ ] 4.2 План миграции подсказок (минимум: 1–2 примера перевода)
-- [ ] 5. Тесты и интеграция в общий слой тестирования:
-  - [ ] 5.1 Unit: рендер/валидация/ошибки
-  - [ ] 5.2 Traceability: связать OpenSpec ↔ тесты
-- [ ] 6. Зафиксировать команды проверки:
-  - [ ] 6.1 `npm run test:unit`
-  - [ ] 6.2 `npm run test:traceability`
+- [x] 1. Зафиксировать `dispatcher-task-hints` как активного owner change для линии task hints под `focus-onboarding`.
+- [x] 2. Привязать линию к roadmap `focus-onboarding/roadmaps/task-hints.md`.
+- [x] 3. Явно отделить dispatcher от downstream runtime changes:
+  - [x] 3.1 runtime-контракты живут в capability `task` и `prompt-context`
+  - [x] 3.2 concrete behavior changes идут отдельными `implement`/`fix` children
+- [x] 4. Удерживать тестовую политику линии:
+  - [x] 4.1 child behavior-changes обязаны перечислять capability/scenarios
+  - [x] 4.2 child behavior-changes обязаны указывать verification level и команды
+  - [x] 4.3 child behavior-changes обязаны фиксировать fixtures/credentials и traceability
+- [x] 5. Сохранять release-трассировку на уровне child changes, а не dispatcher.
 
 ## Тестовая часть change
 
-- [ ] Указать затронутые OpenSpec capability/scenarios
-- [ ] Выбрать уровень проверки: static/contract, unit, component/browser, integration, e2e smoke или live/provider
-- [ ] Добавить или обновить тесты в общем слое тестирования
-- [ ] Зафиксировать команду проверки: `npm run ...`
-- [ ] Описать mock/fixture-данные и live credentials, если они нужны
-- [ ] Если покрытие откладывается, добавить запись в `test/traceability/coverage-plan.json` с причиной и этапом закрытия
+Затронутые OpenSpec capability/scenarios:
+
+- `task`: линия task-specific hints сохраняет явную связь со сценариями статичного и шаблонного формата.
+- `prompt-context`: template context для task hints остаётся общим downstream boundary, а не ad-hoc контрактом отдельной реализации.
+
+Уровни проверки:
+
+- static/contract: обязателен для dispatcher и всех child behavior-changes этой линии.
+- unit: требуется на уровне child runtime-изменений, но не для самого dispatcher.
+- component/browser: не требуется для самого dispatcher.
+- integration: не требуется для самого dispatcher.
+- e2e smoke: не требуется для самого dispatcher.
+- live/provider: не требуется для самого dispatcher.
+
+Команды запуска:
+
+- `npm run test:traceability`
+
+Mock/fixture-данные и credentials:
+
+- Не требуются для самого dispatcher: он не меняет runtime напрямую.
+- Если child change меняет поведение task hints, fixtures и credentials должны быть описаны в нём явно.

@@ -4,9 +4,6 @@
 // @openSpec capability: task
 // @openSpec scenarios:
 // @openSpec  - "Пользователь запускает уровень через service boundary"
-// @openSpec capability: component-file-set
-// @openSpec scenarios:
-// @openSpec  - "Набор файлов компонента фиксирован на MVP"
 
 import { describe, expect, it, vi } from "vitest"
 
