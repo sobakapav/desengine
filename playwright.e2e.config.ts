@@ -1,8 +1,10 @@
 import { defineConfig, devices } from "playwright/test"
 import {
+  assertBrowserVerificationRunner,
   resolveBrowserVerificationRuntime,
 } from "./test/helpers/browser-verification"
 
+assertBrowserVerificationRunner(process.env)
 const runtime = resolveBrowserVerificationRuntime()
 
 export default defineConfig({

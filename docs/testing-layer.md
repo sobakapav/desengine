@@ -126,13 +126,28 @@ PLAYWRIGHT_BROWSER_CHANNEL=chromium npm run test:e2e
 DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
 ```
 
+Канонический browser verification wrapper для Codex/seatbelt и других нестабильных execution mode:
+
+```bash
+node tools/testing/run-browser-verification-runtime.mjs test/e2e/browser-verification-runtime.spec.ts
+```
+
+Wrapper:
+
+- сам поднимает изолированный `next dev`;
+- выполняет shell-level target preflight;
+- запускает browser spec во внешнем режиме;
+- форсирует `DESENGINE_E2E_RUNNER=browser-wrapper` и стабильный канал `PLAYWRIGHT_BROWSER_CHANNEL=chromium`.
+
+Прямой `npm run test:e2e` в Codex `CODEX_SANDBOX=seatbelt` больше не считается валидным browser verification path: конфиг обязан оборвать такой запуск сразу, с инструкцией перейти на wrapper, а не доводить команду до ложного `SIGABRT`/`kill EPERM`.
+
 Отдельный preflight browser verification, который сначала проверяет target server, а затем открытие базового browser route:
 
 ```bash
 DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410 npm run test:e2e -- test/e2e/browser-verification-runtime.spec.ts
 ```
 
-Этот прогон нужен, когда важно отделить infra failure от product verdict перед downstream browser-fix.
+Этот прямой прогон допустим как low-level fallback только вне Codex seatbelt. Для repeatable verification внутри Codex каноническим остаётся wrapper выше.
 
 В `managed webServer verification` Playwright ждёт лёгкий readiness route `/api/status/llm`, а сам preflight внутри spec отдельно проверяет `HTTP 200` от `/auth` до браузерного шага. Это сокращает ложные "зависания" на старте dev-server и оставляет route-level verdict в явном тестовом этапе.
 
@@ -144,6 +159,12 @@ DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410 npm
 ```
 
 Это разделение намеренное: в некоторых средах Node/Playwright worker не может открыть localhost transport, хотя внешний shell-level probe до того же target server успешно получает `HTTP 200`.
+
+Для downstream `component/browser` fixes верификационная команда внутри Codex должна идти через wrapper-вход, например:
+
+```bash
+DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs test/e2e/workbench-context-visibility.spec.ts
+```
 
 Targeted smoke переключения UI kit в Workbench запускается с fixture-доступом, который создаёт signed access cookie без live allowlist:
 

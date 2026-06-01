@@ -20,7 +20,13 @@
 
 ## What Changes
 
-Этот change — исследовательский/плановый. Результат:
+Этот change — исследовательский/плановый dispatcher над уже существующим workbench-контуром. Он не вводит capability с нуля, а:
+
+- нормализует роль Workbench как общей продуктовой сущности над уже существующими runtime/spec-наработками;
+- задаёт зону ответственности для downstream changes, которые будут менять workflow, layout/space, image tools и навигацию;
+- фиксирует, что layout/space и image inspector развиваются внутри одной общей workbench-линии, а не как независимые параллельные диспетчеры.
+
+Результат change:
 
 - определение сущности **Workbench** (верстак) и её жизненного цикла;
 - связь Workbench ↔ Task ↔ WorkflowStep:
@@ -53,13 +59,17 @@
 
 ## Capabilities
 
-### New Capabilities
-- `workbench`: верстак как сущность.
-- `workbench-tools`: реестр и контракт инструментов верстака.
-
 ### Modified Capabilities
+- `workbench`: capability уже существует в active specs; этот dispatcher задаёт её дальнейший продуктовый и workflow-контур.
+- `workbench-tools`: capability реестра и контракта инструментов закрепляется как часть общей workbench-линии.
 - `workflow`: шаги workflow привязываются к верстакам.
 - `level-labs` (если остаётся): текущий лабораторный верстак должен стать частным случаем общей сущности.
+
+## Impact
+
+- Для OpenSpec-дерева: появляется явный зонтичный dispatcher, через который должны проходить downstream changes по Workbench.
+- Для product topology: layout/space и image inspector больше не трактуются как кандидаты в отдельные параллельные dispatcher-линии.
+- Для тестового слоя: будущие behavior-change changes в контуре Workbench обязаны ссылаться на capability/scenarios и указывать уровень проверки, команды запуска, mock/fixture и traceability.
 
 ## Acceptance Criteria
 

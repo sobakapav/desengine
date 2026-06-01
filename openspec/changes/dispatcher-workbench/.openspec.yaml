@@ -12,4 +12,7 @@ strategy_root: "focus-features"
 roadmap_ref: "focus-features/roadmaps/workbench.md"
 roadmap_refs:
   - "focus-features/roadmaps/workbench-layout-space.md"
+release_ref: ""
 producer_ref: ""
+verification_level: ""
+verification_command: ""

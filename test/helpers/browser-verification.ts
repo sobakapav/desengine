@@ -6,12 +6,14 @@ type BrowserVerificationRuntime = {
   authURL: string
   baseURL: string
   browserChannel: string
+  codexSandboxMode: string
   e2ePort: number
   fixtureAccessEnabled: boolean
   fixtureAccessSalt: string
   mode: BrowserVerificationMode
   readinessPath: string
   readinessURL: string
+  requiresWrapperRunner: boolean
 }
 
 type BrowserVerificationEnv = NodeJS.ProcessEnv
@@ -51,7 +53,16 @@ function normalizeBaseUrl(value: string, variableName: string) {
 }
 
 function getBrowserChannel(env: BrowserVerificationEnv) {
-  return env.PLAYWRIGHT_BROWSER_CHANNEL?.trim() || "chrome"
+  return env.PLAYWRIGHT_BROWSER_CHANNEL?.trim() || "chromium"
+}
+
+function getCodexSandboxMode(env: BrowserVerificationEnv) {
+  return env.CODEX_SANDBOX?.trim() || ""
+}
+
+function requiresWrapperRunner(env: BrowserVerificationEnv) {
+  return getCodexSandboxMode(env) === "seatbelt"
+    && env.DESENGINE_E2E_RUNNER !== "browser-wrapper"
 }
 
 function readE2ePort(env: BrowserVerificationEnv) {
@@ -120,12 +131,14 @@ function resolveBrowserVerificationRuntime(
     authURL: new URL("/auth", `${baseURL}/`).toString(),
     baseURL,
     browserChannel: getBrowserChannel(env),
+    codexSandboxMode: getCodexSandboxMode(env),
     e2ePort,
     fixtureAccessEnabled: env.DESENGINE_E2E_FIXTURE_ACCESS === "1",
     fixtureAccessSalt: env.DESENGINE_E2E_ACCESS_SALT || "desengine-e2e-salt",
     mode,
     readinessPath: "/api/status/llm",
     readinessURL: new URL("/api/status/llm", `${baseURL}/`).toString(),
+    requiresWrapperRunner: requiresWrapperRunner(env),
   }
 }
 
@@ -182,9 +195,33 @@ function formatBrowserVerificationFailure(
   ].join(" ")
 }
 
+function getWrapperRunnerCommand(specPath: string) {
+  return `node tools/testing/run-browser-verification-runtime.mjs ${specPath}`
+}
+
+function assertBrowserVerificationRunner(
+  env: BrowserVerificationEnv = process.env,
+  specPath = "test/e2e/browser-verification-runtime.spec.ts",
+) {
+  if (!requiresWrapperRunner(env)) {
+    return
+  }
+
+  throw new Error(
+    [
+      "В Codex seatbelt-окружении прямой `npm run test:e2e` для browser/e2e не считается валидным verification path.",
+      "Такой запуск регулярно падает на browser launch (`SIGABRT`/`kill EPERM`) ещё до открытия страницы и создаёт ложный product blocker.",
+      `Запускайте browser-проверку через канонический wrapper: ${getWrapperRunnerCommand(specPath)}`,
+      "Wrapper сам поднимает внешний target server, включает DESENGINE_E2E_RUNNER=browser-wrapper и выполняет browser preflight в пригодном execution mode.",
+    ].join(" "),
+  )
+}
+
 export {
+  assertBrowserVerificationRunner,
   formatBrowserVerificationFailure,
   getBrowserVerificationModeLabel,
+  getWrapperRunnerCommand,
   isLocalhostTransportBlocked,
   resolveBrowserVerificationRuntime,
 }

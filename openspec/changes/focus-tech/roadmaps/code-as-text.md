@@ -1,8 +1,8 @@
-# Roadmap: Code Quality Text Subsystem
+# Roadmap: Code As Text
 
 ## Владелец
 
-`focus-tech` владеет roadmap подсистемы текстовых quality-правил и предоставляет его `dispatcher-code-quality-text-subsystem`.
+`focus-tech` владеет roadmap подсистемы `code-as-text` и предоставляет его `dispatcher-code-as-text`.
 
 ## Контур roadmap
 

@@ -10,8 +10,10 @@ import path from "node:path"
 import { describe, expect, it } from "vitest"
 
 import {
+  assertBrowserVerificationRunner,
   formatBrowserVerificationFailure,
   getBrowserVerificationModeLabel,
+  getWrapperRunnerCommand,
   isLocalhostTransportBlocked,
   resolveBrowserVerificationRuntime,
 } from "../helpers/browser-verification"
@@ -27,10 +29,12 @@ describe("browser verification runtime contract", () => {
     expect(resolveBrowserVerificationRuntime({})).toMatchObject({
       authURL: "http://127.0.0.1:3410/auth",
       baseURL: "http://127.0.0.1:3410",
-      browserChannel: "chrome",
+      browserChannel: "chromium",
+      codexSandboxMode: "",
       e2ePort: 3410,
       mode: "webServer",
       readinessURL: "http://127.0.0.1:3410/api/status/llm",
+      requiresWrapperRunner: false,
     })
   })
 
@@ -52,6 +56,31 @@ describe("browser verification runtime contract", () => {
     expect(runtime.mode).toBe("externalServer")
     expect(runtime.readinessURL).toBe("http://127.0.0.1:3410/api/status/llm")
     expect(getBrowserVerificationModeLabel(runtime)).toBe("external-server verification")
+  })
+
+  it("в Codex seatbelt требует wrapper runner вместо прямого npm run test:e2e", () => {
+    const env = {
+      CODEX_SANDBOX: "seatbelt",
+    }
+
+    expect(resolveBrowserVerificationRuntime(env)).toMatchObject({
+      codexSandboxMode: "seatbelt",
+      requiresWrapperRunner: true,
+    })
+    expect(() => assertBrowserVerificationRunner(env, "test/e2e/workbench-context-visibility.spec.ts")).toThrow(
+      getWrapperRunnerCommand("test/e2e/workbench-context-visibility.spec.ts"),
+    )
+  })
+
+  it("не требует wrapper runner вне Codex sandbox или внутри wrapper path", () => {
+    expect(() => assertBrowserVerificationRunner({
+      CODEX_SANDBOX: "",
+    })).not.toThrow()
+
+    expect(() => assertBrowserVerificationRunner({
+      CODEX_SANDBOX: "seatbelt",
+      DESENGINE_E2E_RUNNER: "browser-wrapper",
+    })).not.toThrow()
   })
 
   it("классифицирует недоступность target server для managed webServer режима", () => {
@@ -149,11 +178,12 @@ describe("browser verification runtime contract", () => {
     expect(source).toContain("MANAGED_BROWSER_PREFLIGHT_COMMAND")
     expect(source).toContain("EXTERNAL_BROWSER_PREFLIGHT_COMMAND")
     expect(source).toContain("getBrowserPreflightCommand")
+    expect(source).toContain("getWrappedBrowserVerificationCommand")
+    expect(source).toContain("extractPlaywrightSpecPath")
     expect(source).toContain('metadata.verificationLevel === "component/browser"')
-    expect(source).toContain("browser-verification-runtime.spec.ts")
-    expect(source).toContain("curl -fsS -o /dev/null -w '%{http_code}' --max-time 15 http://127.0.0.1:3410/auth")
+    expect(source).toContain("node tools/testing/run-browser-verification-runtime.mjs test/e2e/browser-verification-runtime.spec.ts")
     expect(source).toContain("Проверка browser verification preflight")
-    expect(toolsReadme).toContain("в том же verification mode, что и сам change")
+    expect(toolsReadme).toContain("browser verification preflight")
   })
 
   it("Playwright managed webServer ждёт лёгкий readiness route, а preflight отдельно проверяет /auth", () => {
@@ -174,20 +204,20 @@ describe("browser verification runtime contract", () => {
   })
 
   it("change verification_command использует изолированный wrapper с тем же browser preflight spec", () => {
-    const metadata = fs.readFileSync(
-      path.join(process.cwd(), "openspec", "changes", "fix-browser-verification-runtime", ".openspec.yaml"),
-      "utf8",
-    )
     const wrapper = fs.readFileSync(
       path.join(process.cwd(), "tools", "testing", "run-browser-verification-runtime.mjs"),
       "utf8",
     )
 
-    expect(metadata).toContain("node tools/testing/run-browser-verification-runtime.mjs test/e2e/browser-verification-runtime.spec.ts")
     expect(wrapper).toContain("test/e2e/browser-verification-runtime.spec.ts")
+    expect(wrapper).toContain('DESENGINE_E2E_RUNNER: "browser-wrapper"')
+    expect(wrapper).toContain('const DEFAULT_CHANNEL = "chromium"')
     expect(wrapper).toContain('"npm"')
     expect(wrapper).toContain('"run", "dev"')
     expect(wrapper).toContain('"/api/status/llm"')
     expect(wrapper).toContain("browser-target-preflight.mjs")
+    expect(wrapper).toContain("createRequire(import.meta.url)")
+    expect(wrapper).toContain("DESENGINE_E2E_ACCESS_SALT")
+    expect(wrapper).toContain("localConfig.loadLocalConfig()")
   })
 })

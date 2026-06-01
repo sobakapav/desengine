@@ -187,10 +187,10 @@ npm run test:e2e
 
 Команда стартует отдельный `next dev` на `127.0.0.1:3410`, очищает live/provider env для тестового процесса и не требует реальных LLM ключей, allowlist-хранилища или `ONBOARDING_REPO_URL`.
 
-По умолчанию используется системный Google Chrome:
+По умолчанию используется bundled Chromium:
 
 ```bash
-PLAYWRIGHT_BROWSER_CHANNEL=chrome npm run test:e2e
+PLAYWRIGHT_BROWSER_CHANNEL=chromium npm run test:e2e
 ```
 
 Если нужно использовать уже запущенный dev-server:
@@ -200,6 +200,21 @@ DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3000 npm
 ```
 
 Внешний режим считается каноническим fallback для browser verification. Он требует явный `DESENGINE_E2E_BASE_URL`; молчаливый fallback на localhost в этом режиме запрещён.
+
+Канонический browser verification path для Codex `CODEX_SANDBOX=seatbelt` и других нестабильных execution mode:
+
+```bash
+node tools/testing/run-browser-verification-runtime.mjs test/e2e/browser-verification-runtime.spec.ts
+```
+
+Этот wrapper:
+
+- поднимает изолированный `next dev`;
+- выполняет shell-level preflight до Playwright worker;
+- запускает browser spec во внешнем режиме;
+- форсирует `DESENGINE_E2E_RUNNER=browser-wrapper` и стабильный канал `PLAYWRIGHT_BROWSER_CHANNEL=chromium`.
+
+Прямой `npm run test:e2e` в Codex seatbelt не должен использоваться как browser verification verdict: конфиг прерывает такой запуск сразу с инструкцией перейти на wrapper, чтобы не получать повторяющийся ложный `SIGABRT`/`kill EPERM`.
 
 Preflight browser verification запускается отдельно:
 
@@ -221,7 +236,7 @@ curl -fsS -o /dev/null -w '%{http_code}' --max-time 15 http://127.0.0.1:3410/aut
 DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410 npm run test:e2e -- test/e2e/browser-verification-runtime.spec.ts
 ```
 
-Это нужно потому, что в части сред сам test process может не иметь localhost transport, даже если внешний shell `curl` видит `HTTP 200`.
+Это нужно потому, что в части сред сам test process может не иметь localhost transport, даже если внешний shell `curl` видит `HTTP 200`. Но внутри Codex seatbelt even после этого preflight browser verdict должен идти через wrapper, а не через прямой `npm run test:e2e`.
 
 Если preflight невалиден, downstream browser-fix нельзя считать принятым только по unit/static результатам.
 

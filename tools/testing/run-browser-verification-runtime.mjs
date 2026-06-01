@@ -1,10 +1,15 @@
 import { spawn, spawnSync } from "node:child_process"
+import { createRequire } from "node:module"
 import net from "node:net"
 
-const DEFAULT_CHANNEL = "chrome"
+const DEFAULT_CHANNEL = "chromium"
 const DEFAULT_SPEC = "test/e2e/browser-verification-runtime.spec.ts"
 const READINESS_TIMEOUT_MS = 180_000
 const READINESS_INTERVAL_MS = 1_000
+const DEFAULT_FIXTURE_ACCESS_SALT = "desengine-e2e-salt"
+
+const require = createRequire(import.meta.url)
+const localConfig = require("../../lib/system/config/local.cjs")
 
 function validatePort(value) {
   const normalized = Number(value)
@@ -51,13 +56,32 @@ function readSpec() {
   return arg || DEFAULT_SPEC
 }
 
+function resolveFixtureAccessSalt() {
+  const explicitSalt = process.env.DESENGINE_E2E_ACCESS_SALT?.trim()
+  if (explicitSalt) {
+    return explicitSalt
+  }
+
+  const configuredSalt = process.env.ALLOWLIST_SALT?.trim()
+    || process.env.DESENGINE_ALLOWLIST_SALT?.trim()
+  if (configuredSalt) {
+    return configuredSalt
+  }
+
+  localConfig.loadLocalConfig()
+
+  return process.env.ALLOWLIST_SALT?.trim()
+    || process.env.DESENGINE_ALLOWLIST_SALT?.trim()
+    || DEFAULT_FIXTURE_ACCESS_SALT
+}
+
 function buildBaseUrl(port) {
   return `http://127.0.0.1:${port}`
 }
 
 function buildServerEnv() {
   const fixtureAccessEnabled = process.env.DESENGINE_E2E_FIXTURE_ACCESS === "1"
-  const fixtureAccessSalt = process.env.DESENGINE_E2E_ACCESS_SALT || "desengine-e2e-salt"
+  const fixtureAccessSalt = resolveFixtureAccessSalt()
 
   return {
     ...process.env,
@@ -137,10 +161,15 @@ async function main() {
   const specPath = readSpec()
   const baseUrl = buildBaseUrl(port)
   const readinessUrl = new URL("/api/status/llm", `${baseUrl}/`).toString()
+  const fixtureAccessSalt = process.env.DESENGINE_E2E_FIXTURE_ACCESS === "1"
+    ? resolveFixtureAccessSalt()
+    : ""
   const externalEnv = {
     ...process.env,
+    DESENGINE_E2E_RUNNER: "browser-wrapper",
     DESENGINE_E2E_EXTERNAL_SERVER: "1",
     DESENGINE_E2E_BASE_URL: baseUrl,
+    DESENGINE_E2E_ACCESS_SALT: fixtureAccessSalt || process.env.DESENGINE_E2E_ACCESS_SALT || "",
     PLAYWRIGHT_BROWSER_CHANNEL: process.env.PLAYWRIGHT_BROWSER_CHANNEL || DEFAULT_CHANNEL,
   }
   const server = spawn(
