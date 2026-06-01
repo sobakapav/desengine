@@ -99,6 +99,95 @@ const defaultPropsSource = "export {};\n"
 const previewStylesheetVirtualPath = "/src/styles.css"
 const previewCompiledCssCache = new Map<string, Promise<string>>()
 
+function extractImportSpecifiers(source: string) {
+  const specifiers = new Set<string>()
+  const patterns = [
+    /\bimport\s+(?:type\s+)?(?:[\w*\s{},]*?\s+from\s+)?["']([^"']+)["']/g,
+    /\bexport\s+(?:type\s+)?(?:[\w*\s{},]*?\s+from\s+)?["']([^"']+)["']/g,
+    /\bimport\(\s*["']([^"']+)["']\s*\)/g,
+    /\brequire\(\s*["']([^"']+)["']\s*\)/g,
+  ]
+
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      const specifier = match[1]?.trim()
+      if (specifier) {
+        specifiers.add(specifier)
+      }
+    }
+  }
+
+  return [...specifiers]
+}
+
+function resolveBarePackageName(specifier: string) {
+  if (
+    specifier.startsWith(".")
+    || specifier.startsWith("/")
+    || specifier.startsWith("@/")
+  ) {
+    return null
+  }
+
+  if (specifier.startsWith("@")) {
+    const [scope, name] = specifier.split("/")
+    return scope && name ? `${scope}/${name}` : specifier
+  }
+
+  return specifier.split("/")[0] ?? null
+}
+
+function resolveVirtualLocalImport(fromFilePath: string, specifier: string, availableFiles: Set<string>) {
+  const normalizedBase = specifier.startsWith("@/")
+    ? path.posix.join("/src", specifier.slice(2))
+    : path.posix.normalize(path.posix.join(path.posix.dirname(fromFilePath), specifier))
+
+  const candidates = [
+    normalizedBase,
+    `${normalizedBase}.ts`,
+    `${normalizedBase}.tsx`,
+    `${normalizedBase}.js`,
+    `${normalizedBase}.jsx`,
+    path.posix.join(normalizedBase, "index.ts"),
+    path.posix.join(normalizedBase, "index.tsx"),
+    path.posix.join(normalizedBase, "index.js"),
+    path.posix.join(normalizedBase, "index.jsx"),
+  ]
+
+  return candidates.find((candidate) => availableFiles.has(candidate)) ?? null
+}
+
+function collectRuntimeDependencyImports(sourceFiles: Record<string, string>, entryFiles: string[]) {
+  const availableFiles = new Set(Object.keys(sourceFiles))
+  const visitedFiles = new Set<string>()
+  const barePackages = new Set<string>()
+  const queue = [...entryFiles]
+
+  while (queue.length > 0) {
+    const filePath = queue.shift()
+    if (!filePath || visitedFiles.has(filePath)) continue
+    visitedFiles.add(filePath)
+
+    const source = sourceFiles[filePath]
+    if (!source) continue
+
+    for (const specifier of extractImportSpecifiers(source)) {
+      const barePackage = resolveBarePackageName(specifier)
+      if (barePackage) {
+        barePackages.add(barePackage)
+        continue
+      }
+
+      const nextLocalFile = resolveVirtualLocalImport(filePath, specifier, availableFiles)
+      if (nextLocalFile && !visitedFiles.has(nextLocalFile)) {
+        queue.push(nextLocalFile)
+      }
+    }
+  }
+
+  return [...barePackages].sort()
+}
+
 function getRootPackageVersion(name: string) {
   const rootPackages = rootPackageJson as {
     dependencies?: Record<string, string>
@@ -143,9 +232,10 @@ function buildMainTsx(indexTsxTemplate: string, indexTsxImports: string[] = []) 
 }
 
 function buildPreviewRuntimeContractSource() {
-  return `import React, { useEffect } from "react";
+  return `import React, { useLayoutEffect } from "react";
 
 const PREVIEW_SOURCE = "${previewRuntimeContractMarkerSource}";
+const LOADING_STATUS = "loading";
 const READY_STATUS = "ready";
 const UNSTYLED_STATUS = "unstyled-dom";
 const RENDER_ERROR_STATUS = "render-error";
@@ -214,11 +304,13 @@ class PreviewRuntimeErrorBoundary extends React.Component<
 }
 
 function PreviewRuntimeProbe() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     let cancelled = false;
     const attempts = [80, 300, 900, 2000];
     let timeoutId = 0;
     let attemptIndex = 0;
+
+    updateHost(LOADING_STATUS, "Sandpack runtime загружается.");
 
     const evaluateProbe = () => {
       if (cancelled) return;
@@ -733,16 +825,58 @@ async function buildSandpackPreviewPayload(
   const templates = loadSandpackDefaultTemplates()
   const { project, resolvedUiKitId, compatibility } = resolvePreviewProject(sourceFiles, options)
   const uiKit = sandpackUiKitsConfig[resolvedUiKitId] ?? sandpackUiKitsConfig[DEFAULT_SANDPACK_UI_KIT_ID]
-  const dependencies = {
-    ...basePackageJson.dependencies,
-    ...resolveRuntimeDependencies(uiKit.dependencies),
-  }
   const appTemplate = options.appTemplate ?? null
   const componentSource = compatibility.status === "compatible"
     ? sourceFiles.component
     : buildHtmlTagsFallbackComponent(compatibility.message)
   const resolvedAppTsx = injectPreviewRuntimeContract(appTemplate?.appTsx ?? fallbackAppTsx)
   const resolvedLevelRuntime = appTemplate?.levelTemplateRuntime ?? "export const levelRuntime = {} as const;\n"
+  const previewRuntimeContractSource = buildPreviewRuntimeContractSource()
+  const dependencySourceFiles: Record<string, string> = {
+    "/src/App.tsx": resolvedAppTsx,
+    "/src/Component.tsx": componentSource,
+    "/src/mock.ts": sourceFiles.mock ?? defaultMockSource,
+    "/src/props.ts": sourceFiles.props ?? defaultPropsSource,
+    "/src/level-template-runtime.ts": resolvedLevelRuntime,
+    "/src/preview-runtime-contract.tsx": previewRuntimeContractSource,
+  }
+
+  if (sourceFiles.styles) {
+    dependencySourceFiles["/src/styles.ts"] = sourceFiles.styles
+  }
+
+  if (resolvedUiKitId === "shadcn") {
+    dependencySourceFiles["/src/components/ui/badge.tsx"] = sourceFiles.uiBadge
+    for (const [filePath, code] of Object.entries(sourceFiles.shadcnFiles ?? {})) {
+      dependencySourceFiles[path.posix.join("/src", filePath)] = code
+    }
+    dependencySourceFiles["/src/lib/system/utils.ts"] = sourceFiles.systemUtils
+  }
+
+  const usedRuntimePackages = collectRuntimeDependencyImports(
+    dependencySourceFiles,
+    ["/src/App.tsx", "/src/Component.tsx"],
+  )
+  const directRuntimeDependencies = resolvedUiKitId === "shadcn"
+    ? Object.fromEntries(
+      usedRuntimePackages.map((packageName) => [
+        packageName,
+        uiKit.dependencies[packageName] ?? getRootPackageVersion(packageName),
+      ]),
+    )
+    : {
+      ...uiKit.dependencies,
+      ...Object.fromEntries(
+        usedRuntimePackages.map((packageName) => [
+          packageName,
+          uiKit.dependencies[packageName] ?? getRootPackageVersion(packageName),
+        ]),
+      ),
+    }
+  const dependencies = {
+    ...basePackageJson.dependencies,
+    ...resolveRuntimeDependencies(directRuntimeDependencies),
+  }
   const compiledPreviewCss = await buildPrecompiledPreviewCss({
     componentSource,
     resolvedAppTsx,

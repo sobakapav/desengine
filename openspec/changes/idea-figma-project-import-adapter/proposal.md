@@ -12,7 +12,7 @@
 
 ## Зависимости
 
-Этот change зависит от `producer-dev-mode-project-work`, потому что импорт должен создавать и наполнять project-scoped данные.
+Этот change зависит от `idea-project-mode`, потому что импорт должен создавать и наполнять project-scoped данные и вписываться в общий проектный режим работы.
 
 ## What Changes
 

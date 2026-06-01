@@ -3,7 +3,7 @@
 - [ ] 1. Зафиксировать `focus-quality` как отдельный стратегический контур.
 - [ ] 2. Перевести под `focus-quality` changes тестовой подсистемы:
   - [ ] 2.1 `dispatcher-test-system`
-  - [ ] 2.2 `producer-test-system-current-state`
+  - [x] 2.2 baseline-исследование `producer-test-system-current-state` и использовать его как historical input
 - [ ] 3. Взять под `focus-quality` quality-линии, которым нужен отдельный dispatcher:
   - [ ] 3.1 `dispatcher-ux`
 - [ ] 4. Использовать `focus-quality` как родительский фокус для будущих quality/test/ux changes.

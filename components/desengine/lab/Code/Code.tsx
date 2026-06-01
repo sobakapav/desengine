@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useState } from "react";
+import { type KeyboardEvent as ReactKeyboardEvent, useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 
 import { CodeProps } from "./props";
@@ -184,6 +184,58 @@ function CodeTab({ title, file, isDirty }: { title: string; file: string; isDirt
   );
 }
 
+const SEEN_WORKBENCH_FILES_STORAGE_KEY = "desengine:workbench:seen-files";
+const DEFAULT_KNOWN_FILE_COUNT = 2;
+
+function buildNextScreenEvent(screenEvent: CodeProps["screenEvent"], nextFileId: string) {
+  return changeLabTaskScreenEventInput({
+    taskId: screenEvent.scope.taskId,
+    activeScreen: readLabTaskScreenEventActiveScreen(screenEvent),
+  }, nextFileId)
+}
+
+function buildSeenFilesStorageKey(taskId: string) {
+  return `${SEEN_WORKBENCH_FILES_STORAGE_KEY}:${taskId}`;
+}
+
+function readSeenFileIds(taskId: string) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(buildSeenFilesStorageKey(taskId));
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSeenFileIds(taskId: string, fileIds: string[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(buildSeenFilesStorageKey(taskId), JSON.stringify(fileIds));
+  } catch {
+    // sessionStorage может быть недоступен; affordance останется только в текущем runtime.
+  }
+}
+
+function getKnownFileIds(taskId: string, currentFileIds: string[]) {
+  return readSeenFileIds(taskId) ?? currentFileIds.slice(0, DEFAULT_KNOWN_FILE_COUNT);
+}
+
+function getNewFileFocusTarget(newFileIds: string[]) {
+  return newFileIds.find((fileId) => fileId === "styles") ?? newFileIds[0] ?? null;
+}
+
 function CodeTabs({
   taskData,
   onTaskDataChange,
@@ -198,6 +250,32 @@ function CodeTabs({
   const fallbackTab = codeFiles[0]?.id ?? "component"
   const activeFileId = readLabTaskScreenEventActiveScreen(screenEvent);
   const tab = codeFiles.some((file) => file.id === activeFileId) ? activeFileId : fallbackTab
+  const autoFocusSignatureRef = useRef("")
+  const [newFileIds, setNewFileIds] = useState<string[]>([])
+
+  useEffect(() => {
+    const currentFileIds = codeFiles.map((file) => file.id)
+    const previousFileIds = getKnownFileIds(taskData.taskId, currentFileIds)
+    const addedFileIds = currentFileIds.filter((fileId) => !previousFileIds.includes(fileId))
+
+    if (addedFileIds.length > 0) {
+      setNewFileIds((current) => [...new Set([...current, ...addedFileIds])])
+
+      const nextFocusTarget = getNewFileFocusTarget(addedFileIds)
+      const discoverySignature = `${taskData.taskId}:${currentFileIds.join(",")}:${addedFileIds.join(",")}`
+
+      if (
+        nextFocusTarget
+        && nextFocusTarget !== tab
+        && autoFocusSignatureRef.current !== discoverySignature
+      ) {
+        autoFocusSignatureRef.current = discoverySignature
+        onScreenEventChange?.(buildNextScreenEvent(screenEvent, nextFocusTarget))
+      }
+    }
+
+    writeSeenFileIds(taskData.taskId, currentFileIds)
+  }, [codeFiles, onScreenEventChange, screenEvent, tab, taskData.taskId])
 
   if (codeFiles.length === 0) {
     return (
@@ -208,50 +286,77 @@ function CodeTabs({
   }
 
   return (
-    <Tabs
-      value={tab}
-      onValueChange={(nextValue) => onScreenEventChange?.(changeLabTaskScreenEventInput({
-        taskId: screenEvent.scope.taskId,
-        activeScreen: tab,
-      }, nextValue))}
-      data-screen-event-id={screenEvent.eventId}
-      className={`${BaseStyles.frameRow} min-w-0 flex-col h-[34rem] gap-3 lg:flex-row`}
-    >
-      <div className="min-h-0 min-w-0 flex-1 p-0">
-        {codeFiles.map((file) => (
-          <TabsContent
-            key={file.id}
-            value={file.id}
-            className={TabsStyles.content}
-          >
-            <Code
-              id={file.id}
-              taskData={taskData}
-              onTaskDataChange={onTaskDataChange}
-              onFileChange={onFileChange}
-              onSaveShortcut={onSaveShortcut}
-              dirtyFileIds={dirtyFileIds}
-            />
-          </TabsContent>
-        ))}
-      </div>
+    <div className="space-y-3">
+      {newFileIds.length > 0 ? (
+        <div
+          data-testid="code-new-file-callout"
+          className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+        >
+          Появился новый файл уровня:{" "}
+          {codeFiles
+            .filter((file) => newFileIds.includes(file.id))
+            .map((file) => file.fileName)
+            .join(", ")}
+          . Он уже открыт в редакторе, чтобы вы не пропустили новый шаг.
+        </div>
+      ) : null}
 
-      <TabsList className={TabsStyles.list}>
-        {codeFiles.map((file) => (
-          <TabsTrigger
-            key={file.id}
-            value={file.id}
-            className={TabsStyles.trigger}
-          >
-            <CodeTab
-              title={file.title}
-              file={file.fileName}
-              isDirty={dirtyFileIds.includes(file.id)}
-            />
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
+      <Tabs
+        value={tab}
+        onValueChange={(nextValue) => {
+          setNewFileIds((current) => current.filter((fileId) => fileId !== nextValue))
+          onScreenEventChange?.(buildNextScreenEvent(screenEvent, nextValue))
+        }}
+        data-screen-event-id={screenEvent.eventId}
+        className={`${BaseStyles.frameRow} min-w-0 flex-col h-[34rem] gap-3 lg:flex-row`}
+      >
+        <div className="min-h-0 min-w-0 flex-1 p-0">
+          {codeFiles.map((file) => (
+            <TabsContent
+              key={file.id}
+              value={file.id}
+              className={TabsStyles.content}
+            >
+              <Code
+                id={file.id}
+                taskData={taskData}
+                onTaskDataChange={onTaskDataChange}
+                onFileChange={onFileChange}
+                onSaveShortcut={onSaveShortcut}
+                dirtyFileIds={dirtyFileIds}
+              />
+            </TabsContent>
+          ))}
+        </div>
+
+        <TabsList className={TabsStyles.list}>
+          {codeFiles.map((file) => (
+            <TabsTrigger
+              key={file.id}
+              value={file.id}
+              data-testid={`code-tab-${file.id}`}
+              className={TabsStyles.trigger}
+            >
+              <div className="space-y-2 text-left">
+                {newFileIds.includes(file.id) ? (
+                  <span
+                    data-testid={`code-tab-badge-new-${file.id}`}
+                    className="inline-flex rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium uppercase tracking-[0.14em] text-amber-900"
+                  >
+                    Новый
+                  </span>
+                ) : null}
+                <CodeTab
+                  title={file.title}
+                  file={file.fileName}
+                  isDirty={dirtyFileIds.includes(file.id)}
+                />
+              </div>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+    </div>
   );
 }
 

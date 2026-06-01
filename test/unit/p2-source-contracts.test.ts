@@ -164,6 +164,19 @@ describe("P2 source contracts", () => {
     expect(repair).not.toContain("default.md")
   })
 
+  it("repair-onboarding остаётся import-safe для unit guardrails и не запускает sync вне CLI entrypoint", () => {
+    const smoke = readProjectFile("tools", "smoke-local-install", "onboarding.mjs")
+    const repair = readProjectFile("tools", "repair-onboarding.mjs")
+
+    expect(smoke).toContain("export async function validateOnboardingLayout")
+    expect(smoke).toContain("export async function inspectOnboardingState")
+    expect(repair).toContain("export async function validateOnboardingLayout")
+    expect(repair).toContain("export async function main()")
+    expect(repair).toContain("const isCliEntrypoint")
+    expect(repair).toContain("if (isCliEntrypoint)")
+    expect(repair).toContain("await main().catch")
+  })
+
   it("install-tools используют канонический модуль локального конфига без legacy-import пути", () => {
     const toolFiles = [
       readProjectFile("tools", "smoke-local-install.mjs"),

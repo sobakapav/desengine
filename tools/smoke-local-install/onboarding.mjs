@@ -39,7 +39,7 @@ async function validateRequiredDirs(rootDir, root, promptsRoot) {
   return missingPaths
 }
 
-async function validateOnboardingLayout(rootDir, root) {
+export async function validateOnboardingLayout(rootDir, root) {
   const levelsRoot = path.join(root, "levels")
   const tasksRoot = path.join(root, "tasks")
   const promptsRoot = path.join(root, "prompts")
@@ -90,7 +90,7 @@ async function inspectMarker(markerPath, repoUrl) {
   }
 }
 
-async function inspectOnboardingState(rootDir, repoUrl) {
+export async function inspectOnboardingState(rootDir, repoUrl) {
   const { onboardingRoot } = readAppConfig(rootDir)
 
   if (!(await pathExists(onboardingRoot))) {

@@ -16,7 +16,7 @@
 
 ## Зависимости
 
-Этот change зависит от `producer-task-and-workflow-entities`, потому что верстак привязывается к задаче и (часто) к шагу workflow.
+Этот change зависит от `idea-task-and-workflow-restructuring`, потому что верстак привязывается к задаче и (часто) к шагу workflow.
 
 ## What Changes
 
@@ -36,6 +36,10 @@
   - входные/выходные артефакты layout-направления;
   - MVP-набор layout-инструментов;
   - интеграция layout workbench с общим registry и workflow.
+- image inspector как ещё одного частного случая общей workbench-линии:
+  - сценарии просмотра, сравнения и измерения изображений;
+  - image tools как обычные workbench-инструменты, а не как отдельная параллельная сущность;
+  - интеграция inspector-state и tool-state в общий workbench registry.
 - план навигации:
   - открытие верстака по задаче/шагу;
   - переключение между этапами workflow без потери контекста;
@@ -62,4 +66,5 @@
 - Зафиксирован контракт Workbench и связь с Task/WorkflowStep.
 - Зафиксирован контракт инструментов и реестр (как добавлять новый tool без хака).
 - Layout/space workbench зафиксирован не отдельным параллельным dispatcher, а как часть общей workbench-линии с собственным roadmap-контуром.
+- Image inspector зафиксирован как частный инструментальный контур внутри workbench-линии, а не как отдельные producer/dispatcher changes.
 - Есть план внедрения (эпики/changes) и тестовый план/traceability.

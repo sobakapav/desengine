@@ -4,6 +4,7 @@ import path from "node:path"
 import { execFile } from "node:child_process"
 import { mkdtemp, rename, rm, writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
+import { pathToFileURL } from "node:url"
 import { promisify } from "node:util"
 
 const execFileAsync = promisify(execFile)
@@ -60,7 +61,7 @@ async function replaceDirectory(sourcePath, targetPath) {
   await rm(sourcePath, { recursive: true, force: true })
 }
 
-async function validateOnboardingLayout(root) {
+export async function validateOnboardingLayout(root) {
   const levelsRoot = path.join(root, "levels")
   const tasksRoot = path.join(root, "tasks")
   const promptsRoot = path.join(root, "prompts")
@@ -108,7 +109,7 @@ async function runGit(args, cwd) {
   }
 }
 
-async function main() {
+export async function main() {
   loadLocalConfig({ forceReload: true })
   const fileEnv = readLocalConfig(envPath)
 
@@ -149,7 +150,12 @@ async function main() {
   }
 }
 
-await main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.message : "Не удалось синхронизировать onboarding."}\n`)
-  process.exitCode = 1
-})
+const entrypointArg = process.argv[1]
+const isCliEntrypoint = entrypointArg ? import.meta.url === pathToFileURL(entrypointArg).href : false
+
+if (isCliEntrypoint) {
+  await main().catch((error) => {
+    process.stderr.write(`${error instanceof Error ? error.message : "Не удалось синхронизировать onboarding."}\n`)
+    process.exitCode = 1
+  })
+}

@@ -245,11 +245,25 @@ export default function Component() {
     }))
     expect(payload.customSetup.dependencies).toMatchObject({
       "@tailwindcss/postcss": expect.any(String),
-      "class-variance-authority": expect.any(String),
       postcss: expect.any(String),
       tailwindcss: expect.any(String),
     })
     expect(payload.options.externalResources).toEqual([])
+  })
+
+  it("не тащит весь shadcn dependency graph, если компонент не импортирует ui-kit пакеты", async () => {
+    const payload = await buildSandpackPreviewPayload({
+      component: `export default function Component() {
+  return <div className="w-[57px] h-[16px] bg-gray-200">Preview</div>;
+}
+`,
+      uiBadge: badgeSource,
+      systemUtils: utilsSource,
+    })
+
+    expect(payload.customSetup.dependencies).not.toHaveProperty("@radix-ui/react-dialog")
+    expect(payload.customSetup.dependencies).not.toHaveProperty("lucide-react")
+    expect(payload.customSetup.dependencies).not.toHaveProperty("class-variance-authority")
   })
 
   it("готовит preview к arbitrary Tailwind values и полной ширине компонента", async () => {

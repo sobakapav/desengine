@@ -12,7 +12,7 @@
   - `fix-browser-verification-runtime`
 - В релиз добавлен documentation-fix для DeepSeek provider contract:
   - `fix-deepseek-doc-contract`
-- Release фиксирует состав поставки, но не подменяет ни `dispatcher-test-system`, ни producer baseline `producer-test-system-current-state`.
+- Release фиксирует состав поставки, но не подменяет ни `dispatcher-test-system`, ни baseline-выводы завершённого `producer-test-system-current-state`.
 
 ## Impact
 

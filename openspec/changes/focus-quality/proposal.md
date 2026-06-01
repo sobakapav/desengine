@@ -8,8 +8,8 @@
 
 - Вводится focus-change `focus-quality` как постоянный стратегический контур качества и проверяемости.
 - Под `focus-quality` переводятся changes, которые управляют тестовой подсистемой:
-  - `dispatcher-test-system`;
-  - `producer-test-system-current-state`.
+  - `dispatcher-test-system`.
+- Внутри контура `focus-quality` сохраняется baseline-исследование текущего состояния тестового слоя, выполненное отдельным change `producer-test-system-current-state`.
 - Под `focus-quality` добавляется UX-контур качества взаимодействия:
   - `dispatcher-ux`.
 - `focus-quality` становится родительским контуром для будущих dispatcher/producer/implement changes, связанных с:
@@ -28,6 +28,7 @@
 ## Acceptance Criteria
 
 - `focus-quality` отображается в `npm run os` как верхнеуровневый фокус.
-- `dispatcher-test-system` и `producer-test-system-current-state` отображаются как дочерние changes у `focus-quality`.
+- `dispatcher-test-system` отображается как дочерний change у `focus-quality`.
+- baseline по текущему состоянию тестового слоя остаётся доступным как historical input для quality-линии.
 - `dispatcher-ux` отображается как дочерний change у `focus-quality`.
 - `focus-tech` больше не выступает родителем для тестовой подсистемы.

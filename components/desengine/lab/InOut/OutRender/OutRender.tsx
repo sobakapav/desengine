@@ -1,17 +1,27 @@
 "use client";
 
-import { SandpackPreview, SandpackProvider, useSandpack } from "@codesandbox/sandpack-react/unstyled";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+    SandpackPreview,
+    SandpackProvider,
+    useLoadingOverlayState,
+    useSandpack,
+    useSandpackPreviewProgress,
+} from "@codesandbox/sandpack-react/unstyled";
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 
 import type { SandpackPreviewPayload } from "@/lib/lab/sandpack-preview";
 import { createDefaultProject } from "@/lib/project/runtime";
 
 import { OutRenderProps } from "./props";
+import {
+    mergePreviewRuntimeContractState,
+    type PreviewRuntimeContractState,
+    type PreviewRuntimeContractStatus,
+} from "../preview-runtime-contract-state";
 const SANDBOX_RUNTIME_VERSION = "2026-05-20-ant-shim-v3";
 const PREVIEW_RUNTIME_CONTRACT_TIMEOUT_MS = 12_000;
 const PREVIEW_FETCH_TIMEOUT_MS = 12_000;
 
-type PreviewRuntimeContractStatus = "idle" | "ready" | "unstyled-dom" | "render-error";
 type PreviewRuntimeContractMessage = {
     source: "desengine-sandpack-preview";
     type: "contract";
@@ -112,10 +122,7 @@ function SandpackRuntimeDiagnosticsNotice({ payload }: { payload: SandpackPrevie
 }
 
 function usePreviewRuntimeContract(moduleUrl: string, enabled: boolean) {
-    const [contractState, setContractState] = useState<{
-        status: PreviewRuntimeContractStatus;
-        message: string;
-    }>({
+    const [contractState, setContractState] = useState<PreviewRuntimeContractState>({
         status: "idle",
         message: "",
     });
@@ -155,7 +162,57 @@ function usePreviewRuntimeContract(moduleUrl: string, enabled: boolean) {
         };
     }, [enabled, moduleUrl]);
 
-    return contractState;
+    return {
+        contractState,
+        setRuntimeContractState: setContractState,
+    };
+}
+
+type SandpackPreviewRef = NonNullable<ComponentProps<typeof SandpackPreview>["ref"]> extends ((instance: infer T | null) => void) ? T : never;
+
+function SandpackRuntimeActivityBridge({
+    clientId,
+    onRuntimeContractChange,
+}: {
+    clientId: string | null;
+    onRuntimeContractChange: (next: PreviewRuntimeContractState) => void;
+}) {
+    const { sandpack } = useSandpack();
+    const progressMessage = useSandpackPreviewProgress(clientId ? { clientId } : undefined);
+    const loadingOverlayState = useLoadingOverlayState(clientId ?? undefined, false);
+
+    useEffect(() => {
+        if (!clientId) {
+            return;
+        }
+
+        if (sandpack.status === "timeout") {
+            onRuntimeContractChange({
+                status: "render-error",
+                message: "Sandpack runtime превысил внутренний timeout загрузки preview.",
+            });
+            return;
+        }
+
+        const runtimeErrorMessage = getSandpackRuntimeDiagnosticMessage(sandpack.error);
+        if (runtimeErrorMessage) {
+            onRuntimeContractChange({
+                status: "render-error",
+                message: runtimeErrorMessage,
+            });
+            return;
+        }
+
+        const isLoading = loadingOverlayState !== "HIDDEN" || Boolean(progressMessage);
+        if (isLoading) {
+            onRuntimeContractChange({
+                status: "loading",
+                message: progressMessage ?? "Sandpack runtime загружает preview.",
+            });
+        }
+    }, [clientId, loadingOverlayState, onRuntimeContractChange, progressMessage, sandpack.error, sandpack.status]);
+
+    return null;
 }
 
 function usePreviewPayload({ moduleUrl, started }: { moduleUrl: string; started: boolean }) {
@@ -260,10 +317,22 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
     previewPayload: SandpackPreviewPayload;
 }) {
     const compatibility = previewPayload.project.compatibility;
-    const runtimeContract = usePreviewRuntimeContract(
+    const {
+        contractState: runtimeContract,
+        setRuntimeContractState,
+    } = usePreviewRuntimeContract(
         moduleUrl,
         compatibility.status === "compatible",
     );
+    const [previewClientId, setPreviewClientId] = useState<string | null>(null);
+
+    useEffect(() => {
+        setPreviewClientId(null);
+    }, [moduleUrl]);
+
+    function handleRuntimeContractChange(next: PreviewRuntimeContractState) {
+        setRuntimeContractState((current) => mergePreviewRuntimeContractState(current, next));
+    }
 
     if (compatibility.status === "incompatible") {
         return (
@@ -306,8 +375,16 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
                     recompileMode: "immediate",
                 }}
             >
+                <SandpackRuntimeActivityBridge
+                    clientId={previewClientId}
+                    onRuntimeContractChange={handleRuntimeContractChange}
+                />
                 <SandpackRuntimeDiagnosticsNotice payload={previewPayload} />
                 <SandpackPreview
+                    ref={(value) => {
+                        const nextClientId = value?.clientId ?? null;
+                        setPreviewClientId((current) => (current === nextClientId ? current : nextClientId));
+                    }}
                     showNavigator={false}
                     showOpenInCodeSandbox={false}
                     showOpenNewtab={false}

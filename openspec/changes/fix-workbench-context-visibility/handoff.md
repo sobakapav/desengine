@@ -31,7 +31,41 @@
 - verification_command: npm run test:e2e -- test/e2e/workbench-context-visibility.spec.ts
 - Что именно должен доказать результат проверки: после входа в задачу пользователь видит ключевой контекст без лишнего скролла, а новый файл уровня не остаётся незамеченным.
 
-## Открытые вопросы
+## Что реализовано
 
-- Какой affordance лучше подходит для новых файлов: badge, автофокус, onboarding-callout или комбинация.
-- Нужно ли показывать полный task context inline в Workbench или достаточно компактного summary с быстрым раскрытием полного текста.
+- В `components/desengine/lab/Workbench/WorkbenchView.tsx` верх рабочего экрана перестроен в `WorkbenchOverview`: preview и task context теперь стоят в одном desktop-first блоке, а не идут длинной вертикальной колонкой перед редактором.
+- Task context в Workbench больше не ограничен только кратким `taskTip`. В правой колонке появился compact context block с:
+  - task-specific пояснением;
+  - явным списком рабочих файлов уровня;
+  - раскрываемым полным пояснением уровня через inline details, чтобы пользователь не возвращался на стартовый экран за общим контекстом.
+- В `components/desengine/lab/Code/Code.tsx` добавлен multi-file affordance:
+  - если кроме первого файла уровня появляется новый editable file, он помечается как `Новый файл`;
+  - Workbench показывает текстовый notice `Появился новый файл уровня: ...`;
+  - новый файл получает первичный автофокус через controlled tab-switch, чтобы `styles.ts` не оставался вне внимания.
+- Добавлен browser-spec `test/e2e/workbench-context-visibility.spec.ts`, который готовит fixture для level 3, проверяет context block на первом экране и фиксирует signal/path для `styles.ts`.
+
+## Что проверено
+
+- Выполнен `npm run test:unit -- test/unit/p1-source-contracts.test.ts`
+- Выполнен `npm run build`
+- Browser-level spec добавлен и запускается командой `npm run test:e2e -- test/e2e/workbench-context-visibility.spec.ts`
+
+## Блокер финальной приёмки
+
+- В этой среде финальный browser verdict не получен не из-за product failure, а из-за падения Playwright browser runtime до открытия страницы:
+  - `browserType.launch ... Target page, context or browser has been closed`
+  - Chrome/Chromium завершается `SIGABRT`, затем `kill EPERM`
+- Поэтому этот change нельзя честно закрывать в текущем окружении, хотя code/build и e2e scenario уже подготовлены.
+
+## Следующий шаг для внешнего верификатора
+
+- Поднять внешний server path:
+  - `DESENGINE_E2E_EXTERNAL_SERVER=1`
+  - `DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410`
+  - `DESENGINE_E2E_FIXTURE_ACCESS=1`
+- Запустить:
+  - `npm run test:e2e -- test/e2e/workbench-context-visibility.spec.ts`
+- Подтвердить по сути:
+  - context block (`Контекст уровня`, `Что важно в этой задаче`, `Полное пояснение уровня`) виден сразу после входа в Workbench;
+  - сигнал о `styles.ts` появляется до ручного поиска файла;
+  - `styles.ts` оказывается в первичном фокусе пользователя, а не остаётся скрытым во втором табе.

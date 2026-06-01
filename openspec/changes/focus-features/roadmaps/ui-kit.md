@@ -2,7 +2,7 @@
 
 ## Владелец
 
-`focus-features` владеет этим roadmap и предоставляет его `dispatcher-ui-kit` и `dispatcher-image-inspector`.
+`focus-features` владеет этим roadmap и предоставляет его `dispatcher-ui-kit`.
 
 ## Основные линии
 
@@ -13,7 +13,7 @@
 ## Когда порождать child change
 
 - `producer-*`: если нужен сравнительный анализ kit, sourcing или interaction model вместе с собственным roadmap ожиданий;
-- `dispatcher-*`: если формируется отдельная подлиния работы, например inspector или workbench area;
+- `dispatcher-*`: если формируется отдельная подлиния работы, например workbench area;
 - `implement-*`: если решение уже выбрано и нужен конкретный код.
 
 ## Инварианты

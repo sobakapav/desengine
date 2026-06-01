@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-01
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "dispatcher-workbench"
+strategy_root: "focus-features"
+roadmap_ref: ""
+release_ref: "release-2026-06-01-grooming"
+producer_ref: ""
+verification_level: "unit"
+verification_command: "npm run test:unit -- test/unit/sandpack-template.test.ts test/unit/sandpack-preview.test.ts"
+issue: ""
+short: "создать рендер-шаблон для пятого уровня с прямым перебором mock-массива"

@@ -9,14 +9,14 @@
 - strategy_root: (не задан)
 - release_ref: (не задан)
 - producer_ref: (не задан)
-- Что уже решено: исследование `producer-test-system-current-state` показало, что `test:integration` должен развиваться как отдельный server/API контур на mock/fixture-данных.
+- Что уже решено: baseline-исследование `producer-test-system-current-state` показало, что `test:integration` должен развиваться как отдельный server/API контур на mock/fixture-данных.
 - Кто отвечает за стратегию, тактику и приёмку результата: стратегию держит `focus-quality`, тактику и routing delivery держит `dispatcher-test-system`, а release фиксирует только состав grooming-wave.
 
 ## Обязательные источники
 
 - openspec/changes/release-2026-06-01-grooming/proposal.md
-- openspec/changes/producer-test-system-current-state/baseline.md
-- openspec/changes/producer-test-system-current-state/roadmaps/test-system-current-state.md
+- openspec/changes/archive/2026-06-01-producer-test-system-current-state/baseline.md
+- openspec/changes/archive/2026-06-01-producer-test-system-current-state/roadmaps/test-system-current-state.md
 - openspec/changes/dispatcher-test-system/proposal.md
 - openspec/changes/dispatcher-test-system/design.md
 - metadata и proposal всех changes, которые получают `release_ref=release-2026-06-01-grooming`

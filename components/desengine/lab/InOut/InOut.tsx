@@ -6,6 +6,7 @@ import { InOutProps } from "./props";
 const InPicture = dynamic(
     () => import("./InPicture").then((module) => module.InPicture),
     {
+        ssr: false,
         loading: () => (
             <div className="min-h-[180px] rounded-md border bg-white p-4 text-sm text-neutral-500">
                 Загружаем изображение…

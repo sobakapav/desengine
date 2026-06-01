@@ -7,7 +7,7 @@
 - держит operational backlog для runtime-hardening changes;
 - подчиняет эти changes общей архитектурной линии `focus-tech`;
 - явно отделяет lab runtime foundation от соседних dispatcher-направлений;
-- позволяет закрывать implement/fix changes этой линии без ложной привязки к `event-envelope`.
+- позволяет закрывать implement/fix changes этой линии без ложной привязки к `dataflow`.
 
 ## What Changes
 
@@ -21,7 +21,7 @@
 ## Non-goals
 
 - Не заменяет `producer-architecture-transformation` и не дублирует его roadmap.
-- Не подменяет dispatcher для `event-envelope`, `packaging` или `log-system`.
+- Не подменяет dispatcher для `dataflow`, `packaging` или `log-system`.
 - Не добавляет новый runtime behavior сам по себе.
 
 ## Capabilities

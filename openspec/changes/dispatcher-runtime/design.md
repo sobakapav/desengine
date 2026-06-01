@@ -1,6 +1,6 @@
 ## Context
 
-После перехода от `dispatcher-architecture-transformation` к `producer-architecture-transformation` стратегический roadmap остался, но часть старых implement changes потеряла корректный tactical parent. Для `implement-lab-runtime-contract-hardening` это создало ложную привязку к `dispatcher-event-envelope`, хотя содержательно change укрепляет lab runtime, а не общий контракт событий.
+После перехода от `dispatcher-architecture-transformation` к `producer-architecture-transformation` стратегический roadmap остался, но часть старых implement changes потеряла корректный tactical parent. Для `implement-lab-runtime-contract-hardening` это создало ложную привязку к `dispatcher-dataflow`, хотя содержательно change укрепляет lab runtime, а не общий контур передачи данных.
 
 ## Decisions
 
@@ -24,7 +24,7 @@ Dispatcher обязан удерживать:
 
 - корректного tactical parent для runtime-hardening changes;
 - связь с `focus-tech/roadmaps/architecture-transformation.md`;
-- separation between runtime foundation lane и соседними dispatcher-контрами (`dispatcher-event-envelope`, `dispatcher-packaging-*`, `dispatcher-log-system`).
+- separation between runtime foundation lane и соседними dispatcher-контрами (`dispatcher-dataflow`, `dispatcher-packaging-*`, `dispatcher-log-system`).
 
 ## Risks / Trade-offs
 
