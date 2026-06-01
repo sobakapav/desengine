@@ -46,11 +46,15 @@
 - `lib/lab/sandpack-preview.ts`: runtime probe переведён на непротиворечивый contract (`width + height + arbitrary colors`) вместо ложной пары `width + min-width`, которая сама генерировала false negative при успешном CSS.
 - `test/unit/sandpack-preview.test.ts`: добавлены guardrails на prebuilt CSS, `/src` entrypoint и присутствие probe/component utility-правил в готовом stylesheet.
 - `test/e2e/sandpack-preview-style-runtime.spec.ts`: happy-path больше не проглатывает warning/fallback; тест требует `data-desengine-preview-contract="ready"` и реальных CSS-свойств в iframe.
+- `test/e2e/sandpack-preview-style-runtime.spec.ts`: fixture helper теперь очищает старый `prompt-history.json` и task-local residue перед запуском, чтобы browser acceptance проверял сам preview runtime, а не унаследованный пересчёт progress/history.
+- `test/e2e/sandpack-preview-style-runtime.spec.ts`: runtime-error кейс больше не подделывает `window.postMessage` из host-страницы; browser-проверка вызывает реальный crash внутри preview iframe и ждёт product-level host diagnostics.
+- `components/desengine/lab/InOut/OutRender/OutRender.tsx`: host UX развёл `unstyled-dom` и `render-error` в разные notices; runtime-crash больше не маркируется ложным заголовком про style contract.
 
 ## Runtime Contract после фикса
 
 - `ready` отправляется только если probe внутри iframe реально получил ожидаемые computed styles из preview CSS, а сами ожидания совместимы с CSS layout-правилами и не создают ложный negative.
 - `unstyled-dom` остаётся честным failure path для случаев, когда DOM смонтирован, но CSS до iframe не дошёл или не применился.
+- `render-error` показывает отдельную host-диагностику о падении preview-компонента и не маскируется под style-contract failure.
 - Диагностический host notice больше не считается допустимым результатом happy-path browser verification.
 
 ## Остаточные вопросы

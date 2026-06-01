@@ -4,6 +4,7 @@ import path from "node:path"
 import { execFile } from "node:child_process"
 import { mkdtemp, rename, rm, writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
+import { pathToFileURL } from "node:url"
 import { promisify } from "node:util"
 
 const execFileAsync = promisify(execFile)
@@ -14,6 +15,7 @@ const rootDir = process.cwd()
 const envPath = getLocalConfigPath(rootDir)
 const configPath = path.join(rootDir, "desengine.config.json")
 const markerFileName = ".desengine-onboarding-source.json"
+const canonicalDefaultPromptFileName = "default.njk"
 
 function readAppConfig() {
   const parsed = JSON.parse(fs.readFileSync(configPath, "utf-8"))
@@ -59,10 +61,11 @@ async function replaceDirectory(sourcePath, targetPath) {
   await rm(sourcePath, { recursive: true, force: true })
 }
 
-async function validateOnboardingLayout(root) {
+export async function validateOnboardingLayout(root) {
   const levelsRoot = path.join(root, "levels")
   const tasksRoot = path.join(root, "tasks")
   const promptsRoot = path.join(root, "prompts")
+  const defaultPromptPath = path.join(promptsRoot, canonicalDefaultPromptFileName)
   const requiredDirs = [root, levelsRoot, tasksRoot, promptsRoot, path.join(promptsRoot, "levels")]
 
   for (const dir of requiredDirs) {
@@ -86,7 +89,6 @@ async function validateOnboardingLayout(root) {
     throw new Error("В onboarding-контенте не найдено ни одного каталога задачи.")
   }
 
-  const defaultPromptPath = path.join(promptsRoot, "default.md")
   if (!(await pathExists(defaultPromptPath))) {
     throw new Error(`Не найден обязательный файл onboarding-контента: ${path.relative(rootDir, defaultPromptPath)}.`)
   }
@@ -107,7 +109,7 @@ async function runGit(args, cwd) {
   }
 }
 
-async function main() {
+export async function main() {
   loadLocalConfig({ forceReload: true })
   const fileEnv = readLocalConfig(envPath)
 
@@ -148,7 +150,12 @@ async function main() {
   }
 }
 
-await main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.message : "Не удалось синхронизировать onboarding."}\n`)
-  process.exitCode = 1
-})
+const entrypointArg = process.argv[1]
+const isCliEntrypoint = entrypointArg ? import.meta.url === pathToFileURL(entrypointArg).href : false
+
+if (isCliEntrypoint) {
+  await main().catch((error) => {
+    process.stderr.write(`${error instanceof Error ? error.message : "Не удалось синхронизировать onboarding."}\n`)
+    process.exitCode = 1
+  })
+}

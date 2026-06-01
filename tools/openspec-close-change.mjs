@@ -4,6 +4,10 @@ import { spawnSync } from "node:child_process"
 
 const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
 const ARCHIVE_DIR = path.join(CHANGES_DIR, "archive")
+const MANAGED_BROWSER_PREFLIGHT_COMMAND =
+  "node tools/testing/run-browser-verification-runtime.mjs test/e2e/browser-verification-runtime.spec.ts"
+const EXTERNAL_BROWSER_PREFLIGHT_COMMAND =
+  "node tools/testing/run-browser-verification-runtime.mjs test/e2e/browser-verification-runtime.spec.ts"
 
 function printUsage() {
   console.error("Использование:")
@@ -37,8 +41,48 @@ function readMetadata(changeName) {
 
   return {
     kind: readValue("change_kind"),
+    verificationLevel: readValue("verification_level"),
     verificationCommand: readValue("verification_command"),
   }
+}
+
+function requiresBrowserPreflight(metadata) {
+  return metadata.kind === "fix"
+    && metadata.verificationLevel === "component/browser"
+    && !metadata.verificationCommand.includes("browser-verification-runtime.spec.ts")
+}
+
+function getBrowserPreflightCommand(metadata) {
+  return metadata.verificationCommand.includes("DESENGINE_E2E_EXTERNAL_SERVER=1")
+    ? EXTERNAL_BROWSER_PREFLIGHT_COMMAND
+    : MANAGED_BROWSER_PREFLIGHT_COMMAND
+}
+
+function extractPlaywrightSpecPath(command) {
+  const match = command.match(/test\/e2e\/[^\s"'`]+\.spec\.ts/)
+  return match ? match[0] : ""
+}
+
+function getWrappedBrowserVerificationCommand(metadata) {
+  if (metadata.verificationLevel !== "component/browser") {
+    return metadata.verificationCommand
+  }
+
+  if (metadata.verificationCommand.includes("run-browser-verification-runtime.mjs")) {
+    return metadata.verificationCommand
+  }
+
+  if (!metadata.verificationCommand.includes("npm run test:e2e")) {
+    return metadata.verificationCommand
+  }
+
+  const specPath = extractPlaywrightSpecPath(metadata.verificationCommand)
+  if (!specPath) {
+    return metadata.verificationCommand
+  }
+
+  const prefix = metadata.verificationCommand.split("npm run test:e2e")[0] || ""
+  return `${prefix}node tools/testing/run-browser-verification-runtime.mjs ${specPath}`.trim()
 }
 
 function runCommand(title, cmd, args) {
@@ -79,7 +123,15 @@ function run() {
     throw new Error("Не задан verification_command, закрытие невозможно.")
   }
 
-  runCommand("Проверка change verification_command", "zsh", ["-lc", metadata.verificationCommand])
+  if (requiresBrowserPreflight(metadata)) {
+    runCommand(
+      "Проверка browser verification preflight",
+      "zsh",
+      ["-lc", getBrowserPreflightCommand(metadata)],
+    )
+  }
+
+  runCommand("Проверка change verification_command", "zsh", ["-lc", getWrappedBrowserVerificationCommand(metadata)])
   runCommand("Проверка traceability", "npm", ["run", "test:traceability"])
 
   const archivedPath = archiveChange(parsed.changeName)

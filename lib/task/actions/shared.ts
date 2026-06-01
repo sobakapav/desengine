@@ -11,9 +11,25 @@ import type {
 } from "./types"
 
 const blankStartFallbackByFileName: Record<string, string> = {
+  "Component.tsx": `export default function Component() {
+  return null
+}
+`,
+  "Component.stories.ts": `import Component from "./Component"
+
+export default { component: Component }
+`,
   "styles.ts": "export {};",
   "mock.ts": "export const mock = {};",
   "props.ts": "export {};",
+}
+
+function isPlaceholderFileReference(
+  rawContent: string,
+  file: OutputFile,
+) {
+  const trimmed = rawContent.trim()
+  return trimmed === file.id || trimmed === file.fileName
 }
 
 export const taskActionShared = {
@@ -38,7 +54,10 @@ export const taskActionShared = {
     const normalizedEntries = outputFiles.map((file) => {
       const rawContent = payload[file.id]
 
-      if (typeof rawContent !== "string" || rawContent.trim()) {
+      if (
+        typeof rawContent !== "string"
+        || (rawContent.trim() && !isPlaceholderFileReference(rawContent, file))
+      ) {
         return [file.id, rawContent] as const
       }
 

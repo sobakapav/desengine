@@ -63,6 +63,7 @@ ${args.selectedFilesText}
     editableFiles: OutputFile[]
   }) {
     return runStructuredLlmRequest({
+      target: "iterate",
       instruction: args.instruction,
       imageBase64List: args.imageBase64List,
       schemaName: "desengine_iterate_component_files",

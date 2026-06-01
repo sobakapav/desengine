@@ -79,7 +79,7 @@ describe("LLM flow source contracts", () => {
     expect(source).toContain("localConfigState.hasLegacyEnv")
     expect(source).toContain("getLocalConfigCondition(localConfigState)")
     expect(sourceSections).toContain('args.resources.add("local-config-file", args.localConfigCondition)')
-    expect(resourceContent).toContain("Обнаружен устаревший")
+    expect(resourceContent).toContain("В проекте остался старый файл с настройками")
     expect(resourceContent).toContain(".env.local")
     expect(resourceContent).toContain("Старый `.env.local` создаёт двусмысленность")
     expect(localConfig).toContain('const LOCAL_CONFIG_FILENAME = "desengine.config.txt"')

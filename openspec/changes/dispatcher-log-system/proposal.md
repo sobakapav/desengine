@@ -22,7 +22,7 @@
 
 - Не реализует storage adapter, append-only store или export/delete в коде.
 - Не проектирует телеметрию, аналитику или облачную доставку событий.
-- Не подменяет собой `dispatcher-event-envelope`.
+- Не подменяет собой `dispatcher-dataflow`.
 - Не привязывает систему к тяжёлому стеку и внешним брокерам.
 
 ## Capabilities
@@ -30,6 +30,7 @@
 ### Modified Capabilities
 
 - `event-envelope`: общий контракт получает отдельную лог-системную орбиту внедрения.
+- `dataflow`: лог-система опирается на общий технический dataflow-контур, но не владеет им.
 - `projects`: будущий product event log должен поддерживать project-scoped lifecycle.
 - `testing-layer`: будущие implement changes по log-system обязаны иметь traceability и тестовую часть.
 

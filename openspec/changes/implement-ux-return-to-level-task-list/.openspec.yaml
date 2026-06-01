@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-05-21
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "dispatcher-ux"
+strategy_root: "focus-quality"
+roadmap_ref: ""
+release_ref: ""
+producer_ref: ""
+verification_level: "e2e smoke"
+verification_command: "npm run test:traceability"
+issue: ""
+short: "после завершения задачи возвращать пользователя к списку задач уровня"

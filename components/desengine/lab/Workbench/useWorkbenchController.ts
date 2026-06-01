@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { sandpackUiKitsConfig } from "@/lib/lab/sandpack-ui-kits.config";
-import { createDefaultProject, normalizeProject, type Project } from "@/lib/project/runtime";
-import { createBrowserProjectStorage } from "@/lib/project/storage";
+import { normalizeProject, type Project } from "@/lib/project/runtime";
+import {
+    createBrowserProjectStorage,
+    readBrowserStoredActiveProjectId,
+    readBrowserStoredProject,
+} from "@/lib/project/storage";
 
 import type { WorkbenchProps } from "./props";
 import {
@@ -21,8 +25,26 @@ import { usePromptController, usePromptInput } from "./useWorkbenchPrompt";
 import { changeLabTaskScreenEventInput, readLabTaskScreenEventActiveScreen } from "../LabScreen/screen-event";
 
 function useProjectController(taskId: string) {
+    function readInitialProject() {
+        const fallbackProject = normalizeProject({
+            id: `task-${taskId}`,
+            title: `Проект ${taskId}`,
+        });
+
+        if (typeof window === "undefined") {
+            return fallbackProject;
+        }
+
+        try {
+            const activeProjectId = readBrowserStoredActiveProjectId(window.localStorage, taskId) ?? `task-${taskId}`;
+            return readBrowserStoredProject(window.localStorage, activeProjectId, taskId) ?? fallbackProject;
+        } catch {
+            return fallbackProject;
+        }
+    }
+
     const [previewVersion, setPreviewVersion] = useState(0);
-    const [project, setProject] = useState<Project>(() => createDefaultProject(`task-${taskId}`));
+    const [project, setProject] = useState<Project>(() => readInitialProject());
     const projectStorage = useMemo(() => {
         if (typeof window === "undefined") return null;
         return createBrowserProjectStorage({ storage: window.localStorage, taskId });
@@ -44,7 +66,8 @@ function useProjectController(taskId: string) {
             }
 
             try {
-                const taskProject = await projectStorage.getProject(`task-${taskId}`);
+                const activeProjectId = await projectStorage.getActiveProjectId();
+                const taskProject = await projectStorage.getProject(activeProjectId ?? `task-${taskId}`);
                 const nextProject = taskProject ?? fallbackProject;
 
                 await projectStorage.saveProject(nextProject);

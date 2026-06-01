@@ -8,7 +8,7 @@
 
 ## What Changes
 
-- Создаётся idea-change `idea-batch-component-management` как дочерняя ветка `focus-onboarding`.
+- Создаётся idea-change `idea-batch-component-management` как дочерняя ветка `focus-product`.
 - Фиксируется направление: от штучной обработки компонентов к пакетному управлению компонентами и шагами.
 - Определяется продуктовая рамка будущих producer/dispatcher/implement changes для пакетного цикла «отправка пачки → получение результата пачкой → коррекция пачкой».
 
@@ -24,7 +24,7 @@
 
 ## Acceptance Criteria
 
-- Change отображается в дереве как `idea` под `focus-onboarding`.
+- Change отображается в дереве как `idea` под `focus-product`.
 - Для следующих тактических changes по этой теме используется ссылка на этот parent idea.
 - `npm run test:traceability` проходит.
 

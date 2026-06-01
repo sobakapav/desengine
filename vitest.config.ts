@@ -29,6 +29,14 @@ export default defineConfig({
       {
         extends: true,
         test: {
+          name: 'integration',
+          environment: 'node',
+          include: ['test/integration/**/*.test.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
           name: 'unit',
           environment: 'node',
           include: ['test/unit/**/*.test.ts'],

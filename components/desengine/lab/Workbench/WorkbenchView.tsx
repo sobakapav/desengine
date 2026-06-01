@@ -1,12 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { ChevronDown, Files } from "lucide-react";
 
 import { MarkdownContent } from "../../system/MarkdownContent";
 import { InOut } from "../InOut";
-import { Prompt, PromptComposer } from "../Propmt";
-import { CodeList } from "../Code";
 import { Button } from "@/components/ui/button";
 import {
     AlertDialog,
@@ -20,9 +20,47 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { Project } from "@/lib/project/runtime";
+import { taskWorkbenchFiles } from "@/lib/system/config/client";
+import { getLevelAssetPath } from "@/lib/level/navigation";
 
 import type { WorkbenchProps } from "./props";
 import type { useWorkbenchController } from "./useWorkbenchController";
+
+const CodeList = dynamic(
+    () => import("../Code").then((module) => module.CodeList),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="rounded-md border p-4 text-sm text-muted-foreground">
+                Загружаем редактор…
+            </div>
+        ),
+    },
+);
+
+const Prompt = dynamic(
+    () => import("../Propmt").then((module) => module.Prompt),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="rounded-md border p-4 text-sm text-muted-foreground">
+                Загружаем историю уточнений…
+            </div>
+        ),
+    },
+);
+
+const PromptComposer = dynamic(
+    () => import("../Propmt").then((module) => module.PromptComposer),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="rounded-xl border bg-white p-4 text-sm text-muted-foreground shadow-2xl">
+                Загружаем форму уточнений…
+            </div>
+        ),
+    },
+);
 
 type WorkbenchController = ReturnType<typeof useWorkbenchController>;
 const SHOW_UI_KIT_SWITCHER = false;
@@ -46,16 +84,11 @@ function WorkbenchHeader({
     resetPending: boolean;
 }) {
     return (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <p>Рабочий стол</p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/45">Рабочий стол</p>
                 <p className="text-muted-foreground">Задача: <code>{taskItem.id}</code></p>
-                <p className="text-muted-foreground">
-                    Уровень {taskItem.progress.currentLevel} из {taskItem.maxLevel}. Промптов: {taskItem.progress.promptsUsed} / {taskItem.progress.promptsLimit}.
-                </p>
-                {taskItem.progress.currentLevelDisplayStatus === "awaiting_check_retry" && (
-                    <p className="text-muted-foreground">Статус уровня: ждёт повторной проверки.</p>
-                )}
+                <h1 className="text-2xl font-semibold text-black">Уровень {taskItem.progress.currentLevel}</h1>
             </div>
             <WorkbenchHeaderActions
                 canCompleteCurrentLevel={taskItem.progress.currentLevelStarted && taskItem.progress.currentLevelStatus !== "completed"}
@@ -67,6 +100,15 @@ function WorkbenchHeader({
                 resetError={resetError}
                 resetPending={resetPending}
             />
+        </div>
+    );
+}
+
+function ContextStatusItem({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="rounded-xl border border-black/10 bg-white/85 px-3 py-2">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-black/45">{label}</p>
+            <p className="mt-1 text-sm font-medium text-black">{value}</p>
         </div>
     );
 }
@@ -250,7 +292,7 @@ function WorkbenchBody({ controller, props }: { controller: WorkbenchController;
     const levelReadyForWork = props.taskItem.progress.currentLevelStarted;
 
     return (
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-3">
             <WorkbenchHeader
                 taskItem={props.taskItem}
                 completePending={controller.actions.completePending}
@@ -261,8 +303,7 @@ function WorkbenchBody({ controller, props }: { controller: WorkbenchController;
                 onResetTask={() => controller.reset.handleTaskReset()}
                 resetError={controller.actions.resetError}
             />
-            <InOut task={props.taskItem.id} taskData={props.taskData} started={props.taskItem.started} reloadKey={controller.project.previewVersion} startStatus="" project={controller.project.project} />
-            {props.taskData.labContext && <TaskTip content={controller.hint.taskTip} />}
+            <WorkbenchOverview controller={controller} props={props} />
             {levelReadyForWork && <WorkbenchWorkArea controller={controller} props={props} />}
             <ErrorNotices
                 completeError={controller.actions.completeError}
@@ -274,11 +315,113 @@ function WorkbenchBody({ controller, props }: { controller: WorkbenchController;
     );
 }
 
-function TaskTip({ content }: { content: string }) {
+function TaskTip({
+    currentLevel,
+    currentLevelDisplayStatus,
+    maxLevel,
+    commonExplanation,
+    content,
+    editableFileIds,
+    levelAssetBasePath,
+    promptsLimit,
+    promptsUsed,
+}: {
+    currentLevel: number;
+    currentLevelDisplayStatus: WorkbenchProps["taskItem"]["progress"]["currentLevelDisplayStatus"];
+    maxLevel: number;
+    commonExplanation: string;
+    content: string;
+    editableFileIds: string[];
+    levelAssetBasePath?: string;
+    promptsLimit: number;
+    promptsUsed: number;
+}) {
+    const visibleFiles = taskWorkbenchFiles.filter((file) => editableFileIds.includes(file.id));
+
     return (
-        <div className="rounded-md border p-4">
-            <p className="font-medium">Что важно в этой задаче</p>
-            <MarkdownContent className="mt-2" content={content || "Для этого уровня пока нет отдельного пояснения задачи."} />
+        <div
+            data-testid="workbench-context-block"
+            className="space-y-3 rounded-2xl border border-black/10 bg-[#f8f4eb] p-3 shadow-sm"
+        >
+            <div className="space-y-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/45">Контекст уровня</p>
+                <p className="text-base font-semibold text-black">Что важно в этой задаче</p>
+            </div>
+
+            <MarkdownContent className="text-sm leading-6" content={content || "Для этого уровня пока нет отдельного пояснения задачи."} />
+
+            <div data-testid="workbench-context-status" className="grid gap-2 sm:grid-cols-3">
+                <ContextStatusItem label="Уровень" value={`${currentLevel} из ${maxLevel}`} />
+                <ContextStatusItem label="Промпты" value={`${promptsUsed} / ${promptsLimit}`} />
+                <ContextStatusItem label="Файлы" value={`${visibleFiles.length} шт.`} />
+            </div>
+
+            <div className="rounded-xl border border-black/10 bg-white/80 p-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-black">
+                    <Files className="size-4 text-black/60" aria-hidden="true" />
+                    Рабочие файлы уровня: {visibleFiles.length}
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                    {visibleFiles.map((file) => (
+                        <span
+                            key={file.id}
+                            className="inline-flex items-center rounded-full border border-black/10 bg-white px-3 py-1 text-xs text-black/75"
+                        >
+                            {file.title}: <code className="ml-1">{file.fileName}</code>
+                        </span>
+                    ))}
+                </div>
+                {currentLevelDisplayStatus === "awaiting_check_retry" ? (
+                    <p className="mt-3 text-sm text-black/70">Статус уровня: ждёт повторной проверки.</p>
+                ) : null}
+            </div>
+
+            <details
+                data-testid="workbench-level-explanation"
+                className="group rounded-xl border border-black/10 bg-white/80 p-3"
+            >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-black">
+                    Полное пояснение уровня
+                    <ChevronDown className="size-4 text-black/50 transition-transform group-open:rotate-180" aria-hidden="true" />
+                </summary>
+                <MarkdownContent
+                    className="mt-3 text-sm leading-6 text-black/80"
+                    assetBasePath={levelAssetBasePath}
+                    content={commonExplanation || "Общее пояснение уровня пока не заполнено."}
+                />
+            </details>
+        </div>
+    );
+}
+
+function WorkbenchOverview({ controller, props }: { controller: WorkbenchController; props: WorkbenchProps }) {
+    const editableFileIds = props.taskData.labContext?.editableFileIds ?? [];
+    const levelAssetBasePath = props.taskData.labContext ? getLevelAssetPath(props.taskData.labContext.levelId) : undefined;
+    const commonExplanation = props.taskData.labContext?.commonExplanation ?? "";
+
+    return (
+        <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.9fr)]">
+            <div data-testid="workbench-preview-block" className="rounded-2xl border border-black/10 bg-[#f6f2ea] p-2.5 shadow-sm">
+                <InOut
+                    task={props.taskItem.id}
+                    taskData={props.taskData}
+                    started={props.taskItem.started}
+                    reloadKey={controller.project.previewVersion}
+                    startStatus=""
+                    project={controller.project.project}
+                />
+            </div>
+            <TaskTip
+                currentLevel={props.taskItem.progress.currentLevel}
+                currentLevelDisplayStatus={props.taskItem.progress.currentLevelDisplayStatus}
+                maxLevel={props.taskItem.maxLevel}
+                commonExplanation={commonExplanation}
+                content={controller.hint.taskTip}
+                editableFileIds={editableFileIds}
+                levelAssetBasePath={levelAssetBasePath}
+                promptsLimit={props.taskItem.progress.promptsLimit}
+                promptsUsed={props.taskItem.progress.promptsUsed}
+            />
         </div>
     );
 }

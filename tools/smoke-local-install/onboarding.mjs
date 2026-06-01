@@ -6,6 +6,7 @@ import { createCheck } from "./checks.mjs"
 
 const execFileAsync = promisify(execFile)
 const markerFileName = ".desengine-onboarding-source.json"
+const canonicalDefaultPromptFileName = "default.njk"
 
 async function pathExists(targetPath) {
   try {
@@ -38,10 +39,11 @@ async function validateRequiredDirs(rootDir, root, promptsRoot) {
   return missingPaths
 }
 
-async function validateOnboardingLayout(rootDir, root) {
+export async function validateOnboardingLayout(rootDir, root) {
   const levelsRoot = path.join(root, "levels")
   const tasksRoot = path.join(root, "tasks")
   const promptsRoot = path.join(root, "prompts")
+  const defaultPromptPath = path.join(promptsRoot, canonicalDefaultPromptFileName)
   const missingPaths = await validateRequiredDirs(rootDir, root, promptsRoot)
 
   if (missingPaths.length > 0) {
@@ -59,8 +61,8 @@ async function validateOnboardingLayout(rootDir, root) {
   if (!taskEntries.some((entry) => entry.isDirectory())) {
     return { ok: false, detail: "В `/onboarding/tasks` не найдено ни одного каталога задачи." }
   }
-  if (!(await pathExists(path.join(promptsRoot, "default.md")))) {
-    return { ok: false, detail: `Не найден обязательный файл onboarding-контента: ${path.relative(rootDir, path.join(promptsRoot, "default.md"))}.` }
+  if (!(await pathExists(defaultPromptPath))) {
+    return { ok: false, detail: `Не найден обязательный файл onboarding-контента: ${path.relative(rootDir, defaultPromptPath)}.` }
   }
 
   return { ok: true, detail: "Onboarding-layout выглядит полным." }
@@ -88,7 +90,7 @@ async function inspectMarker(markerPath, repoUrl) {
   }
 }
 
-async function inspectOnboardingState(rootDir, repoUrl) {
+export async function inspectOnboardingState(rootDir, repoUrl) {
   const { onboardingRoot } = readAppConfig(rootDir)
 
   if (!(await pathExists(onboardingRoot))) {

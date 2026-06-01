@@ -14,11 +14,15 @@
 // @openSpec scenarios:
 // @openSpec  - "Команда работает с динамическим render-островком"
 
-import { describe, expect, it } from "vitest"
 import fs from "node:fs"
 import path from "node:path"
+import React from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import ts from "typescript"
+import { describe, expect, it } from "vitest"
 
 import { buildSandpackPreviewPayload } from "../../lib/lab/sandpack-preview"
+import { readLevelSandpackTemplate } from "../../lib/lab/sandpack-template"
 import {
   normalizeSandpackUiKitId,
   validateSandpackUiKitsConfig,
@@ -56,7 +60,164 @@ export function cn(...inputs: ClassValue[]) {
 }
 `
 
+async function readLevel5AppTemplateOptions() {
+  const template = await readLevelSandpackTemplate("level-5", { rootDir: process.cwd() })
+
+  return {
+    appTsx: template.appTsx,
+    previewCss: template.previewCss,
+    levelTemplateRuntime: "export const levelRuntime = {} as const;\n",
+  }
+}
+
+function readSandpackFileCode(file: string | { code: string }) {
+  return typeof file === "string" ? file : file.code
+}
+
+function renderBuiltLevel5App(args: {
+  appSource: string
+  mockModule: Record<string, unknown>
+}) {
+  const compiled = ts.transpileModule(args.appSource, {
+    compilerOptions: {
+      esModuleInterop: true,
+      jsx: ts.JsxEmit.React,
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2019,
+    },
+  })
+  const module = { exports: {} as { default?: React.ComponentType } }
+  const previewComponent = ({ title }: { title?: string }) => React.createElement(
+    "article",
+    { "data-preview-component": "true" },
+    title ?? "empty",
+  )
+
+  const localRequire = (specifier: string) => {
+    if (specifier === "react") {
+      return React
+    }
+
+    if (specifier === "./Component") {
+      return { __esModule: true, default: previewComponent }
+    }
+
+    if (specifier === "./mock") {
+      return args.mockModule
+    }
+
+    if (specifier === "./level-template-runtime") {
+      return { levelRuntime: {} }
+    }
+
+    if (specifier === "./preview-runtime-contract") {
+      return {
+        PreviewRuntimeContractBoundary: ({ children }: { children: React.ReactNode }) => React.createElement(
+          React.Fragment,
+          null,
+          children,
+        ),
+      }
+    }
+
+    throw new Error(`Неожиданный import в level-5 App template: ${specifier}`)
+  }
+
+  const executor = new Function("require", "module", "exports", compiled.outputText)
+  executor(localRequire, module, module.exports)
+
+  const App = module.exports.default
+  if (!App) {
+    throw new Error("Собранный level-5 App template не экспортирует default App")
+  }
+
+  return renderToStaticMarkup(React.createElement(App))
+}
+
 describe("buildSandpackPreviewPayload", () => {
+  it("сохраняет level-5 template с прямым рендером mock-массива и runtime boundary", async () => {
+    const appTemplate = await readLevel5AppTemplateOptions()
+    const payload = await buildSandpackPreviewPayload(
+      {
+        component: `export default function Component({ title }: { title?: string }) {
+  return <div>{title ?? "empty"}</div>;
+}
+`,
+        mock: `export const mock = [{ title: "Первый" }, { title: "Второй" }];
+`,
+        uiBadge: badgeSource,
+        systemUtils: utilsSource,
+      },
+      { appTemplate },
+    )
+    const appSource = readSandpackFileCode(payload.files["/src/App.tsx"] as { code: string })
+    const html = renderBuiltLevel5App({
+      appSource,
+      mockModule: {
+        mock: [{ title: "Первый" }, { title: "Второй" }],
+      },
+    })
+
+    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("Array.isArray(previewMock)"),
+    }))
+    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("previewMock.map"),
+    }))
+    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("<Component key={index} {...item} />"),
+    }))
+    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("<PreviewRuntimeContractBoundary>"),
+    }))
+    expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(2)
+    expect(html).toContain("Первый")
+    expect(html).toContain("Второй")
+  })
+
+  it("использует mockProps с приоритетом над mock-массивом и не требует named export mock", async () => {
+    const appTemplate = await readLevel5AppTemplateOptions()
+    const payload = await buildSandpackPreviewPayload(
+      {
+        component: `export default function Component({ title }: { title?: string }) {
+  return <div>{title ?? "empty"}</div>;
+}
+`,
+        mock: `export const mockProps = { title: "Одиночный" };
+export const mock = [{ title: "Первый" }, { title: "Второй" }];
+`,
+        uiBadge: badgeSource,
+        systemUtils: utilsSource,
+      },
+      { appTemplate },
+    )
+    const appSource = readSandpackFileCode(payload.files["/src/App.tsx"] as { code: string })
+    const html = renderBuiltLevel5App({
+      appSource,
+      mockModule: {
+        mockProps: { title: "Одиночный" },
+        mock: [{ title: "Первый" }, { title: "Второй" }],
+      },
+    })
+
+    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('import * as mockModule from "./mock"'),
+    }))
+    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.not.stringContaining('import { mock } from "./mock"'),
+    }))
+    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("<Component {...previewProps} />"),
+    }))
+    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("mockModule.mockProps ?? mockModule.mock"),
+    }))
+    expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(1)
+    expect(html).toContain("Одиночный")
+    expect(html).not.toContain("Первый")
+    expect(html).not.toContain("Второй")
+  })
+
   it("нормализует SANDPACK_UI_KIT и по умолчанию включает shadcn", () => {
     expect(normalizeSandpackUiKitId(undefined)).toBe("shadcn")
     expect(normalizeSandpackUiKitId("")).toBe("shadcn")
@@ -245,11 +406,25 @@ export default function Component() {
     }))
     expect(payload.customSetup.dependencies).toMatchObject({
       "@tailwindcss/postcss": expect.any(String),
-      "class-variance-authority": expect.any(String),
       postcss: expect.any(String),
       tailwindcss: expect.any(String),
     })
     expect(payload.options.externalResources).toEqual([])
+  })
+
+  it("не тащит весь shadcn dependency graph, если компонент не импортирует ui-kit пакеты", async () => {
+    const payload = await buildSandpackPreviewPayload({
+      component: `export default function Component() {
+  return <div className="w-[57px] h-[16px] bg-gray-200">Preview</div>;
+}
+`,
+      uiBadge: badgeSource,
+      systemUtils: utilsSource,
+    })
+
+    expect(payload.customSetup.dependencies).not.toHaveProperty("@radix-ui/react-dialog")
+    expect(payload.customSetup.dependencies).not.toHaveProperty("lucide-react")
+    expect(payload.customSetup.dependencies).not.toHaveProperty("class-variance-authority")
   })
 
   it("готовит preview к arbitrary Tailwind values и полной ширине компонента", async () => {

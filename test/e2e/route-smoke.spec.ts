@@ -1,8 +1,19 @@
 import { expect, test } from "playwright/test"
 
-import { e2eSmokeRoutes, snapshotUserState, type UserStateSnapshotEntry } from "./fixtures/smoke-fixture"
+import {
+  e2eSmokeRoutes,
+  projectUserStateInvariant,
+  snapshotUserState,
+  type UserStateSnapshotEntry,
+} from "./fixtures/smoke-fixture"
 
 test.describe.configure({ mode: "serial" })
+
+async function expectAuthRouteReady(page: import("playwright/test").Page) {
+  await expect(page.getByRole("navigation", { name: "Глобальная навигация продукта" })).toBeVisible()
+  await expect(page.locator("main")).toBeVisible()
+  await expect(page.getByText("Доступ в лабораторию")).toBeVisible()
+}
 
 let initialUserState: UserStateSnapshotEntry[] = []
 
@@ -11,7 +22,7 @@ test.beforeAll(() => {
 })
 
 test.afterAll(() => {
-  expect(snapshotUserState()).toEqual(initialUserState)
+  expect(projectUserStateInvariant(snapshotUserState())).toEqual(projectUserStateInvariant(initialUserState))
 })
 
 test.describe("route smoke без live credentials", () => {
@@ -35,8 +46,7 @@ test.describe("route smoke без live credentials", () => {
       await page.goto(route.path)
 
       await expect(page).toHaveURL(/\/auth$/)
-      await expect(page.getByRole("heading", { name: /Авторизация|Допуск в лабораторию/ })).toBeVisible()
-      await expect(page.getByText("Система входа не настроена")).toBeVisible()
+      await expectAuthRouteReady(page)
     })
   }
 

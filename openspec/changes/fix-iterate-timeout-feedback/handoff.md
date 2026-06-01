@@ -28,10 +28,23 @@
 ## Проверка результата
 
 - verification_level: component/browser
-- verification_command: npm run test:e2e -- test/e2e/iterate-timeout-feedback.spec.ts
+- verification_command: DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs test/e2e/iterate-timeout-feedback.spec.ts
 - Что именно должен доказать результат проверки: зависший provider request больше не оставляет пользователя в бесконечном pending; task action завершается bounded timeout-ошибкой, состояние задачи сохраняется, UI позволяет повторить действие.
+
+## Реализовано
+
+- `iterate` и `check` получили bounded server-side timeout через `LLM_ACTION_TIMEOUT_MS`, при этом `init` сохранил отдельный контракт `LLM_INIT_TIMEOUT_MS`.
+- Workbench actions переведены на общий bounded client-side helper, который снимает pending через `finally` и возвращает retriable timeout-ошибку без потери состояния.
+- `iterate` теперь явно маркируется как `target: "iterate"` на LLM runtime boundary.
+- Добавлен unit-слой на runtime timeout policy и error-path `runPromptSubmission` / `runCheckSubmission`.
+- Добавлен browser/e2e сценарий с controlled hanging endpoint для `/iterate` и `/check`, чтобы проверять именно UX timeout path, а не live-поведение провайдера.
+
+## Внешняя проверка
+
+- `npm run test:unit -- test/unit/iterate-timeout-feedback.test.ts`
+- `DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs test/e2e/iterate-timeout-feedback.spec.ts`
+- `npm run test:traceability`
 
 ## Открытые вопросы
 
-- Достаточно ли одного общего timeout для non-init запросов, или `iterate` и `check` требуют отдельных значений.
-- Нужен ли дополнительный retry-control в UI, кроме снятия pending и показа ошибки.
+- Нужен ли в продукте один общий timeout для `iterate` и `check`, или позже их стоит развести по разным env-переменным.

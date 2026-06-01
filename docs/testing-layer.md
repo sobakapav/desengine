@@ -32,14 +32,38 @@ npm run test:unit
 | `npm run quality:text:repo` | работает | Полный аудит code-quality-text по репозиторию. |
 | `npm run test:full` | работает | Полный обязательный слой текущего этапа: unit + strict traceability + code-quality-text. |
 | `npm run test:traceability` | работает в мягком режиме | Проверяет `@openSpec` metadata в тестах и сверяет её с `openspec/specs/**`. |
-| `npm run test:integration` | placeholder | Зарезервировано для server/API-flow тестов на mock/fixtures. |
+| `npm run test:integration` | работает | Запускает Vitest project `integration` по `test/integration/**/*.test.ts` для route/API-flow на fixtures и stubs. |
 | `npm run test:e2e` | работает частично | Запускает Playwright route smoke без live credentials; runtime-зависимые маршруты могут быть явно skipped с причиной. |
 | `npm run test:live` | preflight | Проверяет env активного provider без сетевых вызовов и честно сообщает о недостающих переменных. |
 | `npm run test:spec -- <capability>` | placeholder | Зарезервировано для выборочного запуска по OpenSpec capability. |
 
-Placeholder-команды завершаются успешно и печатают, какой этап `testing-layer` должен наполнить команду реальной проверкой. Это сделано намеренно для ещё не реализованных `test:integration` и `test:spec`: первый слой должен дать стабильные точки входа, но не должен ломать обычную разработку из-за ещё не реализованных уровней.
+Placeholder-команды завершаются успешно и печатают, какой этап `testing-layer` должен наполнить команду реальной проверкой. Сейчас это сделано намеренно для ещё не реализованного `test:spec`: стабильная точка входа уже существует, но не блокирует обычную разработку.
 
 `test:traceability` уже не placeholder: команда валидирует существующие связи тестов со specs. Пока она работает в миграционном режиме: неполное покрытие существующих specs допустимо только если capability есть в `test/traceability/coverage-plan.json`.
+
+## Integration
+
+Integration-проверки запускаются так:
+
+```bash
+npm run test:integration
+```
+
+Текущий integration-проект настроен в `vitest.config.ts`:
+
+- окружение: `node`;
+- шаблон файлов: `test/integration/**/*.test.ts`;
+- браузер и `next dev` не поднимаются;
+- live/provider credentials не требуются.
+
+Этот слой проверяет реальные route handlers и server/API boundary:
+
+- access guard и HTTP status mapping;
+- parsing `Request`, body и async `params`;
+- вызовы runtime/service boundary через fixtures и stubs;
+- контракт `Response.json(...)` без browser/navigation слоя.
+
+Integration не должен дублировать чистые unit-тесты и не должен превращаться в e2e. Здесь проверяется именно склейка route handler -> auth/request/response/runtime boundary.
 
 ## Unit
 
@@ -83,6 +107,13 @@ npm run test:e2e
 
 Команда использует `playwright.e2e.config.ts`, стартует отдельный `next dev` на `127.0.0.1:3410` и принудительно очищает live/provider env для тестового процесса. Поэтому e2e smoke не требует реальных LLM ключей, allowlist-хранилища или `ONBOARDING_REPO_URL`.
 
+Browser verification теперь имеет два явных режима:
+
+- `managed webServer verification`: Playwright сам поднимает локальный target server;
+- `external-server verification`: сервер поднят отдельно, а команда требует явный `DESENGINE_E2E_EXTERNAL_SERVER=1` и `DESENGINE_E2E_BASE_URL=http://...`.
+
+Если выбран внешний режим без `DESENGINE_E2E_BASE_URL`, конфиг считается невалидным и проверка должна завершаться ошибкой конфигурации, а не ложным product verdict.
+
 По умолчанию Playwright запускается через установленный системный Google Chrome (`channel: chrome`). Если нужно использовать другой канал, задай:
 
 ```bash
@@ -93,6 +124,47 @@ PLAYWRIGHT_BROWSER_CHANNEL=chromium npm run test:e2e
 
 ```bash
 DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
+```
+
+Канонический browser verification wrapper для Codex/seatbelt и других нестабильных execution mode:
+
+```bash
+node tools/testing/run-browser-verification-runtime.mjs test/e2e/browser-verification-runtime.spec.ts
+```
+
+Wrapper:
+
+- сначала пытается переиспользовать уже живой target server через `DESENGINE_E2E_BASE_URL` или стандартный localhost-port browser/e2e;
+- если подходящего живого target server нет, поднимает изолированный `next dev` напрямую через `node_modules/.bin/next`;
+- выполняет shell-level target preflight;
+- запускает browser spec во внешнем режиме;
+- форсирует `DESENGINE_E2E_RUNNER=browser-wrapper` и стабильный канал `PLAYWRIGHT_BROWSER_CHANNEL=chromium`.
+
+Прямой `npm run test:e2e` в Codex `CODEX_SANDBOX=seatbelt` больше не считается валидным browser verification path: конфиг обязан оборвать такой запуск сразу, с инструкцией перейти на wrapper, а не доводить команду до ложного `SIGABRT`/`kill EPERM`.
+
+Отдельный preflight browser verification, который сначала проверяет target server, а затем открытие базового browser route:
+
+```bash
+DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410 npm run test:e2e -- test/e2e/browser-verification-runtime.spec.ts
+```
+
+Этот прямой прогон допустим как low-level fallback только вне Codex seatbelt. Для repeatable verification внутри Codex каноническим остаётся wrapper выше.
+
+В `managed webServer verification` Playwright ждёт лёгкий readiness route `/api/status/llm`, а сам preflight внутри spec отдельно проверяет `HTTP 200` от `/auth` до браузерного шага. Это сокращает ложные "зависания" на старте dev-server и оставляет route-level verdict в явном тестовом этапе.
+
+Для `external-server verification` shell-level probe target server считается обязательной частью preflight и запускается отдельно:
+
+```bash
+curl -fsS -o /dev/null -w '%{http_code}' --max-time 15 http://127.0.0.1:3410/auth | grep -qx '200'
+DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410 npm run test:e2e -- test/e2e/browser-verification-runtime.spec.ts
+```
+
+Это разделение намеренное: в некоторых средах Node/Playwright worker не может открыть localhost transport, хотя внешний shell-level probe до того же target server успешно получает `HTTP 200`.
+
+Для downstream `component/browser` fixes верификационная команда внутри Codex должна идти через wrapper-вход, например:
+
+```bash
+DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs test/e2e/workbench-context-visibility.spec.ts
 ```
 
 Targeted smoke переключения UI kit в Workbench запускается с fixture-доступом, который создаёт signed access cookie без live allowlist:
@@ -246,6 +318,8 @@ LLM provider-проверки используют только выбранны
 Общие тестовые helpers и fixtures живут в `test/**`, отдельно от runtime-кода:
 
 - `test/helpers/test-env.ts` — безопасное чтение env для live-тестов без печати секретных значений;
+- `test/integration/helpers/route-harness.ts` — общий вызов route handlers с `Request` и async `params`;
+- `test/integration/helpers/temp-user-state.ts` — временный user-state root для integration-сценариев;
 - `test/e2e/fixtures/smoke-fixture.ts` — route smoke-набор и snapshot helper для проверки, что e2e не портит `user/`;
 - `test/fixtures/user-state.ts` — детерминированные user-state fixtures;
 - `test/fixtures/task-progress.ts` — уровни, task config и progress-state для сценариев прогресса;

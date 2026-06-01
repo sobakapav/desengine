@@ -22,6 +22,15 @@ function buildTempRootDir(testName: string) {
 }
 
 describe("readLevelSandpackTemplate", () => {
+  it("читает level-5 template из репозитория", async () => {
+    const result = await readLevelSandpackTemplate("level-5", { rootDir: process.cwd() })
+
+    expect(result.source).toBe("level")
+    expect(result.appTsx).toContain('import * as mockModule from "./mock"')
+    expect(result.appTsx).toContain("Array.isArray(previewMock)")
+    expect(result.appTsx).toContain("PreviewRuntimeContractBoundary")
+  })
+
   it("возвращает level-owned template, если он есть на диске", async () => {
     const rootDir = buildTempRootDir("level-owned")
     const sandpackDir = path.join(rootDir, "onboarding", "levels", "level-1", "sandpack")
@@ -65,4 +74,3 @@ describe("buildLevelTemplateRuntimeSource", () => {
     expect(code).toContain('"labId": "level-2-lab"')
   })
 })
-

@@ -1,0 +1,4 @@
+- [x] 1. Зафиксировать источники legacy-формулировок `style.ts` в onboarding level 3 и описать полный scope пользовательского рассинхрона.
+- [x] 2. Выровнять level-3 guidance, task tips и связанные тексты на каноническое имя `styles.ts`.
+- [x] 3. Добавить автоматическую регрессионную проверку для level-3 guidance или оформить coverage debt в `test/traceability/coverage-plan.json`.
+- [x] 4. Подготовить handoff с перечнем затронутых onboarding-файлов и шагами ручной проверки для внешнего верификатора.

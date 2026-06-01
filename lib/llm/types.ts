@@ -64,7 +64,7 @@ type LlmStructuredRequest = {
   imageBase64List?: string[]
   schemaName: string
   schema: Record<string, unknown>
-  target?: "default" | "init" | "check"
+  target?: "default" | "init" | "iterate" | "check"
 }
 
 // TODO(owner:team-desengine, targetStage:6.6): вынести structured response contract в provider boundary.

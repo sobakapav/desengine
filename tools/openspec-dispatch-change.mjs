@@ -1,10 +1,12 @@
 import { spawnSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
 
 import { normalizeDispatchedChangeName } from "./openspec-change-name.mjs"
 
 const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
+const TOOLS_DIR = path.dirname(fileURLToPath(import.meta.url))
 
 function printUsage() {
   console.error("Использование:")
@@ -137,13 +139,13 @@ function run() {
   }
 
   const changeName = normalizeDispatchedChangeName(parsed.kind, parsed.name)
-  const args = ["run", "os:begin", "--", dispatcherName, "--spawn-implement", changeName]
+  const args = [path.join(TOOLS_DIR, "openspec-begin-change.mjs"), dispatcherName, "--spawn-implement", changeName]
 
   if (parsed.description) {
     args.push("--description", parsed.description)
   }
 
-  const result = spawnSync("npm", args, { stdio: "inherit" })
+  const result = spawnSync(process.execPath, args, { stdio: "inherit" })
   if (typeof result.status === "number" && result.status !== 0) {
     process.exit(result.status)
   }

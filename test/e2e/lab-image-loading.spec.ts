@@ -5,9 +5,10 @@
 import { expect, test } from "playwright/test"
 
 import { ACCESS_COOKIE_NAME, createAccessSessionValue } from "../../lib/auth/control"
+import { resolveFixtureAccessSalt } from "../helpers/fixture-access"
 
 const fixtureAccessEnabled = process.env.DESENGINE_E2E_FIXTURE_ACCESS === "1"
-const fixtureAccessSalt = process.env.DESENGINE_E2E_ACCESS_SALT || "desengine-e2e-salt"
+const fixtureAccessSalt = resolveFixtureAccessSalt()
 
 test.describe("lab image loading", () => {
   test.skip(!fixtureAccessEnabled, "Нужен fixture-доступ: DESENGINE_E2E_FIXTURE_ACCESS=1")

@@ -13,6 +13,11 @@
 - целевая архитектура (main/renderer, безопасность, песочницы);
 - стратегия запуска текущего приложения внутри Electron (встроенный сервер vs встроенный рендер);
 - стратегия хранения данных локально (проекты/задачи/артефакты/опыт) и миграции;
+- readiness-ограничения перед любым behavior-change по packaging:
+  - storage boundaries для project/task/workflow/artifact/event;
+  - требования к export/delete/backup/migration;
+  - отделение secrets и credentials от пользовательских данных;
+  - smoke strategy без live provider credentials;
 - стратегия обновлений (auto-update или ручная);
 - распределение ответственности между web-версией и desktop-версией;
 - тестовый план и traceability.
@@ -21,6 +26,7 @@
 
 - Мгновенная поддержка всех платформ и всех сценариев на первом шаге.
 - Миграции install-critical стека «ради Electron» без отдельного решения (это план, а не форсированный рефактор).
+- Реализация readiness-слоя или storage adapter boundary в рамках этого planning change.
 
 ## Capabilities
 
@@ -35,6 +41,6 @@
 
 - Определён MVP сценарий Electron-версии и границы функциональности.
 - Описан выбранный вариант архитектуры запуска (и почему).
+- Зафиксировано, какие storage readiness prerequisites обязательны до старта implementation change.
 - Есть roadmap на отдельные changes (bootstrapping, storage, updates, security hardening).
 - Есть тестовый план (unit/integration/e2e smoke) и команды проверки.
-

@@ -583,22 +583,26 @@
       "priority": "P1",
       "primaryLevels": [
         "static",
-        "unit"
+        "unit",
+        "integration"
       ],
       "status": "ready",
       "requiredScenarios": [
         "Разработчик запускает быстрый локальный тестовый слой",
         "Разработчик запускает полный локальный тестовый слой",
         "Разработчик запускает проверки по capability",
+        "Разработчик запускает integration-проверку server/API-flow",
         "Тестовый файл покрывает OpenSpec-сценарий",
         "Capability временно не имеет полного покрытия",
         "Добавляется capability с quality-правилами читаемости",
         "Foundation event-линия использует общий reusable harness",
         "Runtime-boundary событий проверяется без storage через foundation harness",
         "Credentials не заданы",
+        "Разработчик запускает browser verification preflight",
         "Разработчик запускает live/provider-проверку",
         "Тестовый слой ещё покрывает не все specs",
         "Добавляется новый behavior-change",
+        "Integration-слой покрывает route handlers через fixture boundary",
         "Разработчик проверяет lab runtime после hardening",
         "Проверка использует временное пользовательское состояние"
       ]

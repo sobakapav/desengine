@@ -1,6 +1,19 @@
-import { InPicture } from "./InPicture";
+import dynamic from "next/dynamic";
+
 import { OutRender } from "./OutRender";
 import { InOutProps } from "./props";
+
+const InPicture = dynamic(
+    () => import("./InPicture").then((module) => module.InPicture),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="min-h-[180px] rounded-md border bg-white p-4 text-sm text-neutral-500">
+                Загружаем изображение…
+            </div>
+        ),
+    },
+);
 
 function InOut({ task, taskData, started, reloadKey, startStatus, project }: InOutProps) {
     return (

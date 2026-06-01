@@ -27,6 +27,13 @@
 - **THEN** система запускает проверки, связанные с этим capability, или печатает понятный placeholder, если слой ещё не реализован
 - **AND** документация объясняет, как найти соответствующие тесты и spec-сценарии
 
+#### Scenario: Разработчик запускает integration-проверку server/API-flow
+
+- **WHEN** разработчик выполняет `npm run test:integration`
+- **THEN** система запускает отдельный integration-слой для route handlers и server/API-flow на mock/fixture-данных
+- **AND** команда не поднимает браузер и не требует `next dev`
+- **AND** live/provider credentials не требуются
+
 ### Requirement: Тесты трассируются к OpenSpec scenarios
 
 Система SHALL поддерживать проверяемую связь между тестовыми файлами и сценариями из `openspec/specs/**`.
@@ -81,6 +88,13 @@
 - **THEN** система читает credentials только из env или локальных некоммитимых файлов
 - **AND** при отсутствии нужных переменных показывает понятную диагностику
 
+#### Scenario: Разработчик запускает browser verification preflight
+
+- **WHEN** разработчик явно запускает browser verification preflight для e2e слоя
+- **THEN** система сначала проверяет доступность target server
+- **AND** отдельно проверяет, что Chromium открывает базовый route
+- **AND** infra failure не маскируется под product regression
+
 ### Requirement: Развитие тестового слоя не блокирует runtime
 
 Система SHALL позволять развивать тестовый слой поэтапно без изменения пользовательского runtime и install-critical инфраструктуры.
@@ -110,3 +124,9 @@
 - **WHEN** тест lab-flow записывает task files, progress или check-result
 - **THEN** он использует temp/fixture storage или полностью замоканный service boundary
 - **AND** тест не оставляет изменение пользовательских данных после завершения
+
+#### Scenario: Integration-слой покрывает route handlers через fixture boundary
+- **WHEN** разработчик запускает integration-проверку task и support route handlers
+- **THEN** тесты проходят через реальные route handlers, request/params parsing и HTTP response mapping
+- **AND** runtime/service зависимости подменяются fixture или stub boundary без live provider credentials
+- **AND** тест не оставляет изменения в рабочем пользовательском состоянии

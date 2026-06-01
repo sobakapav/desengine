@@ -21,6 +21,20 @@ MVP требования:
 - должна быть возможность экспорта/импорта;
 - миграции данных должны быть версионируемыми.
 
+## Readiness-ограничения до implementation
+
+Пока packaging не является актуальной delivery-линией, readiness остаётся частью planning-контекста, а не отдельным активным dispatcher.
+
+Перед любым downstream behavior-change для Electron должны быть явно подтверждены:
+
+- storage boundary для `Project`, `Task`, `Workflow`, `Artifact`, `Event`;
+- export/delete/backup/migration story для локального desktop storage;
+- отделение secrets/credentials от project и event data;
+- smoke strategy для local/desktop профиля без live provider credentials;
+- отсутствие scattered backend calls, которые цементируют текущий local-first формат.
+
+Если эти prerequisites не закрыты, Electron change остаётся на уровне idea/planning и не переходит в implementation.
+
 ## Обновления
 
 Варианты:
@@ -34,3 +48,4 @@ MVP требования:
 - Integration: запуск desktop окружения + базовый API.
 - E2E smoke: установка/запуск → создание проекта → сохранение → перезапуск → данные на месте.
 
+До появления implementation change достаточно traceability и явной фиксации prerequisites в planning-артефактах.

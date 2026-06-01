@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-05-25
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "release"
+execution_mode: "no-code"
+parent_change: ""
+strategy_root: ""
+roadmap_ref: ""
+release_ref: ""
+producer_ref: ""
+verification_level: "static/contract"
+verification_command: "npm run test:traceability"
+issue: ""
+short: "релизный поток на ночь 25 мая 2026"

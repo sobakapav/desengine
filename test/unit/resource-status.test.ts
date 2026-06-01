@@ -22,13 +22,14 @@
 // @openSpec scenarios:
 // @openSpec  - "Диагностика показывает статус onboarding"
 
-import { describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   getAccessSessionRemediationControl,
   getOnboardingContentRemediationControl,
   getSystemReleaseRemediationControl,
 } from "@/lib/system/resources/remediation"
+import { addLlmResources, createResourceCollector } from "@/lib/system/resources/internalstate-sections"
 import {
   compareReleaseTags,
   getDirtyWorkspaceNote,
@@ -41,8 +42,17 @@ import {
   renderResourceTemplate,
   resolveResourceStatus,
 } from "@/lib/system/resources/publicstate"
+import { resetLlmTestEnv, restoreLlmTestEnv } from "./llm.server.test-utils"
 
 describe("resource status resolver", () => {
+  beforeEach(() => {
+    resetLlmTestEnv()
+  })
+
+  afterEach(() => {
+    restoreLlmTestEnv()
+  })
+
   it("покрывает конфигурацией все системные ресурсы", () => {
     expect(getMissingResourceDefinitionIds()).toEqual([])
     expect(getInvalidResourceDefinitions()).toEqual([])
@@ -112,14 +122,14 @@ describe("resource status resolver", () => {
     ).toBe("Сервис Allowlist отвечает кодом 200.")
   })
 
-  it("сохраняет Markdown-ссылки из конфигурации", () => {
+  it("сохраняет Markdown-ссылки из конфигурации описания ресурса", () => {
     const resolved = resolveResourceStatus({
       id: "access-session",
-      condition: "expired",
+      condition: "valid",
     })
 
-    expect(resolved.resource.detail).toContain("](/auth)")
-    expect(resolved.instruction?.text).toContain("](/auth)")
+    expect(resolved.resource.detail).toContain("](/lab)")
+    expect(resolved.instruction).toBeNull()
   })
 
   it("назначает встроенные контролы только для исправимых статусов", () => {
@@ -254,6 +264,103 @@ describe("resource status resolver", () => {
 
     expect(resolved.resource.state).toBe("ready")
     expect(resolved.resource.detail).toContain("Есть локальные изменения поверх релизного тега")
+  })
+
+  it("строит provider-aware probe для Claude без OpenAI fallback", async () => {
+    process.env.CLAUDE_API_KEY = "test-claude-key"
+    process.env.OPENAI_API_KEY = "wrong-openai-key"
+
+    const fetchMock = vi.fn(async () => new Response(null, { status: 200 }))
+    vi.stubGlobal("fetch", fetchMock)
+
+    const resources = createResourceCollector()
+    await addLlmResources(resources, {
+      provider: "claude",
+      label: "Claude",
+      ready: true,
+      endpoint: "https://api.anthropic.example/v1",
+      config: {
+        activeProvider: "claude",
+        model: "claude-test",
+        hasRequiredKey: true,
+        missingEnvVars: [],
+        configuredProviders: ["claude"],
+      },
+      availability: {
+        ok: true,
+        message: "Claude настроен",
+      },
+    })
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+
+    expect(url).toBe("https://api.anthropic.example/v1/messages")
+    expect(init.method).toBe("POST")
+    expect(init.headers).toMatchObject({
+      "anthropic-version": "2023-06-01",
+      "content-type": "application/json",
+      "x-api-key": "test-claude-key",
+    })
+    expect(init.headers).not.toHaveProperty("authorization")
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      model: "claude-test",
+      max_tokens: 1,
+      messages: [{ role: "user", content: [{ type: "text", text: "ping" }] }],
+    })
+
+    expect(resources.items.find((item) => item.id === "llm-network")).toMatchObject({
+      id: "llm-network",
+      state: "ready",
+      summary: "Claude API доступен",
+    })
+  })
+
+  it("строит provider-aware probe для Z.AI без OpenAI fallback", async () => {
+    process.env.ZAI_API_KEY = "test-zai-key"
+    process.env.OPENAI_API_KEY = "wrong-openai-key"
+
+    const fetchMock = vi.fn(async () => new Response(null, { status: 200 }))
+    vi.stubGlobal("fetch", fetchMock)
+
+    const resources = createResourceCollector()
+    await addLlmResources(resources, {
+      provider: "zai",
+      label: "Z.AI",
+      ready: true,
+      endpoint: "https://api.z.ai.example/api/paas/v4",
+      config: {
+        activeProvider: "zai",
+        model: "glm-test",
+        hasRequiredKey: true,
+        missingEnvVars: [],
+        configuredProviders: ["zai"],
+      },
+      availability: {
+        ok: true,
+        message: "Z.AI настроен",
+      },
+    })
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+
+    expect(url).toBe("https://api.z.ai.example/api/paas/v4/chat/completions")
+    expect(init.method).toBe("POST")
+    expect(init.headers).toMatchObject({
+      authorization: "Bearer test-zai-key",
+      "content-type": "application/json",
+    })
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      model: "glm-test",
+      messages: [{ role: "user", content: "ping" }],
+      response_format: { type: "json_object" },
+      stream: false,
+    })
+
+    expect(resources.items.find((item) => item.id === "llm-network")).toMatchObject({
+      id: "llm-network",
+      state: "ready",
+      summary: "Z.AI API доступен",
+    })
   })
 
   it("явно падает при неизвестном condition ресурса", () => {
