@@ -8,7 +8,7 @@
 - parent_change: dispatcher-test-system
 - strategy_root: focus-quality
 - producer_ref: producer-test-system-current-state
-- release_ref: release-2026-05-25-night
+- release_ref: release-2026-06-01-grooming
 - Producer baseline уже зафиксировал, что сейчас `test:integration` пуст и нужен отдельный runner на mock/fixture boundary.
 
 ## Обязательные источники

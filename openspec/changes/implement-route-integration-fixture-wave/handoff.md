@@ -7,7 +7,7 @@
 - parent_change: dispatcher-test-system
 - strategy_root: focus-quality
 - producer_ref: producer-test-system-current-state
-- release_ref: release-2026-05-25-night
+- release_ref: release-2026-06-01-grooming
 - Producer baseline уже выделил `test:integration` как один из главных пробелов тестовой системы.
 - Foundation runner должен прийти из `implement-integration-test-runner-foundation`; эта wave не должна пытаться заменять его собственным ad-hoc harness.
 

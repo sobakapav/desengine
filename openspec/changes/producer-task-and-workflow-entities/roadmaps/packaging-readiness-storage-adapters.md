@@ -2,7 +2,7 @@
 
 ## Владелец
 
-`producer-task-and-workflow-entities` владеет этим roadmap и предоставляет его `dispatcher-packaging-readiness-storage-adapters` вместе с архитектурным roadmap из `focus-tech`.
+`producer-task-and-workflow-entities` владеет этим roadmap и использует его как planning-вход для packaging ideas вместе с архитектурным roadmap из `focus-tech`.
 
 ## Зачем нужен второй roadmap
 
@@ -17,4 +17,4 @@
 
 ## Правило полезности
 
-Roadmap считается рабочим, если он помогает отличить архитектурный prerequisite от доменной readiness-задачи и не даёт packaging implementation стартовать «на доверии».
+Roadmap считается рабочим, если он помогает отличить архитектурный prerequisite от planning-контекста packaging-идей и не даёт packaging implementation стартовать «на доверии».

@@ -112,14 +112,14 @@ describe("resource status resolver", () => {
     ).toBe("Сервис Allowlist отвечает кодом 200.")
   })
 
-  it("сохраняет Markdown-ссылки из конфигурации", () => {
+  it("сохраняет Markdown-ссылки из конфигурации описания ресурса", () => {
     const resolved = resolveResourceStatus({
       id: "access-session",
-      condition: "expired",
+      condition: "valid",
     })
 
-    expect(resolved.resource.detail).toContain("](/auth)")
-    expect(resolved.instruction?.text).toContain("](/auth)")
+    expect(resolved.resource.detail).toContain("](/lab)")
+    expect(resolved.instruction).toBeNull()
   })
 
   it("назначает встроенные контролы только для исправимых статусов", () => {
