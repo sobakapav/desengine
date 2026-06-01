@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process"
 import { createRequire } from "node:module"
 import net from "node:net"
+import path from "node:path"
 
 const DEFAULT_CHANNEL = "chromium"
 const DEFAULT_SPEC = "test/e2e/browser-verification-runtime.spec.ts"
@@ -79,6 +80,24 @@ function buildBaseUrl(port) {
   return `http://127.0.0.1:${port}`
 }
 
+function normalizeBaseUrl(value) {
+  const normalized = (value || "").trim()
+
+  if (!normalized) {
+    throw new Error("DESENGINE_E2E_BASE_URL должен быть непустым абсолютным URL.")
+  }
+
+  let parsedUrl
+
+  try {
+    parsedUrl = new URL(normalized)
+  } catch {
+    throw new Error("DESENGINE_E2E_BASE_URL должен быть абсолютным URL.")
+  }
+
+  return parsedUrl.toString().replace(/\/+$/, "")
+}
+
 function buildServerEnv() {
   const fixtureAccessEnabled = process.env.DESENGINE_E2E_FIXTURE_ACCESS === "1"
   const fixtureAccessSalt = resolveFixtureAccessSalt()
@@ -130,6 +149,36 @@ function probeReadiness(url) {
   )
 }
 
+function canReuseExistingTargetServer() {
+  const explicitBaseUrl = process.env.DESENGINE_E2E_BASE_URL?.trim()
+  if (explicitBaseUrl) {
+    return {
+      reusable: true,
+      baseUrl: normalizeBaseUrl(explicitBaseUrl),
+      source: "explicit-base-url",
+    }
+  }
+
+  const defaultBaseUrl = buildBaseUrl(validatePort(process.env.DESENGINE_E2E_PORT || "3410"))
+  const readinessUrl = new URL("/api/status/llm", `${defaultBaseUrl}/`).toString()
+  const result = probeReadiness(readinessUrl)
+  const status = Number((result.stdout || "").trim())
+
+  if (!result.error && result.status === 0 && status >= 200 && status < 500) {
+    return {
+      reusable: true,
+      baseUrl: defaultBaseUrl,
+      source: "default-localhost-port",
+    }
+  }
+
+  return {
+    reusable: false,
+    baseUrl: "",
+    source: "",
+  }
+}
+
 async function waitForReadiness(url, serverProcess) {
   const deadline = Date.now() + READINESS_TIMEOUT_MS
 
@@ -157,13 +206,14 @@ async function waitForReadiness(url, serverProcess) {
 }
 
 async function main() {
-  const port = await resolvePort()
   const specPath = readSpec()
-  const baseUrl = buildBaseUrl(port)
-  const readinessUrl = new URL("/api/status/llm", `${baseUrl}/`).toString()
   const fixtureAccessSalt = process.env.DESENGINE_E2E_FIXTURE_ACCESS === "1"
     ? resolveFixtureAccessSalt()
     : ""
+  const existingTarget = canReuseExistingTargetServer()
+  const port = existingTarget.reusable ? null : await resolvePort()
+  const baseUrl = existingTarget.reusable ? existingTarget.baseUrl : buildBaseUrl(port)
+  const readinessUrl = new URL("/api/status/llm", `${baseUrl}/`).toString()
   const externalEnv = {
     ...process.env,
     DESENGINE_E2E_RUNNER: "browser-wrapper",
@@ -172,18 +222,22 @@ async function main() {
     DESENGINE_E2E_ACCESS_SALT: fixtureAccessSalt || process.env.DESENGINE_E2E_ACCESS_SALT || "",
     PLAYWRIGHT_BROWSER_CHANNEL: process.env.PLAYWRIGHT_BROWSER_CHANNEL || DEFAULT_CHANNEL,
   }
-  const server = spawn(
-    "npm",
-    ["run", "dev", "--", "--hostname", "127.0.0.1", "--port", String(port)],
-    {
-      detached: process.platform !== "win32",
-      stdio: "inherit",
-      env: buildServerEnv(),
-    },
-  )
+  const nextBinary = path.join(process.cwd(), "node_modules", ".bin", "next")
+  const server = existingTarget.reusable
+    ? null
+    : spawn(
+      nextBinary,
+      ["dev", "--hostname", "127.0.0.1", "--port", String(port)],
+      {
+        detached: process.platform !== "win32",
+        stdio: "inherit",
+        env: buildServerEnv(),
+      },
+    )
 
   let shuttingDown = false
   const shutdown = () => {
+    if (!server) return
     if (shuttingDown) return
     shuttingDown = true
 
@@ -209,8 +263,14 @@ async function main() {
   })
 
   try {
-    console.log(`Browser verification wrapper использует локальный port ${port}`)
-    await waitForReadiness(readinessUrl, server)
+    if (existingTarget.reusable) {
+      console.log(
+        `Browser verification wrapper переиспользует существующий target server (${existingTarget.source}): ${baseUrl}`,
+      )
+    } else {
+      console.log(`Browser verification wrapper использует локальный port ${port}`)
+      await waitForReadiness(readinessUrl, server)
+    }
 
     runCommand(
       "Проверка browser target preflight",

@@ -2,7 +2,7 @@
 
 ## Владелец
 
-`focus-features` владеет этим roadmap и предоставляет его `dispatcher-ui-kit`.
+`focus-domain` владеет этим roadmap и предоставляет его `dispatcher-ui-kit`.
 
 ## Основные линии
 

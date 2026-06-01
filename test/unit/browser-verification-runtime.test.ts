@@ -18,6 +18,30 @@ import {
   resolveBrowserVerificationRuntime,
 } from "../helpers/browser-verification"
 
+function resolveBrowserVerificationChangePath(...parts: string[]) {
+  const activePath = path.join(
+    process.cwd(),
+    "openspec",
+    "changes",
+    "fix-browser-verification-runtime",
+    ...parts,
+  )
+
+  if (fs.existsSync(activePath)) {
+    return activePath
+  }
+
+  const archiveRoot = path.join(process.cwd(), "openspec", "changes", "archive")
+  const archivedEntry = fs.readdirSync(archiveRoot)
+    .find((entry) => /fix-browser-verification-runtime$/.test(entry))
+
+  if (!archivedEntry) {
+    throw new Error("Не удалось найти active или archived fix-browser-verification-runtime.")
+  }
+
+  return path.join(archiveRoot, archivedEntry, ...parts)
+}
+
 describe("browser verification runtime contract", () => {
   it("требует явный base URL для external server режима", () => {
     expect(() => resolveBrowserVerificationRuntime({
@@ -145,15 +169,16 @@ describe("browser verification runtime contract", () => {
     const docs = fs.readFileSync(path.join(process.cwd(), "docs", "testing-layer.md"), "utf8")
     const readme = fs.readFileSync(path.join(process.cwd(), "test", "README.md"), "utf8")
     const tasks = fs.readFileSync(
-      path.join(process.cwd(), "openspec", "changes", "fix-browser-verification-runtime", "tasks.md"),
+      resolveBrowserVerificationChangePath("tasks.md"),
       "utf8",
     )
     const handoff = fs.readFileSync(
-      path.join(process.cwd(), "openspec", "changes", "fix-browser-verification-runtime", "handoff.md"),
+      resolveBrowserVerificationChangePath("handoff.md"),
       "utf8",
     )
 
-    expect(docs).toContain("отделить infra failure от product verdict")
+    expect(docs).toContain("не считается валидным browser verification path")
+    expect(docs).toContain("shell-level target preflight")
     expect(readme).toContain("Если preflight невалиден, downstream browser-fix нельзя считать принятым")
 
     for (const source of [tasks, handoff]) {
@@ -183,7 +208,7 @@ describe("browser verification runtime contract", () => {
     expect(source).toContain('metadata.verificationLevel === "component/browser"')
     expect(source).toContain("node tools/testing/run-browser-verification-runtime.mjs test/e2e/browser-verification-runtime.spec.ts")
     expect(source).toContain("Проверка browser verification preflight")
-    expect(toolsReadme).toContain("browser verification preflight")
+    expect(toolsReadme).toContain("обязательный browser preflight через канонический wrapper")
   })
 
   it("Playwright managed webServer ждёт лёгкий readiness route, а preflight отдельно проверяет /auth", () => {
@@ -213,11 +238,13 @@ describe("browser verification runtime contract", () => {
     expect(wrapper).toContain('DESENGINE_E2E_RUNNER: "browser-wrapper"')
     expect(wrapper).toContain('const DEFAULT_CHANNEL = "chromium"')
     expect(wrapper).toContain('"npm"')
-    expect(wrapper).toContain('"run", "dev"')
+    expect(wrapper).toContain('node_modules", ".bin", "next"')
+    expect(wrapper).toContain('"dev", "--hostname", "127.0.0.1"')
     expect(wrapper).toContain('"/api/status/llm"')
     expect(wrapper).toContain("browser-target-preflight.mjs")
     expect(wrapper).toContain("createRequire(import.meta.url)")
     expect(wrapper).toContain("DESENGINE_E2E_ACCESS_SALT")
     expect(wrapper).toContain("localConfig.loadLocalConfig()")
+    expect(wrapper).toContain("переиспользует существующий target server")
   })
 })

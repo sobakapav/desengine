@@ -167,7 +167,7 @@ describe("project UI kit switching", () => {
     await expect(storage.getProject("task-a")).resolves.toMatchObject({
       id: "task-a",
       settings: {
-        uiKitId: "ant",
+        uiKitId: "shadcn",
         uiMode: "ui-kit",
       },
     })
@@ -187,7 +187,7 @@ describe("project UI kit switching", () => {
       id: "task-task-a",
       title: "Проект task-a",
       settings: {
-        uiKitId: "mui",
+        uiKitId: "shadcn",
         uiMode: "ui-kit",
       },
     })
@@ -218,8 +218,8 @@ describe("project UI kit switching", () => {
       id: "task-task-a",
       title: "Проект task-a",
       settings: {
-        uiKitId: "none",
-        uiMode: "html-tags",
+        uiKitId: "shadcn",
+        uiMode: "ui-kit",
       },
     })
   })

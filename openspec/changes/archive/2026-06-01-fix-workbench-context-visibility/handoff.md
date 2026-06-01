@@ -42,30 +42,27 @@
   - если кроме первого файла уровня появляется новый editable file, он помечается как `Новый файл`;
   - Workbench показывает текстовый notice `Появился новый файл уровня: ...`;
   - новый файл получает первичный автофокус через controlled tab-switch, чтобы `styles.ts` не оставался вне внимания.
-- Добавлен browser-spec `test/e2e/workbench-context-visibility.spec.ts`, который готовит fixture для level 3, проверяет context block на первом экране и фиксирует signal/path для `styles.ts`.
+- В `components/desengine/lab/InOut/OutRender/OutRender.tsx` убран preview-crash, который сносил весь Workbench на route `/lab/[taskId]`: ref на `SandpackPreview` стабилизирован, а переходы `previewClientId` вынесены в `components/desengine/lab/InOut/preview-client-id.ts`, чтобы transient `null` от ref lifecycle больше не создавал бесконечный `setState`.
+- Добавлен unit-regression `test/unit/preview-client-id.test.ts` на этот crash-path.
+- Browser-spec `test/e2e/workbench-context-visibility.spec.ts` выровнен с реальным multi-file контрактом:
+  - fixture теперь переводит `dipole-button` на level 3, где `styles.ts` действительно входит в `editableFileIds`;
+  - navigation ждёт `domcontentloaded`, а не full `load`, потому что пользовательский verdict здесь опирается на готовность Workbench UI, а не на завершение всего dev-chunk хвоста;
+  - assertions проверяют level-3 context и signal/path для `styles.ts`.
+- Для первого входа в multi-file уровень `components/desengine/lab/Code/Code.tsx` теперь считает известным только первый рабочий файл, если session-state ещё не накоплен. Это возвращает ожидаемый сигнал “новый файл уровня” для `styles.ts`.
 
 ## Что проверено
 
 - Выполнен `npm run test:unit -- test/unit/p1-source-contracts.test.ts`
 - Выполнен `npm run build`
 - Browser-level spec добавлен и запускается командой `npm run test:e2e -- test/e2e/workbench-context-visibility.spec.ts`
+- Внешний верификатор подтвердил:
+  - `npm run test:unit -- test/unit/preview-client-id.test.ts test/unit/project-ui-kit-switching.test.ts test/unit/sandpack-preview.test.ts`
+  - `DESENGINE_E2E_FIXTURE_ACCESS=1 DESENGINE_E2E_PORT=3503 node tools/testing/run-browser-verification-runtime.mjs test/e2e/workbench-context-visibility.spec.ts`
+  - итог browser-spec: `1 passed`
 
-## Блокер финальной приёмки
+## Что было локализовано по пути
 
-- В этой среде финальный browser verdict не получен не из-за product failure, а из-за падения Playwright browser runtime до открытия страницы:
-  - `browserType.launch ... Target page, context or browser has been closed`
-  - Chrome/Chromium завершается `SIGABRT`, затем `kill EPERM`
-- Поэтому этот change нельзя честно закрывать в текущем окружении, хотя code/build и e2e scenario уже подготовлены.
-
-## Следующий шаг для внешнего верификатора
-
-- Поднять внешний server path:
-  - `DESENGINE_E2E_EXTERNAL_SERVER=1`
-  - `DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410`
-  - `DESENGINE_E2E_FIXTURE_ACCESS=1`
-- Запустить:
-  - `npm run test:e2e -- test/e2e/workbench-context-visibility.spec.ts`
-- Подтвердить по сути:
-  - context block (`Контекст уровня`, `Что важно в этой задаче`, `Полное пояснение уровня`) виден сразу после входа в Workbench;
-  - сигнал о `styles.ts` появляется до ручного поиска файла;
-  - `styles.ts` оказывается в первичном фокусе пользователя, а не остаётся скрытым во втором табе.
+- Сначала browser-layer падал не по UX-change, а по системным причинам: broken Playwright launcher path, stale dev server и chunk drift.
+- После стабилизации browser verification вскрылся реальный product crash: `Maximum update depth exceeded` в `OutRender.tsx` на `ref -> setPreviewClientId`.
+- После устранения crash-path остался уже только contract drift самого spec: fixture ошибочно сидел на level 2, где `styles.ts` не разрешён текущим `editableFileIds`.
+- После перевода fixture на level 3 и выравнивания baseline нового файла change получил валидную внешнюю browser-приёмку.

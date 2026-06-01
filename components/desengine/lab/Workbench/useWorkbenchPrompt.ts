@@ -5,6 +5,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { IterateTaskSuccessBody } from "@/lib/task/actions/types";
 
 import type { WorkbenchProps } from "./props";
+import { buildWorkbenchActionNetworkMessage, fetchWorkbenchActionJson } from "./actionTimeout";
 
 function resolvePromptRunSuccessState(data: Pick<IterateTaskSuccessBody, "message" | "resultKind">) {
     return {
@@ -12,6 +13,78 @@ function resolvePromptRunSuccessState(data: Pick<IterateTaskSuccessBody, "messag
         clearPrompt: data.resultKind === "applied",
         refreshPreview: data.resultKind === "applied",
     };
+}
+
+type PromptRunOutcome = {
+    kind: "success";
+    promptText: string;
+    data: IterateTaskSuccessBody;
+} | {
+    kind: "error";
+    error: string;
+};
+
+async function postPrompt(taskId: string, prompt: string) {
+    return fetchWorkbenchActionJson<IterateTaskSuccessBody>({
+        url: `/api/tasks/${taskId}/iterate`,
+        actionLabel: "Уточнение",
+        fallbackError: "Ошибка запуска итерации",
+        init: {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ prompt }),
+        },
+    });
+}
+
+async function runPromptSubmission(args: {
+    saveBeforeAction: () => Promise<boolean>;
+    taskId: string;
+    promptText: string;
+    currentLevelStarted: boolean;
+    setPromptPending: (pending: boolean) => void;
+    setPromptStatus: (status: string) => void;
+    setPromptError: (error: string) => void;
+    postPromptImpl?: typeof postPrompt;
+}): Promise<PromptRunOutcome | null> {
+    if (!(await args.saveBeforeAction())) return null;
+
+    args.setPromptStatus("");
+    args.setPromptError("");
+
+    if (!args.currentLevelStarted) {
+        args.setPromptError("Сначала начните текущий уровень");
+        return null;
+    }
+
+    if (!args.promptText.trim()) {
+        args.setPromptError("Введите уточняющий промпт");
+        return null;
+    }
+
+    args.setPromptPending(true);
+
+    try {
+        const postPromptImpl = args.postPromptImpl ?? postPrompt;
+        const data = await postPromptImpl(args.taskId, args.promptText);
+
+        if (!data?.ok) {
+            args.setPromptError(data?.error || "Ошибка запуска итерации");
+            return { kind: "error", error: data?.error || "Ошибка запуска итерации" };
+        }
+
+        return {
+            kind: "success",
+            promptText: args.promptText,
+            data,
+        };
+    } catch {
+        const error = buildWorkbenchActionNetworkMessage("Ошибка запуска итерации");
+        args.setPromptError(error);
+        return { kind: "error", error };
+    } finally {
+        args.setPromptPending(false);
+    }
 }
 
 function usePromptController(
@@ -26,19 +99,22 @@ function usePromptController(
     const [promptPending, setPromptPending] = useState(false);
 
     async function handlePromptRun() {
-        if (!(await saveBeforeAction())) return;
-        setPromptStatus("");
-        setPromptError("");
-        if (!props.taskItem.progress.currentLevelStarted) return setPromptError("Сначала начните текущий уровень");
-        if (!promptText.trim()) return setPromptError("Введите уточняющий промпт");
-        setPromptPending(true);
-        const data = await postPrompt(props.taskItem.id, promptText);
-        setPromptPending(false);
-        if (!data?.ok) return setPromptError(data?.error || "Ошибка запуска итерации");
-        props.onTaskItemChange(data.taskItem ?? null);
-        replaceTaskData(data.taskData);
-        props.onTransition(data.transition ?? null);
-        const nextState = resolvePromptRunSuccessState(data);
+        const outcome = await runPromptSubmission({
+            saveBeforeAction,
+            taskId: props.taskItem.id,
+            promptText,
+            currentLevelStarted: props.taskItem.progress.currentLevelStarted,
+            setPromptPending,
+            setPromptStatus,
+            setPromptError,
+        });
+
+        if (!outcome || outcome.kind !== "success") return;
+
+        props.onTaskItemChange(outcome.data.taskItem ?? null);
+        replaceTaskData(outcome.data.taskData);
+        props.onTransition(outcome.data.transition ?? null);
+        const nextState = resolvePromptRunSuccessState(outcome.data);
         if (nextState.refreshPreview) {
             setPreviewVersion((current) => current + 1);
         }
@@ -49,16 +125,6 @@ function usePromptController(
     }
 
     return { handlePromptRun, promptError, promptPending, promptStatus, promptText, setPromptError, setPromptStatus, setPromptText };
-}
-
-async function postPrompt(taskId: string, prompt: string) {
-    const res = await fetch(`/api/tasks/${taskId}/iterate`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ prompt }),
-    });
-    const data = await res.json().catch(() => null);
-    return res.ok ? data : { ok: false, error: data?.error };
 }
 
 function usePromptInput(prompt: ReturnType<typeof usePromptController>) {
@@ -77,4 +143,4 @@ function usePromptInput(prompt: ReturnType<typeof usePromptController>) {
     return { handlePromptChange, handlePromptKeyDown };
 }
 
-export { resolvePromptRunSuccessState, usePromptController, usePromptInput };
+export { postPrompt, resolvePromptRunSuccessState, runPromptSubmission, usePromptController, usePromptInput };

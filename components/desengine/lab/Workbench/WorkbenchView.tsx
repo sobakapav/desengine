@@ -292,7 +292,7 @@ function WorkbenchBody({ controller, props }: { controller: WorkbenchController;
     const levelReadyForWork = props.taskItem.progress.currentLevelStarted;
 
     return (
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-3">
             <WorkbenchHeader
                 taskItem={props.taskItem}
                 completePending={controller.actions.completePending}
@@ -341,7 +341,7 @@ function TaskTip({
     return (
         <div
             data-testid="workbench-context-block"
-            className="space-y-4 rounded-2xl border border-black/10 bg-[#f8f4eb] p-4 shadow-sm"
+            className="space-y-3 rounded-2xl border border-black/10 bg-[#f8f4eb] p-3 shadow-sm"
         >
             <div className="space-y-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/45">Контекст уровня</p>
@@ -400,8 +400,8 @@ function WorkbenchOverview({ controller, props }: { controller: WorkbenchControl
     const commonExplanation = props.taskData.labContext?.commonExplanation ?? "";
 
     return (
-        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.9fr)]">
-            <div data-testid="workbench-preview-block" className="rounded-2xl border border-black/10 bg-[#f6f2ea] p-3 shadow-sm">
+        <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.9fr)]">
+            <div data-testid="workbench-preview-block" className="rounded-2xl border border-black/10 bg-[#f6f2ea] p-2.5 shadow-sm">
                 <InOut
                     task={props.taskItem.id}
                     taskData={props.taskData}

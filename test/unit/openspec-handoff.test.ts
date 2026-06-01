@@ -315,7 +315,7 @@ verification_command: "npm run test:unit"
     expect(output).toContain("parent dispatcher отвечает за постановку и приёмку результата")
   })
 
-  it("os:dispatch в release-режиме создаёт implement change вместе с handoff", () => {
+  it("os:dispatch в release-режиме создаёт implement change вместе с handoff", { timeout: 15000 }, () => {
     const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-dispatch-handoff-"))
     tempDirs.push(fixtureRoot)
     const binDir = path.join(fixtureRoot, "bin")

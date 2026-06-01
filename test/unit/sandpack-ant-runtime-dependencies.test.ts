@@ -68,12 +68,41 @@ describe("sandpack ant runtime dependencies", () => {
     }
   })
 
-  it("payload по умолчанию для shadcn включает runtime-зависимости Radix", async () => {
+  it("payload для shadcn-компонента с dialog включает runtime-зависимости Radix", async () => {
     const radixDialogDependencies = readInstalledPackageDependencies("@radix-ui/react-dialog")
     const payload = await buildSandpackPreviewPayload({
-      component: "export default function Component() { return <div>ok</div> }\n",
+      component: `
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+
+export default function Component() {
+  return (
+    <Dialog>
+      <DialogTrigger>Открыть</DialogTrigger>
+      <DialogContent>ok</DialogContent>
+    </Dialog>
+  )
+}
+`,
       uiBadge: "export function Badge() { return null }\n",
       systemUtils: "export function cn() { return \"\" }\n",
+      shadcnFiles: {
+        "components/ui/dialog.tsx": `
+import * as React from "react"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
+
+export function Dialog({ children }: { children: React.ReactNode }) {
+  return <DialogPrimitive.Root>{children}</DialogPrimitive.Root>
+}
+
+export function DialogTrigger({ children }: { children: React.ReactNode }) {
+  return <DialogPrimitive.Trigger>{children}</DialogPrimitive.Trigger>
+}
+
+export function DialogContent({ children }: { children: React.ReactNode }) {
+  return <DialogPrimitive.Content>{children}</DialogPrimitive.Content>
+}
+`,
+      },
     })
     const resolvedDependencies = payload.customSetup.dependencies
 

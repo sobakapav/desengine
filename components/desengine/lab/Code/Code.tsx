@@ -185,7 +185,7 @@ function CodeTab({ title, file, isDirty }: { title: string; file: string; isDirt
 }
 
 const SEEN_WORKBENCH_FILES_STORAGE_KEY = "desengine:workbench:seen-files";
-const DEFAULT_KNOWN_FILE_COUNT = 2;
+const DEFAULT_KNOWN_FILE_COUNT = 1;
 
 function buildNextScreenEvent(screenEvent: CodeProps["screenEvent"], nextFileId: string) {
   return changeLabTaskScreenEventInput({

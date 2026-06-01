@@ -7,7 +7,7 @@ import {
     useSandpack,
     useSandpackPreviewProgress,
 } from "@codesandbox/sandpack-react/unstyled";
-import { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { SandpackPreviewPayload } from "@/lib/lab/sandpack-preview";
 import { createDefaultProject } from "@/lib/project/runtime";
@@ -18,9 +18,14 @@ import {
     type PreviewRuntimeContractState,
     type PreviewRuntimeContractStatus,
 } from "../preview-runtime-contract-state";
+import { resolvePreviewClientId } from "../preview-client-id";
 const SANDBOX_RUNTIME_VERSION = "2026-05-20-ant-shim-v3";
 const PREVIEW_RUNTIME_CONTRACT_TIMEOUT_MS = 12_000;
 const PREVIEW_FETCH_TIMEOUT_MS = 12_000;
+
+type SandpackPreviewRef = {
+    clientId: string;
+};
 
 type PreviewRuntimeContractMessage = {
     source: "desengine-sandpack-preview";
@@ -167,8 +172,6 @@ function usePreviewRuntimeContract(moduleUrl: string, enabled: boolean) {
         setRuntimeContractState: setContractState,
     };
 }
-
-type SandpackPreviewRef = NonNullable<ComponentProps<typeof SandpackPreview>["ref"]> extends ((instance: infer T | null) => void) ? T : never;
 
 function SandpackRuntimeActivityBridge({
     clientId,
@@ -325,14 +328,28 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
         compatibility.status === "compatible",
     );
     const [previewClientId, setPreviewClientId] = useState<string | null>(null);
+    const previewClientIdRef = useRef<string | null>(null);
 
     useEffect(() => {
+        previewClientIdRef.current = null;
         setPreviewClientId(null);
     }, [moduleUrl]);
 
-    function handleRuntimeContractChange(next: PreviewRuntimeContractState) {
+    const handlePreviewRef = useCallback((value: SandpackPreviewRef | null) => {
+        const nextClientId = value?.clientId ?? null;
+        const resolvedClientId = resolvePreviewClientId(previewClientIdRef.current, nextClientId);
+
+        if (resolvedClientId === previewClientIdRef.current) {
+            return;
+        }
+
+        previewClientIdRef.current = resolvedClientId;
+        setPreviewClientId(resolvedClientId);
+    }, []);
+
+    const handleRuntimeContractChange = useCallback((next: PreviewRuntimeContractState) => {
         setRuntimeContractState((current) => mergePreviewRuntimeContractState(current, next));
-    }
+    }, [setRuntimeContractState]);
 
     if (compatibility.status === "incompatible") {
         return (
@@ -381,10 +398,7 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
                 />
                 <SandpackRuntimeDiagnosticsNotice payload={previewPayload} />
                 <SandpackPreview
-                    ref={(value) => {
-                        const nextClientId = value?.clientId ?? null;
-                        setPreviewClientId((current) => (current === nextClientId ? current : nextClientId));
-                    }}
+                    ref={handlePreviewRef}
                     showNavigator={false}
                     showOpenInCodeSandbox={false}
                     showOpenNewtab={false}

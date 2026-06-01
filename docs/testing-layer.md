@@ -134,7 +134,8 @@ node tools/testing/run-browser-verification-runtime.mjs test/e2e/browser-verific
 
 Wrapper:
 
-- сам поднимает изолированный `next dev`;
+- сначала пытается переиспользовать уже живой target server через `DESENGINE_E2E_BASE_URL` или стандартный localhost-port browser/e2e;
+- если подходящего живого target server нет, поднимает изолированный `next dev` напрямую через `node_modules/.bin/next`;
 - выполняет shell-level target preflight;
 - запускает browser spec во внешнем режиме;
 - форсирует `DESENGINE_E2E_RUNNER=browser-wrapper` и стабильный канал `PLAYWRIGHT_BROWSER_CHANNEL=chromium`.

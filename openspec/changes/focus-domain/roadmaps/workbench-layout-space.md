@@ -2,7 +2,7 @@
 
 ## Владелец
 
-`focus-features` владеет roadmap layout-пространства workbench и предоставляет его `dispatcher-workbench`.
+`focus-domain` владеет roadmap layout-пространства workbench и предоставляет его `dispatcher-workbench`.
 
 ## Контур roadmap
 

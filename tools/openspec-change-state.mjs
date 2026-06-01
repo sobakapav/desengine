@@ -1,8 +1,10 @@
 import fs from "node:fs"
 import path from "node:path"
 import { spawnSync } from "node:child_process"
+import { fileURLToPath } from "node:url"
 
 const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
+const TOOLS_DIR = path.dirname(fileURLToPath(import.meta.url))
 
 function parseRoadmapRefs(text) {
   const refs = []
@@ -111,12 +113,12 @@ export function createImplementChange(implementName, description) {
     throw new Error("Имя исполнительского change должно начинаться с implement- или fix-.")
   }
 
-  const args = [path.join("tools", "create-openspec-change.mjs"), implementName]
+  const args = [path.join(TOOLS_DIR, "create-openspec-change.mjs"), implementName]
   if (description) {
     args.push("--description", description)
   }
 
-  const result = spawnSync("node", args, { cwd: process.cwd(), stdio: "inherit" })
+  const result = spawnSync(process.execPath, args, { cwd: process.cwd(), stdio: "inherit" })
 
   if (typeof result.status === "number" && result.status !== 0) {
     process.exit(result.status)

@@ -1,6 +1,6 @@
 ## Context
 
-В active OpenSpec уже есть runtime/spec-основание для Workbench и связанного workflow-контракта. Этот dispatcher не заменяет их и не создаёт новую параллельную capability, а задаёт управляемую рамку для дальнейшего развития workbench-линии внутри `focus-features`.
+В active OpenSpec уже есть runtime/spec-основание для Workbench и связанного workflow-контракта. Этот dispatcher не заменяет их и не создаёт новую параллельную capability, а задаёт управляемую рамку для дальнейшего развития workbench-линии внутри `focus-domain`.
 
 Особенно важно зафиксировать две границы:
 
@@ -95,7 +95,7 @@ Layout/space workbench остаётся частным продуктовым с
 - layout-сценарии используют тот же registry и ту же модель `WorkbenchDefinition/Instance`;
 - layout tools подключаются как частный набор инструментов общего workbench-контракта;
 - решение о том, является ли layout отдельным шагом workflow или внутренним tool-набором, принимается downstream, но в рамках одного dispatcher `dispatcher-workbench`;
-- для этого dispatcher используется inherited roadmap `focus-features/roadmaps/workbench-layout-space.md`.
+- для этого dispatcher используется inherited roadmap `focus-domain/roadmaps/workbench-layout-space.md`.
 
 ### Входы, выходы и навигация
 

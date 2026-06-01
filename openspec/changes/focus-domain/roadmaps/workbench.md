@@ -2,7 +2,7 @@
 
 ## Владелец
 
-`focus-features` владеет roadmap сущности Workbench и поддерживает его для `dispatcher-workbench`.
+`focus-domain` владеет roadmap сущности Workbench и поддерживает его для `dispatcher-workbench`.
 
 ## Что задаёт roadmap
 

@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-01
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "fix"
+execution_mode: "code"
+parent_change: "dispatcher-bugfix"
+strategy_root: "focus-quality"
+roadmap_ref: "focus-quality/roadmaps/bugfix-dispatching.md"
+release_ref: ""
+producer_ref: ""
+verification_level: "component/browser"
+verification_command: "DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs test/e2e/check-result-before-next-level-screen.spec.ts"
+issue: ""
+short: "сначала показать результат проверки, а не экран следующего уровня"

@@ -354,6 +354,12 @@
 - **THEN** система создаёт локальный `ProjectWorkspace` с `id`, `title`, `createdAt`, `updatedAt` и `settings`
 - **AND** `uiKitId` и `uiMode` сохраняются внутри `ProjectWorkspace.settings`
 
+#### Scenario: Лаборатория переводит локальные project settings на shadcn/ui при rehydration
+- **WHEN** лаборатория читает локальный `ProjectWorkspace` из browser storage
+- **THEN** система нормализует `project.settings.uiKitId` к `shadcn`
+- **AND** нормализует `project.settings.uiMode` к `ui-kit`
+- **AND** preview не наследует старые локальные `ant`, `mui` или `html-tags` настройки
+
 #### Scenario: Пользователь переключает UI kit проекта без перезагрузки страницы
 - **WHEN** пользователь меняет `project.settings.uiKitId` в лаборатории
 - **THEN** страница лаборатории не перезагружается

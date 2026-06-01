@@ -23,6 +23,17 @@ type BrowserProjectStorageOptions = {
 const PROJECT_REGISTRY_STORAGE_KEY = "desengine:project-workspaces"
 const ACTIVE_PROJECT_ID_STORAGE_KEY = "desengine:active-project-id"
 
+function forceProjectWorkspaceToShadcn(project: ProjectWorkspace): ProjectWorkspace {
+  return serializeProjectWorkspace({
+    ...project,
+    settings: {
+      ...project.settings,
+      uiKitId: "shadcn",
+      uiMode: "ui-kit",
+    },
+  })
+}
+
 function readStorageJson(storage: Storage, key: string): unknown {
   const raw = storage.getItem(key)
   if (!raw) return null
@@ -37,7 +48,7 @@ function readStorageJson(storage: Storage, key: string): unknown {
 function normalizeProjectList(rawList: unknown): ProjectWorkspace[] {
   if (!Array.isArray(rawList)) return []
 
-  return rawList.map((item) => normalizeProject(item as RawProject))
+  return rawList.map((item) => forceProjectWorkspaceToShadcn(normalizeProject(item as RawProject)))
 }
 
 function mergeProject(projects: ProjectWorkspace[], project: ProjectWorkspace) {
@@ -55,11 +66,11 @@ function readLegacyTaskProject(storage: Storage, taskId: string) {
   const legacyProject = readStorageJson(storage, getProjectStorageKey(taskId))
   if (!legacyProject || typeof legacyProject !== "object") return null
 
-  return normalizeProject({
+  return forceProjectWorkspaceToShadcn(normalizeProject({
     ...(legacyProject as RawProject),
     id: `task-${taskId}`,
     title: `Проект ${taskId}`,
-  })
+  }))
 }
 
 function readBrowserStoredProjects(storage: Storage, taskId?: string) {
@@ -121,10 +132,10 @@ function createBrowserProjectStorage({ storage, taskId }: BrowserProjectStorageO
       return projects.find((project) => project.id === projectId) ?? null
     },
     async saveProject(project: ProjectWorkspace) {
-      const normalized = serializeProjectWorkspace({
+      const normalized = forceProjectWorkspaceToShadcn(serializeProjectWorkspace({
         ...project,
         updatedAt: new Date().toISOString(),
-      })
+      }))
       const projects = await listProjects()
       writeProjects(mergeProject(projects, normalized))
     },
@@ -149,7 +160,7 @@ function createMemoryProjectStorage(initialProjects: ProjectWorkspace[] = []): P
       return projects.find((project) => project.id === projectId) ?? null
     },
     async saveProject(project: ProjectWorkspace) {
-      projects = mergeProject(projects, serializeProjectWorkspace(project))
+      projects = mergeProject(projects, forceProjectWorkspaceToShadcn(serializeProjectWorkspace(project)))
     },
     async getActiveProjectId() {
       return activeProjectId

@@ -19,11 +19,16 @@ desengine должен поддерживать не только отдельн
 - В нём фиксируется общая продуктовая гипотеза:
   - пользователь работает внутри выбранного проекта;
   - проект имеет собственные данные, настройки и рабочее пространство;
-  - проект может иметь roadmap/plan как управляемый слой поверх задач и workflow.
+  - проект может позже получить roadmap/plan как управляемый слой поверх задач и workflow.
 - Change удерживает вместе три поднаправления:
   - `Project Workspace` и `dev-mode`;
   - `Task`/`Workflow` как project-scoped сущности;
-  - `Project Roadmap` и связь roadmap ↔ задачи ↔ прогресс.
+  - будущий `Project Roadmap` и связь roadmap ↔ задачи ↔ прогресс.
+- Для первой волны приоритетом считается MVP project mode:
+  - выбор активного проекта;
+  - project-scoped данные и настройки;
+  - привязка задач и workflow к проекту.
+- Roadmap проекта остаётся следующей продуктовой волной после стабилизации MVP project mode.
 
 ## Non-goals
 
@@ -44,16 +49,36 @@ desengine должен поддерживать не только отдельн
 - `workflow`
 - `level-labs`
 
+## Impact
+
+- В дереве активных changes появляется единый продуктовый контекст для project mode вместо раннего разведения темы на две независимые линии.
+- Downstream changes получают MVP-first рамку:
+  - сначала `Project Workspace` и project-scoped `Task` / `Workflow`;
+  - затем `Project Roadmap` как отдельное расширение.
+- OpenSpec-оформление change становится совместимым с текущей traceability-нормой для `idea/no-code`.
+
 ## Acceptance Criteria
 
 - В OpenSpec есть единый idea-change, который описывает проектный режим как цельный продуктовый контур.
 - В одном месте зафиксированы:
   - сущность проекта и project-scoped данные;
   - связь задач и workflow с проектом;
-  - roadmap проекта и его связь с задачами.
+  - будущая связь roadmap проекта с задачами и прогрессом.
 - Для downstream changes перечислены главные вопросы:
   - как устроен `Project Workspace`;
   - какие данные становятся project-scoped и в каком порядке;
-  - как roadmap влияет на выбор/шаблоны workflow задач;
+  - нужен ли roadmap уже после MVP и как он влияет на выбор/шаблоны workflow задач;
   - как пользователь видит и управляет прогрессом проекта.
 - Сохранён понятный тестовый и traceability-план для будущих behavior-change changes.
+
+## Тестовая часть change
+
+- Затронутые OpenSpec capability/scenarios:
+  - capability: `projects`
+  - capability: `task`
+  - capability: `workflow`
+  - scenario: OpenSpec фиксирует MVP-first декомпозицию project mode и traceability для последующих изменений.
+- Уровень проверки: `static/contract` (валидация OpenSpec-артефактов).
+- Команда запуска: `npm run test:traceability`.
+- Mock/fixture-данные: не требуются.
+- Live credentials: не требуются.

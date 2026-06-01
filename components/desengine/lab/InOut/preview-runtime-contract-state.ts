@@ -9,6 +9,10 @@ function mergePreviewRuntimeContractState(
     current: PreviewRuntimeContractState,
     next: PreviewRuntimeContractState,
 ) {
+    if (current.status === next.status && current.message === next.message) {
+        return current;
+    }
+
     if (next.status === "loading") {
         return current.status === "idle" || current.status === "loading" ? next : current;
     }

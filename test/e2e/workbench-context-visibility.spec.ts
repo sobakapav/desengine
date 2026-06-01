@@ -41,8 +41,8 @@ function prepareWorkbenchVisibilityFixture(rootDir: string) {
   }
 
   progress.tasks[taskId] = {
-    currentLevel: 2,
-    updatedAt: "2026-06-01T09:15:00.000Z",
+    currentLevel: 3,
+    updatedAt: "2026-06-01T09:20:00.000Z",
     levels: {
       "1": {
         status: "completed",
@@ -54,14 +54,23 @@ function prepareWorkbenchVisibilityFixture(rootDir: string) {
         checkingState: "idle",
       },
       "2": {
-        status: "in_progress",
-        isPassed: false,
+        status: "completed",
+        isPassed: true,
         promptsUsed: 2,
         initializedAt: "2026-06-01T09:10:00.000Z",
+        completedAt: "2026-06-01T09:14:00.000Z",
         checkAttemptsUsed: 0,
         checkingState: "idle",
       },
       "3": {
+        status: "in_progress",
+        isPassed: false,
+        promptsUsed: 2,
+        initializedAt: "2026-06-01T09:16:00.000Z",
+        checkAttemptsUsed: 0,
+        checkingState: "idle",
+      },
+      "4": {
         status: "available",
         isPassed: false,
         promptsUsed: 0,
@@ -109,12 +118,12 @@ function prepareWorkbenchVisibilityFixture(rootDir: string) {
     {
       text: "Подключи кнопку из UI kit",
       createdAt: "2026-06-01T09:10:30.000Z",
-      levelNumber: 2,
+      levelNumber: 3,
     },
     {
       text: "Сделай CTA заметнее",
       createdAt: "2026-06-01T09:11:30.000Z",
-      levelNumber: 2,
+      levelNumber: 3,
     },
   ])
 }
@@ -161,7 +170,7 @@ test.describe("workbench context visibility", () => {
     }])
 
     await page.setViewportSize({ width: 1440, height: 960 })
-    await page.goto(`/lab/${taskId}`)
+    await page.goto(`/lab/${taskId}`, { waitUntil: "domcontentloaded" })
 
     await expect(page.getByText("Рабочий стол")).toBeVisible()
     await expect(page.getByText("Что важно в этой задаче")).toBeVisible()
@@ -173,9 +182,9 @@ test.describe("workbench context visibility", () => {
     await expect(previewBlock).toBeVisible()
     await expect(contextBlock).toBeVisible()
     await expect(statusBlock).toContainText("Уровень")
-    await expect(statusBlock).toContainText("2 из 5")
+    await expect(statusBlock).toContainText("3 из 5")
     await expect(statusBlock).toContainText("Промпты")
-    await expect(statusBlock).toContainText("2 / 3")
+    await expect(statusBlock).toContainText("2 / 2")
     await expect(statusBlock).toContainText("Файлы")
     await expect(contextBlock).toContainText("styles.ts")
 
@@ -184,7 +193,7 @@ test.describe("workbench context visibility", () => {
 
     const explanation = page.getByTestId("workbench-level-explanation")
     await explanation.locator("summary").click()
-    await expect(explanation).toContainText("Вы получили код компонента из ничего")
+    await expect(explanation).toContainText("До сих пор мы жили в одном файле")
 
     const newFileCallout = page.getByTestId("code-new-file-callout")
     const newStylesBadge = page.getByTestId("code-tab-badge-new-styles")

@@ -204,7 +204,8 @@ npm run os:dispatch -- release-... --dispatcher dispatcher-... --kind fix --name
 4. архивирует change в `openspec/changes/archive/YYYY-MM-DD-<change>`.
 
 Wrapper сам:
-- поднимает изолированный `next dev`;
+- сначала пытается переиспользовать уже живой target server через `DESENGINE_E2E_BASE_URL` или стандартный localhost-port browser/e2e;
+- если подходящего живого target server нет, поднимает изолированный `next dev` напрямую через `node_modules/.bin/next`;
 - выполняет shell-level target probe через прямой `curl` к `/auth`;
 - запускает Playwright-проверку `browser-launch` / `browser-route` через `test/e2e/browser-verification-runtime.spec.ts`;
 - форсирует `DESENGINE_E2E_RUNNER=browser-wrapper` и стабильный `PLAYWRIGHT_BROWSER_CHANNEL=chromium`.
