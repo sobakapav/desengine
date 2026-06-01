@@ -40,6 +40,8 @@ export type UserStateSnapshotEntry = {
   mtimeMs: number
 }
 
+export type UserStateInvariantEntry = Pick<UserStateSnapshotEntry, "relativePath" | "size">
+
 function walkFiles(dirPath: string, result: string[] = []) {
   if (!fs.existsSync(dirPath)) {
     return result
@@ -75,4 +77,10 @@ export function snapshotUserState(rootDir = process.cwd()): UserStateSnapshotEnt
         mtimeMs: stat.mtimeMs,
       }
     })
+}
+
+export function projectUserStateInvariant(
+  entries: UserStateSnapshotEntry[],
+): UserStateInvariantEntry[] {
+  return entries.map(({ relativePath, size }) => ({ relativePath, size }))
 }

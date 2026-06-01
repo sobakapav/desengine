@@ -1,7 +1,7 @@
 "use client";
 
 import { SandpackPreview, SandpackProvider, useSandpack } from "@codesandbox/sandpack-react/unstyled";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { SandpackPreviewPayload } from "@/lib/lab/sandpack-preview";
 import { createDefaultProject } from "@/lib/project/runtime";
@@ -9,6 +9,7 @@ import { createDefaultProject } from "@/lib/project/runtime";
 import { OutRenderProps } from "./props";
 const SANDBOX_RUNTIME_VERSION = "2026-05-20-ant-shim-v3";
 const PREVIEW_RUNTIME_CONTRACT_TIMEOUT_MS = 12_000;
+const PREVIEW_FETCH_TIMEOUT_MS = 12_000;
 
 type PreviewRuntimeContractStatus = "idle" | "ready" | "unstyled-dom" | "render-error";
 type PreviewRuntimeContractMessage = {
@@ -42,6 +43,15 @@ function PreviewStyleContractNotice({ message }: { message: string }) {
     return (
         <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
             <p className="font-medium">Preview отрисовал DOM без подтверждённого style contract.</p>
+            <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
+        </div>
+    );
+}
+
+function PreviewRuntimeContractErrorNotice({ message }: { message: string }) {
+    return (
+        <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+            <p className="font-medium">Компонент не удалось отрендерить в preview.</p>
             <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
         </div>
     );
@@ -150,38 +160,88 @@ function usePreviewRuntimeContract(moduleUrl: string, enabled: boolean) {
 
 function usePreviewPayload({ moduleUrl, started }: { moduleUrl: string; started: boolean }) {
     const [error, setError] = useState<string>("");
+    const [loading, setLoading] = useState(false);
     const [previewPayload, setPreviewPayload] = useState<SandpackPreviewPayload | null>(null);
+    const requestIdRef = useRef(0);
 
     useEffect(() => {
-        let cancelled = false;
+        const requestId = requestIdRef.current + 1;
+        requestIdRef.current = requestId;
+        const controller = new AbortController();
+
+        function isCurrentRequest() {
+            return requestIdRef.current === requestId;
+        }
+
+        function createTimeoutError() {
+            return new Error("preview-fetch-timeout");
+        }
+
+        async function withTimeout<T>(promise: Promise<T>) {
+            return await new Promise<T>((resolve, reject) => {
+                const timeoutId = window.setTimeout(() => {
+                    controller.abort("preview-fetch-timeout");
+                    reject(createTimeoutError());
+                }, PREVIEW_FETCH_TIMEOUT_MS);
+
+                promise.then(
+                    (value) => {
+                        window.clearTimeout(timeoutId);
+                        resolve(value);
+                    },
+                    (reason) => {
+                        window.clearTimeout(timeoutId);
+                        reject(reason);
+                    },
+                );
+            });
+        }
 
         async function load() {
             setError("");
-            setPreviewPayload(null);
+            setLoading(started);
 
-            if (!started) return;
+            if (!started) {
+                setPreviewPayload(null);
+                return;
+            }
 
             try {
-                const res = await fetch(moduleUrl, { method: "GET", cache: "no-store" });
-                const data = await res.json().catch(() => null);
+                const res = await withTimeout(fetch(moduleUrl, {
+                    method: "GET",
+                    cache: "no-store",
+                    signal: controller.signal,
+                }));
+                const data = await withTimeout(res.json().catch(() => null));
 
                 if (!res.ok || !data?.ok) {
                     throw new Error(data?.error || "Ошибка загрузки предпросмотра");
                 }
 
-                if (cancelled) return;
+                if (!isCurrentRequest()) return;
                 setPreviewPayload(data as SandpackPreviewPayload);
             } catch (e) {
-                if (cancelled) return;
+                if (!isCurrentRequest()) return;
+                if ((e instanceof DOMException && e.name === "AbortError") || (e instanceof Error && e.message === "preview-fetch-timeout")) {
+                    setError("Загрузка превью превысила лимит ожидания. Проверьте route /api/tasks/*/sandpack и повторите попытку.");
+                    return;
+                }
+
                 setError(getErrorMessage(e, "Ошибка загрузки превью"));
+            } finally {
+                if (isCurrentRequest()) {
+                    setLoading(false);
+                }
             }
         }
 
         void load();
-        return () => { cancelled = true; };
+        return () => {
+            controller.abort("preview-fetch-cancelled");
+        };
     }, [moduleUrl, started]);
 
-    return { error, previewPayload };
+    return { error, loading, previewPayload };
 }
 
 function IdlePreviewNotice({ startStatus }: { startStatus: string }) {
@@ -215,9 +275,14 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
 
     return (
         <div className="w-full">
-            {runtimeContract.status === "unstyled-dom" || runtimeContract.status === "render-error" ? (
+            {runtimeContract.status === "unstyled-dom" ? (
                 <PreviewStyleContractNotice
                     message={runtimeContract.message || "Sandpack runtime не подтвердил применение preview CSS/Tailwind."}
+                />
+            ) : null}
+            {runtimeContract.status === "render-error" ? (
+                <PreviewRuntimeContractErrorNotice
+                    message={runtimeContract.message || "Sandpack runtime сообщил об ошибке рендера компонента."}
                 />
             ) : null}
             <SandpackProvider
@@ -262,8 +327,9 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
     );
 }
 
-function PreviewContent({ error, moduleUrl, previewPayload }: {
+function PreviewContent({ error, loading, moduleUrl, previewPayload }: {
     error: string;
+    loading: boolean;
     moduleUrl: string;
     previewPayload: SandpackPreviewPayload | null;
 }) {
@@ -274,7 +340,7 @@ function PreviewContent({ error, moduleUrl, previewPayload }: {
             ) : previewPayload ? (
                 <SandpackPreviewFrame moduleUrl={moduleUrl} previewPayload={previewPayload} />
             ) : (
-                <p className="text-muted-foreground">Загрузка рендера…</p>
+                <p className="text-muted-foreground">{loading ? "Загрузка рендера…" : "Превью ожидает следующей загрузки."}</p>
             )}
         </div>
     );
@@ -296,14 +362,14 @@ function OutRender({ task, started, reloadKey, startStatus, project }: OutRender
         },
         [previewProject.id, previewProject.title, previewProject.settings.uiKitId, previewProject.settings.uiMode, task, reloadKey],
     );
-    const { error, previewPayload } = usePreviewPayload({ moduleUrl, started });
+    const { error, loading, previewPayload } = usePreviewPayload({ moduleUrl, started });
 
     return (
         <div className="min-w-0">
             {!started ? (
                 <IdlePreviewNotice startStatus={startStatus} />
             ) : (
-                <PreviewContent error={error} moduleUrl={moduleUrl} previewPayload={previewPayload} />
+                <PreviewContent error={error} loading={loading} moduleUrl={moduleUrl} previewPayload={previewPayload} />
             )}
         </div>
     );

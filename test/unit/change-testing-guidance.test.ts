@@ -28,6 +28,7 @@ describe("change testing guidance", () => {
 
     expect(packageJson.scripts.test).toBe("npm run test:unit")
     expect(packageJson.scripts["test:unit"]).toBe("vitest run --project unit")
+    expect(packageJson.scripts["test:integration"]).toBe("vitest run --project integration")
     expect(packageJson.scripts["quality:text"]).toBe("node tools/quality-text/engine.mjs --scope=working")
     expect(packageJson.scripts["quality:text:branch"]).toBe("node tools/quality-text/engine.mjs --scope=branch")
     expect(packageJson.scripts["quality:text:repo"]).toBe("node tools/quality-text/engine.mjs --scope=repo")
@@ -121,11 +122,11 @@ describe("change testing guidance", () => {
     expect(packageJson.scripts["test:full"]).not.toContain("--llm=optional")
   })
 
-  it("placeholder-команды не блокируют runtime и объясняют следующий этап", () => {
+  it("placeholder-команды остаются только для ещё не реализованных слоёв", () => {
     const source = readProjectFile("tools", "testing", "pending-layer.mjs")
 
-    expect(source).toContain("integration")
     expect(source).toContain("spec")
+    expect(source).not.toContain("npm run test:integration")
     expect(source).toContain("слой ещё не реализован")
     expect(source).toContain("Сейчас этот placeholder завершается успешно")
   })

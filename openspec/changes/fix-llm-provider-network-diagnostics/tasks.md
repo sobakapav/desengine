@@ -1,9 +1,9 @@
 ## Tasks
 
-- [ ] 1. Локализовать provider-specific drift между runtime adapters и `llm-network`.
-- [ ] 2. Ввести корректную probe-definition для `openai`, `deepseek`, `gemini`, `claude`, `zai`.
-- [ ] 3. Убрать fallback на `OPENAI_API_KEY` вне OpenAI-compatible probe.
-- [ ] 4. Добавить unit coverage для provider-aware resource diagnostics.
+- [x] 1. Локализовать provider-specific drift между runtime adapters и `llm-network`.
+- [x] 2. Ввести корректную probe-definition для `openai`, `deepseek`, `gemini`, `claude`, `zai`.
+- [x] 3. Убрать fallback на `OPENAI_API_KEY` вне OpenAI-compatible probe.
+- [x] 4. Добавить unit coverage для provider-aware resource diagnostics.
 
 ## Тестовая часть change
 
@@ -24,3 +24,7 @@
 Mock/fixture-данные и credentials:
 - live credentials не нужны;
 - используются unit-mocks provider fetch и synthetic resource-status values.
+
+Результат выполнения в этой сессии:
+- `resource-status` получил anti-regression coverage для provider-aware probe `claude` и `zai`;
+- `llm-network` больше не использует generic `/models` и `OPENAI_API_KEY` для чужих provider branches.

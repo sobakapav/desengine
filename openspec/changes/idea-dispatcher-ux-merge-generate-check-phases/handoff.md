@@ -4,11 +4,11 @@
 
 ## Унаследованный контекст
 
-- parent_change: `dispatcher-ux`
-- strategy_root: `focus-quality`
+- parent_change: `focus-product`
+- strategy_root: `focus-product`
 - release_ref: (не задан)
 - producer_ref: (не задан)
-- Что из родительского change уже решено: `dispatcher-ux` уже зафиксировал, что UX-изменения должны оформляться отдельными downstream changes с человеко-понятной тестовой частью и без смешения с общим quality-контуром.
+- Что из родительского change уже решено: `focus-product` допускает продуктовые UX-гипотезы как отдельную линию, а downstream тактика может оформляться через `dispatcher-ux` без смешения со стратегическим контуром.
 
 ## Обязательные источники
 

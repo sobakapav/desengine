@@ -59,13 +59,14 @@ npm run test:live
 | `npm run test:full` | Обязательный слой текущего этапа: unit + traceability + code-quality-text. |
 | `npm run test:storybook` | Browser/component проверки Storybook; пока успешно проходит без story-файлов. |
 | `npm run test:e2e` | Playwright route smoke без live credentials. |
-| `npm run test:integration` | Зарезервировано для server/API-flow на fixtures. |
+| `npm run test:integration` | Integration-проверки route/API-flow в `test/integration/**/*.test.ts`. |
 | `npm run test:live` | Env-aware preflight для активного provider без реальных сетевых вызовов. |
 | `npm run test:spec -- <capability>` | Зарезервировано для выборочного запуска по OpenSpec capability. |
 
 ## Структура
 
 - `unit/` — быстрые unit и source-contract тесты.
+- `integration/` — route/API boundary без браузера и live credentials.
 - `e2e/` — короткие Playwright smoke-сценарии критичных маршрутов.
 - `fixtures/` — детерминированные данные для тестов.
 - `helpers/` — общие тестовые helper-функции.
@@ -110,6 +111,23 @@ npm run test:unit -- -t "часть названия"
 ```bash
 npm run test:traceability
 ```
+
+## Integration
+
+Integration-тесты запускаются командой:
+
+```bash
+npm run test:integration
+```
+
+Новые проверки route/API boundary добавляй в `test/integration/**/*.test.ts`.
+
+Этот слой:
+
+- импортирует реальные route handlers напрямую;
+- не поднимает `next dev` и не использует браузер;
+- подменяет runtime/service зависимости stub- и fixture-boundary;
+- не должен требовать live credentials и не должен писать в рабочий `user/`.
 
 ## Code Quality Text
 
@@ -180,6 +198,32 @@ PLAYWRIGHT_BROWSER_CHANNEL=chrome npm run test:e2e
 ```bash
 DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
 ```
+
+Внешний режим считается каноническим fallback для browser verification. Он требует явный `DESENGINE_E2E_BASE_URL`; молчаливый fallback на localhost в этом режиме запрещён.
+
+Preflight browser verification запускается отдельно:
+
+```bash
+DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410 npm run test:e2e -- test/e2e/browser-verification-runtime.spec.ts
+```
+
+Он разделяет две проверки:
+
+- target server действительно отвечает;
+- Chromium реально открывает базовый route.
+
+В managed-режиме Playwright сначала дожидается лёгкого readiness route `/api/status/llm`, а затем сам preflight отдельно проверяет `HTTP 200` от `/auth`. Так route-level проблема не маскируется под долгий старт `webServer`.
+
+Для `external-server verification` shell-level проверка target server должна идти отдельно, вне Playwright worker:
+
+```bash
+curl -fsS -o /dev/null -w '%{http_code}' --max-time 15 http://127.0.0.1:3410/auth | grep -qx '200'
+DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410 npm run test:e2e -- test/e2e/browser-verification-runtime.spec.ts
+```
+
+Это нужно потому, что в части сред сам test process может не иметь localhost transport, даже если внешний shell `curl` видит `HTTP 200`.
+
+Если preflight невалиден, downstream browser-fix нельзя считать принятым только по unit/static результатам.
 
 Текущий route smoke:
 

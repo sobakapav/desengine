@@ -14,6 +14,7 @@ const rootDir = process.cwd()
 const envPath = getLocalConfigPath(rootDir)
 const configPath = path.join(rootDir, "desengine.config.json")
 const markerFileName = ".desengine-onboarding-source.json"
+const canonicalDefaultPromptFileName = "default.njk"
 
 function readAppConfig() {
   const parsed = JSON.parse(fs.readFileSync(configPath, "utf-8"))
@@ -63,6 +64,7 @@ async function validateOnboardingLayout(root) {
   const levelsRoot = path.join(root, "levels")
   const tasksRoot = path.join(root, "tasks")
   const promptsRoot = path.join(root, "prompts")
+  const defaultPromptPath = path.join(promptsRoot, canonicalDefaultPromptFileName)
   const requiredDirs = [root, levelsRoot, tasksRoot, promptsRoot, path.join(promptsRoot, "levels")]
 
   for (const dir of requiredDirs) {
@@ -86,7 +88,6 @@ async function validateOnboardingLayout(root) {
     throw new Error("В onboarding-контенте не найдено ни одного каталога задачи.")
   }
 
-  const defaultPromptPath = path.join(promptsRoot, "default.md")
   if (!(await pathExists(defaultPromptPath))) {
     throw new Error(`Не найден обязательный файл onboarding-контента: ${path.relative(rootDir, defaultPromptPath)}.`)
   }

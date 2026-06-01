@@ -1,12 +1,11 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useState } from "react";
 import { type KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { MarkdownContent } from "../../system/MarkdownContent";
 import { InOut } from "../InOut";
-import { Prompt, PromptComposer } from "../Propmt";
-import { CodeList } from "../Code";
 import { Button } from "@/components/ui/button";
 import {
     AlertDialog,
@@ -23,6 +22,39 @@ import type { Project } from "@/lib/project/runtime";
 
 import type { WorkbenchProps } from "./props";
 import type { useWorkbenchController } from "./useWorkbenchController";
+
+const CodeList = dynamic(
+    () => import("../Code").then((module) => module.CodeList),
+    {
+        loading: () => (
+            <div className="rounded-md border p-4 text-sm text-muted-foreground">
+                Загружаем редактор…
+            </div>
+        ),
+    },
+);
+
+const Prompt = dynamic(
+    () => import("../Propmt").then((module) => module.Prompt),
+    {
+        loading: () => (
+            <div className="rounded-md border p-4 text-sm text-muted-foreground">
+                Загружаем историю уточнений…
+            </div>
+        ),
+    },
+);
+
+const PromptComposer = dynamic(
+    () => import("../Propmt").then((module) => module.PromptComposer),
+    {
+        loading: () => (
+            <div className="rounded-xl border bg-white p-4 text-sm text-muted-foreground shadow-2xl">
+                Загружаем форму уточнений…
+            </div>
+        ),
+    },
+);
 
 type WorkbenchController = ReturnType<typeof useWorkbenchController>;
 const SHOW_UI_KIT_SWITCHER = false;

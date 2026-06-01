@@ -13,6 +13,7 @@ import os from "node:os"
 import path from "node:path"
 
 import { ACCESS_COOKIE_NAME, createAccessSessionValue } from "../../lib/auth/control"
+import { resolveFixtureAccessSalt } from "../helpers/fixture-access"
 import {
   ACTIVE_PROJECT_ID_STORAGE_KEY,
   PROJECT_REGISTRY_STORAGE_KEY,
@@ -20,7 +21,7 @@ import {
 import { snapshotUserState, type UserStateSnapshotEntry } from "./fixtures/smoke-fixture"
 
 const fixtureAccessEnabled = process.env.DESENGINE_E2E_FIXTURE_ACCESS === "1"
-const fixtureAccessSalt = process.env.DESENGINE_E2E_ACCESS_SALT || "desengine-e2e-salt"
+const fixtureAccessSalt = resolveFixtureAccessSalt()
 
 function buildProjectStorageValue(taskId: string, overrides: {
   uiKitId: "shadcn" | "none" | "ant"
@@ -53,6 +54,17 @@ function writeJson(filePath: string, value: unknown) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf-8")
 }
 
+function buildFixturePromptHistory(currentLevel: number) {
+  return Array.from({ length: Math.max(currentLevel - 1, 0) }, (_, index) => {
+    const levelNumber = index + 1
+    return {
+      text: `Fixture prompt level ${levelNumber}`,
+      createdAt: `2026-05-28T09:0${levelNumber}:00.000Z`,
+      levelNumber,
+    }
+  })
+}
+
 function prepareStartedTaskFixture(rootDir: string, taskId: string, options: {
   currentLevel: number
   componentSource: string
@@ -61,6 +73,7 @@ function prepareStartedTaskFixture(rootDir: string, taskId: string, options: {
   const userRoot = path.join(rootDir, "user")
   const progressPath = path.join(userRoot, "user-progress.json")
   const taskRoot = path.join(userRoot, "tasks", taskId)
+  const checkResultPath = path.join(userRoot, "check-results", `${taskId}.json`)
   const progress = JSON.parse(fs.readFileSync(progressPath, "utf-8")) as {
     tasks: Record<string, {
       currentLevel: number
@@ -83,7 +96,7 @@ function prepareStartedTaskFixture(rootDir: string, taskId: string, options: {
       "1": {
         status: options.currentLevel === 1 ? "in_progress" : "completed",
         isPassed: options.currentLevel !== 1,
-        promptsUsed: 0,
+        promptsUsed: options.currentLevel > 1 ? 1 : 0,
         initializedAt: "2026-05-28T09:00:00.000Z",
         ...(options.currentLevel === 1 ? {} : { completedAt: "2026-05-28T09:01:00.000Z" }),
         checkAttemptsUsed: 0,
@@ -92,7 +105,7 @@ function prepareStartedTaskFixture(rootDir: string, taskId: string, options: {
       "2": {
         status: options.currentLevel === 2 ? "in_progress" : options.currentLevel > 2 ? "completed" : "available",
         isPassed: options.currentLevel > 2,
-        promptsUsed: 0,
+        promptsUsed: options.currentLevel > 2 ? 1 : 0,
         ...(options.currentLevel >= 2 ? { initializedAt: "2026-05-28T09:02:00.000Z" } : {}),
         ...(options.currentLevel > 2 ? { completedAt: "2026-05-28T09:03:00.000Z" } : {}),
         checkAttemptsUsed: 0,
@@ -110,12 +123,16 @@ function prepareStartedTaskFixture(rootDir: string, taskId: string, options: {
   }
 
   writeJson(progressPath, progress)
+  fs.rmSync(taskRoot, { recursive: true, force: true })
   fs.mkdirSync(taskRoot, { recursive: true })
   fs.writeFileSync(path.join(taskRoot, "Component.tsx"), options.componentSource, "utf-8")
+  writeJson(path.join(taskRoot, "prompt-history.json"), buildFixturePromptHistory(options.currentLevel))
 
   if (typeof options.stylesSource === "string") {
     fs.writeFileSync(path.join(taskRoot, "styles.ts"), options.stylesSource, "utf-8")
   }
+
+  fs.rmSync(checkResultPath, { force: true })
 }
 
 async function authorizeFixtureTask(context: BrowserContext, baseURL: string | undefined) {
@@ -268,7 +285,7 @@ export default function Component() {
     prepareStartedTaskFixture(repoRoot, "dipole-checkbox", {
       currentLevel: 1,
       componentSource: `export default function Component() {
-  return <div>Preview runtime contract</div>;
+  throw new Error("Тестовая runtime-ошибка preview");
 }
 `,
     })
@@ -276,22 +293,8 @@ export default function Component() {
     await seedProjectStorage(page, "dipole-checkbox", { uiKitId: "shadcn", uiMode: "ui-kit" })
 
     await page.goto("/lab/dipole-checkbox")
-    await page.waitForTimeout(1_000)
-
-    await page.evaluate(() => {
-      const payload = {
-        source: "desengine-sandpack-preview",
-        type: "contract",
-        status: "render-error",
-        message: "Тестовая runtime-ошибка preview",
-      }
-
-      window.postMessage(payload, "*")
-      window.setTimeout(() => window.postMessage(payload, "*"), 150)
-      window.setTimeout(() => window.postMessage(payload, "*"), 350)
-    })
-
-    await expect(page.getByText("Preview отрисовал DOM без подтверждённого style contract.")).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText("Компонент не удалось отрендерить в preview.")).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText("Preview отрисовал DOM без подтверждённого style contract.")).toBeHidden()
     await expect(page.getByText(/Тестовая runtime-ошибка preview/)).toBeVisible({ timeout: 20_000 })
   })
 })

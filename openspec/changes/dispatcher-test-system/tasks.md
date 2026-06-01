@@ -5,8 +5,10 @@
 - [ ] 3. Зафиксировать, что runtime/tooling изменения тестового слоя выполняются только через контролируемые dispatcher'ом `implement`/`fix` changes.
 - [ ] 4. Определить базовые guardrails для уровней проверки, команд запуска, mock/fixture-данных и live credentials.
 - [ ] 5. Связать будущие изменения тестовой подсистемы с `testing-layer` и traceability-практикой.
-  - [ ] 5.1 первая event-line волна: `implement-event-envelope-test-harness`
-  - [ ] 5.2 наблюдаемый runtime-step: `implement-screen-event-envelope-propagation`
+  - [ ] 5.1 integration foundation wave: `implement-integration-test-runner-foundation`
+  - [ ] 5.2 route fixture wave: `implement-route-integration-fixture-wave`
+  - [ ] 5.3 live preflight wave: `implement-live-provider-test-preflight`
+  - [ ] 5.4 traceability remediation wave: `fix-test-spec-coverage-map-completeness`
 - [ ] 6. Заполнить handoff и поддерживать его в состоянии, пригодном для передачи исполнения downstream changes.
 
 ## Тестовая часть change

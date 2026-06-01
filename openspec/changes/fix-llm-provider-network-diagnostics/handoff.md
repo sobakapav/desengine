@@ -31,6 +31,25 @@
 - verification_command: npm run test:unit -- test/unit/resource-status.test.ts
 - Что именно должен доказать результат проверки: `/system` больше не использует OpenAI-specific probe для чужих провайдеров; unit coverage явно проверяет provider-aware `llm-network` conditions как минимум для `claude` и `zai`.
 
+## Что реализовано
+
+- В `lib/system/resources/internalstate-sections.ts` generic probe заменён на provider-aware definition:
+  - `openai` и `deepseek` используют собственный Bearer key и `GET /models`;
+  - `gemini` использует `x-goog-api-key` и model-specific `GET /models/{model}`;
+  - `claude` использует `POST /messages` с `x-api-key` и минимальным JSON body;
+  - `zai` использует `POST /chat/completions` с собственным Bearer key и минимальным JSON body.
+- Удалён fallback на `OPENAI_API_KEY` для `claude`, `zai` и других non-openai веток.
+- В `test/unit/resource-status.test.ts` добавлены anti-regression unit-тесты на URL, headers и итоговый `llm-network` status для `claude` и `zai`.
+
+## Самоконтроль исполнителя
+
+- Выполнено:
+  - `npm run test:unit -- test/unit/resource-status.test.ts`
+  - `npm run test:unit -- test/unit/llm.server.claude.test.ts`
+  - `npm run test:unit -- test/unit/llm.server.zai.test.ts`
+- Все три команды завершились успешно в рабочей сессии implement-агента.
+- Финальная верификация и приёмка результата должны выполняться внешним проверяющим, не этим implement-агентом.
+
 ## Открытые вопросы
 
 - Нужно ли выносить probe-definition рядом с adapter config, чтобы status и runtime использовали один и тот же provider contract.

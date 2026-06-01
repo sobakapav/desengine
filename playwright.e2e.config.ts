@@ -1,9 +1,9 @@
 import { defineConfig, devices } from "playwright/test"
+import {
+  resolveBrowserVerificationRuntime,
+} from "./test/helpers/browser-verification"
 
-const e2ePort = Number(process.env.DESENGINE_E2E_PORT || 3410)
-const baseURL = process.env.DESENGINE_E2E_BASE_URL || `http://127.0.0.1:${e2ePort}`
-const fixtureAccessEnabled = process.env.DESENGINE_E2E_FIXTURE_ACCESS === "1"
-const fixtureAccessSalt = process.env.DESENGINE_E2E_ACCESS_SALT || "desengine-e2e-salt"
+const runtime = resolveBrowserVerificationRuntime()
 
 export default defineConfig({
   testDir: "test/e2e",
@@ -17,21 +17,21 @@ export default defineConfig({
   outputDir: "test-results/e2e",
   use: {
     ...devices["Desktop Chrome"],
-    baseURL,
-    channel: process.env.PLAYWRIGHT_BROWSER_CHANNEL || "chrome",
+    baseURL: runtime.baseURL,
+    channel: runtime.browserChannel,
     trace: "retain-on-failure",
   },
-  webServer: process.env.DESENGINE_E2E_EXTERNAL_SERVER
+  webServer: runtime.mode === "externalServer"
     ? undefined
     : {
-        command: `npm run dev -- --hostname 127.0.0.1 --port ${e2ePort}`,
-        url: `${baseURL}/auth`,
+        command: `npm run dev -- --hostname 127.0.0.1 --port ${runtime.e2ePort}`,
+        url: runtime.readinessURL,
         timeout: 180_000,
         reuseExistingServer: false,
         env: {
           ...process.env,
-          ALLOWLIST_BASE_URL: fixtureAccessEnabled ? "http://127.0.0.1:9/" : "",
-          ALLOWLIST_SALT: fixtureAccessEnabled ? fixtureAccessSalt : "",
+          ALLOWLIST_BASE_URL: runtime.fixtureAccessEnabled ? "http://127.0.0.1:9/" : "",
+          ALLOWLIST_SALT: runtime.fixtureAccessEnabled ? runtime.fixtureAccessSalt : "",
           DESENGINE_ALLOWLIST_BASE_URL: "",
           DESENGINE_ALLOWLIST_SALT: "",
           LLM_PROVIDER: "deepseek",

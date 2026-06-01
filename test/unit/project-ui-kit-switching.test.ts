@@ -38,6 +38,8 @@ import {
   PROJECT_REGISTRY_STORAGE_KEY,
   createBrowserProjectStorage,
   createMemoryProjectStorage,
+  readBrowserStoredActiveProjectId,
+  readBrowserStoredProject,
 } from "../../lib/project/storage"
 
 const utilsSource = `export function cn(...inputs: string[]) { return inputs.filter(Boolean).join(" ") }\n`
@@ -192,6 +194,34 @@ describe("project UI kit switching", () => {
     expect(storageMock.getItem(PROJECT_REGISTRY_STORAGE_KEY)).toContain("task-task-a")
     await storage.setActiveProjectId("task-task-a")
     expect(storageMock.getItem(ACTIVE_PROJECT_ID_STORAGE_KEY)).toBe("task-task-a")
+  })
+
+  it("синхронно читает active project из browser storage до hydration effect", () => {
+    const storageMock = createStorageMock({
+      [PROJECT_REGISTRY_STORAGE_KEY]: JSON.stringify([
+        {
+          id: "task-task-a",
+          title: "Проект task-a",
+          createdAt: "2026-05-28T00:00:00.000Z",
+          updatedAt: "2026-05-28T00:00:00.000Z",
+          settings: {
+            uiKitId: "none",
+            uiMode: "html-tags",
+          },
+        },
+      ]),
+      [ACTIVE_PROJECT_ID_STORAGE_KEY]: "task-task-a",
+    })
+
+    expect(readBrowserStoredActiveProjectId(storageMock, "task-a")).toBe("task-task-a")
+    expect(readBrowserStoredProject(storageMock, "task-task-a", "task-a")).toMatchObject({
+      id: "task-task-a",
+      title: "Проект task-a",
+      settings: {
+        uiKitId: "none",
+        uiMode: "html-tags",
+      },
+    })
   })
 
   it("валидирует html-tags режим и допускает только HTML JSX-теги", () => {

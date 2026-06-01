@@ -4,11 +4,6 @@ const LAYERS = {
     nextTask: "2. Traceability MVP",
     command: "npm run test:traceability",
   },
-  integration: {
-    title: "Integration",
-    nextTask: "4. Unit и integration покрытие specs",
-    command: "npm run test:integration",
-  },
   e2e: {
     title: "E2E smoke",
     nextTask: "5. Browser, Storybook и e2e smoke",

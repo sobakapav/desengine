@@ -72,7 +72,6 @@ describe("DeepSeek adapter", () => {
 
     const result = await runStructuredLlmRequest({
       instruction: "Верни JSON",
-      imageBase64List: ["ignored-image"],
       schemaName: "deepseek_schema",
       schema: { type: "object" },
     })
@@ -103,8 +102,34 @@ describe("DeepSeek adapter", () => {
       response_format: { type: "json_object" },
       stream: false,
     })
-    expect(body.messages[1].content).toContain("Верни JSON")
-    expect(body.messages[1].content).toContain("Изображения текущего уровня в этом вызове недоступны")
+    expect(body.messages[1].content).toBe("Верни JSON")
+  })
+
+  it("явно отклоняет image-bearing запрос без тихой деградации в text-only", async () => {
+    applyDeepSeekEnv()
+    const fetchMock = vi.fn()
+    vi.stubGlobal("fetch", fetchMock)
+
+    const { runStructuredLlmRequest, toLlmErrorResponse } = await import("../../lib/llm/server")
+
+    const error = await runStructuredLlmRequest({
+      instruction: "Опиши изображение",
+      imageBase64List: ["img-a"],
+      schemaName: "deepseek_vision_schema",
+      schema: { type: "object" },
+      target: "check",
+    }).catch((caught) => caught)
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(toLlmErrorResponse(error)).toEqual({
+      status: 400,
+      body: {
+        ok: false,
+        error:
+          "DeepSeek в текущем endpoint не поддерживает запросы с изображениями. Выберите провайдера с vision-поддержкой или повторите без изображений.",
+        errorKind: "config",
+      },
+    })
   })
   it("возвращает понятную auth-ошибку DeepSeek", async () => {
     applyDeepSeekEnv()

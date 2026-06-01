@@ -198,9 +198,16 @@ npm run os:dispatch -- release-... --dispatcher dispatcher-... --kind fix --name
 
 Закрывает исполнительский change по каскаду:
 
-1. выполняет `verification_command` из metadata change;
-2. выполняет `npm run test:traceability`;
-3. архивирует change в `openspec/changes/archive/YYYY-MM-DD-<change>`.
+1. для `fix` с `verification_level=component/browser` сначала выполняет обязательный browser preflight в том же verification mode, что и сам change;
+2. выполняет `verification_command` из metadata change;
+3. выполняет `npm run test:traceability`;
+4. архивирует change в `openspec/changes/archive/YYYY-MM-DD-<change>`.
+
+Для `external-server verification` browser preflight состоит из двух шагов:
+- shell-level target probe через прямой `curl` к `/auth`;
+- Playwright-проверка `browser-launch` / `browser-route` через `test/e2e/browser-verification-runtime.spec.ts`.
+
+Это защищает от ложного вывода “server down” в средах, где сам Playwright worker не имеет localhost transport, хотя внешний shell-level probe до target server успешен.
 
 ### `npm run os:req -- <dispatcher> --request "..."`
 

@@ -1,9 +1,9 @@
 ## Tasks
 
-- [ ] 1. Сопоставить runtime onboarding layout contract и текущие smoke/repair validators.
-- [ ] 2. Убрать ожидание `onboarding/prompts/default.md` из tooling, где runtime уже канонизировал `default.njk`.
-- [ ] 3. Добавить защиту от повторного дрейфа runtime и CLI validators.
-- [ ] 4. Обновить тесты и документацию smoke/onboarding preflight.
+- [x] 1. Сопоставить runtime onboarding layout contract и текущие smoke/repair validators.
+- [x] 2. Убрать ожидание `onboarding/prompts/default.md` из tooling, где runtime уже канонизировал `default.njk`.
+- [x] 3. Добавить защиту от повторного дрейфа runtime и CLI validators.
+- [x] 4. Обновить тесты и документацию smoke/onboarding preflight.
 
 ## Тестовая часть change
 
@@ -13,12 +13,14 @@
 
 Уровни проверки:
 - integration: обязательный.
-- unit: желателен для самого validator/helper.
+- unit: обязательный source-contract guard для smoke/repair против legacy `default.md`.
 
 Команды запуска:
-- `npm run smoke`
+- `npm run test:unit -- test/unit/p2-source-contracts.test.ts`
 - `npm run test:unit -- test/unit/onboarding-prompt-templates.test.ts`
+- `npm run smoke`
 
 Mock/fixture-данные и credentials:
 - live credentials не нужны;
-- используется локальный onboarding layout и штатный smoke preflight.
+- unit-слой использует репозиторные исходники без внешних fixture;
+- smoke использует локальный onboarding layout и штатный preflight с `ONBOARDING_REPO_URL`.

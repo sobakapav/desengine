@@ -18,7 +18,7 @@
     "test:readability:repo": "npm run quality:text:repo",
     "test:storybook": "vitest run --project storybook --passWithNoTests",
     "test:traceability": "node tools/testing/check-openspec-traceability.mjs",
-    "test:integration": "node tools/testing/pending-layer.mjs integration",
+    "test:integration": "vitest run --project integration",
     "test:e2e": "playwright test -c playwright.e2e.config.ts",
     "test:full": "npm run test:unit && npm run test:traceability && npm run quality:text",
     "test:live": "node tools/testing/live-provider-preflight.mjs",

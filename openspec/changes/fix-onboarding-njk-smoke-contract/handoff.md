@@ -22,6 +22,7 @@
 ## Границы исполнения
 
 - Что входит в этот change: сделать так, чтобы smoke/repair и runtime опирались на один и тот же onboarding layout contract и одинаково понимали канонический prompt template (`default.njk`), не выдавая ложный “Onboarding не готов”.
+- Какой guard обязателен в результате: unit source-contract тест должен явно ловить возврат к `default.md` в `tools/smoke-local-install/onboarding.mjs` и `tools/repair-onboarding.mjs`.
 - Что сознательно не входит в этот change: redesign onboarding content, смена формата prompt templates обратно на `.md`, изменение сетевой части `git clone`.
 - Какие решения уже принадлежат parent dispatcher / strategy_root и не должны переоткрываться: onboarding prompt-layer уже переведён на `.njk` с legacy fallback только там, где runtime его явно поддерживает; fix не должен откатывать этот курс.
 
@@ -29,9 +30,10 @@
 
 - verification_level: integration
 - verification_command: npm run smoke
-- Что именно должен доказать результат проверки: smoke и repair больше не падают на валидном onboarding-layout только из-за ожидания `default.md`; preflight либо подтверждает корректный onboarding, либо сообщает реальную проблему layout/source.
+- Дополнительная обязательная проверка: `npm run test:unit -- test/unit/p2-source-contracts.test.ts`
+- Что именно должен доказать результат проверки: smoke и repair больше не падают на валидном onboarding-layout только из-за ожидания `default.md`; unit guard отдельно доказывает, что CLI validators больше не расходятся с runtime по каноническому `default.njk`; preflight либо подтверждает корректный onboarding, либо сообщает реальную проблему layout/source.
 
 ## Открытые вопросы
 
-- Нужно ли вынести layout validation в общий helper, чтобы runtime и CLI больше не дрейфовали независимо.
+- Нужен ли в следующем шаге общий runtime/CLI helper для layout validation, если одного source-contract guard окажется недостаточно.
 - Нужно ли дополнять unit coverage отдельным test для smoke-validator, чтобы регресс не вернулся.

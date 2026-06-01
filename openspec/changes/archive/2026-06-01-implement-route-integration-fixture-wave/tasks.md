@@ -1,19 +1,19 @@
 ## Tasks
 
-- [ ] 1. Зафиксировать первую integration wave и её привязку к active specs.
-- [ ] 2. Добавить integration-сценарии для task API route handlers на fixture runtime.
-- [ ] 3. Добавить integration-сценарий для `GET /api/status/llm`.
-- [ ] 4. Добавить integration-сценарий для `POST /api/onboarding/update`.
-- [ ] 5. Обновить traceability metadata и документацию там, где это требуется для новой integration wave.
-- [ ] 6. Подготовить change к внешней проверке по `verification_command`.
+- [x] 1. Зафиксировать первую integration wave и её привязку к active specs.
+- [x] 2. Добавить integration-сценарии для task API route handlers на fixture runtime.
+- [x] 3. Добавить integration-сценарий для `GET /api/status/llm`.
+- [x] 4. Добавить integration-сценарий для `POST /api/onboarding/update`.
+- [x] 5. Обновить traceability metadata и документацию там, где это требуется для новой integration wave.
+- [x] 6. Подготовить change к внешней проверке по `verification_command`.
 
 ## Тестовая часть change
 
-- [ ] Указать затронутые OpenSpec capability/scenarios
-- [ ] Выбрать уровень проверки
-- [ ] Добавить или обновить тесты
-- [ ] Зафиксировать команду проверки
-- [ ] Описать mock/fixture-данные и live credentials, если нужны
+- [x] Указать затронутые OpenSpec capability/scenarios
+- [x] Выбрать уровень проверки
+- [x] Добавить или обновить тесты
+- [x] Зафиксировать команду проверки
+- [x] Описать mock/fixture-данные и live credentials, если нужны
 
 ## Детали проверки
 

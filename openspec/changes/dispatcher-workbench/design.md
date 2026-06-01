@@ -28,6 +28,16 @@
 - `actions[]` (операции)
 - `serializeState()` / `hydrateState()` (опционально)
 
+## Layout/Space как встроенное направление
+
+Layout/space workbench не должен жить как отдельный параллельный dispatcher. Это частный продуктовый срез внутри общей сущности Workbench:
+
+- layout-сценарии используют тот же registry и ту же модель `WorkbenchDefinition/Instance`;
+- layout tools подключаются как частный набор инструментов общего workbench-контракта;
+- решение о том, является ли layout отдельным шагом workflow или внутренним tool-набором, принимается downstream, но в рамках одного dispatcher `dispatcher-workbench`.
+
+Для этого dispatcher использует второй inherited roadmap: `focus-features/roadmaps/workbench-layout-space.md`.
+
 ## Входы/выходы (артефакты)
 
 Workbench должен:
@@ -50,4 +60,3 @@ MVP сценарии:
 - Unit/contract: выбор верстака по задаче/шагу, сериализация состояния, применимость инструментов.
 - Component/browser: базовые интеракции верстака и 1–2 инструментов.
 - E2E smoke: создать задачу → открыть верстак → выполнить действие → артефакт сохранился.
-

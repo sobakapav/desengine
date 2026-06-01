@@ -94,9 +94,23 @@ describe("P2 source contracts", () => {
       .filter((entry) => entry.isFile() && /\.(?:test|spec)\.tsx?$/.test(entry.name))
 
     expect(packageJson.scripts["test:unit"]).toBe("vitest run --project unit")
+    expect(packageJson.scripts["test:integration"]).toBe("vitest run --project integration")
+    expect(vitestConfig).toContain("name: 'integration'")
+    expect(vitestConfig).toContain("include: ['test/integration/**/*.test.ts']")
     expect(vitestConfig).toContain("name: 'unit'")
     expect(vitestConfig).toContain("include: ['test/unit/**/*.test.ts']")
     expect(libTests).toHaveLength(0)
+  })
+
+  it("Playwright e2e config различает managed webServer и explicit external server modes", () => {
+    const playwrightConfig = readProjectFile("playwright.e2e.config.ts")
+    const browserVerificationHelper = readProjectFile("test", "helpers", "browser-verification.ts")
+
+    expect(playwrightConfig).toContain("resolveBrowserVerificationRuntime")
+    expect(playwrightConfig).toContain('webServer: runtime.mode === "externalServer"')
+    expect(browserVerificationHelper).toContain("DESENGINE_E2E_EXTERNAL_SERVER")
+    expect(browserVerificationHelper).toContain("DESENGINE_E2E_BASE_URL")
+    expect(browserVerificationHelper).toContain("требуется явный DESENGINE_E2E_BASE_URL")
   })
 
   it("lib не содержит новых runtime-модулей плоским списком верхнего уровня", () => {
@@ -134,6 +148,20 @@ describe("P2 source contracts", () => {
     expect(repair).toContain('error.code === "EXDEV"')
     expect(repair).toContain("fs.promises.cp(sourcePath, targetPath")
     expect(repair).toContain("repoUrl, syncedAt")
+  })
+
+  it("smoke и repair разделяют канонический onboarding prompt contract с runtime", () => {
+    const runtime = readProjectFile("lib", "onboarding", "server.ts")
+    const smoke = readProjectFile("tools", "smoke-local-install", "onboarding.mjs")
+    const repair = readProjectFile("tools", "repair-onboarding.mjs")
+
+    expect(runtime).toContain('path.join(promptsRoot, "default.njk")')
+    expect(smoke).toContain('canonicalDefaultPromptFileName = "default.njk"')
+    expect(repair).toContain('canonicalDefaultPromptFileName = "default.njk"')
+    expect(smoke).toContain("defaultPromptPath")
+    expect(repair).toContain("defaultPromptPath")
+    expect(smoke).not.toContain("default.md")
+    expect(repair).not.toContain("default.md")
   })
 
   it("install-tools используют канонический модуль локального конфига без legacy-import пути", () => {
@@ -194,6 +222,19 @@ describe("P2 source contracts", () => {
     expect(install).toContain("docs/access-control.md")
     expect(install).toContain("docs/onboarding.md")
     expect(install).toContain("docs/platform-notes.md")
+  })
+
+  it("docs/deepseek.md не обещает text-only fallback для image-bearing flow", () => {
+    const deepseekDocs = readProjectFile("docs", "deepseek.md")
+    const deepseekRuntime = readProjectFile("lib", "llm", "providers", "deepseek.ts")
+
+    expect(deepseekRuntime).toContain("не поддерживает запросы с изображениями")
+    expect(deepseekDocs).toContain("Text-only запросы допустимы только для сценариев без изображений.")
+    expect(deepseekDocs).toContain("завершаются ранней ошибкой")
+    expect(deepseekDocs).toContain("выбрать провайдера с vision-поддержкой")
+    expect(deepseekDocs).toContain("не запускать сценарий, которому нужны изображения")
+    expect(deepseekDocs).not.toContain("если у уровня есть картинки, они не передаются в DeepSeek API")
+    expect(deepseekDocs).not.toContain("Текстовый контекст задачи и ограничения по JSON-ответу при этом сохраняются")
   })
 
   it("страница /system предоставляет ручное обновление onboarding через API синхронизации", () => {

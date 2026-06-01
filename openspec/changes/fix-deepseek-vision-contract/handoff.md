@@ -31,6 +31,22 @@
 - verification_command: npm run test:unit -- test/unit/llm.server.deepseek.test.ts
 - Что именно должен доказать результат проверки: DeepSeek больше не принимает image-bearing task-запрос как текст-only вызов без явного отказа; unit coverage фиксирует либо реальную передачу изображений, либо fail-fast с понятной ошибкой ещё до выполнения пользовательской итерации.
 
+## Что реализовано
+
+- В `lib/llm/providers/deepseek.ts` удалён silent text-only fallback для `imageBase64` / `imageBase64List`.
+- При наличии изображений boundary теперь завершает вызов до `fetch` с явной ошибкой `config`: `DeepSeek в текущем endpoint не поддерживает запросы с изображениями. Выберите провайдера с vision-поддержкой или повторите без изображений.`
+- Вместо предупреждения `images_omitted` провайдер пишет диагностическое событие `images_unsupported`, чтобы системная диагностика отражала явный отказ, а не скрытую деградацию.
+- `test/unit/llm.server.deepseek.test.ts` теперь разделяет:
+  - text-only happy path для DeepSeek;
+  - image-bearing fail-fast case с проверкой, что сетевой вызов не выполняется и ошибка мапится в `400/config`.
+
+## Самоконтроль реализации
+
+- Выполнен `npm run test:unit -- test/unit/llm.server.deepseek.test.ts`
+- Выполнен `npm run test:unit -- test/unit/llm-flow-source-contract.test.ts`
+
+Этот change готов к внешней проверке. Финальную верификацию и формулировки уровня `прогнано/подтверждено` должен делать отдельный агент.
+
 ## Открытые вопросы
 
 - Поддерживает ли текущий runtime-режим DeepSeek передачу PNG в используемом endpoint, или для image-dependent flow нужен явный запрет/guardrail.

@@ -1,4 +1,5 @@
 import { getChatCompletionMetrics } from "../metrics"
+import { LlmError } from "../errors"
 import { getOutputTextFromDeepSeek } from "../output"
 import { createProviderHttpContext, fetchProviderJson } from "../provider-http"
 import type { LlmRequestRuntime, LlmStructuredRequest, LlmStructuredResponse, ProviderRuntimeConfig } from "../types"
@@ -10,27 +11,21 @@ function getRequestImages(request: LlmStructuredRequest): string[] {
   return request.imageBase64List ?? (request.imageBase64 ? [request.imageBase64] : [])
 }
 
-function buildDeepSeekInstruction(request: LlmStructuredRequest, images: string[]): string {
-  if (images.length === 0) {
-    return request.instruction
-  }
-
-  return `${request.instruction}
-
-[СИСТЕМНОЕ ОГРАНИЧЕНИЕ ПРОВАЙДЕРА]
-Изображения текущего уровня в этом вызове недоступны. Не придумывай конкретные визуальные детали, которых нет в текстовом контексте.`
-}
-
-function warnAboutOmittedImages(request: LlmStructuredRequest, config: ProviderRuntimeConfig, imageCount: number): void {
+function throwIfDeepSeekImagesUnsupported(request: LlmStructuredRequest, config: ProviderRuntimeConfig, imageCount: number): void {
   if (imageCount === 0) {
     return
   }
 
-  console.warn("[desengine][deepseek] images_omitted", {
+  console.error("[desengine][deepseek] images_unsupported", {
     target: request.target ?? "default",
     model: config.model,
     imageCount,
   })
+
+  throw new LlmError(
+    "config",
+    "DeepSeek в текущем endpoint не поддерживает запросы с изображениями. Выберите провайдера с vision-поддержкой или повторите без изображений.",
+  )
 }
 
 async function callDeepSeek(
@@ -39,10 +34,9 @@ async function callDeepSeek(
   runtime: LlmRequestRuntime,
 ): Promise<LlmStructuredResponse> {
   const images = getRequestImages(request)
-  const instruction = buildDeepSeekInstruction(request, images)
+  throwIfDeepSeekImagesUnsupported(request, config, images.length)
+  const instruction = request.instruction
   const context = createProviderHttpContext("deepseek", request, config, images.length, runtime.timeoutMs, instruction.length)
-
-  warnAboutOmittedImages(request, config, images.length)
 
   const data = await fetchProviderJson(
     context,

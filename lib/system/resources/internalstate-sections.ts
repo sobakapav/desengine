@@ -1,4 +1,5 @@
 import { checkAllowlistSystemReachability } from "@/lib/auth/allowlist"
+import type { LlmProvider } from "@/lib/llm/types"
 import {
   getAccessSessionRemediationControl,
   getOnboardingContentRemediationControl,
@@ -22,6 +23,13 @@ type ReachabilityResult = {
   status?: number
   message: string
 }
+
+type LlmProbeDefinition = {
+  url: string
+  init?: RequestInit
+}
+
+type LlmProbeHeaders = NonNullable<RequestInit["headers"]>
 
 export type ResourceCollector = {
   items: Resource[]
@@ -86,6 +94,93 @@ async function fetchReachability(url: string, init?: RequestInit): Promise<Reach
       ok: false,
       message: error instanceof Error ? error.message : "Сетевой запрос завершился ошибкой",
     }
+  }
+}
+
+function getProviderApiKey(provider: LlmProvider): string {
+  switch (provider) {
+    case "openai":
+      return process.env.OPENAI_API_KEY ?? ""
+    case "deepseek":
+      return process.env.DEEPSEEK_API_KEY ?? ""
+    case "gemini":
+      return process.env.GEMINI_API_KEY ?? ""
+    case "claude":
+      return process.env.CLAUDE_API_KEY ?? ""
+    case "zai":
+      return process.env.ZAI_API_KEY ?? ""
+  }
+}
+
+function buildGetProbe(url: string, headers: LlmProbeHeaders): LlmProbeDefinition {
+  return {
+    url,
+    init: { headers },
+  }
+}
+
+function buildPostProbe(
+  url: string,
+  headers: LlmProbeHeaders,
+  body: Record<string, unknown>,
+): LlmProbeDefinition {
+  return {
+    url,
+    init: {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    },
+  }
+}
+
+function buildLlmProbeDefinition(llmStatus: LlmStatus): LlmProbeDefinition {
+  switch (llmStatus.provider) {
+    case "openai":
+      return buildGetProbe(`${llmStatus.endpoint}/models`, {
+        authorization: `Bearer ${getProviderApiKey("openai")}`,
+      })
+    case "deepseek":
+      return buildGetProbe(`${llmStatus.endpoint}/models`, {
+        authorization: `Bearer ${getProviderApiKey("deepseek")}`,
+      })
+    case "gemini":
+      return buildGetProbe(`${llmStatus.endpoint}/models/${llmStatus.config.model}`, {
+        "x-goog-api-key": getProviderApiKey("gemini"),
+      })
+    case "claude":
+      return buildPostProbe(
+        `${llmStatus.endpoint}/messages`,
+        {
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+          "x-api-key": getProviderApiKey("claude"),
+        },
+        {
+          model: llmStatus.config.model,
+          max_tokens: 1,
+          messages: [
+            {
+              role: "user",
+              content: [{ type: "text", text: "ping" }],
+            },
+          ],
+        },
+      )
+    case "zai":
+      return buildPostProbe(
+        `${llmStatus.endpoint}/chat/completions`,
+        {
+          authorization: `Bearer ${getProviderApiKey("zai")}`,
+          "content-type": "application/json",
+        },
+        {
+          model: llmStatus.config.model,
+          messages: [{ role: "user", content: "ping" }],
+          response_format: { type: "json_object" },
+          stream: false,
+        },
+      )
   }
 }
 
@@ -162,16 +257,8 @@ export async function addLlmResources(resources: ResourceCollector, llmStatus: L
     return
   }
 
-  const providerNetwork = await fetchReachability(`${llmStatus.endpoint}/models`, {
-    headers:
-      llmStatus.provider === "gemini"
-        ? { "x-goog-api-key": process.env.GEMINI_API_KEY ?? "" }
-        : {
-            authorization: `Bearer ${
-              llmStatus.provider === "deepseek" ? process.env.DEEPSEEK_API_KEY : process.env.OPENAI_API_KEY
-            }`,
-          },
-  })
+  const probe = buildLlmProbeDefinition(llmStatus)
+  const providerNetwork = await fetchReachability(probe.url, probe.init)
 
   resources.add(
     "llm-network",
