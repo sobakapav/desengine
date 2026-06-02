@@ -1,6 +1,12 @@
 import fs from "node:fs"
 import path from "node:path"
 
+import type {
+  SandpackFileEntry,
+  SandpackPreviewFiles,
+  SandpackPreviewPayload,
+  SandpackPreviewSourceFiles,
+} from "@/lib/lab/sandpack-preview.types"
 import {
   DEFAULT_SANDPACK_UI_KIT_ID,
   normalizeSandpackUiKitId,
@@ -9,7 +15,10 @@ import {
   validateSandpackUiKitsConfig,
 } from "@/lib/lab/sandpack-ui-kits.config"
 import { loadSandpackDefaultTemplates } from "@/lib/lab/sandpack-default-templates"
-import { resolveRuntimeDependencies } from "@/lib/lab/sandpack-runtime-dependencies"
+import {
+  readInstalledPackageVersion,
+  resolveRuntimeDependencies,
+} from "@/lib/lab/sandpack-runtime-dependencies"
 import { fallbackAppTsx } from "@/lib/lab/sandpack-template-fallback"
 import {
   createDefaultProject,
@@ -23,13 +32,6 @@ import {
   type RawProject,
 } from "@/lib/project/runtime"
 import { compile as compileTailwindCss } from "tailwindcss"
-import rootPackageJson from "../../package.json"
-
-type SandpackFileEntry = string | {
-  code: string
-  hidden?: boolean
-  readOnly?: boolean
-}
 
 function toHiddenFiles(
   files: Record<string, string>,
@@ -42,47 +44,6 @@ function toHiddenFiles(
       hidden(rewriteRootAliasImports(code, relativeRoot)),
     ]),
   )
-}
-
-type SandpackPreviewFiles = Record<string, SandpackFileEntry>
-
-type SandpackPreviewSourceFiles = {
-  component: string
-  stories?: string
-  styles?: string
-  mock?: string
-  props?: string
-  uiBadge: string
-  systemUtils: string
-  previewCss?: string
-  shadcnFiles?: Record<string, string>
-  supportFiles?: Record<string, string>
-}
-
-type SandpackPreviewPayload = {
-  files: SandpackPreviewFiles
-  customSetup: {
-    dependencies: Record<string, string>
-    entry: string
-    environment: "create-react-app"
-  }
-  options: {
-    activeFile: string
-    visibleFiles: string[]
-    externalResources: string[]
-  }
-  project: Project & {
-    effectiveUiKitId: SandpackUiKitId
-    compatibility: ProjectCompatibility
-  }
-  debug?: {
-    shimVersion: string
-    rcShimPaths: string[]
-    pickerLocaleShim?: {
-      enUsJs?: string
-      enUsIndexJs?: string
-    }
-  }
 }
 
 type SandpackAppTemplateOptions = {
@@ -189,30 +150,24 @@ function collectRuntimeDependencyImports(sourceFiles: Record<string, string>, en
   return [...barePackages].sort()
 }
 
-function getRootPackageVersion(name: string) {
-  const rootPackages = rootPackageJson as {
-    dependencies?: Record<string, string>
-    devDependencies?: Record<string, string>
+function getInstalledPackageVersion(name: string) {
+  try {
+    return readInstalledPackageVersion(name)
+  } catch {
+    throw new Error(`Не удалось определить установленную версию пакета '${name}', хотя она нужна Sandpack preview`)
   }
-  const version = rootPackages.dependencies?.[name] ?? rootPackages.devDependencies?.[name]
-
-  if (!version) {
-    throw new Error(`В корневом package.json не задана зависимость '${name}', но она нужна Sandpack preview`)
-  }
-
-  return version
 }
 
 const baseDependencies = {
-  "@types/react": "^19.0.8",
-  "@types/react-dom": "^19.0.3",
-  "@tailwindcss/postcss": getRootPackageVersion("@tailwindcss/postcss"),
-  postcss: getRootPackageVersion("postcss"),
-  react: getRootPackageVersion("react"),
-  "react-dom": getRootPackageVersion("react-dom"),
+  "@types/react": getInstalledPackageVersion("@types/react"),
+  "@types/react-dom": getInstalledPackageVersion("@types/react-dom"),
+  "@tailwindcss/postcss": getInstalledPackageVersion("@tailwindcss/postcss"),
+  postcss: getInstalledPackageVersion("postcss"),
+  react: getInstalledPackageVersion("react"),
+  "react-dom": getInstalledPackageVersion("react-dom"),
   "react-scripts": "^5.0.1",
-  tailwindcss: getRootPackageVersion("tailwindcss"),
-  typescript: "^5.0.0",
+  tailwindcss: getInstalledPackageVersion("tailwindcss"),
+  typescript: getInstalledPackageVersion("typescript"),
 }
 
 const basePackageJson = {
@@ -226,6 +181,12 @@ type ResolvedPreviewProject = {
   compatibility: ProjectCompatibility
 }
 type SandpackUiKitConfig = (typeof sandpackUiKitsConfig)[SandpackUiKitId]
+
+function resolveUiKitDependencyVersions(uiKit: SandpackUiKitConfig) {
+  return Object.fromEntries(
+    Object.keys(uiKit.dependencies).map((packageName) => [packageName, getInstalledPackageVersion(packageName)]),
+  )
+}
 
 function buildMainTsx(indexTsxTemplate: string, indexTsxImports: string[] = []) {
   const extraImports = indexTsxImports.length ? `${indexTsxImports.join("\n")}\n` : ""
@@ -870,19 +831,20 @@ async function buildSandpackPreviewPayload(
     dependencySourceFiles,
     ["/src/App.tsx", "/src/Component.tsx"],
   )
+  const uiKitDependencyVersions = resolveUiKitDependencyVersions(uiKit)
   const directRuntimeDependencies = resolvedUiKitId === "shadcn"
     ? Object.fromEntries(
       usedRuntimePackages.map((packageName) => [
         packageName,
-        uiKit.dependencies[packageName] ?? getRootPackageVersion(packageName),
+        uiKitDependencyVersions[packageName] ?? getInstalledPackageVersion(packageName),
       ]),
     )
     : {
-      ...uiKit.dependencies,
+      ...uiKitDependencyVersions,
       ...Object.fromEntries(
         usedRuntimePackages.map((packageName) => [
           packageName,
-          uiKit.dependencies[packageName] ?? getRootPackageVersion(packageName),
+          uiKitDependencyVersions[packageName] ?? getInstalledPackageVersion(packageName),
         ]),
       ),
     }
@@ -976,8 +938,4 @@ async function buildSandpackPreviewPayload(
 
 export {
   buildSandpackPreviewPayload,
-  type SandpackFileEntry,
-  type SandpackPreviewFiles,
-  type SandpackPreviewPayload,
-  type SandpackPreviewSourceFiles,
 }

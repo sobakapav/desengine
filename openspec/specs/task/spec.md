@@ -148,6 +148,11 @@ Task service boundary SHALL строить prompt-related runtime context чер
 - **AND** список kit'ов берётся из единого Sandpack UI kit config
 - **AND** существующие shadcn/ui-импорты не заменяются html-tags fallback'ом
 
+#### Scenario: Preview фиксирует exact installed версии runtime-зависимостей
+- **WHEN** preview builder собирает dependency graph для Sandpack payload
+- **THEN** прямые runtime-зависимости берутся по фактически установленным версиям пакетов, а не по плавающим semver-диапазонам из корневого `package.json`
+- **AND** payload не должен дрейфовать на несовместимый набор UI runtime-пакетов при повторной установке preview-зависимостей
+
 #### Scenario: Режим html-tags работает без UI kit
 - **WHEN** `project.settings.uiMode=html-tags` и `project.settings.uiKitId=none`
 - **THEN** Sandpack payload содержит только базовые React-зависимости

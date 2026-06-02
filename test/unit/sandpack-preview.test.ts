@@ -10,6 +10,7 @@
 // @openSpec  - "Пользователь включает Ant Design"
 // @openSpec  - "Пользователь включает Material UI"
 // @openSpec  - "Preview применяет Tailwind arbitrary values и ширину компонента"
+// @openSpec  - "Preview фиксирует exact installed версии runtime-зависимостей"
 // @openSpec capability: ui-foundation
 // @openSpec scenarios:
 // @openSpec  - "Команда работает с динамическим render-островком"
@@ -17,6 +18,7 @@
 import { describe, expect, it } from "vitest"
 
 import { buildSandpackPreviewPayload } from "../../lib/lab/sandpack-preview"
+import { readInstalledPackageVersion } from "../../lib/lab/sandpack-runtime-dependencies"
 import {
   normalizeSandpackUiKitId,
   validateSandpackUiKitsConfig,
@@ -72,6 +74,8 @@ export default function Component() {
     }))
     expect(payload.customSetup.dependencies).toMatchObject({
       "@base-ui/react": expect.any(String),
+      "@radix-ui/react-alert-dialog": expect.any(String),
+      "@radix-ui/react-slot": expect.any(String),
       "input-otp": expect.any(String),
       "next-themes": expect.any(String),
       "react-resizable-panels": expect.any(String),
@@ -79,6 +83,39 @@ export default function Component() {
       sonner: expect.any(String),
       vaul: expect.any(String),
     })
+  })
+
+  it("фиксирует exact installed версии для shadcn runtime-зависимостей", async () => {
+    const repositorySources = await readRepositoryShadcnSourceFiles()
+    const payload = await buildSandpackPreviewPayload({
+      component: `import { AlertDialog, AlertDialogContent, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+
+export default function Component() {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger>Открыть</AlertDialogTrigger>
+      <AlertDialogContent>ok</AlertDialogContent>
+    </AlertDialog>
+  );
+}
+`,
+      uiBadge: badgeSource,
+      systemUtils: utilsSource,
+      ...repositorySources,
+    })
+
+    expect(payload.customSetup.dependencies["@radix-ui/react-alert-dialog"]).toBe(
+      readInstalledPackageVersion("@radix-ui/react-alert-dialog"),
+    )
+    expect(payload.customSetup.dependencies["@radix-ui/react-slot"]).toBe(
+      readInstalledPackageVersion("@radix-ui/react-slot"),
+    )
+    expect(payload.customSetup.dependencies.react).toBe(
+      readInstalledPackageVersion("react"),
+    )
+    expect(payload.customSetup.dependencies["react-dom"]).toBe(
+      readInstalledPackageVersion("react-dom"),
+    )
   })
 
   it("собирает preview-проект с настоящим Badge вместо HTML-заглушки", async () => {

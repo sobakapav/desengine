@@ -2,22 +2,43 @@ import fs from "node:fs"
 import path from "node:path"
 
 type NpmPackageJson = {
+  version?: string
   dependencies?: Record<string, string>
 }
 
 const packageDependenciesCache = new Map<string, Record<string, string>>()
+const packageVersionCache = new Map<string, string>()
+
+function readInstalledPackageJson(packageName: string) {
+  const packageJsonPath = path.join(process.cwd(), "node_modules", packageName, "package.json")
+  const raw = fs.readFileSync(packageJsonPath, "utf8")
+  return JSON.parse(raw) as NpmPackageJson
+}
 
 function readInstalledPackageDependencies(packageName: string) {
   const cached = packageDependenciesCache.get(packageName)
   if (cached) return cached
 
-  const packageJsonPath = path.join(process.cwd(), "node_modules", packageName, "package.json")
-  const raw = fs.readFileSync(packageJsonPath, "utf8")
-  const parsed = JSON.parse(raw) as NpmPackageJson
+  const parsed = readInstalledPackageJson(packageName)
   const dependencies = parsed.dependencies ?? {}
 
   packageDependenciesCache.set(packageName, dependencies)
   return dependencies
+}
+
+function readInstalledPackageVersion(packageName: string) {
+  const cached = packageVersionCache.get(packageName)
+  if (cached) return cached
+
+  const parsed = readInstalledPackageJson(packageName)
+  const version = parsed.version?.trim()
+
+  if (!version) {
+    throw new Error(`У установленного пакета '${packageName}' не найдена version в package.json`)
+  }
+
+  packageVersionCache.set(packageName, version)
+  return version
 }
 
 function resolveRuntimeDependencies(baseDependencies: Record<string, string>) {
@@ -51,3 +72,4 @@ function resolveRuntimeDependencies(baseDependencies: Record<string, string>) {
 }
 
 export { resolveRuntimeDependencies }
+export { readInstalledPackageVersion }

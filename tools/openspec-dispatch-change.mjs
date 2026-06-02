@@ -1,12 +1,13 @@
-import { spawnSync } from "node:child_process"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { normalizeDispatchedChangeName } from "./openspec-change-name.mjs"
+import { runOpenSpecBegin } from "./openspec-begin-change.mjs"
 
-const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
-const TOOLS_DIR = path.dirname(fileURLToPath(import.meta.url))
+function getChangesDir() {
+  return path.resolve(process.cwd(), "openspec/changes")
+}
 
 function printUsage() {
   console.error("Использование:")
@@ -83,7 +84,7 @@ function parseArgs(argv) {
 }
 
 function readMetadata(changeName) {
-  const metadataPath = path.join(CHANGES_DIR, changeName, ".openspec.yaml")
+  const metadataPath = path.join(getChangesDir(), changeName, ".openspec.yaml")
   if (!fs.existsSync(metadataPath)) {
     throw new Error(`Change не найден: ${changeName}`)
   }
@@ -98,7 +99,7 @@ function readMetadata(changeName) {
 }
 
 function setReleaseRef(changeName, releaseName) {
-  const metadataPath = path.join(CHANGES_DIR, changeName, ".openspec.yaml")
+  const metadataPath = path.join(getChangesDir(), changeName, ".openspec.yaml")
   let text = fs.readFileSync(metadataPath, "utf8")
   const line = `release_ref: "${releaseName}"`
   const pattern = /^release_ref:\s*.*$/m
@@ -112,8 +113,8 @@ function setReleaseRef(changeName, releaseName) {
   fs.writeFileSync(metadataPath, text, "utf8")
 }
 
-function run() {
-  const parsed = parseArgs(process.argv.slice(2))
+function runOpenSpecDispatch(argv = process.argv.slice(2)) {
+  const parsed = parseArgs(argv)
 
   if (parsed.help) {
     printUsage()
@@ -139,16 +140,12 @@ function run() {
   }
 
   const changeName = normalizeDispatchedChangeName(parsed.kind, parsed.name)
-  const args = [path.join(TOOLS_DIR, "openspec-begin-change.mjs"), dispatcherName, "--spawn-implement", changeName]
+  const args = [dispatcherName, "--spawn-implement", changeName]
 
   if (parsed.description) {
     args.push("--description", parsed.description)
   }
-
-  const result = spawnSync(process.execPath, args, { stdio: "inherit" })
-  if (typeof result.status === "number" && result.status !== 0) {
-    process.exit(result.status)
-  }
+  runOpenSpecBegin(args)
 
   if (releaseName) {
     setReleaseRef(changeName, releaseName)
@@ -163,4 +160,12 @@ function run() {
   console.log(`Исполнение вести только в ${changeName}`)
 }
 
-run()
+const executedDirectly = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+
+if (executedDirectly) {
+  runOpenSpecDispatch()
+}
+
+export {
+  runOpenSpecDispatch,
+}

@@ -1,4 +1,5 @@
 import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { getHandoffReadiness, HANDOFF_FILE, writeHandoffFile } from "./openspec-handoff.mjs"
 import {
   createImplementChange,
@@ -8,8 +9,11 @@ import {
   updateMetadata,
 } from "./openspec-change-state.mjs"
 
-const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
 const ALLOWED_IMPLEMENT_KINDS = new Set(["implement", "fix"])
+
+function getChangesDir() {
+  return path.resolve(process.cwd(), "openspec/changes")
+}
 
 function printRoadmapRefs(roadmapRefs) {
   if (roadmapRefs.length === 0) {
@@ -125,105 +129,118 @@ function ensureHandoffArtifact(changeName, context) {
   return true
 }
 
-function main() {
-  const parsed = parseArgs(process.argv.slice(2))
-
-  if (parsed.help) {
-    printUsage()
-    return
+function createHandoffContext(changeName, parentChange, description, finalMeta) {
+  return {
+    changeName,
+    summary: description?.trim() || "описание реализации будет уточнено",
+    parentChange,
+    strategyRoot: finalMeta.strategyRoot,
+    releaseRef: finalMeta.releaseRef,
+    producerRef: finalMeta.producerRef,
+    verificationLevel: finalMeta.verificationLevel,
+    verificationCommand: finalMeta.verificationCommand,
   }
+}
 
-  const current = readMetadata(parsed.changeName)
-
-  if (current.kind === "dispatcher") {
-    if (!parsed.spawnImplement) {
-      printNonExecutableGuidance(parsed.changeName, current)
-      process.exit(2)
-    }
-
-    createImplementChange(parsed.spawnImplement, parsed.description)
-    const created = readMetadata(parsed.spawnImplement)
-
-    updateMetadata(parsed.spawnImplement, {
-      parent_change: parsed.changeName,
-      strategy_root: current.strategyRoot || parsed.changeName,
-      release_ref: current.releaseRef || created.releaseRef,
-    })
-    const finalMeta = readMetadata(parsed.spawnImplement)
-    const createdArtifacts = ensureApplyArtifacts(parsed.spawnImplement, parsed.description)
-    const createdHandoff = ensureHandoffArtifact(parsed.spawnImplement, {
-      changeName: parsed.spawnImplement,
-      summary: parsed.description?.trim() || "описание реализации будет уточнено",
-      parentChange: parsed.changeName,
-      strategyRoot: finalMeta.strategyRoot,
-      releaseRef: finalMeta.releaseRef,
-      producerRef: finalMeta.producerRef,
-      verificationLevel: finalMeta.verificationLevel,
-      verificationCommand: finalMeta.verificationCommand,
-    })
-
-    console.log("")
-    console.log(`Создан исполнительский change: ${parsed.spawnImplement}`)
-    console.log(`- parent_change: ${parsed.changeName}`)
-    console.log(`- strategy_root: ${current.strategyRoot || parsed.changeName}`)
-    if (current.releaseRef) {
-      console.log(`- release_ref: ${current.releaseRef}`)
-    }
-    if (createdArtifacts.length > 0) {
-      console.log(`- автосозданы артефакты: ${createdArtifacts.join(", ")}`)
-    }
-    if (createdHandoff) {
-      console.log(`- создан handoff: openspec/changes/${parsed.spawnImplement}/${HANDOFF_FILE}`)
-      console.log("- перед исполнением обязательно заполнить handoff по существу")
-    }
-    console.log("- код меняется только в этом implement/fix change; dispatcher остаётся управляющим контуром")
-    console.log("- после реализации dispatcher обязан принять результат через verification и traceability-слой")
-    console.log(`Запусти: npm run os:begin -- ${parsed.spawnImplement}`)
-    return
+function printCreatedImplementSummary(args) {
+  console.log("")
+  console.log(`Создан исполнительский change: ${args.spawnImplement}`)
+  console.log(`- parent_change: ${args.parentChange}`)
+  console.log(`- strategy_root: ${args.strategyRoot}`)
+  if (args.releaseRef) {
+    console.log(`- release_ref: ${args.releaseRef}`)
   }
-
-  if (current.kind === "release") {
-    const members = releaseMembers(parsed.changeName)
-    console.log(`Release-контекст: ${parsed.changeName}`)
-    console.log("Прямое изменение кода здесь запрещено. Код меняют только implement/fix.")
-    console.log("Release управляет delivery implement/fix через os:dispatch и проверяет состав поставки.")
-    console.log(`- Привязанных changes: ${members.length}`)
-
-    const grouped = new Map()
-    for (const member of members) {
-      if (!["implement", "fix"].includes(member.kind)) {
-        continue
-      }
-      const parent = member.parentChange || "(без dispatcher)"
-      const list = grouped.get(parent) || []
-      list.push(member)
-      grouped.set(parent, list)
-    }
-
-    if (grouped.size === 0) {
-      console.log("- В релизе пока нет implement/fix changes")
-    } else {
-      console.log("- Матрица релиза (dispatcher -> implement/fix):")
-      for (const [parent, list] of [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-        console.log(`  ${parent}`)
-        for (const item of list.sort((a, b) => a.name.localeCompare(b.name))) {
-          console.log(`    ${item.name}`)
-        }
-      }
-    }
-
-    console.log("")
-    console.log("Следующий шаг для новой хотелки из release-контекста:")
-    console.log(`npm run os:dispatch -- ${parsed.changeName} --dispatcher <dispatcher-change> --kind fix --name <name> --description "..."`)
-    return
+  if (args.createdArtifacts.length > 0) {
+    console.log(`- автосозданы артефакты: ${args.createdArtifacts.join(", ")}`)
   }
+  if (args.createdHandoff) {
+    console.log(`- создан handoff: openspec/changes/${args.spawnImplement}/${HANDOFF_FILE}`)
+    console.log("- перед исполнением обязательно заполнить handoff по существу")
+  }
+  console.log("- код меняется только в этом implement/fix change; dispatcher остаётся управляющим контуром")
+  console.log("- после реализации dispatcher обязан принять результат через verification и traceability-слой")
+  console.log(`Запусти: npm run os:begin -- ${args.spawnImplement}`)
+}
 
-  if (!ALLOWED_IMPLEMENT_KINDS.has(current.kind)) {
+function handleDispatcherBegin(parsed, current) {
+  if (!parsed.spawnImplement) {
     printNonExecutableGuidance(parsed.changeName, current)
+    process.exit(2)
+  }
+
+  createImplementChange(parsed.spawnImplement, parsed.description)
+  const created = readMetadata(parsed.spawnImplement)
+
+  updateMetadata(parsed.spawnImplement, {
+    parent_change: parsed.changeName,
+    strategy_root: current.strategyRoot || parsed.changeName,
+    release_ref: current.releaseRef || created.releaseRef,
+  })
+
+  const finalMeta = readMetadata(parsed.spawnImplement)
+  const createdArtifacts = ensureApplyArtifacts(parsed.spawnImplement, parsed.description)
+  const createdHandoff = ensureHandoffArtifact(
+    parsed.spawnImplement,
+    createHandoffContext(parsed.spawnImplement, parsed.changeName, parsed.description, finalMeta),
+  )
+
+  printCreatedImplementSummary({
+    spawnImplement: parsed.spawnImplement,
+    parentChange: parsed.changeName,
+    strategyRoot: current.strategyRoot || parsed.changeName,
+    releaseRef: current.releaseRef,
+    createdArtifacts,
+    createdHandoff,
+  })
+}
+
+function groupReleaseMembers(members) {
+  const grouped = new Map()
+
+  for (const member of members) {
+    if (!["implement", "fix"].includes(member.kind)) {
+      continue
+    }
+
+    const parent = member.parentChange || "(без dispatcher)"
+    const list = grouped.get(parent) || []
+    list.push(member)
+    grouped.set(parent, list)
+  }
+
+  return grouped
+}
+
+function printReleaseMatrix(grouped) {
+  if (grouped.size === 0) {
+    console.log("- В релизе пока нет implement/fix changes")
     return
   }
 
-  const handoff = getHandoffReadiness(path.join(CHANGES_DIR, parsed.changeName))
+  console.log("- Матрица релиза (dispatcher -> implement/fix):")
+  for (const [parent, list] of [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+    console.log(`  ${parent}`)
+    for (const item of list.sort((a, b) => a.name.localeCompare(b.name))) {
+      console.log(`    ${item.name}`)
+    }
+  }
+}
+
+function handleReleaseBegin(parsed) {
+  const members = releaseMembers(parsed.changeName)
+  console.log(`Release-контекст: ${parsed.changeName}`)
+  console.log("Прямое изменение кода здесь запрещено. Код меняют только implement/fix.")
+  console.log("Release управляет delivery implement/fix через os:dispatch и проверяет состав поставки.")
+  console.log(`- Привязанных changes: ${members.length}`)
+  printReleaseMatrix(groupReleaseMembers(members))
+  console.log("")
+  console.log("Следующий шаг для новой хотелки из release-контекста:")
+  console.log(`npm run os:dispatch -- ${parsed.changeName} --dispatcher <dispatcher-change> --kind fix --name <name> --description "..."`)
+}
+
+function handleImplementBegin(parsed, current) {
+  const changesDir = getChangesDir()
+  const handoff = getHandoffReadiness(path.join(changesDir, parsed.changeName))
   if (!handoff.ready) {
     console.error(`Change ${parsed.changeName} ещё не готов к исполнению.`)
     console.error(`- Заполни: openspec/changes/${parsed.changeName}/${HANDOFF_FILE}`)
@@ -245,4 +262,40 @@ function main() {
   console.log(`- handoff: openspec/changes/${parsed.changeName}/${HANDOFF_FILE}`)
 }
 
-main()
+function runOpenSpecBegin(argv = process.argv.slice(2)) {
+  const parsed = parseArgs(argv)
+
+  if (parsed.help) {
+    printUsage()
+    return
+  }
+
+  const current = readMetadata(parsed.changeName)
+
+  if (current.kind === "dispatcher") {
+    handleDispatcherBegin(parsed, current)
+    return
+  }
+
+  if (current.kind === "release") {
+    handleReleaseBegin(parsed)
+    return
+  }
+
+  if (!ALLOWED_IMPLEMENT_KINDS.has(current.kind)) {
+    printNonExecutableGuidance(parsed.changeName, current)
+    return
+  }
+
+  handleImplementBegin(parsed, current)
+}
+
+const executedDirectly = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+
+if (executedDirectly) {
+  runOpenSpecBegin()
+}
+
+export {
+  runOpenSpecBegin,
+}
