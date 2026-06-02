@@ -145,6 +145,7 @@ function DoneScreenSection({
 }
 
 function CheckScreenSection({
+    applyDeferredTaskState,
     handleCheckResult,
     handleReturnToLevelList,
     router,
@@ -154,6 +155,7 @@ function CheckScreenSection({
     status,
     taskItem,
 }: {
+    applyDeferredTaskState: (nextTaskItem: TaskListItem | null, nextTaskData: TaskData | null) => void;
     handleCheckResult: CheckResultHandler;
     handleReturnToLevelList: (levelId?: string) => void;
     router: RouterLike;
@@ -168,9 +170,10 @@ function CheckScreenSection({
             result={screen.result}
             transition={screen.transition}
             pending={status.length > 0}
-            onContinue={() => handleCheckContinue({ handleReturnToLevelList, router, screen, setScreen, taskItem })}
+            onContinue={() => handleCheckContinue({ applyDeferredTaskState, handleReturnToLevelList, router, screen, setScreen, taskItem })}
             onBackToLab={() => {
                 if (!taskItem) return;
+                applyDeferredTaskState(screen.nextTaskItem, screen.nextTaskData);
                 router.push(getLabUrl(taskItem.id));
                 setScreen({ type: "task", screen: "component" });
             }}
@@ -180,12 +183,14 @@ function CheckScreenSection({
 }
 
 function handleCheckContinue({
+    applyDeferredTaskState,
     handleReturnToLevelList,
     router,
     screen,
     setScreen,
     taskItem,
 }: {
+    applyDeferredTaskState: (nextTaskItem: TaskListItem | null, nextTaskData: TaskData | null) => void;
     handleReturnToLevelList: (levelId?: string) => void;
     router: RouterLike;
     screen: Extract<LabScreenState, { type: "check" }>;
@@ -193,17 +198,20 @@ function handleCheckContinue({
     taskItem: TaskListItem | null;
 }) {
     if (screen.transition?.toLevel) {
+        applyDeferredTaskState(screen.nextTaskItem, screen.nextTaskData);
         router.push(getLabUrl(screen.transition.taskId));
         setScreen({ type: "task", screen: "component" });
         return;
     }
 
     if (screen.transition) {
+        applyDeferredTaskState(screen.nextTaskItem, screen.nextTaskData);
         router.push(createTaskDonePath(screen.transition.taskId));
         setScreen({ type: "done", transition: screen.transition });
         return;
     }
 
+    applyDeferredTaskState(screen.nextTaskItem, screen.nextTaskData);
     void handleReturnToLevelList(taskItem?.progress.currentLevelId);
 }
 

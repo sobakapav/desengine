@@ -1,7 +1,10 @@
 ## Tasks
 
 - [ ] 1. Зафиксировать границы подсистемы тестирования и её область ответственности.
-- [ ] 2. Описать классы дочерних changes: producer, implement, cleanup, release follow-up.
+- [ ] 2. Описать роли связанных follow-up changes без смешения иерархии:
+  - [ ] 2.1 `producer` как upstream или historical input для планирования test-system wave
+  - [ ] 2.2 `implement`/`fix` как дочерние исполнительские changes под `dispatcher-test-system`
+  - [ ] 2.3 cleanup и release follow-up как сопровождающие контуры, не подменяющие `parent_change`
 - [ ] 3. Зафиксировать, что runtime/tooling изменения тестового слоя выполняются только через контролируемые dispatcher'ом `implement`/`fix` changes.
 - [ ] 4. Определить базовые guardrails для уровней проверки, команд запуска, mock/fixture-данных и live credentials.
 - [ ] 5. Связать будущие изменения тестовой подсистемы с `testing-layer` и traceability-практикой.

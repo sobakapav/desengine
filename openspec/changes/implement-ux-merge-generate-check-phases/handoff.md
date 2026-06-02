@@ -6,7 +6,7 @@
 
 - parent_change: `dispatcher-ux`
 - strategy_root: `focus-quality`
-- release_ref: (не задан)
+- release_ref: release-2026-06-02-quality
 - producer_ref: (не задан)
 - Что из родительского change уже решено: `dispatcher-ux` уже перевёл эту UX-гипотезу на уровень прямой реализации и удерживает её как часть quality-контура.
 

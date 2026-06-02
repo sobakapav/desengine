@@ -13,6 +13,14 @@
   - [ ] 4.1 определить, какие направления нужно отдавать в `dispatcher` changes;
   - [ ] 4.2 развести исследовательские, измерительные и исправляющие ветки;
   - [ ] 4.3 зафиксировать порядок постановки этих работ.
+  - [ ] 4.4 Для user-facing режима `npm run start` выпустить первичную implement-карту:
+    - [ ] 4.4.1 `implement-workbench-preview-payload-budgeting` под `dispatcher-workbench`;
+    - [ ] 4.4.2 `implement-runtime-task-load-guardrails` под `dispatcher-runtime`;
+    - [ ] 4.4.3 `implement-runtime-llm-payload-budgets` под `dispatcher-runtime`.
+  - [ ] 4.5 Выпустить глобальную follow-up волну:
+    - [ ] 4.5.1 `implement-test-performance-budget-verdicts` под `dispatcher-test-system`;
+    - [ ] 4.5.2 `implement-test-speed-load-regression-harness` под `dispatcher-test-system`;
+    - [ ] 4.5.3 `implement-runtime-speed-observability` под `dispatcher-runtime`.
 - [ ] 5. Обеспечить тестовую и traceability-готовность будущих behavior-change changes:
   - [ ] 5.1 перечислить ожидаемые уровни проверки для downstream-веток;
   - [ ] 5.2 зафиксировать требования к verification commands, mock/fixture-данным и coverage-plan.
@@ -29,11 +37,14 @@
 ## Детали проверки
 
 - Затронутые OpenSpec capability/scenarios:
-  - `admin-tools` / управление topology и контрактами active changes;
-  - `level-labs`, `runtime`, `test-system` и другие runtime-capabilities будут уточняться downstream changes, когда producer разложит направления.
+  - `admin-tools`: active topology и корректное оформление producer-change в дереве OpenSpec;
+  - `testing-layer`: traceability-требование к тестовой постановке downstream behavior-change веток.
 - Уровень проверки: static / traceability для producer-change.
 - Команда запуска:
   - `npm run test:traceability`
 - Mock/fixture-данные:
   - для самого producer-change не требуются;
   - downstream changes должны будут явно фиксировать свои fixture/mocks и credentials по месту.
+- Live credentials:
+  - для самого producer-change не требуются;
+  - downstream changes должны отдельно фиксировать credential expectations по месту.

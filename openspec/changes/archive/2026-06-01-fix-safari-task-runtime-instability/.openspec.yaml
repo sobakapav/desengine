@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-01
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "fix"
+execution_mode: "code"
+parent_change: "dispatcher-runtime"
+strategy_root: "focus-tech"
+roadmap_ref: "focus-tech/roadmaps/architecture-transformation.md"
+release_ref: "release-2026-06-01-grooming"
+producer_ref: ""
+verification_level: "component/browser"
+verification_command: "DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs test/e2e/safari-task-runtime-instability.spec.ts"
+issue: ""
+short: "починить нестабильность task runtime в Safari"

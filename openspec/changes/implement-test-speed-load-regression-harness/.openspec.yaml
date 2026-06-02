@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-01
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "dispatcher-test-system"
+strategy_root: "focus-quality"
+roadmap_ref: "focus-quality/roadmaps/test-system.md"
+release_ref: "release-2026-06-02-quality"
+producer_ref: "producer-speed-and-load"
+verification_level: "integration"
+verification_command: "npm run test:integration"
+issue: ""
+short: "добавить regression harness для speed/load сценариев"

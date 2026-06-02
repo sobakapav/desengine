@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from "node:child_process"
+import fs from "node:fs"
 import { createRequire } from "node:module"
 import net from "node:net"
 import path from "node:path"
@@ -8,6 +9,7 @@ const DEFAULT_SPEC = "test/e2e/browser-verification-runtime.spec.ts"
 const READINESS_TIMEOUT_MS = 180_000
 const READINESS_INTERVAL_MS = 1_000
 const DEFAULT_FIXTURE_ACCESS_SALT = "desengine-e2e-salt"
+const NEXT_DEV_LOCK_PATH = path.join(process.cwd(), ".next", "dev", "lock")
 
 const require = createRequire(import.meta.url)
 const localConfig = require("../../lib/system/config/local.cjs")
@@ -95,6 +97,10 @@ function normalizeBaseUrl(value) {
     throw new Error("DESENGINE_E2E_BASE_URL должен быть абсолютным URL.")
   }
 
+  if (parsedUrl.hostname === "localhost") {
+    parsedUrl.hostname = "127.0.0.1"
+  }
+
   return parsedUrl.toString().replace(/\/+$/, "")
 }
 
@@ -149,6 +155,74 @@ function probeReadiness(url) {
   )
 }
 
+function readNextDevLock() {
+  try {
+    const raw = fs.readFileSync(NEXT_DEV_LOCK_PATH, "utf8")
+    const parsed = JSON.parse(raw)
+    const pid = Number(parsed?.pid)
+    const baseUrl = normalizeBaseUrl(parsed?.appUrl || `http://${parsed?.hostname}:${parsed?.port}`)
+
+    if (!Number.isInteger(pid) || pid < 1) {
+      return null
+    }
+
+    return {
+      pid,
+      baseUrl,
+    }
+  } catch {
+    return null
+  }
+}
+
+function isProcessAlive(pid) {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function removeNextDevLock() {
+  try {
+    fs.rmSync(NEXT_DEV_LOCK_PATH, { force: true })
+  } catch {}
+}
+
+function waitForProcessExit(serverProcess, timeoutMs = 10_000) {
+  if (!serverProcess) {
+    return Promise.resolve()
+  }
+
+  if (serverProcess.exitCode !== null) {
+    return Promise.resolve()
+  }
+
+  return new Promise((resolve) => {
+    let settled = false
+
+    const finish = () => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      serverProcess.off("exit", finish)
+      serverProcess.off("error", finish)
+      resolve()
+    }
+
+    const timer = setTimeout(() => {
+      if (serverProcess.exitCode === null) {
+        serverProcess.kill("SIGKILL")
+      }
+      finish()
+    }, timeoutMs)
+
+    serverProcess.once("exit", finish)
+    serverProcess.once("error", finish)
+  })
+}
+
 function canReuseExistingTargetServer() {
   const explicitBaseUrl = process.env.DESENGINE_E2E_BASE_URL?.trim()
   if (explicitBaseUrl) {
@@ -156,6 +230,25 @@ function canReuseExistingTargetServer() {
       reusable: true,
       baseUrl: normalizeBaseUrl(explicitBaseUrl),
       source: "explicit-base-url",
+    }
+  }
+
+  const lockedTarget = readNextDevLock()
+  if (lockedTarget) {
+    const readinessUrl = new URL("/api/status/llm", `${lockedTarget.baseUrl}/`).toString()
+    const result = probeReadiness(readinessUrl)
+    const status = Number((result.stdout || "").trim())
+
+    if (!result.error && result.status === 0 && status >= 200 && status < 500) {
+      return {
+        reusable: true,
+        baseUrl: lockedTarget.baseUrl,
+        source: "next-dev-lock",
+      }
+    }
+
+    if (!isProcessAlive(lockedTarget.pid)) {
+      removeNextDevLock()
     }
   }
 
@@ -222,43 +315,42 @@ async function main() {
     DESENGINE_E2E_ACCESS_SALT: fixtureAccessSalt || process.env.DESENGINE_E2E_ACCESS_SALT || "",
     PLAYWRIGHT_BROWSER_CHANNEL: process.env.PLAYWRIGHT_BROWSER_CHANNEL || DEFAULT_CHANNEL,
   }
-  const nextBinary = path.join(process.cwd(), "node_modules", ".bin", "next")
+  const nextCliEntrypoint = path.join(process.cwd(), "node_modules", "next", "dist", "bin", "next")
   const server = existingTarget.reusable
     ? null
     : spawn(
-      nextBinary,
-      ["dev", "--hostname", "127.0.0.1", "--port", String(port)],
+      process.execPath,
+      [nextCliEntrypoint, "dev", "--hostname", "127.0.0.1", "--port", String(port)],
       {
-        detached: process.platform !== "win32",
         stdio: "inherit",
         env: buildServerEnv(),
       },
     )
 
   let shuttingDown = false
-  const shutdown = () => {
+  let shutdownPromise = null
+  const shutdown = async () => {
     if (!server) return
-    if (shuttingDown) return
-    shuttingDown = true
-
-    if (process.platform === "win32") {
-      server.kill("SIGTERM")
+    if (shutdownPromise) {
+      await shutdownPromise
       return
     }
-
-    try {
-      process.kill(-server.pid, "SIGTERM")
-    } catch {
-      server.kill("SIGTERM")
-    }
+    shuttingDown = true
+    shutdownPromise = (async () => {
+      if (server.exitCode === null) {
+        server.kill("SIGTERM")
+      }
+      await waitForProcessExit(server)
+    })()
+    await shutdownPromise
   }
 
-  process.on("SIGINT", () => {
-    shutdown()
+  process.on("SIGINT", async () => {
+    await shutdown()
     process.exit(130)
   })
-  process.on("SIGTERM", () => {
-    shutdown()
+  process.on("SIGTERM", async () => {
+    await shutdown()
     process.exit(143)
   })
 
@@ -285,7 +377,7 @@ async function main() {
       externalEnv,
     )
   } finally {
-    shutdown()
+    await shutdown()
   }
 }
 

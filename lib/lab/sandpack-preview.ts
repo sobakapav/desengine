@@ -56,6 +56,7 @@ type SandpackPreviewSourceFiles = {
   systemUtils: string
   previewCss?: string
   shadcnFiles?: Record<string, string>
+  supportFiles?: Record<string, string>
 }
 
 type SandpackPreviewPayload = {
@@ -231,10 +232,11 @@ function buildMainTsx(indexTsxTemplate: string, indexTsxImports: string[] = []) 
   return indexTsxTemplate.replace("/* __EXTRA_IMPORTS__ */", extraImports)
 }
 
-function buildPreviewRuntimeContractSource() {
+function buildPreviewRuntimeContractSource(previewSessionId: string) {
   return `import React, { useLayoutEffect } from "react";
 
 const PREVIEW_SOURCE = "${previewRuntimeContractMarkerSource}";
+const PREVIEW_SESSION_ID = ${JSON.stringify(previewSessionId)};
 const LOADING_STATUS = "loading";
 const READY_STATUS = "ready";
 const UNSTYLED_STATUS = "unstyled-dom";
@@ -252,6 +254,7 @@ function updateHost(status: string, message = "") {
   window.parent?.postMessage({
     source: PREVIEW_SOURCE,
     type: "contract",
+    previewSessionId: PREVIEW_SESSION_ID,
     status,
     message,
   }, "*");
@@ -625,6 +628,7 @@ function resolveTailwindVirtualPath(id: string, base: string | undefined) {
 
 async function buildPrecompiledPreviewCss(args: {
   componentSource: string
+  previewSessionId: string
   resolvedAppTsx: string
   resolvedLevelRuntime: string
   resolvedPreviewCss: string
@@ -632,12 +636,13 @@ async function buildPrecompiledPreviewCss(args: {
 }) {
   const {
     componentSource,
+    previewSessionId,
     resolvedAppTsx,
     resolvedLevelRuntime,
     resolvedPreviewCss,
     sourceFiles,
   } = args
-  const runtimeContractSource = buildPreviewRuntimeContractSource()
+  const runtimeContractSource = buildPreviewRuntimeContractSource(previewSessionId)
   const candidateSources = [
     componentSource,
     sourceFiles.stories ?? "",
@@ -646,6 +651,7 @@ async function buildPrecompiledPreviewCss(args: {
     sourceFiles.props ?? defaultPropsSource,
     sourceFiles.uiBadge,
     ...Object.values(sourceFiles.shadcnFiles ?? {}),
+    ...Object.values(sourceFiles.supportFiles ?? {}),
     resolvedAppTsx,
     resolvedLevelRuntime,
     runtimeContractSource,
@@ -768,6 +774,7 @@ function createBaseSandpackFiles(args: {
   resolvedAppTsx: string
   resolvedLevelRuntime: string
   uiKit: SandpackUiKitConfig
+  previewSessionId: string
 }): SandpackPreviewFiles {
   const {
     sourceFiles,
@@ -778,6 +785,7 @@ function createBaseSandpackFiles(args: {
     resolvedAppTsx,
     resolvedLevelRuntime,
     uiKit,
+    previewSessionId,
   } = args
   const packageJsonBase = templates.packageJson
 
@@ -787,7 +795,7 @@ function createBaseSandpackFiles(args: {
     "/tsconfig.json": hidden(JSON.stringify(templates.tsconfigJson, null, 2)),
     "/src/index.tsx": hidden(buildMainTsx(templates.indexTsxTemplate, uiKit.indexTsxImports)),
     "/src/App.tsx": hidden(resolvedAppTsx || ""),
-    "/src/preview-runtime-contract.tsx": hidden(buildPreviewRuntimeContractSource()),
+    "/src/preview-runtime-contract.tsx": hidden(buildPreviewRuntimeContractSource(previewSessionId)),
     "/src/level-template-runtime.ts": hidden(resolvedLevelRuntime),
     "/src/Component.tsx": {
       code: rewriteRootAliasImports(componentSource, "./"),
@@ -818,6 +826,7 @@ async function buildSandpackPreviewPayload(
     uiMode?: ProjectUiMode | string | null
     project?: RawProject | null
     appTemplate?: SandpackAppTemplateOptions | null
+    previewSessionId?: string | null
   } = {},
 ): Promise<SandpackPreviewPayload> {
   validateSandpackUiKitsConfig()
@@ -826,12 +835,13 @@ async function buildSandpackPreviewPayload(
   const { project, resolvedUiKitId, compatibility } = resolvePreviewProject(sourceFiles, options)
   const uiKit = sandpackUiKitsConfig[resolvedUiKitId] ?? sandpackUiKitsConfig[DEFAULT_SANDPACK_UI_KIT_ID]
   const appTemplate = options.appTemplate ?? null
+  const previewSessionId = options.previewSessionId?.trim() || "preview-session-missing"
   const componentSource = compatibility.status === "compatible"
     ? sourceFiles.component
     : buildHtmlTagsFallbackComponent(compatibility.message)
   const resolvedAppTsx = injectPreviewRuntimeContract(appTemplate?.appTsx ?? fallbackAppTsx)
   const resolvedLevelRuntime = appTemplate?.levelTemplateRuntime ?? "export const levelRuntime = {} as const;\n"
-  const previewRuntimeContractSource = buildPreviewRuntimeContractSource()
+  const previewRuntimeContractSource = buildPreviewRuntimeContractSource(previewSessionId)
   const dependencySourceFiles: Record<string, string> = {
     "/src/App.tsx": resolvedAppTsx,
     "/src/Component.tsx": componentSource,
@@ -848,6 +858,9 @@ async function buildSandpackPreviewPayload(
   if (resolvedUiKitId === "shadcn") {
     dependencySourceFiles["/src/components/ui/badge.tsx"] = sourceFiles.uiBadge
     for (const [filePath, code] of Object.entries(sourceFiles.shadcnFiles ?? {})) {
+      dependencySourceFiles[path.posix.join("/src", filePath)] = code
+    }
+    for (const [filePath, code] of Object.entries(sourceFiles.supportFiles ?? {})) {
       dependencySourceFiles[path.posix.join("/src", filePath)] = code
     }
     dependencySourceFiles["/src/lib/system/utils.ts"] = sourceFiles.systemUtils
@@ -879,6 +892,7 @@ async function buildSandpackPreviewPayload(
   }
   const compiledPreviewCss = await buildPrecompiledPreviewCss({
     componentSource,
+    previewSessionId,
     resolvedAppTsx,
     resolvedLevelRuntime,
     resolvedPreviewCss: resolvePreviewCss(sourceFiles, templates, appTemplate),
@@ -893,11 +907,13 @@ async function buildSandpackPreviewPayload(
     resolvedAppTsx,
     resolvedLevelRuntime,
     uiKit,
+    previewSessionId,
   })
 
   if (resolvedUiKitId === "shadcn") {
     files["/src/components/ui/badge.tsx"] = hidden(rewriteRootAliasImports(sourceFiles.uiBadge, "../../"))
     Object.assign(files, toHiddenFiles(sourceFiles.shadcnFiles ?? {}, "../../", "/src"))
+    Object.assign(files, toHiddenFiles(sourceFiles.supportFiles ?? {}, "../", "/src"))
   }
 
   if (resolvedUiKitId === "ant") {

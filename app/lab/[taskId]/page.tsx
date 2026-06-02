@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation"
 
-import { TaskRoute } from "@/components/desengine/lab/TaskRoute"
+import { Lab } from "@/components/desengine/lab/LabScreen"
+import { createLabTaskScreenEventInput } from "@/components/desengine/lab/LabScreen/screen-event"
 import { requireAccessOrRedirect } from "@/lib/auth/server"
 import { getLabUrl } from "@/lib/lab/navigation"
-import { getTaskLabContext, getTaskListItemById } from "@/lib/system/server"
+import { getLevelOverview, getTaskLabContext, getTaskListItemById } from "@/lib/system/server"
 import { getDefaultCodeScreen, isAccessibleCodeScreen } from "@/lib/lab/editor"
 import { buildCurrentTaskScreenData } from "@/lib/task/task-screen-data"
 
@@ -46,10 +47,15 @@ export default async function LabTaskPage({
   }
 
   const { taskData } = await buildCurrentTaskScreenData({ taskId, taskItem, labContext })
+  const levelOverview = await getLevelOverview(taskItem.progress.currentLevelId)
+
   return (
-    <TaskRoute
+    <Lab
+      initLevelOverview={levelOverview}
+      initScreen={{ type: "task", screen: defaultScreen }}
       initTaskItem={taskItem}
       initTaskData={taskData}
+      initTaskScreenEventInput={createLabTaskScreenEventInput(taskId, defaultScreen)}
     />
   )
 }

@@ -29,6 +29,10 @@
   - замеры и профилирование;
   - runtime-оптимизации;
   - защитные лимиты и наблюдаемость.
+- Для user-facing режима `npm run start` producer дополнительно фиксирует первичную карту доступных delivery-точек:
+  - ускорение preview/workbench payload pipeline;
+  - guardrail'ы на task action backlog и mutation pressure;
+  - budget'ы на LLM payload, structured-output и write-set.
 
 ## Non-goals
 
@@ -36,8 +40,24 @@
 - Прямые кодовые изменения на уровне runtime.
 - Подмена собой `dispatcher`- или `implement`-веток.
 
+## Capabilities
+
+### Potentially Modified Capabilities
+
+- `admin-tools`
+- `testing-layer`
+
 ## Impact
 
 - `focus-quality` получает отдельный контур управления скоростью и нагрузкой.
 - Проблемы производительности перестают быть разрозненными наблюдениями без общей рамки.
 - Будущие `dispatcher` и `implement/fix` changes смогут опираться на единый producer-контекст, а не спорить заново о критериях и приоритетах.
+
+## Acceptance Criteria
+
+- В active OpenSpec есть `producer-speed-and-load` под `focus-quality`.
+- Для producer зафиксирован отдельный roadmap по скорости, утечкам и рамкам допустимой нагрузки.
+- В producer явно разведены подтверждённые симптомы, гипотезы, профили нагрузки и обязательные измерения.
+- Зафиксировано, что downstream delivery по этому направлению запускается через `dispatcher` changes, а не напрямую из producer.
+- Для будущих behavior-change веток зафиксированы требования к тестовой постановке, traceability и verification commands.
+- Для `npm run start` определён хотя бы первичный downstream-набор implement changes по ускорению и load guardrail'ам.

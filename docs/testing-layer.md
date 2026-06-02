@@ -114,16 +114,16 @@ Browser verification теперь имеет два явных режима:
 
 Если выбран внешний режим без `DESENGINE_E2E_BASE_URL`, конфиг считается невалидным и проверка должна завершаться ошибкой конфигурации, а не ложным product verdict.
 
-По умолчанию Playwright запускается через установленный системный Google Chrome (`channel: chrome`). Если нужно использовать другой канал, задай:
+По умолчанию browser verification использует `PLAYWRIGHT_BROWSER_CHANNEL=chromium`. Если нужно явно повторить этот канал в команде, задай:
 
 ```bash
 PLAYWRIGHT_BROWSER_CHANNEL=chromium npm run test:e2e
 ```
 
-Если dev-server уже поднят отдельно, можно запускать против него:
+Если dev-server уже поднят отдельно, прямой fallback вне Codex seatbelt тоже лучше пиновать на тот же канал:
 
 ```bash
-DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
+PLAYWRIGHT_BROWSER_CHANNEL=chromium DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3000 npm run test:e2e
 ```
 
 Канонический browser verification wrapper для Codex/seatbelt и других нестабильных execution mode:
@@ -145,7 +145,7 @@ Wrapper:
 Отдельный preflight browser verification, который сначала проверяет target server, а затем открытие базового browser route:
 
 ```bash
-DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410 npm run test:e2e -- test/e2e/browser-verification-runtime.spec.ts
+PLAYWRIGHT_BROWSER_CHANNEL=chromium DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410 npm run test:e2e -- test/e2e/browser-verification-runtime.spec.ts
 ```
 
 Этот прямой прогон допустим как low-level fallback только вне Codex seatbelt. Для repeatable verification внутри Codex каноническим остаётся wrapper выше.

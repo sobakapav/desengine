@@ -16,30 +16,17 @@ import { OutRenderProps } from "./props";
 import {
     mergePreviewRuntimeContractState,
     type PreviewRuntimeContractState,
-    type PreviewRuntimeContractStatus,
 } from "../preview-runtime-contract-state";
+import { getPreviewCheckGuardMessage, readPreviewRuntimeContractMessage } from "../preview-runtime-contract-message";
 import { resolvePreviewClientId } from "../preview-client-id";
 const SANDBOX_RUNTIME_VERSION = "2026-05-20-ant-shim-v3";
 const PREVIEW_RUNTIME_CONTRACT_TIMEOUT_MS = 12_000;
 const PREVIEW_FETCH_TIMEOUT_MS = 12_000;
+const CHECK_BUTTON_LABEL = "Проверить результат";
 
 type SandpackPreviewRef = {
     clientId: string;
 };
-
-type PreviewRuntimeContractMessage = {
-    source: "desengine-sandpack-preview";
-    type: "contract";
-    status: Exclude<PreviewRuntimeContractStatus, "idle">;
-    message?: string;
-};
-
-function isPreviewRuntimeContractMessage(value: unknown): value is PreviewRuntimeContractMessage {
-    if (typeof value !== "object" || value === null) return false;
-
-    return (value as PreviewRuntimeContractMessage).source === "desengine-sandpack-preview"
-        && (value as PreviewRuntimeContractMessage).type === "contract";
-}
 
 function getErrorMessage(error: unknown, fallbackMessage: string) {
     return error instanceof Error && error.message ? error.message : fallbackMessage;
@@ -67,6 +54,15 @@ function PreviewRuntimeContractErrorNotice({ message }: { message: string }) {
     return (
         <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
             <p className="font-medium">Компонент не удалось отрендерить в preview.</p>
+            <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
+        </div>
+    );
+}
+
+function PreviewCheckGuardNotice({ message }: { message: string }) {
+    return (
+        <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            <p className="font-medium">Проверка результата временно недоступна.</p>
             <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
         </div>
     );
@@ -126,7 +122,7 @@ function SandpackRuntimeDiagnosticsNotice({ payload }: { payload: SandpackPrevie
     );
 }
 
-function usePreviewRuntimeContract(moduleUrl: string, enabled: boolean) {
+function usePreviewRuntimeContract(moduleUrl: string, previewSessionId: string, enabled: boolean) {
     const [contractState, setContractState] = useState<PreviewRuntimeContractState>({
         status: "idle",
         message: "",
@@ -138,13 +134,14 @@ function usePreviewRuntimeContract(moduleUrl: string, enabled: boolean) {
         if (!enabled) return;
 
         function handleMessage(event: MessageEvent) {
-            if (!isPreviewRuntimeContractMessage(event.data)) {
+            const contractMessage = readPreviewRuntimeContractMessage(event.data, previewSessionId);
+            if (!contractMessage) {
                 return;
             }
 
             setContractState({
-                status: event.data.status,
-                message: event.data.message ?? "",
+                status: contractMessage.status,
+                message: contractMessage.message ?? "",
             });
         }
 
@@ -165,12 +162,95 @@ function usePreviewRuntimeContract(moduleUrl: string, enabled: boolean) {
             window.clearTimeout(timeoutId);
             window.removeEventListener("message", handleMessage);
         };
-    }, [enabled, moduleUrl]);
+    }, [enabled, moduleUrl, previewSessionId]);
 
     return {
         contractState,
         setRuntimeContractState: setContractState,
     };
+}
+
+function findCheckButton() {
+    return Array.from(document.querySelectorAll("button"))
+        .find((node) => node.textContent?.trim() === CHECK_BUTTON_LABEL) ?? null;
+}
+
+function applyCheckButtonGuard(button: HTMLButtonElement, message: string) {
+    if (!("previewCheckGuardOriginalDisabled" in button.dataset)) {
+        button.dataset.previewCheckGuardOriginalDisabled = String(button.disabled);
+    }
+
+    if (!("previewCheckGuardOriginalTitle" in button.dataset)) {
+        button.dataset.previewCheckGuardOriginalTitle = button.getAttribute("title") ?? "";
+    }
+
+    button.dataset.previewCheckGuard = "true";
+    button.disabled = true;
+    button.setAttribute("aria-disabled", "true");
+    button.setAttribute("title", message);
+}
+
+function clearCheckButtonGuard(button: HTMLButtonElement) {
+    if (button.dataset.previewCheckGuard !== "true") {
+        return;
+    }
+
+    button.disabled = button.dataset.previewCheckGuardOriginalDisabled === "true";
+
+    const originalTitle = button.dataset.previewCheckGuardOriginalTitle ?? "";
+    if (originalTitle) {
+        button.setAttribute("title", originalTitle);
+    } else {
+        button.removeAttribute("title");
+    }
+
+    delete button.dataset.previewCheckGuard;
+    delete button.dataset.previewCheckGuardOriginalDisabled;
+    delete button.dataset.previewCheckGuardOriginalTitle;
+}
+
+function usePreviewCheckButtonGuard(message: string | null) {
+    useEffect(() => {
+        if (typeof document === "undefined") {
+            return;
+        }
+
+        const sync = () => {
+            const guardedButtons = document.querySelectorAll<HTMLButtonElement>('button[data-preview-check-guard="true"]');
+            for (const button of guardedButtons) {
+                clearCheckButtonGuard(button);
+            }
+
+            if (!message) {
+                return;
+            }
+
+            const button = findCheckButton();
+            if (button instanceof HTMLButtonElement) {
+                applyCheckButtonGuard(button, message);
+            }
+        };
+
+        sync();
+
+        if (!message) {
+            return;
+        }
+
+        const observer = new MutationObserver(sync);
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+        });
+
+        return () => {
+            observer.disconnect();
+            const guardedButtons = document.querySelectorAll<HTMLButtonElement>('button[data-preview-check-guard="true"]');
+            for (const button of guardedButtons) {
+                clearCheckButtonGuard(button);
+            }
+        };
+    }, [message]);
 }
 
 function SandpackRuntimeActivityBridge({
@@ -315,9 +395,10 @@ function IdlePreviewNotice({ startStatus }: { startStatus: string }) {
     );
 }
 
-function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
+function SandpackPreviewFrame({ moduleUrl, previewPayload, previewSessionId }: {
     moduleUrl: string;
     previewPayload: SandpackPreviewPayload;
+    previewSessionId: string;
 }) {
     const compatibility = previewPayload.project.compatibility;
     const {
@@ -325,6 +406,7 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
         setRuntimeContractState,
     } = usePreviewRuntimeContract(
         moduleUrl,
+        previewSessionId,
         compatibility.status === "compatible",
     );
     const [previewClientId, setPreviewClientId] = useState<string | null>(null);
@@ -350,6 +432,9 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
     const handleRuntimeContractChange = useCallback((next: PreviewRuntimeContractState) => {
         setRuntimeContractState((current) => mergePreviewRuntimeContractState(current, next));
     }, [setRuntimeContractState]);
+    const previewCheckGuardMessage = useMemo(() => getPreviewCheckGuardMessage(runtimeContract), [runtimeContract]);
+
+    usePreviewCheckButtonGuard(previewCheckGuardMessage);
 
     if (compatibility.status === "incompatible") {
         return (
@@ -370,6 +455,9 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
                 <PreviewRuntimeContractErrorNotice
                     message={runtimeContract.message || "Sandpack runtime сообщил об ошибке рендера компонента."}
                 />
+            ) : null}
+            {previewCheckGuardMessage ? (
+                <PreviewCheckGuardNotice message={previewCheckGuardMessage} />
             ) : null}
             <SandpackProvider
                 key={`${moduleUrl}:${previewPayload.debug?.shimVersion ?? "no-debug"}`}
@@ -418,18 +506,19 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload }: {
     );
 }
 
-function PreviewContent({ error, loading, moduleUrl, previewPayload }: {
+function PreviewContent({ error, loading, moduleUrl, previewPayload, previewSessionId }: {
     error: string;
     loading: boolean;
     moduleUrl: string;
     previewPayload: SandpackPreviewPayload | null;
+    previewSessionId: string;
 }) {
     return (
         <div className="min-h-32 overflow-hidden">
             {error ? (
                 <PreviewErrorNotice message={error} />
             ) : previewPayload ? (
-                <SandpackPreviewFrame moduleUrl={moduleUrl} previewPayload={previewPayload} />
+                <SandpackPreviewFrame moduleUrl={moduleUrl} previewPayload={previewPayload} previewSessionId={previewSessionId} />
             ) : (
                 <p className="text-muted-foreground">{loading ? "Загрузка рендера…" : "Превью ожидает следующей загрузки."}</p>
             )}
@@ -439,6 +528,10 @@ function PreviewContent({ error, loading, moduleUrl, previewPayload }: {
 
 function OutRender({ task, started, reloadKey, startStatus, project }: OutRenderProps) {
     const previewProject = project ?? createDefaultProject(`task-${task}`);
+    const previewSessionId = useMemo(
+        () => `task:${task}:reload:${reloadKey}:project:${previewProject.id}:ui:${previewProject.settings.uiKitId}:${previewProject.settings.uiMode}`,
+        [previewProject.id, previewProject.settings.uiKitId, previewProject.settings.uiMode, reloadKey, task],
+    );
     const moduleUrl = useMemo(
         () => {
             const params = new URLSearchParams({
@@ -448,10 +541,11 @@ function OutRender({ task, started, reloadKey, startStatus, project }: OutRender
                 projectTitle: previewProject.title,
                 uiKitId: previewProject.settings.uiKitId,
                 uiMode: previewProject.settings.uiMode,
+                previewSessionId,
             });
             return `/api/tasks/${task}/sandpack?${params.toString()}`;
         },
-        [previewProject.id, previewProject.title, previewProject.settings.uiKitId, previewProject.settings.uiMode, task, reloadKey],
+        [previewProject.id, previewProject.title, previewProject.settings.uiKitId, previewProject.settings.uiMode, previewSessionId, task, reloadKey],
     );
     const { error, loading, previewPayload } = usePreviewPayload({ moduleUrl, started });
 
@@ -460,7 +554,13 @@ function OutRender({ task, started, reloadKey, startStatus, project }: OutRender
             {!started ? (
                 <IdlePreviewNotice startStatus={startStatus} />
             ) : (
-                <PreviewContent error={error} loading={loading} moduleUrl={moduleUrl} previewPayload={previewPayload} />
+                <PreviewContent
+                    error={error}
+                    loading={loading}
+                    moduleUrl={moduleUrl}
+                    previewPayload={previewPayload}
+                    previewSessionId={previewSessionId}
+                />
             )}
         </div>
     );

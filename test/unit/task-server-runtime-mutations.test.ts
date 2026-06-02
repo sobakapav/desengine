@@ -9,6 +9,7 @@ import type { UserProgressStore } from "@/lib/user/types"
 
 const mocks = vi.hoisted(() => ({
   readPromptHistory: vi.fn(),
+  readTaskCheckResult: vi.fn(),
   removeTaskCheckResult: vi.fn(),
   removeUserTaskDir: vi.fn(),
   readTaskConfig: vi.fn(),
@@ -34,6 +35,7 @@ vi.mock("@/lib/user/server", () => ({
 vi.mock("@/lib/task/server-runtime-storage", () => ({
   taskServerStorage: {
     readTaskConfig: mocks.readTaskConfig,
+    readTaskCheckResult: mocks.readTaskCheckResult,
     readUserProgressStore: mocks.readUserProgressStore,
     writeUserProgressStore: mocks.writeUserProgressStore,
   },
@@ -95,6 +97,7 @@ describe("taskServerMutations.registerPromptForCurrentLevel", () => {
       maxLevel: 1,
     })
     mocks.readUserProgressStore.mockResolvedValue(store)
+    mocks.readTaskCheckResult.mockResolvedValue(null)
     mocks.readTaskLevelSnapshot.mockResolvedValue({
       levelNumber: 2,
       editableFileIds: ["component"],
@@ -212,6 +215,18 @@ describe("taskServerMutations.resetCurrentTaskLevel", () => {
       maxLevel: 3,
     })
     mocks.readUserProgressStore.mockResolvedValue(store)
+    mocks.readTaskCheckResult.mockResolvedValue({
+      taskId: "task-a",
+      levelId: "level-2",
+      levelNumber: 2,
+      levelTitle: "Уровень 2",
+      attemptNumber: 1,
+      maxCheckAttempts: 2,
+      passed: false,
+      message: "Нужна ещё одна правка",
+      kind: "failed",
+      createdAt: "2026-05-24T10:07:00.000Z",
+    })
     mocks.writeUserProgressStore.mockResolvedValue(undefined)
     mocks.getLevelsCatalog.mockResolvedValue([
       {
@@ -299,5 +314,79 @@ describe("taskServerMutations.resetCurrentTaskLevel", () => {
     }))
     expect(mocks.writeUserProgressStore.mock.calls[0]?.[0]?.tasks?.["task-a"]?.levels?.["2"]).not.toHaveProperty("initializedAt")
     expect(mocks.writeUserProgressStore.mock.calls[0]?.[0]?.tasks?.["task-a"]?.levels?.["2"]).not.toHaveProperty("completedAt")
+  })
+
+  it("сохраняет результат уже завершённого уровня при reset текущего", async () => {
+    mocks.readTaskCheckResult.mockResolvedValueOnce({
+      taskId: "task-a",
+      levelId: "level-1",
+      levelNumber: 1,
+      levelTitle: "Уровень 1",
+      attemptNumber: 1,
+      maxCheckAttempts: 2,
+      passed: true,
+      message: "Уровень пройден",
+      kind: "passed",
+      createdAt: "2026-05-24T09:10:00.000Z",
+    })
+
+    const { taskServerMutations } = await import("@/lib/task/server-runtime-mutations")
+
+    await taskServerMutations.resetCurrentTaskLevel("task-a")
+
+    expect(mocks.removeTaskCheckResult).not.toHaveBeenCalled()
+    expect(mocks.writePromptHistory).toHaveBeenCalledWith("task-a", [
+      expect.objectContaining({ text: "Уточнение для уровня 1", levelNumber: 1 }),
+    ])
+  })
+})
+
+describe("taskServerMutations.resetTask", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.readUserProgressStore.mockResolvedValue({
+      tasks: {
+        "task-a": {
+          currentLevel: 2,
+          levels: {
+            "1": {
+              status: "completed",
+              isPassed: true,
+              promptsUsed: 1,
+              checkAttemptsUsed: 1,
+              checkingState: "idle",
+            },
+            "2": {
+              status: "in_progress",
+              isPassed: false,
+              promptsUsed: 2,
+              checkAttemptsUsed: 1,
+              checkingState: "awaiting_retry",
+            },
+          },
+        },
+      },
+    })
+    mocks.writeUserProgressStore.mockResolvedValue(undefined)
+  })
+
+  it("удаляет runtime состояния задачи при обычном reset", async () => {
+    const { taskServerMutations } = await import("@/lib/task/server-runtime-mutations")
+
+    await taskServerMutations.resetTask("task-a")
+
+    expect(mocks.removeUserTaskDir).toHaveBeenCalledWith("task-a")
+    expect(mocks.removeTaskCheckResult).toHaveBeenCalledWith("task-a")
+    expect(mocks.writeUserProgressStore).toHaveBeenCalledWith({ tasks: {} })
+  })
+
+  it("сохраняет check-result только в explicit preserve-режиме", async () => {
+    const { taskServerMutations } = await import("@/lib/task/server-runtime-mutations")
+
+    await taskServerMutations.resetTask("task-a", { preserveCheckResult: true })
+
+    expect(mocks.removeUserTaskDir).toHaveBeenCalledWith("task-a")
+    expect(mocks.removeTaskCheckResult).not.toHaveBeenCalled()
+    expect(mocks.writeUserProgressStore).toHaveBeenCalledWith({ tasks: {} })
   })
 })

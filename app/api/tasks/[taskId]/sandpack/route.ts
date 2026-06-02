@@ -25,6 +25,7 @@ export const revalidate = 0
 
 const uiBadgePath = path.join(process.cwd(), "components", "ui", "badge.tsx")
 const systemUtilsPath = path.join(process.cwd(), "lib", "system", "utils.ts")
+const useMobileHookPath = path.join(process.cwd(), "hooks", "use-mobile.ts")
 
 async function readUserTaskFile(taskId: string, fileName: string, fallback = "") {
   return readFile(getUserTaskFilePath(taskId, fileName), "utf-8").catch(() => fallback)
@@ -57,6 +58,11 @@ function parseProjectFromRequest(request: Request, taskId: string) {
   })
 }
 
+function parsePreviewSessionIdFromRequest(request: Request) {
+  const { searchParams } = new URL(request.url)
+  return searchParams.get("previewSessionId")?.trim() ?? ""
+}
+
 async function resolvePreviewLevel(taskItem: Awaited<ReturnType<typeof getTaskListItemById>>) {
   if (!taskItem) {
     return { kind: "task-not-found" as const }
@@ -74,13 +80,14 @@ async function resolvePreviewLevel(taskItem: Awaited<ReturnType<typeof getTaskLi
 }
 
 async function readTaskPreviewSourceFiles(taskId: string, includeShadcnFiles: boolean): Promise<SandpackPreviewSourceFiles> {
-  const [component, stories, styles, mock, props, systemUtils] = await Promise.all([
+  const [component, stories, styles, mock, props, systemUtils, useMobileHook] = await Promise.all([
     readUserTaskFile(taskId, "Component.tsx"),
     readUserTaskFile(taskId, "Component.stories.ts", "export {};\n"),
     readUserTaskFile(taskId, "styles.ts", "export const styles = {};\n"),
     readUserTaskFile(taskId, "mock.ts", "export const mock = {};\n"),
     readUserTaskFile(taskId, "props.ts", "export {};\n"),
     readFile(systemUtilsPath, "utf-8"),
+    readFile(useMobileHookPath, "utf-8"),
   ])
 
   const [uiBadge, shadcnFiles] = includeShadcnFiles
@@ -90,7 +97,11 @@ async function readTaskPreviewSourceFiles(taskId: string, includeShadcnFiles: bo
     ])
     : ["", {} as Record<string, string>]
 
-  return { component, stories, styles, mock, props, systemUtils, uiBadge, shadcnFiles }
+  const supportFiles: Record<string, string> | undefined = includeShadcnFiles
+    ? { "/hooks/use-mobile.ts": useMobileHook }
+    : undefined
+
+  return { component, stories, styles, mock, props, systemUtils, uiBadge, shadcnFiles, supportFiles }
 }
 
 /**
@@ -110,6 +121,7 @@ export async function GET(
 
   const { taskId } = await params
   const project = parseProjectFromRequest(request, taskId)
+  const previewSessionId = parsePreviewSessionIdFromRequest(request)
   const projectPreviewConfig = resolveProjectPreviewConfig(project)
   const taskItem = await getTaskListItemById(taskId)
   const previewLevelState = await resolvePreviewLevel(taskItem)
@@ -160,6 +172,7 @@ export async function GET(
   try {
     const previewPayload = await buildSandpackPreviewPayload(sourceFiles, {
       project,
+      previewSessionId,
       appTemplate: {
         appTsx: levelTemplate.appTsx,
         previewCss: levelTemplate.previewCss,
