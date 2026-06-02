@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import type { LevelOverview as LevelOverviewData } from "@/lib/level/types"
 import type { TaskCheckResult as TaskCheckResultData, TaskData, TaskListItem, TaskTransition } from "@/lib/task/types";
-import { createTaskCheckPath, createTaskDonePath, } from "@/lib/task/navigation";
+import { createTaskDonePath, } from "@/lib/task/navigation";
 import { getLabUrl } from "@/lib/lab/navigation";
 import { getLevelsRootUrl, getLevelUrl } from "@/lib/level/navigation";
 
@@ -27,10 +27,6 @@ import {
 
 function createDoneHref(taskId: string) {
     return createTaskDonePath(taskId);
-}
-
-function createCheckHref(taskId: string) {
-    return createTaskCheckPath(taskId);
 }
 
 function replaceTaskUrl(taskId: string, screen?: string | null) {
@@ -184,6 +180,16 @@ function useTaskResultHandlers({
 }: Pick<ReturnType<typeof useLevelNavigation>, "router"> & Pick<ReturnType<typeof useTaskState>, "setTaskData" | "setTaskItem"> & {
     setScreen: (screen: LabScreenState) => void;
 }) {
+    function applyDeferredTaskState(nextTaskItem: TaskListItem | null, nextTaskData: TaskData | null) {
+        if (nextTaskItem) {
+            setTaskItem(nextTaskItem);
+        }
+
+        if (nextTaskData) {
+            setTaskData(nextTaskData);
+        }
+    }
+
     function handleTransition(transition: TaskTransition | null) {
         if (!transition) return;
         router.push(transition.toLevel ? getLabUrl(transition.taskId) : createDoneHref(transition.taskId));
@@ -191,15 +197,16 @@ function useTaskResultHandlers({
     }
 
     function handleCheckResult(result: TaskCheckResultData, transition: TaskTransition | null, nextTaskItem: TaskListItem | null, nextTaskData: TaskData) {
-        if (nextTaskItem) {
-            setTaskItem(nextTaskItem);
-        }
-        setTaskData(nextTaskData);
-        router.push(createCheckHref(result.taskId));
-        setScreen({ type: "check", result, transition });
+        setScreen({
+            type: "check",
+            result,
+            transition,
+            nextTaskItem,
+            nextTaskData,
+        });
     }
 
-    return { handleCheckResult, handleTransition };
+    return { applyDeferredTaskState, handleCheckResult, handleTransition };
 }
 
 function Lab({initLevelOverview, initScreen, initTaskItem, initTaskData, initTaskScreenEventInput} : LabProps) {

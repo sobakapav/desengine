@@ -7,7 +7,7 @@
 
 - parent_change: dispatcher-bugfix
 - strategy_root: focus-quality
-- release_ref: (не задан)
+- release_ref: `release-2026-06-01-grooming`
 - producer_ref: (не задан)
 - Что из родительского change уже решено: dispatcher уже зафиксировал bugfix как локальный defect, влияющий на пользовательский task-flow. Root cause class сейчас кодовая: `lib/llm/runtime.ts` ставит timeout только для `target: "init"`, а `iterate`/`check` идут без `AbortSignal`; `useWorkbenchPrompt` и workbench actions держат pending до завершения fetch.
 - Кто отвечает за стратегию, тактику и приёмку результата: стратегия bugfix-потока остаётся у `dispatcher-bugfix`; этот fix отвечает за bounded runtime behavior и user-facing feedback в prompt/check flow.

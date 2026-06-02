@@ -67,13 +67,9 @@ function TaskRoute({ initTaskItem, initTaskData }: TaskRouteProps) {
     function handleCheckResult(
         result: TaskCheckResult,
         _transition: TaskTransition | null,
-        nextTaskItem: TaskListItem | null,
-        nextTaskData: TaskData,
+        _nextTaskItem: TaskListItem | null,
+        _nextTaskData: TaskData,
     ) {
-        if (nextTaskItem) {
-            setTaskItem(nextTaskItem);
-        }
-        setTaskData(nextTaskData);
         router.push(createTaskCheckPath(result.taskId));
     }
 

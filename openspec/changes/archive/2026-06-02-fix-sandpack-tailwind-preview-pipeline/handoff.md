@@ -7,7 +7,7 @@
 
 - parent_change: dispatcher-bugfix
 - strategy_root: focus-quality
-- release_ref: (не задан)
+- release_ref: `release-2026-06-01-grooming`
 - producer_ref: (не задан)
 - Что из родительского change уже решено: `dispatcher-bugfix` уже выделил preview/runtime как отдельный bug-class и не допускает косметических заглушек. Предыдущий fix по sandpack-runtime закрыл timeout/incompatibility-диагностику, но не доказал фактическое применение CSS/Tailwind внутри iframe.
 - Кто отвечает за стратегию, тактику и приёмку результата: стратегию и приёмку держит `dispatcher-bugfix`; этот fix отвечает за код preview-pipeline и доказательство browser-level style contract.

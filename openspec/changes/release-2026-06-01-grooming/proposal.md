@@ -15,6 +15,7 @@
   - `fix-browser-wrapper-managed-dev-cleanup`
 - В релиз добавлены active fixes линии `dispatcher-bugfix`:
   - `fix-preview-check-parity`
+  - `fix-check-reset-history-regression`
   - `fix-sandpack-ui-dependency-resolution`
   - `fix-sandpack-tailwind-preview-pipeline`
   - `fix-check-result-before-next-level-screen`

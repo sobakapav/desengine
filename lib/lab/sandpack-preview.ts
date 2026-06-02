@@ -628,6 +628,7 @@ function resolveTailwindVirtualPath(id: string, base: string | undefined) {
 
 async function buildPrecompiledPreviewCss(args: {
   componentSource: string
+  previewSessionId: string
   resolvedAppTsx: string
   resolvedLevelRuntime: string
   resolvedPreviewCss: string
@@ -635,12 +636,13 @@ async function buildPrecompiledPreviewCss(args: {
 }) {
   const {
     componentSource,
+    previewSessionId,
     resolvedAppTsx,
     resolvedLevelRuntime,
     resolvedPreviewCss,
     sourceFiles,
   } = args
-  const runtimeContractSource = buildPreviewRuntimeContractSource()
+  const runtimeContractSource = buildPreviewRuntimeContractSource(previewSessionId)
   const candidateSources = [
     componentSource,
     sourceFiles.stories ?? "",
@@ -890,6 +892,7 @@ async function buildSandpackPreviewPayload(
   }
   const compiledPreviewCss = await buildPrecompiledPreviewCss({
     componentSource,
+    previewSessionId,
     resolvedAppTsx,
     resolvedLevelRuntime,
     resolvedPreviewCss: resolvePreviewCss(sourceFiles, templates, appTemplate),

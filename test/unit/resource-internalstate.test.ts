@@ -1,6 +1,7 @@
 // @openSpec capability: resource-status
 // @openSpec scenarios:
 // @openSpec  - "Авторизация не ждёт sequential network probes диагностики"
+// @openSpec  - "Параллельные probes не переставляют порядок resource cards"
 // @openSpec  - "Разработчик запускает unit-проверку статусов ресурсов"
 
 import { beforeEach, describe, expect, it, vi } from "vitest"

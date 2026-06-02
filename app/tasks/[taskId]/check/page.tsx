@@ -52,7 +52,13 @@ export default async function TaskCheckPage({
   return (
     <Lab
       initLevelOverview={levelOverview}
-      initScreen={{ type: "check", result: checkResult, transition }}
+      initScreen={{
+        type: "check",
+        result: checkResult,
+        transition,
+        nextTaskItem: taskItem,
+        nextTaskData: taskData,
+      }}
       initTaskItem={taskItem}
       initTaskData={taskData}
     />

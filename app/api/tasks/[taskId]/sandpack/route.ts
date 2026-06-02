@@ -97,9 +97,9 @@ async function readTaskPreviewSourceFiles(taskId: string, includeShadcnFiles: bo
     ])
     : ["", {} as Record<string, string>]
 
-  const supportFiles = includeShadcnFiles
+  const supportFiles: Record<string, string> | undefined = includeShadcnFiles
     ? { "/hooks/use-mobile.ts": useMobileHook }
-    : {}
+    : undefined
 
   return { component, stories, styles, mock, props, systemUtils, uiBadge, shadcnFiles, supportFiles }
 }

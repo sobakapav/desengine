@@ -97,6 +97,21 @@
 
 Система SHALL покрывать resolver ресурсов unit-тестами и включать capability `resource-status` в traceability-слой.
 
+Система SHALL запускать независимые diagnostics probes на auth/system path без последовательного ожидания и без потери стабильного порядка resource cards.
+
+#### Scenario: Авторизация не ждёт sequential network probes диагностики
+
+- **WHEN** система собирает `getResourceStates()` для `/auth` или `/system`
+- **AND** LLM и allowlist resource probes независимы друг от друга
+- **THEN** система запускает их параллельно
+- **AND** не ждёт завершения первого probe перед стартом второго
+
+#### Scenario: Параллельные probes не переставляют порядок resource cards
+
+- **WHEN** система собирает `getResourceStates()` через параллельные diagnostics probes
+- **THEN** итоговый порядок resource cards остаётся стабильным
+- **AND** не зависит от того, какой probe завершился раньше
+
 #### Scenario: Разработчик запускает unit-проверку статусов ресурсов
 
 - **WHEN** разработчик запускает `npm run test:unit`

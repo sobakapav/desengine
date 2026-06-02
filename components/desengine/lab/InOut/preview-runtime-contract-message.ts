@@ -1,4 +1,7 @@
-type PreviewRuntimeContractStatus = "loading" | "ready" | "unstyled-dom" | "render-error"
+import type {
+  PreviewRuntimeContractState,
+  PreviewRuntimeContractStatus,
+} from "./preview-runtime-contract-state"
 
 type PreviewRuntimeContractMessage = {
   source: "desengine-sandpack-preview"
@@ -8,10 +11,7 @@ type PreviewRuntimeContractMessage = {
   previewSessionId: string
 }
 
-type PreviewRuntimeContractDiagnostic = {
-  status: PreviewRuntimeContractStatus
-  message?: string
-}
+type PreviewRuntimeContractDiagnostic = Pick<PreviewRuntimeContractState, "status" | "message">
 
 const previewRuntimeContractStatuses = new Set<PreviewRuntimeContractStatus>([
   "loading",

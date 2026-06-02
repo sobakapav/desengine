@@ -50,6 +50,18 @@ function buildResetLevelProgress() {
   }
 }
 
+async function clearTaskCheckResultForResetScope(taskId: string, currentLevelNumber?: number) {
+  if (typeof currentLevelNumber !== "number") {
+    await removeTaskCheckResult(taskId)
+    return
+  }
+
+  const checkResult = await taskServerStorage.readTaskCheckResult(taskId)
+  if (!checkResult || checkResult.levelNumber !== currentLevelNumber) return
+
+  await removeTaskCheckResult(taskId)
+}
+
 export const taskServerMutations = {
   async markTaskLevelInProgress(taskId: string) {
     const context = await loadMutationContext(taskId)
@@ -195,7 +207,7 @@ export const taskServerMutations = {
     }
 
     if (!options?.preserveCheckResult) {
-      await removeTaskCheckResult(taskId)
+      await clearTaskCheckResultForResetScope(taskId)
     }
   },
   async resetCurrentTaskLevel(taskId: string) {
@@ -216,7 +228,7 @@ export const taskServerMutations = {
     context.taskProgress.updatedAt = new Date().toISOString()
 
     await taskServerStorage.writeUserProgressStore(context.store)
-    await removeTaskCheckResult(taskId)
+    await clearTaskCheckResultForResetScope(taskId, currentLevelNumber)
     await writePromptHistory(taskId, promptHistory)
 
     return summarizeTaskProgress(context.levels, context.taskConfig, context.taskProgress)
