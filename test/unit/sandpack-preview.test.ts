@@ -14,270 +14,21 @@
 // @openSpec scenarios:
 // @openSpec  - "Команда работает с динамическим render-островком"
 
-import fs from "node:fs"
-import path from "node:path"
-import React from "react"
-import { renderToStaticMarkup } from "react-dom/server"
-import ts from "typescript"
 import { describe, expect, it } from "vitest"
 
 import { buildSandpackPreviewPayload } from "../../lib/lab/sandpack-preview"
-import { readLevelSandpackTemplate } from "../../lib/lab/sandpack-template"
 import {
   normalizeSandpackUiKitId,
   validateSandpackUiKitsConfig,
 } from "../../lib/lab/sandpack-ui-kits.config"
-import { readFilesRecursively } from "../../lib/system/shadcn-files"
-
-const badgeSource = `import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-
-import { cn } from "@/lib/system/utils"
-
-const badgeVariants = cva("inline-flex", {
-  variants: {
-    variant: {
-      default: "bg-primary",
-      ghost: "hover:bg-muted hover:text-muted-foreground",
-    },
-  },
-  defaultVariants: {
-    variant: "default",
-  },
-})
-
-function Badge({ className, variant = "default", ...props }: React.ComponentProps<"span"> & VariantProps<typeof badgeVariants>) {
-  return <span className={cn(badgeVariants({ variant }), className)} {...props} />
-}
-
-export { Badge, badgeVariants }
-`
-
-const utilsSource = `import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-`
-
-async function readRepositoryShadcnSourceFiles() {
-  const [shadcnFiles, useMobileHook] = await Promise.all([
-    readFilesRecursively(path.join(process.cwd(), "components", "ui"), "/components/ui"),
-    fs.promises.readFile(path.join(process.cwd(), "hooks", "use-mobile.ts"), "utf-8"),
-  ])
-
-  return {
-    shadcnFiles,
-    supportFiles: {
-      "/hooks/use-mobile.ts": useMobileHook,
-    },
-  }
-}
-
-async function readLevel5AppTemplateOptions() {
-  const template = await readLevelSandpackTemplate("level-5", { rootDir: process.cwd() })
-
-  return {
-    appTsx: template.appTsx,
-    previewCss: template.previewCss,
-    levelTemplateRuntime: "export const levelRuntime = {} as const;\n",
-  }
-}
-
-function readSandpackFileCode(file: string | { code: string }) {
-  return typeof file === "string" ? file : file.code
-}
-
-function renderBuiltLevel5App(args: {
-  appSource: string
-  mockModule: Record<string, unknown>
-}) {
-  const compiled = ts.transpileModule(args.appSource, {
-    compilerOptions: {
-      esModuleInterop: true,
-      jsx: ts.JsxEmit.React,
-      module: ts.ModuleKind.CommonJS,
-      target: ts.ScriptTarget.ES2019,
-    },
-  })
-  const module = { exports: {} as { default?: React.ComponentType } }
-  const previewComponent = ({ title }: { title?: string }) => React.createElement(
-    "article",
-    { "data-preview-component": "true" },
-    title ?? "empty",
-  )
-
-  const localRequire = (specifier: string) => {
-    if (specifier === "react") {
-      return React
-    }
-
-    if (specifier === "./Component") {
-      return { __esModule: true, default: previewComponent }
-    }
-
-    if (specifier === "./mock") {
-      return args.mockModule
-    }
-
-    if (specifier === "./level-template-runtime") {
-      return { levelRuntime: {} }
-    }
-
-    if (specifier === "./preview-runtime-contract") {
-      return {
-        PreviewRuntimeContractBoundary: ({ children }: { children: React.ReactNode }) => React.createElement(
-          React.Fragment,
-          null,
-          children,
-        ),
-      }
-    }
-
-    throw new Error(`Неожиданный import в level-5 App template: ${specifier}`)
-  }
-
-  const executor = new Function("require", "module", "exports", compiled.outputText)
-  executor(localRequire, module, module.exports)
-
-  const App = module.exports.default
-  if (!App) {
-    throw new Error("Собранный level-5 App template не экспортирует default App")
-  }
-
-  return renderToStaticMarkup(React.createElement(App))
-}
+import {
+  badgeSource,
+  readLevelAppTemplate,
+  readRepositoryShadcnSourceFiles,
+  utilsSource,
+} from "./sandpack-preview.helpers"
 
 describe("buildSandpackPreviewPayload", () => {
-  it("сохраняет level-5 template с прямым рендером mock-массива и runtime boundary", async () => {
-    const appTemplate = await readLevel5AppTemplateOptions()
-    const payload = await buildSandpackPreviewPayload(
-      {
-        component: `export default function Component({ title }: { title?: string }) {
-  return <div>{title ?? "empty"}</div>;
-}
-`,
-        mock: `export const mock = [{ title: "Первый" }, { title: "Второй" }];
-`,
-        uiBadge: badgeSource,
-        systemUtils: utilsSource,
-      },
-      { appTemplate },
-    )
-    const appSource = readSandpackFileCode(payload.files["/src/App.tsx"] as { code: string })
-    const html = renderBuiltLevel5App({
-      appSource,
-      mockModule: {
-        mock: [{ title: "Первый" }, { title: "Второй" }],
-      },
-    })
-
-    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("Array.isArray(explicit)"),
-    }))
-    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("previewPropsList.map"),
-    }))
-    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("<PreviewRuntimeContractBoundary key={index}>"),
-    }))
-    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("<Component {...previewProps} />"),
-    }))
-    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("<PreviewRuntimeContractBoundary>"),
-    }))
-    expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(2)
-    expect(html).toContain("Первый")
-    expect(html).toContain("Второй")
-  })
-
-  it("рендерит все object exports из mock.ts и игнорирует mock-массив, если есть named object mocks", async () => {
-    const appTemplate = await readLevel5AppTemplateOptions()
-    const payload = await buildSandpackPreviewPayload(
-      {
-        component: `export default function Component({ title }: { title?: string }) {
-  return <div>{title ?? "empty"}</div>;
-}
-`,
-        mock: `export const mockProps = { title: "Одиночный" };
-export const alternativeMockProps = { title: "Второй объект" };
-export const mock = [{ title: "Первый" }, { title: "Второй" }];
-`,
-        uiBadge: badgeSource,
-        systemUtils: utilsSource,
-      },
-      { appTemplate },
-    )
-    const appSource = readSandpackFileCode(payload.files["/src/App.tsx"] as { code: string })
-    const html = renderBuiltLevel5App({
-      appSource,
-      mockModule: {
-        mockProps: { title: "Одиночный" },
-        alternativeMockProps: { title: "Второй объект" },
-        mock: [{ title: "Первый" }, { title: "Второй" }],
-      },
-    })
-
-    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining('import * as mockModule from "./mock"'),
-    }))
-    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.not.stringContaining('import { mock } from "./mock"'),
-    }))
-    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("<Component {...previewProps} />"),
-    }))
-    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("Object.entries(mockModule)"),
-    }))
-    expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(2)
-    expect(html).toContain("Одиночный")
-    expect(html).toContain("Второй объект")
-    expect(html).not.toContain("Первый")
-    expect(html).not.toContain("Второй")
-  })
-
-  it("рендерит все object-константы из mock.ts, если нет явного mockProps или mock", async () => {
-    const appTemplate = await readLevel5AppTemplateOptions()
-    const payload = await buildSandpackPreviewPayload(
-      {
-        component: `export default function Component({ title }: { title?: string }) {
-  return <div>{title ?? "empty"}</div>;
-}
-`,
-        mock: `export const mockPropsPrimary = { title: "Первый" };
-export const mockPropsSecondary = { title: "Второй" };
-export const mockPropsCompleted = { title: "Третий" };
-`,
-        uiBadge: badgeSource,
-        systemUtils: utilsSource,
-      },
-      { appTemplate },
-    )
-    const appSource = readSandpackFileCode(payload.files["/src/App.tsx"] as { code: string })
-    const html = renderBuiltLevel5App({
-      appSource,
-      mockModule: {
-        mockPropsPrimary: { title: "Первый" },
-        mockPropsSecondary: { title: "Второй" },
-        mockPropsCompleted: { title: "Третий" },
-      },
-    })
-
-    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("Object.entries(mockModule)"),
-    }))
-    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining('exportName !== "default"'),
-    }))
-    expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(3)
-    expect(html).toContain("Первый")
-    expect(html).toContain("Второй")
-    expect(html).toContain("Третий")
-  })
-
   it("нормализует SANDPACK_UI_KIT и по умолчанию включает shadcn", () => {
     expect(normalizeSandpackUiKitId(undefined)).toBe("shadcn")
     expect(normalizeSandpackUiKitId("")).toBe("shadcn")
@@ -586,10 +337,7 @@ export default function Component() {
   })
 
   it("собирает preview payload с реальным level App template", async () => {
-    const levelAppTemplate = fs.readFileSync(
-      path.join(process.cwd(), "onboarding", "levels", "level-1", "sandpack", "App.tsx"),
-      "utf-8",
-    )
+    const levelAppTemplate = await readLevelAppTemplate("level-1")
 
     const payload = await buildSandpackPreviewPayload(
       {
