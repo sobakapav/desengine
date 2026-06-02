@@ -9,7 +9,7 @@ import {
 } from "@codesandbox/sandpack-react/unstyled";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import type { SandpackPreviewPayload } from "@/lib/lab/sandpack-preview";
+import type { SandpackPreviewPayload } from "@/lib/lab/sandpack-preview.types";
 import { createDefaultProject } from "@/lib/project/runtime";
 
 import { OutRenderProps } from "./props";

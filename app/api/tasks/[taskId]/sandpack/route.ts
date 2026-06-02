@@ -3,10 +3,8 @@ import path from "node:path"
 import { readdir } from "node:fs/promises"
 
 import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
-import {
-  buildSandpackPreviewPayload,
-  type SandpackPreviewSourceFiles,
-} from "@/lib/lab/sandpack-preview"
+import { buildSandpackPreviewPayload } from "@/lib/lab/sandpack-preview"
+import type { SandpackPreviewSourceFiles } from "@/lib/lab/sandpack-preview.types"
 import {
   buildLevelTemplateRuntimeSource,
   readLevelSandpackTemplate,

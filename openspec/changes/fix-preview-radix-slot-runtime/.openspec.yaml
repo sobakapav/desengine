@@ -1,0 +1,8 @@
+change_kind: "fix"
+execution_mode: "code"
+parent_change: "dispatcher-bugfix"
+strategy_root: "focus-quality"
+release_ref: "release-2026-06-02-quality"
+verification_level: "unit"
+verification_command: "npm run test:unit -- test/unit/sandpack-preview.test.ts"
+short: "исправить drift версий radix в sandpack preview"

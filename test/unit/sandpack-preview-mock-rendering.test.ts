@@ -40,23 +40,23 @@ describe("buildSandpackPreviewPayload mock rendering", () => {
     })
 
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("Array.isArray(mockList)"),
+      code: expect.stringContaining("const previewMock = mockModule.mock"),
     }))
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("previewPropsList.map"),
+      code: expect.stringContaining("Array.isArray(previewMock)"),
     }))
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("<PreviewRuntimeContractBoundary key={index}>"),
+      code: expect.stringContaining("{previewMock.map((item, index) => ("),
     }))
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("<Component {...previewProps} />"),
+      code: expect.stringContaining("<Component key={index} {...item} />"),
     }))
     expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(2)
     expect(html).toContain("Первый")
     expect(html).toContain("Второй")
   })
 
-  it("рендерит все object exports из mock.ts и игнорирует mock-массив, если есть named object mocks", async () => {
+  it("предпочитает mockProps и игнорирует остальные mock-экспорты уровня", async () => {
     const appTemplate = await readLevel5AppTemplateOptions()
     const payload = await buildSandpackPreviewPayload(
       {
@@ -90,19 +90,19 @@ export const mock = [{ title: "Первый" }, { title: "Второй" }];
       code: expect.not.stringContaining('import { mock } from "./mock"'),
     }))
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("<Component {...previewProps} />"),
+      code: expect.stringContaining("const explicit = mockModule.mockProps ?? mockModule.mock"),
     }))
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("Object.entries(mockModule)"),
+      code: expect.not.stringContaining("Object.entries(mockModule)"),
     }))
-    expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(2)
+    expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(1)
     expect(html).toContain("Одиночный")
-    expect(html).toContain("Второй объект")
+    expect(html).not.toContain("Второй объект")
     expect(html).not.toContain(">Первый<")
     expect(html).not.toContain(">Второй<")
   })
 
-  it("рендерит все object-константы из mock.ts, если нет явного mockProps или mock", async () => {
+  it("возвращает пустые props, если у level-5 нет ни mockProps, ни object mock", async () => {
     const appTemplate = await readLevel5AppTemplateOptions()
     const payload = await buildSandpackPreviewPayload(
       {
@@ -130,14 +130,15 @@ export const mockPropsCompleted = { title: "Третий" };
     })
 
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("Object.entries(mockModule)"),
+      code: expect.stringContaining("return {}"),
     }))
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining('exportName !== "default" && exportName !== "mock"'),
+      code: expect.not.stringContaining("Object.entries(mockModule)"),
     }))
-    expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(3)
-    expect(html).toContain("Первый")
-    expect(html).toContain("Второй")
-    expect(html).toContain("Третий")
+    expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(1)
+    expect(html).toContain("empty")
+    expect(html).not.toContain("Первый")
+    expect(html).not.toContain("Второй")
+    expect(html).not.toContain("Третий")
   })
 })

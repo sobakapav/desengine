@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { spawnSync } from "node:child_process"
+import { fileURLToPath } from "node:url"
 
 import { normalizeCreatedChangeName } from "./openspec-change-name.mjs"
 import { ensureHandoffFile, HANDOFF_FILE } from "./openspec-handoff.mjs"
@@ -233,11 +234,29 @@ function handoffContextFromChange(changeName, descriptionHint = "") {
   }
 }
 
-function main() {
+function resolveExecutableFromPath(commandName) {
+  const pathValue = process.env.PATH || ""
+  const pathEntries = pathValue.split(path.delimiter).filter(Boolean)
+
+  for (const entry of pathEntries) {
+    const candidate = path.join(entry, commandName)
+
+    try {
+      fs.accessSync(candidate, fs.constants.X_OK)
+      return candidate
+    } catch {
+      continue
+    }
+  }
+
+  return commandName
+}
+
+function runCreateOpenSpecChange(argv = process.argv.slice(2)) {
   let parsedArgs
 
   try {
-    parsedArgs = parseArgs(process.argv.slice(2))
+    parsedArgs = parseArgs(argv)
   } catch (error) {
     console.error(error.message)
     console.error("")
@@ -251,7 +270,7 @@ function main() {
   }
 
   const normalizedChangeName = normalizeCreatedChangeName(parsedArgs.changeName)
-  const cliArgs = [...process.argv.slice(2)]
+  const cliArgs = [...argv]
   const changeNameArgIndex = cliArgs.findIndex((arg) => arg === parsedArgs.changeName)
 
   if (changeNameArgIndex !== -1) {
@@ -260,8 +279,10 @@ function main() {
 
   const projectRoot = process.cwd()
   const changeDir = path.join(projectRoot, "openspec", "changes", normalizedChangeName)
-  const result = spawnSync("openspec", ["new", "change", ...cliArgs], {
+  const openspecBinary = resolveExecutableFromPath("openspec")
+  const result = spawnSync(openspecBinary, ["new", "change", ...cliArgs], {
     cwd: projectRoot,
+    env: process.env,
     stdio: "inherit",
   })
 
@@ -294,4 +315,12 @@ function main() {
   }
 }
 
-main()
+const executedDirectly = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+
+if (executedDirectly) {
+  runCreateOpenSpecChange()
+}
+
+export {
+  runCreateOpenSpecChange,
+}

@@ -6,7 +6,6 @@
 // @openSpec  - "Разработчик начинает implement/fix change"
 // @openSpec  - "Release-диспетчеризация новой хотелки"
 
-import { execFileSync, spawnSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -14,8 +13,88 @@ import path from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 
 import { buildHandoffTemplate, ensureHandoffFile, getHandoffReadiness } from "../../tools/openspec-handoff.mjs"
+import { runOpenSpecBegin } from "../../tools/openspec-begin-change.mjs"
+import { runOpenSpecDispatch } from "../../tools/openspec-dispatch-change.mjs"
 
 const tempDirs: string[] = []
+
+class ExitSignal extends Error {
+  code: number | undefined
+
+  constructor(code: number | undefined) {
+    super(`process.exit(${code})`)
+    this.code = code
+  }
+}
+
+function runToolInFixture(args: {
+  cwd: string
+  argv: string[]
+  runner: (argv: string[]) => void
+  env?: Record<string, string | undefined>
+}) {
+  const stdout: string[] = []
+  const stderr: string[] = []
+  const originalCwd = process.cwd()
+  const originalLog = console.log
+  const originalError = console.error
+  const originalExit = process.exit
+  const originalEnv = { ...process.env }
+  let exitCode: number | undefined
+  let thrown: unknown
+
+  console.log = (...values: unknown[]) => {
+    stdout.push(values.map(String).join(" "))
+  }
+  console.error = (...values: unknown[]) => {
+    stderr.push(values.map(String).join(" "))
+  }
+  process.exit = ((code?: number) => {
+    throw new ExitSignal(code)
+  }) as typeof process.exit
+
+  if (args.env) {
+    for (const [key, value] of Object.entries(args.env)) {
+      if (value === undefined) {
+        delete process.env[key]
+      } else {
+        process.env[key] = value
+      }
+    }
+  }
+
+  try {
+    process.chdir(args.cwd)
+    args.runner(args.argv)
+  } catch (error) {
+    if (error instanceof ExitSignal) {
+      exitCode = error.code
+    } else {
+      thrown = error
+    }
+  } finally {
+    process.chdir(originalCwd)
+    console.log = originalLog
+    console.error = originalError
+    process.exit = originalExit
+
+    for (const key of Object.keys(process.env)) {
+      if (!(key in originalEnv)) {
+        delete process.env[key]
+      }
+    }
+    for (const [key, value] of Object.entries(originalEnv)) {
+      process.env[key] = value
+    }
+  }
+
+  return {
+    exitCode,
+    stdout: stdout.join("\n"),
+    stderr: stderr.join("\n"),
+    thrown,
+  }
+}
 
 describe("openspec handoff", () => {
   afterEach(() => {
@@ -146,13 +225,14 @@ verification_command: "npm run test:unit"
       verificationCommand: "npm run test:unit",
     })
 
-    expect(() =>
-      execFileSync(process.execPath, [path.join(process.cwd(), "tools", "openspec-begin-change.mjs"), "implement-demo"], {
-        cwd: fixtureRoot,
-        encoding: "utf8",
-        stdio: "pipe",
-      }),
-    ).toThrow(/handoff/)
+    const result = runToolInFixture({
+      cwd: fixtureRoot,
+      argv: ["implement-demo"],
+      runner: runOpenSpecBegin,
+    })
+
+    expect(result.exitCode).toBe(2)
+    expect(result.stderr).toMatch(/handoff/)
   })
 
   it("os:begin для dispatcher явно запрещает код и требует породить implement/fix", () => {
@@ -172,9 +252,10 @@ roadmap_ref: "focus-demo/roadmaps/demo.md"
       "utf8",
     )
 
-    const result = spawnSync(process.execPath, [path.join(process.cwd(), "tools", "openspec-begin-change.mjs"), "dispatcher-demo"], {
+    const result = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      argv: ["dispatcher-demo"],
+      runner: runOpenSpecBegin,
     })
 
     const output = `${result.stdout}\n${result.stderr}`
@@ -199,10 +280,12 @@ strategy_root: "focus-demo"
       "utf8",
     )
 
-    const output = execFileSync(process.execPath, [path.join(process.cwd(), "tools", "openspec-begin-change.mjs"), "producer-demo"], {
+    const result = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      argv: ["producer-demo"],
+      runner: runOpenSpecBegin,
     })
+    const output = `${result.stdout}\n${result.stderr}`
 
     expect(output).toContain("Прямое изменение кода здесь запрещено. Код меняют только implement/fix.")
     expect(output).toContain("Producer формирует roadmap и ожидания, но не создаёт код напрямую.")
@@ -237,10 +320,12 @@ verification_command: "npm run test:unit"
       "utf8",
     )
 
-    const output = execFileSync(process.execPath, [path.join(process.cwd(), "tools", "openspec-begin-change.mjs"), "release-demo"], {
+    const result = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      argv: ["release-demo"],
+      runner: runOpenSpecBegin,
     })
+    const output = `${result.stdout}\n${result.stderr}`
 
     expect(output).toContain("Прямое изменение кода здесь запрещено. Код меняют только implement/fix.")
     expect(output).toContain("Release управляет delivery implement/fix через os:dispatch")
@@ -306,10 +391,12 @@ verification_command: "npm run test:unit"
       "utf8",
     )
 
-    const output = execFileSync(process.execPath, [path.join(process.cwd(), "tools", "openspec-begin-change.mjs"), "implement-demo"], {
+    const result = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      argv: ["implement-demo"],
+      runner: runOpenSpecBegin,
     })
+    const output = `${result.stdout}\n${result.stderr}`
 
     expect(output).toContain("код меняется только в implement/fix; стратегия и тактика уже заданы предками")
     expect(output).toContain("parent dispatcher отвечает за постановку и приёмку результата")
@@ -331,8 +418,8 @@ verification_command: "npm run test:unit"
 
     fs.writeFileSync(
       npmShimPath,
-      `#!/bin/zsh
-if [[ "$1" == "run" && "$2" == "os:begin" ]]; then
+      `#!/bin/sh
+if [ "$1" = "run" ] && [ "$2" = "os:begin" ]; then
   shift 3
   exec ${process.execPath} ${path.join(process.cwd(), "tools", "openspec-begin-change.mjs")} "$@"
 fi
@@ -344,8 +431,8 @@ exit 1
     fs.chmodSync(npmShimPath, 0o755)
     fs.writeFileSync(
       openspecShimPath,
-      `#!/bin/zsh
-if [[ "$1" == "new" && "$2" == "change" && -n "$3" ]]; then
+      `#!/bin/sh
+if [ "$1" = "new" ] && [ "$2" = "change" ] && [ -n "$3" ]; then
   change_name="$3"
   change_dir="openspec/changes/$change_name"
   mkdir -p "$change_dir"
@@ -408,10 +495,9 @@ execution_mode: "no-code"
 
     const createdDir = path.join(fixtureRoot, "openspec", "changes", "implement-demo-task")
 
-    execFileSync(
-      process.execPath,
-      [
-        path.join(process.cwd(), "tools", "openspec-dispatch-change.mjs"),
+    const result = runToolInFixture({
+      cwd: fixtureRoot,
+      argv: [
         "release-demo",
         "--dispatcher",
         "dispatcher-demo",
@@ -422,15 +508,13 @@ execution_mode: "no-code"
         "--description",
         "подготовить демонстрационный implement change",
       ],
-      {
-        cwd: fixtureRoot,
-        encoding: "utf8",
-        env: {
-          ...process.env,
-          PATH: `${binDir}:${process.env.PATH || ""}`,
-        },
+      runner: runOpenSpecDispatch,
+      env: {
+        PATH: `${binDir}:${process.env.PATH || ""}`,
       },
-    )
+    })
+
+    expect(result.thrown).toBeUndefined()
 
     expect(fs.existsSync(path.join(createdDir, ".openspec.yaml"))).toBe(true)
     expect(fs.existsSync(path.join(createdDir, "handoff.md"))).toBe(true)

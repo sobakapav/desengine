@@ -1,5 +1,3 @@
-import rootPackageJson from "../../package.json"
-
 export type SandpackUiKitId = "shadcn" | "ant" | "mui" | "none"
 
 type SandpackUiKitConfig = {
@@ -15,17 +13,8 @@ type SandpackUiKitConfig = {
 
 const DEFAULT_SANDPACK_UI_KIT_ID: SandpackUiKitId = "shadcn"
 
-function getRootDependencyVersion(name: string) {
-  const deps = (rootPackageJson as { dependencies?: Record<string, string> }).dependencies ?? {}
-  const version = deps[name]
-
-  if (!version) {
-    throw new Error(
-      `В корневом package.json не задана зависимость '${name}', но она нужна Sandpack UI kit'ам`,
-    )
-  }
-
-  return version
+function mapDependencyNames(names: string[]) {
+  return Object.fromEntries(names.map((name) => [name, "*"]))
 }
 
 const sandpackUiKitsConfig: Record<SandpackUiKitId, SandpackUiKitConfig> = {
@@ -37,68 +26,65 @@ const sandpackUiKitsConfig: Record<SandpackUiKitId, SandpackUiKitConfig> = {
   shadcn: {
     id: "shadcn",
     title: "shadcn/ui",
-    dependencies: {
-      "@radix-ui/react-accordion": getRootDependencyVersion("@radix-ui/react-accordion"),
-      "@radix-ui/react-alert-dialog": getRootDependencyVersion("@radix-ui/react-alert-dialog"),
-      "@radix-ui/react-aspect-ratio": getRootDependencyVersion("@radix-ui/react-aspect-ratio"),
-      "@radix-ui/react-avatar": getRootDependencyVersion("@radix-ui/react-avatar"),
-      "@radix-ui/react-checkbox": getRootDependencyVersion("@radix-ui/react-checkbox"),
-      "@radix-ui/react-collapsible": getRootDependencyVersion("@radix-ui/react-collapsible"),
-      "@radix-ui/react-context-menu": getRootDependencyVersion("@radix-ui/react-context-menu"),
-      "@radix-ui/react-dialog": getRootDependencyVersion("@radix-ui/react-dialog"),
-      "@radix-ui/react-direction": getRootDependencyVersion("@radix-ui/react-direction"),
-      "@radix-ui/react-dropdown-menu": getRootDependencyVersion("@radix-ui/react-dropdown-menu"),
-      "@radix-ui/react-hover-card": getRootDependencyVersion("@radix-ui/react-hover-card"),
-      "@radix-ui/react-label": getRootDependencyVersion("@radix-ui/react-label"),
-      "@radix-ui/react-menubar": getRootDependencyVersion("@radix-ui/react-menubar"),
-      "@radix-ui/react-navigation-menu": getRootDependencyVersion("@radix-ui/react-navigation-menu"),
-      "@radix-ui/react-popover": getRootDependencyVersion("@radix-ui/react-popover"),
-      "@radix-ui/react-progress": getRootDependencyVersion("@radix-ui/react-progress"),
-      "@radix-ui/react-radio-group": getRootDependencyVersion("@radix-ui/react-radio-group"),
-      "@radix-ui/react-scroll-area": getRootDependencyVersion("@radix-ui/react-scroll-area"),
-      "@radix-ui/react-select": getRootDependencyVersion("@radix-ui/react-select"),
-      "@radix-ui/react-separator": getRootDependencyVersion("@radix-ui/react-separator"),
-      "@radix-ui/react-slider": getRootDependencyVersion("@radix-ui/react-slider"),
-      "@radix-ui/react-slot": getRootDependencyVersion("@radix-ui/react-slot"),
-      "@radix-ui/react-switch": getRootDependencyVersion("@radix-ui/react-switch"),
-      "@radix-ui/react-tabs": getRootDependencyVersion("@radix-ui/react-tabs"),
-      "@radix-ui/react-toggle": getRootDependencyVersion("@radix-ui/react-toggle"),
-      "@radix-ui/react-toggle-group": getRootDependencyVersion("@radix-ui/react-toggle-group"),
-      "@radix-ui/react-tooltip": getRootDependencyVersion("@radix-ui/react-tooltip"),
-      "@base-ui/react": getRootDependencyVersion("@base-ui/react"),
-      "embla-carousel-react": getRootDependencyVersion("embla-carousel-react"),
-      "input-otp": getRootDependencyVersion("input-otp"),
-      "next-themes": getRootDependencyVersion("next-themes"),
-      "react-resizable-panels": getRootDependencyVersion("react-resizable-panels"),
-      recharts: getRootDependencyVersion("recharts"),
-      "react-day-picker": getRootDependencyVersion("react-day-picker"),
-      "class-variance-authority": getRootDependencyVersion("class-variance-authority"),
-      clsx: getRootDependencyVersion("clsx"),
-      cmdk: getRootDependencyVersion("cmdk"),
-      "lucide-react": getRootDependencyVersion("lucide-react"),
-      sonner: getRootDependencyVersion("sonner"),
-      "tailwind-merge": getRootDependencyVersion("tailwind-merge"),
-      vaul: getRootDependencyVersion("vaul"),
-    },
+    dependencies: mapDependencyNames([
+      "@base-ui/react",
+      "@radix-ui/react-accordion",
+      "@radix-ui/react-alert-dialog",
+      "@radix-ui/react-aspect-ratio",
+      "@radix-ui/react-avatar",
+      "@radix-ui/react-checkbox",
+      "@radix-ui/react-collapsible",
+      "@radix-ui/react-context-menu",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-direction",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-hover-card",
+      "@radix-ui/react-label",
+      "@radix-ui/react-menubar",
+      "@radix-ui/react-navigation-menu",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-progress",
+      "@radix-ui/react-radio-group",
+      "@radix-ui/react-scroll-area",
+      "@radix-ui/react-select",
+      "@radix-ui/react-separator",
+      "@radix-ui/react-slider",
+      "@radix-ui/react-slot",
+      "@radix-ui/react-switch",
+      "@radix-ui/react-tabs",
+      "@radix-ui/react-toggle",
+      "@radix-ui/react-toggle-group",
+      "@radix-ui/react-tooltip",
+      "class-variance-authority",
+      "clsx",
+      "cmdk",
+      "embla-carousel-react",
+      "input-otp",
+      "lucide-react",
+      "next-themes",
+      "react-day-picker",
+      "react-resizable-panels",
+      "recharts",
+      "sonner",
+      "tailwind-merge",
+      "vaul",
+    ]),
   },
   ant: {
     id: "ant",
     title: "Ant Design",
-    dependencies: {
-      antd: getRootDependencyVersion("antd"),
-      "@ant-design/icons": getRootDependencyVersion("@ant-design/icons"),
-    },
+    dependencies: mapDependencyNames(["antd", "@ant-design/icons"]),
     indexTsxImports: ['import "antd/dist/reset.css";'],
   },
   mui: {
     id: "mui",
     title: "Material UI",
-    dependencies: {
-      "@mui/material": getRootDependencyVersion("@mui/material"),
-      "@mui/icons-material": getRootDependencyVersion("@mui/icons-material"),
-      "@emotion/react": getRootDependencyVersion("@emotion/react"),
-      "@emotion/styled": getRootDependencyVersion("@emotion/styled"),
-    },
+    dependencies: mapDependencyNames([
+      "@emotion/react",
+      "@emotion/styled",
+      "@mui/icons-material",
+      "@mui/material",
+    ]),
   },
 }
 

@@ -1,10 +1,10 @@
 import fs from "node:fs"
 import path from "node:path"
-import { spawnSync } from "node:child_process"
-import { fileURLToPath } from "node:url"
+import { runCreateOpenSpecChange } from "./create-openspec-change.mjs"
 
-const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
-const TOOLS_DIR = path.dirname(fileURLToPath(import.meta.url))
+function getChangesDir() {
+  return path.resolve(process.cwd(), "openspec/changes")
+}
 
 function parseRoadmapRefs(text) {
   const refs = []
@@ -36,8 +36,14 @@ function parseRoadmapRefs(text) {
   return refs
 }
 
+/**
+ * @example
+ * ```js
+ * const meta = readMetadata("dispatcher-demo")
+ * ```
+ */
 export function readMetadata(changeName) {
-  const metadataPath = path.join(CHANGES_DIR, changeName, ".openspec.yaml")
+  const metadataPath = path.join(getChangesDir(), changeName, ".openspec.yaml")
 
   if (!fs.existsSync(metadataPath)) {
     throw new Error(`Change не найден: ${changeName}`)
@@ -66,11 +72,17 @@ export function readMetadata(changeName) {
 
 function listChangeNames() {
   return fs
-    .readdirSync(CHANGES_DIR, { withFileTypes: true })
+    .readdirSync(getChangesDir(), { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && entry.name !== "archive")
     .map((entry) => entry.name)
 }
 
+/**
+ * @example
+ * ```js
+ * const members = releaseMembers("release-demo")
+ * ```
+ */
 export function releaseMembers(releaseName) {
   const members = []
 
@@ -90,8 +102,17 @@ export function releaseMembers(releaseName) {
   return members.sort((a, b) => a.name.localeCompare(b.name))
 }
 
+/**
+ * @example
+ * ```js
+ * updateMetadata("implement-demo", {
+ *   parent_change: "dispatcher-demo",
+ *   strategy_root: "focus-demo",
+ * })
+ * ```
+ */
 export function updateMetadata(changeName, updates) {
-  const metadataPath = path.join(CHANGES_DIR, changeName, ".openspec.yaml")
+  const metadataPath = path.join(getChangesDir(), changeName, ".openspec.yaml")
   let text = fs.readFileSync(metadataPath, "utf8")
 
   for (const [key, value] of Object.entries(updates)) {
@@ -108,21 +129,22 @@ export function updateMetadata(changeName, updates) {
   fs.writeFileSync(metadataPath, text, "utf8")
 }
 
+/**
+ * @example
+ * ```js
+ * createImplementChange("implement-demo-task", "подготовить исполнительский change")
+ * ```
+ */
 export function createImplementChange(implementName, description) {
   if (!implementName.startsWith("implement-") && !implementName.startsWith("fix-")) {
     throw new Error("Имя исполнительского change должно начинаться с implement- или fix-.")
   }
 
-  const args = [path.join(TOOLS_DIR, "create-openspec-change.mjs"), implementName]
+  const args = [implementName]
   if (description) {
     args.push("--description", description)
   }
-
-  const result = spawnSync(process.execPath, args, { cwd: process.cwd(), stdio: "inherit" })
-
-  if (typeof result.status === "number" && result.status !== 0) {
-    process.exit(result.status)
-  }
+  runCreateOpenSpecChange(args)
 }
 
 function ensureFile(filePath, content) {
@@ -134,8 +156,14 @@ function ensureFile(filePath, content) {
   return true
 }
 
+/**
+ * @example
+ * ```js
+ * const created = ensureApplyArtifacts("implement-demo-task", "добавить runtime-покрытие")
+ * ```
+ */
 export function ensureApplyArtifacts(changeName, description) {
-  const changeDir = path.join(CHANGES_DIR, changeName)
+  const changeDir = path.join(getChangesDir(), changeName)
   const summary = description?.trim() || "описание реализации будет уточнено"
   const created = []
 
