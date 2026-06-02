@@ -27,7 +27,8 @@ describe("readLevelSandpackTemplate", () => {
 
     expect(result.source).toBe("level")
     expect(result.appTsx).toContain('import * as mockModule from "./mock"')
-    expect(result.appTsx).toContain("Array.isArray(previewMock)")
+    expect(result.appTsx).toContain("Array.isArray(explicit)")
+    expect(result.appTsx).toContain("Object.entries(mockModule)")
     expect(result.appTsx).toContain("PreviewRuntimeContractBoundary")
   })
 

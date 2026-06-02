@@ -174,13 +174,16 @@ describe("buildSandpackPreviewPayload", () => {
     })
 
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("Array.isArray(previewMock)"),
+      code: expect.stringContaining("Array.isArray(explicit)"),
     }))
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("previewMock.map"),
+      code: expect.stringContaining("previewPropsList.map"),
     }))
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("<Component key={index} {...item} />"),
+      code: expect.stringContaining("<PreviewRuntimeContractBoundary key={index}>"),
+    }))
+    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("<Component {...previewProps} />"),
     }))
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
       code: expect.stringContaining("<PreviewRuntimeContractBoundary>"),
@@ -190,7 +193,7 @@ describe("buildSandpackPreviewPayload", () => {
     expect(html).toContain("Второй")
   })
 
-  it("использует mockProps с приоритетом над mock-массивом и не требует named export mock", async () => {
+  it("рендерит все object exports из mock.ts и игнорирует mock-массив, если есть named object mocks", async () => {
     const appTemplate = await readLevel5AppTemplateOptions()
     const payload = await buildSandpackPreviewPayload(
       {
@@ -199,6 +202,7 @@ describe("buildSandpackPreviewPayload", () => {
 }
 `,
         mock: `export const mockProps = { title: "Одиночный" };
+export const alternativeMockProps = { title: "Второй объект" };
 export const mock = [{ title: "Первый" }, { title: "Второй" }];
 `,
         uiBadge: badgeSource,
@@ -211,6 +215,7 @@ export const mock = [{ title: "Первый" }, { title: "Второй" }];
       appSource,
       mockModule: {
         mockProps: { title: "Одиночный" },
+        alternativeMockProps: { title: "Второй объект" },
         mock: [{ title: "Первый" }, { title: "Второй" }],
       },
     })
@@ -225,12 +230,52 @@ export const mock = [{ title: "Первый" }, { title: "Второй" }];
       code: expect.stringContaining("<Component {...previewProps} />"),
     }))
     expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
-      code: expect.stringContaining("mockModule.mockProps ?? mockModule.mock"),
+      code: expect.stringContaining("Object.entries(mockModule)"),
     }))
-    expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(1)
+    expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(2)
     expect(html).toContain("Одиночный")
+    expect(html).toContain("Второй объект")
     expect(html).not.toContain("Первый")
     expect(html).not.toContain("Второй")
+  })
+
+  it("рендерит все object-константы из mock.ts, если нет явного mockProps или mock", async () => {
+    const appTemplate = await readLevel5AppTemplateOptions()
+    const payload = await buildSandpackPreviewPayload(
+      {
+        component: `export default function Component({ title }: { title?: string }) {
+  return <div>{title ?? "empty"}</div>;
+}
+`,
+        mock: `export const mockPropsPrimary = { title: "Первый" };
+export const mockPropsSecondary = { title: "Второй" };
+export const mockPropsCompleted = { title: "Третий" };
+`,
+        uiBadge: badgeSource,
+        systemUtils: utilsSource,
+      },
+      { appTemplate },
+    )
+    const appSource = readSandpackFileCode(payload.files["/src/App.tsx"] as { code: string })
+    const html = renderBuiltLevel5App({
+      appSource,
+      mockModule: {
+        mockPropsPrimary: { title: "Первый" },
+        mockPropsSecondary: { title: "Второй" },
+        mockPropsCompleted: { title: "Третий" },
+      },
+    })
+
+    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("Object.entries(mockModule)"),
+    }))
+    expect(payload.files["/src/App.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining('exportName !== "default"'),
+    }))
+    expect((html.match(/data-preview-component="true"/g) ?? [])).toHaveLength(3)
+    expect(html).toContain("Первый")
+    expect(html).toContain("Второй")
+    expect(html).toContain("Третий")
   })
 
   it("нормализует SANDPACK_UI_KIT и по умолчанию включает shadcn", () => {
