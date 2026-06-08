@@ -31,6 +31,10 @@ import {
   type ProjectUiMode,
   type RawProject,
 } from "@/lib/project/runtime"
+import {
+  createRuntimeDiagnosticsRecord,
+  emitRuntimeDiagnostics,
+} from "@/lib/task/runtime-observability"
 import { compile as compileTailwindCss } from "tailwindcss"
 
 function toHiddenFiles(
@@ -625,7 +629,11 @@ async function buildPrecompiledPreviewCss(args: {
   const cachedCompiledCss = previewCompiledCssCache.get(cacheKey)
 
   if (cachedCompiledCss) {
-    return cachedCompiledCss
+    return cachedCompiledCss.then((compiledCss) => ({
+      compiledCss,
+      cacheStatus: "hit" as const,
+      candidateClassCount: candidates.length,
+    }))
   }
 
   const compilePromise = (async () => {
@@ -676,7 +684,11 @@ async function buildPrecompiledPreviewCss(args: {
   previewCompiledCssCache.set(cacheKey, compilePromise)
 
   try {
-    return await compilePromise
+    return {
+      compiledCss: await compilePromise,
+      cacheStatus: "miss" as const,
+      candidateClassCount: candidates.length,
+    }
   } catch (error) {
     previewCompiledCssCache.delete(cacheKey)
     throw error
@@ -790,6 +802,7 @@ async function buildSandpackPreviewPayload(
     previewSessionId?: string | null
   } = {},
 ): Promise<SandpackPreviewPayload> {
+  const startedAt = Date.now()
   validateSandpackUiKitsConfig()
 
   const templates = loadSandpackDefaultTemplates()
@@ -852,7 +865,7 @@ async function buildSandpackPreviewPayload(
     ...basePackageJson.dependencies,
     ...resolveRuntimeDependencies(directRuntimeDependencies),
   }
-  const compiledPreviewCss = await buildPrecompiledPreviewCss({
+  const compiledCssBuild = await buildPrecompiledPreviewCss({
     componentSource,
     previewSessionId,
     resolvedAppTsx,
@@ -865,7 +878,7 @@ async function buildSandpackPreviewPayload(
     templates,
     dependencies,
     componentSource,
-    compiledPreviewCss,
+    compiledPreviewCss: compiledCssBuild.compiledCss,
     resolvedAppTsx,
     resolvedLevelRuntime,
     uiKit,
@@ -888,6 +901,33 @@ async function buildSandpackPreviewPayload(
     const readCode = (entry: SandpackFileEntry | undefined) =>
       typeof entry === "string" ? entry : entry?.code
 
+    const runtimeDiagnostics = [createRuntimeDiagnosticsRecord({
+      scope: "level-labs",
+      path: "preview_payload_build",
+      stage: "sandpack_preview",
+      status: compatibility.status === "compatible" ? "ok" : "degraded",
+      durationMs: Date.now() - startedAt,
+      previewSessionId,
+      size: {
+        dependencyCount: Object.keys(dependencies).length,
+        sandpackFileCount: Object.keys(files).length,
+        compiledCssChars: compiledCssBuild.compiledCss.length,
+        candidateClassCount: compiledCssBuild.candidateClassCount,
+      },
+      load: {
+        cacheStatus: compiledCssBuild.cacheStatus,
+        effectiveUiKitId: resolvedUiKitId,
+      },
+      degradation: compatibility.status === "compatible"
+        ? undefined
+        : {
+            reason: "project_compatibility_fallback",
+            details: {
+              compatibility,
+            },
+          },
+    })]
+    emitRuntimeDiagnostics(runtimeDiagnostics[0])
     return {
       files,
       customSetup: {
@@ -905,6 +945,7 @@ async function buildSandpackPreviewPayload(
         effectiveUiKitId: resolvedUiKitId,
         compatibility,
       },
+      runtimeDiagnostics,
       debug: {
         shimVersion: "2026-05-20-ant-shim-v3",
         rcShimPaths: shimPaths,
@@ -915,6 +956,34 @@ async function buildSandpackPreviewPayload(
       },
     }
   }
+
+  const runtimeDiagnostics = [createRuntimeDiagnosticsRecord({
+    scope: "level-labs",
+    path: "preview_payload_build",
+    stage: "sandpack_preview",
+    status: compatibility.status === "compatible" ? "ok" : "degraded",
+    durationMs: Date.now() - startedAt,
+    previewSessionId,
+    size: {
+      dependencyCount: Object.keys(dependencies).length,
+      sandpackFileCount: Object.keys(files).length,
+      compiledCssChars: compiledCssBuild.compiledCss.length,
+      candidateClassCount: compiledCssBuild.candidateClassCount,
+    },
+    load: {
+      cacheStatus: compiledCssBuild.cacheStatus,
+      effectiveUiKitId: resolvedUiKitId,
+    },
+    degradation: compatibility.status === "compatible"
+      ? undefined
+      : {
+          reason: "project_compatibility_fallback",
+          details: {
+            compatibility,
+          },
+        },
+  })]
+  emitRuntimeDiagnostics(runtimeDiagnostics[0])
 
   return {
     files,
@@ -933,6 +1002,7 @@ async function buildSandpackPreviewPayload(
       effectiveUiKitId: resolvedUiKitId,
       compatibility,
     },
+    runtimeDiagnostics,
   }
 }
 

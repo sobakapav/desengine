@@ -1,12 +1,19 @@
 import fs from "node:fs"
 import path from "node:path"
+import { pathToFileURL } from "node:url"
 
 import { assertValidChangeName } from "./openspec-change-name.mjs"
 
-const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
-const ARCHIVE_DIR = path.join(CHANGES_DIR, "archive")
 const SELF_FILE_EXTENSIONS = new Set([".md", ".yaml", ".yml", ".json", ".txt"])
 const REFERENCE_FIELDS = ["parent_change", "strategy_root", "roadmap_ref", "release_ref", "producer_ref", "depends_on_change"]
+
+function resolveChangesDir() {
+  return path.resolve(process.cwd(), "openspec/changes")
+}
+
+function resolveArchiveDir() {
+  return path.join(resolveChangesDir(), "archive")
+}
 
 function printUsage() {
   console.error("Использование:")
@@ -31,12 +38,14 @@ function parseArgs(argv) {
 }
 
 function resolveChangeDir(changeName) {
-  const activePath = path.join(CHANGES_DIR, changeName)
+  const changesDir = resolveChangesDir()
+  const archiveDir = resolveArchiveDir()
+  const activePath = path.join(changesDir, changeName)
   if (fs.existsSync(activePath)) {
     return activePath
   }
 
-  const archivedPath = path.join(ARCHIVE_DIR, changeName)
+  const archivedPath = path.join(archiveDir, changeName)
   if (fs.existsSync(archivedPath)) {
     return archivedPath
   }
@@ -70,15 +79,17 @@ function rewriteSelfFiles(changeDir, oldName, newName) {
 }
 
 function listAllChangeDirs() {
-  const activeDirs = fs.existsSync(CHANGES_DIR)
-    ? fs.readdirSync(CHANGES_DIR, { withFileTypes: true })
+  const changesDir = resolveChangesDir()
+  const archiveDir = resolveArchiveDir()
+  const activeDirs = fs.existsSync(changesDir)
+    ? fs.readdirSync(changesDir, { withFileTypes: true })
       .filter((entry) => entry.isDirectory() && entry.name !== "archive")
-      .map((entry) => path.join(CHANGES_DIR, entry.name))
+      .map((entry) => path.join(changesDir, entry.name))
     : []
-  const archivedDirs = fs.existsSync(ARCHIVE_DIR)
-    ? fs.readdirSync(ARCHIVE_DIR, { withFileTypes: true })
+  const archivedDirs = fs.existsSync(archiveDir)
+    ? fs.readdirSync(archiveDir, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
-      .map((entry) => path.join(ARCHIVE_DIR, entry.name))
+      .map((entry) => path.join(archiveDir, entry.name))
     : []
 
   return [...activeDirs, ...archivedDirs]
@@ -114,11 +125,15 @@ function rewriteMetadataReferences(oldName, newName) {
   }
 }
 
-function main() {
+/**
+ * @example
+ * runOpenSpecRename(["old-change", "new-change"])
+ */
+export function runOpenSpecRename(argv = process.argv.slice(2)) {
   let parsedArgs
 
   try {
-    parsedArgs = parseArgs(process.argv.slice(2))
+    parsedArgs = parseArgs(argv)
     if (parsedArgs.help) {
       printUsage()
       return
@@ -148,4 +163,9 @@ function main() {
   }
 }
 
-main()
+const entrypointArg = process.argv[1]
+const isCliEntrypoint = entrypointArg ? import.meta.url === pathToFileURL(entrypointArg).href : false
+
+if (isCliEntrypoint) {
+  runOpenSpecRename()
+}

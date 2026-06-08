@@ -32,7 +32,9 @@
         "Root-документ упоминает административную команду",
         "Читатель открывает `tools/README.md` или admin-раздел root-документации",
         "Разработчик запускает unit-проект Vitest",
-        "Разработчик добавляет новый модуль в `lib`"
+        "Разработчик добавляет новый модуль в `lib`",
+        "Разработчик закрывает release-linked implement/fix change",
+        "Release notes уже содержат запись о change"
       ]
     },
     "artifacts": {
@@ -602,6 +604,8 @@
         "Разработчик запускает live/provider-проверку",
         "Тестовый слой ещё покрывает не все specs",
         "Добавляется новый behavior-change",
+        "Разработчик проверяет controlled speed-path против performance budget",
+        "Одиночный шумовой spike не считается speed regression",
         "Integration-слой покрывает route handlers через fixture boundary",
         "Разработчик проверяет lab runtime после hardening",
         "Проверка использует временное пользовательское состояние"

@@ -39,6 +39,15 @@ async function validateRequiredDirs(rootDir, root, promptsRoot) {
   return missingPaths
 }
 
+/**
+ * @example
+ * ```js
+ * const layout = await validateOnboardingLayout(process.cwd(), path.join(process.cwd(), "onboarding"))
+ * if (!layout.ok) {
+ *   console.error(layout.detail)
+ * }
+ * ```
+ */
 export async function validateOnboardingLayout(rootDir, root) {
   const levelsRoot = path.join(root, "levels")
   const tasksRoot = path.join(root, "tasks")
@@ -90,6 +99,13 @@ async function inspectMarker(markerPath, repoUrl) {
   }
 }
 
+/**
+ * @example
+ * ```js
+ * const state = await inspectOnboardingState(process.cwd(), "https://example.com/onboarding.git")
+ * console.log(state.state, state.detail)
+ * ```
+ */
 export async function inspectOnboardingState(rootDir, repoUrl) {
   const { onboardingRoot } = readAppConfig(rootDir)
 
@@ -130,27 +146,103 @@ async function repairOnboarding(rootDir, env, beforeRepair) {
   )
 }
 
-export async function ensureOnboardingReady(rootDir, env) {
+function formatStateDetail(state) {
+  if (state === "missing") {
+    return "Текущее состояние: `/onboarding` отсутствует или layout неполный."
+  }
+  if (state === "unconfirmed") {
+    return "Текущее состояние: `/onboarding` найден, но источник ещё не подтверждён."
+  }
+
+  return "Текущее состояние: `/onboarding` синхронизирован и подтверждён."
+}
+
+/**
+ * @example
+ * ```js
+ * const verdict = await runRealOnboardingSmoke(process.cwd(), {
+ *   ONBOARDING_REPO_URL: "https://example.com/onboarding.git",
+ * })
+ * console.log(verdict.ok ? verdict.summary : verdict.detail)
+ * ```
+ */
+export async function runRealOnboardingSmoke(rootDir, env, deps = {}) {
+  const inspect = deps.inspectOnboardingState ?? inspectOnboardingState
+  const repair = deps.repairOnboarding ?? repairOnboarding
   const repoUrl = env.ONBOARDING_REPO_URL?.trim() ?? ""
 
   if (!repoUrl) {
-    return createCheck(
-      "onboarding-sync",
-      false,
-      "Onboarding-репозиторий не настроен",
-      "Задайте `ONBOARDING_REPO_URL` в `desengine.config.txt`, иначе установка не сможет подтвердить источник `/onboarding`.",
-    )
+    return {
+      ok: false,
+      repoUrl,
+      stateBefore: "missing",
+      repairAttempted: false,
+      summary: "Реальный onboarding checkout не настроен",
+      detail: "Задайте `ONBOARDING_REPO_URL` в `desengine.config.txt`, иначе smoke-контракт не сможет подтвердить источник `/onboarding`.",
+    }
   }
 
-  const beforeRepair = await inspectOnboardingState(rootDir, repoUrl)
+  const beforeRepair = await inspect(rootDir, repoUrl)
   if (beforeRepair.state === "synced") {
-    return createCheck("onboarding-sync", true, "Onboarding уже синхронизирован", beforeRepair.detail)
+    return {
+      ok: true,
+      repoUrl,
+      stateBefore: beforeRepair.state,
+      stateAfter: beforeRepair.state,
+      repairAttempted: false,
+      summary: "Реальный onboarding checkout уже подтверждён",
+      detail: `${formatStateDetail(beforeRepair.state)} ${beforeRepair.detail}`,
+    }
   }
 
   try {
-    return await repairOnboarding(rootDir, env, beforeRepair)
+    const repairCheck = await repair(rootDir, env, beforeRepair)
+    const afterRepair = await inspect(rootDir, repoUrl)
+
+    if (afterRepair.state === "synced") {
+      return {
+        ok: true,
+        repoUrl,
+        stateBefore: beforeRepair.state,
+        stateAfter: afterRepair.state,
+        repairAttempted: true,
+        summary: "Реальный onboarding checkout подтверждён после repair",
+        detail: `${repairCheck.detail} ${afterRepair.detail}`,
+      }
+    }
+
+    return {
+      ok: false,
+      repoUrl,
+      stateBefore: beforeRepair.state,
+      stateAfter: afterRepair.state,
+      repairAttempted: true,
+      summary: "Repair завершился, но реальный onboarding checkout не подтверждён",
+      detail: `${formatStateDetail(beforeRepair.state)} ${beforeRepair.detail} После repair: ${afterRepair.detail}`,
+    }
   } catch (error) {
     const detail = error.stderr?.trim() || error.stdout?.trim() || error.message
-    return createCheck("onboarding-sync", false, "Onboarding не удалось синхронизировать", `${beforeRepair.detail} Попытка repair завершилась ошибкой: ${detail}`)
+
+    return {
+      ok: false,
+      repoUrl,
+      stateBefore: beforeRepair.state,
+      repairAttempted: true,
+      summary: "Реальный onboarding checkout не подтверждён",
+      detail: `${formatStateDetail(beforeRepair.state)} ${beforeRepair.detail} Попытка repair завершилась ошибкой: ${detail}`,
+    }
   }
+}
+
+/**
+ * @example
+ * ```js
+ * const check = await ensureOnboardingReady(process.cwd(), process.env)
+ * console.log(check.ok, check.summary)
+ * ```
+ */
+export async function ensureOnboardingReady(rootDir, env) {
+  const smoke = await runRealOnboardingSmoke(rootDir, env)
+
+  return createCheck("onboarding-sync", smoke.ok, smoke.summary, smoke.detail)
 }

@@ -11,14 +11,15 @@
 // @openSpec  - "Разработчик открывает implement/fix через `os:ctx`"
 // @openSpec  - "Разработчик открывает implement/fix из release-контекста через `os:ctx`"
 
-import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 
 import { afterEach, describe, expect, it } from "vitest"
 
+import { runOpenSpecContext } from "../../tools/openspec-context.mjs"
 import { validateChanges } from "../../tools/testing/traceability/changes.mjs"
+import { runToolInFixture } from "../helpers/run-tool-fixture"
 
 const tempDirs: string[] = []
 
@@ -221,10 +222,14 @@ short: "реализация демо"
     )
     writeFile(path.join(fixtureRoot, "openspec", "changes", "implement-demo", "handoff.md"), "# handoff\n")
 
-    const output = execFileSync(process.execPath, [path.join(process.cwd(), "tools", "openspec-context.mjs"), "implement-demo"], {
+    const { stdout, thrown } = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      argv: ["implement-demo"],
+      runner: runOpenSpecContext,
     })
+
+    expect(thrown).toBeUndefined()
+    const output = stdout
 
     expect(output).toContain("dispatcher proposal")
     expect(output).toContain("release_ref: release-demo")

@@ -21,6 +21,13 @@
 - **AND** интеграционные и e2e smoke-проверки не запускаются автоматически в составе `test:full`
 - **AND** live/provider-проверки с реальными внешними сервисами не запускаются случайно
 
+#### Scenario: Разработчик запускает явную smoke-проверку реального onboarding checkout
+
+- **WHEN** разработчик выполняет `npm run test:onboarding:real`
+- **THEN** система проверяет совместимость реального `/onboarding` checkout через текущий smoke/repair контракт
+- **AND** команда не использует unit-фикстуры как доказательство готовности реального checkout
+- **AND** при проблеме возвращает диагностику про `ONBOARDING_REPO_URL`, layout, source marker или результат repair
+
 #### Scenario: Разработчик запускает проверки по capability
 
 - **WHEN** разработчик указывает OpenSpec capability для выборочного запуска
@@ -111,6 +118,22 @@
 - **THEN** change содержит тестовую часть: уровень проверки, команду запуска, mock/live требования и связь с общим тестовым слоем
 - **AND** если покрытие откладывается, это фиксируется в coverage-plan с причиной
 
+### Requirement: Controlled performance verdicts выражаются как reusable contract
+
+Система SHALL позволять тестовому слою выражать controlled speed-path verdicts для user-facing сценариев `npm run start` без live/provider нестабильности.
+
+#### Scenario: Разработчик проверяет controlled speed-path против performance budget
+
+- **WHEN** разработчик запускает unit- или contract-проверку speed-path на fixture/mocked измерениях
+- **THEN** тестовый слой возвращает явный verdict `ok`, `regression` или `budget-exceeded`
+- **AND** verdict использует reusable contract c baseline, budget и controlled samples
+
+#### Scenario: Одиночный шумовой spike не считается speed regression
+
+- **WHEN** один из controlled samples резко медленнее baseline, но representative duration остаётся внутри noise threshold
+- **THEN** verdict остаётся `ok`
+- **AND** тестовый слой не подменяет speed regression единичным infra noise
+
 ### Requirement: Lab-flow проверяется без live credentials
 
 Система SHALL иметь воспроизводимую проверку ключевого lab-flow или его service-level эквивалента без реальных LLM credentials.
@@ -130,3 +153,17 @@
 - **THEN** тесты проходят через реальные route handlers, request/params parsing и HTTP response mapping
 - **AND** runtime/service зависимости подменяются fixture или stub boundary без live provider credentials
 - **AND** тест не оставляет изменения в рабочем пользовательском состоянии
+
+### Requirement: Downstream speed/load проверки читают единый runtime diagnostics contract
+
+Система SHALL держать канонический runtime diagnostics contract для task actions и preview payload, чтобы verdict layer не собирал ad-hoc speed/load сигналы из разноформатных логов.
+
+#### Scenario: Unit-проверка читает runtime diagnostics task action
+- **WHEN** unit-слой проверяет `start`, `iterate` или `check`
+- **THEN** он читает structured diagnostics из action result
+- **AND** проверка не требует внешнего telemetry backend или live credentials
+
+#### Scenario: Unit-проверка читает runtime diagnostics preview payload
+- **WHEN** unit-слой проверяет сборку Sandpack preview
+- **THEN** он читает structured diagnostics из preview payload
+- **AND** может отличить cache hit/miss и degraded compatibility path

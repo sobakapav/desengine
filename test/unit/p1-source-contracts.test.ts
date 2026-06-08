@@ -140,14 +140,16 @@ describe("P1 source contracts", () => {
   })
 
   it("level-3 onboarding-контракт согласован по editable files, overview и hidden check", () => {
-    const levelConfig = readProjectFile("onboarding", "levels", "level-3", "config.json")
-    const overview = readProjectFile("onboarding", "levels", "level-3", "overview.md")
-    const checkPrompt = readProjectFile("onboarding", "prompts", "levels", "level-3", "check.njk")
+    const appConfig = readProjectFile("desengine.config.json")
+    const levelLabsSpec = readProjectFile("openspec", "specs", "level-labs", "spec.md")
+    const iteratePrompt = readProjectFile("prompts", "iterate-component.njk")
+    const taskActionDefaults = readProjectFile("lib", "task", "actions", "shared.ts")
 
-    expect(levelConfig).toContain('"styles"')
-    expect(overview).toContain("`styles.ts`")
-    expect(checkPrompt).toContain("`Component.tsx` и `styles.ts`")
-    expect(checkPrompt).not.toContain("style.ts")
+    expect(appConfig).toContain('"id": "styles"')
+    expect(levelLabsSpec).toContain("`styles.ts`")
+    expect(levelLabsSpec).not.toContain("style.ts")
+    expect(iteratePrompt).toContain("`styles.ts`")
+    expect(taskActionDefaults).toContain('"styles.ts": "export {};"')
   })
 
   it("user progress читается и пишется только через user-owned progress storage", () => {

@@ -1,9 +1,13 @@
 import fs from "node:fs"
 import path from "node:path"
+import { pathToFileURL } from "node:url"
 
-const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
 const BRIGHT_WHITE = "\u001B[97m"
 const RESET = "\u001B[0m"
+
+function resolveChangesDir() {
+  return path.resolve(process.cwd(), "openspec/changes")
+}
 
 function printUsage() {
   console.error("Использование:")
@@ -60,8 +64,11 @@ function readChange(changeDir) {
   }
 }
 
-function main() {
-  const args = process.argv.slice(2)
+/**
+ * @example
+ * runListOpenSpecReleases([])
+ */
+export function runListOpenSpecReleases(args = process.argv.slice(2)) {
 
   if (args.includes("--help") || args.includes("-h")) {
     printUsage()
@@ -75,12 +82,14 @@ function main() {
     process.exit(1)
   }
 
-  if (!fs.existsSync(CHANGES_DIR)) {
-    console.error(`Каталог changes не найден: ${CHANGES_DIR}`)
+  const changesDir = resolveChangesDir()
+
+  if (!fs.existsSync(changesDir)) {
+    console.error(`Каталог changes не найден: ${changesDir}`)
     process.exit(1)
   }
 
-  const changes = listActiveChangeDirs(CHANGES_DIR)
+  const changes = listActiveChangeDirs(changesDir)
     .map((dirPath) => readChange(dirPath))
     .filter(Boolean)
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -173,4 +182,9 @@ function main() {
   }
 }
 
-main()
+const entrypointArg = process.argv[1]
+const isCliEntrypoint = entrypointArg ? import.meta.url === pathToFileURL(entrypointArg).href : false
+
+if (isCliEntrypoint) {
+  runListOpenSpecReleases()
+}

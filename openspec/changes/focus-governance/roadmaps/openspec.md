@@ -2,7 +2,7 @@
 
 ## Владелец
 
-`focus-workflow` владеет этим roadmap и поддерживает его для `dispatcher-openspec` и всех downstream changes OpenSpec-контура.
+`focus-governance` владеет этим roadmap и поддерживает его для `dispatcher-openspec` и всех downstream changes OpenSpec-контура.
 
 ## Что направляет roadmap
 

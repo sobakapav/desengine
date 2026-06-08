@@ -1,5 +1,6 @@
 import type { Project, ProjectCompatibility } from "@/lib/project/runtime"
 import type { SandpackUiKitId } from "@/lib/lab/sandpack-ui-kits.config"
+import type { RuntimeDiagnosticsRecord } from "@/lib/task/runtime-observability"
 
 type SandpackFileEntry = string | {
   code: string
@@ -38,6 +39,7 @@ type SandpackPreviewPayload = {
     effectiveUiKitId: SandpackUiKitId
     compatibility: ProjectCompatibility
   }
+  runtimeDiagnostics?: RuntimeDiagnosticsRecord[]
   debug?: {
     shimVersion: string
     rcShimPaths: string[]

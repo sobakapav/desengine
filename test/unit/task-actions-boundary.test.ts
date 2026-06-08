@@ -13,6 +13,8 @@
 // @openSpec  - "Пользователь запускает уровень через service boundary"
 // @openSpec  - "Пользователь уточняет задачу через service boundary"
 // @openSpec  - "Пользователь проверяет результат через service boundary"
+// @openSpec  - "Runtime start/iterate/check возвращает structured diagnostics для speed/load путей"
+// @openSpec  - "Runtime boundary помечает очередь мутаций как degradation signal"
 // @openSpec  - "Пользователь сохраняет рабочие файлы"
 // @openSpec  - "Пользователь сбрасывает задачу через service boundary"
 // @openSpec  - "Route handlers используют переиспользуемые lab action services"
@@ -20,6 +22,7 @@
 // @openSpec scenarios:
 // @openSpec  - "Разработчик проверяет lab runtime после hardening"
 // @openSpec  - "Проверка использует временное пользовательское состояние"
+// @openSpec  - "Unit-проверка читает runtime diagnostics task action"
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -365,6 +368,21 @@ describe("task action service boundary", () => {
       imageBase64List: [Buffer.from("image-bytes").toString("base64")],
     }))
     expect(mocks.markCurrentTaskLevelInitialized).toHaveBeenCalledWith("task-a")
+    expect(result.body).toMatchObject({
+      runtimeDiagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          path: "start",
+          stage: "task_start",
+          status: "ok",
+          taskId: "task-a",
+        }),
+        expect.objectContaining({
+          path: "mutation_boundary",
+          stage: "task_mutation",
+          taskId: "task-a",
+        }),
+      ]),
+    })
   })
 
   it("iterateTaskLevel сохраняет изменения и prompt history на mock LLM без live credentials", async () => {
@@ -382,6 +400,25 @@ describe("task action service boundary", () => {
       llmCall: expect.objectContaining({ provider: "openai", model: "mock-model" }),
     }))
     expect(mocks.registerPromptForCurrentLevel).toHaveBeenCalledWith("task-a")
+    expect(result.body).toMatchObject({
+      runtimeDiagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          path: "iterate",
+          stage: "task_iterate",
+          status: "ok",
+          taskId: "task-a",
+          size: expect.objectContaining({
+            promptTextChars: "Сделай кнопку крупнее".length,
+            changedFileCount: 1,
+          }),
+        }),
+        expect.objectContaining({
+          path: "mutation_boundary",
+          stage: "task_mutation",
+          taskId: "task-a",
+        }),
+      ]),
+    })
   })
 
   it("checkTaskLevel сохраняет check-result на mock LLM без live credentials", async () => {
@@ -412,5 +449,24 @@ describe("task action service boundary", () => {
       kind: "passed",
       message: "Уровень принят",
     }))
+    expect(result.body).toMatchObject({
+      runtimeDiagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          path: "check",
+          stage: "task_check",
+          status: "ok",
+          taskId: "task-a",
+          load: expect.objectContaining({
+            promptImageCount: 1,
+            editableFileCount: 2,
+          }),
+        }),
+        expect.objectContaining({
+          path: "mutation_boundary",
+          stage: "task_mutation",
+          taskId: "task-a",
+        }),
+      ]),
+    })
   })
 })

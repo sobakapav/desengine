@@ -8,19 +8,40 @@ import { describe, expect, it } from "vitest"
 import { validateOnboardingLayout as validateRuntimeOnboardingLayout } from "@/lib/onboarding/server"
 import { renderPromptTemplateFromRoot } from "@/lib/prompt/render/server"
 
+async function createDidacticPromptFixture() {
+  const root = await mkdtemp(path.join(os.tmpdir(), "desengine-didactic-prompts-"))
+  await mkdir(path.join(root, "levels", "level-1"), { recursive: true })
+  await mkdir(path.join(root, "levels", "level-2"), { recursive: true })
+  await mkdir(path.join(root, "levels", "level-3"), { recursive: true })
+  await writeFile(path.join(root, "default.njk"), "## Общие ожидания к коду\n\nВажно: верни результат строго в формате JSON", "utf-8")
+  await writeFile(
+    path.join(root, "levels", "level-1", "start.njk"),
+    "## Приоритеты\n\nиспользовать компоненты из React/Next.js запрещено",
+    "utf-8",
+  )
+  await writeFile(
+    path.join(root, "levels", "level-2", "check.njk"),
+    "Если в коде есть только HTML — задача не решена.\n\nБиблиотека lucide-react разрешена к использованию.",
+    "utf-8",
+  )
+  await writeFile(path.join(root, "levels", "level-3", "iterate.njk"), "Приоритеты:\n- сохраняй styles.ts", "utf-8")
+  await writeFile(path.join(root, "levels", "level-3", "check.njk"), "`Component.tsx` и `styles.ts`", "utf-8")
+  return root
+}
+
 describe("onboarding prompt templates (nunjucks)", () => {
-  it("didactic default рендерится без ведущего перевода строки и не меняет текст", async () => {
-    const root = path.join(process.cwd(), "onboarding", "prompts")
+  it("production default рендерится без ведущего перевода строки и сохраняет общие правила", async () => {
+    const root = path.join(process.cwd(), "prompts")
 
     const out = await renderPromptTemplateFromRoot(root, "default.njk", {}, { required: true })
 
     expect(out.startsWith("\n")).toBe(false)
-    expect(out).toContain("## Общие ожидания к коду")
+    expect(out).toContain("# Задача в общих чертах")
     expect(out).toContain("Важно: верни результат строго в формате JSON")
   })
 
-  it("level-1 start рендерится без ведущего перевода строки и включает общие partials", async () => {
-    const root = path.join(process.cwd(), "onboarding", "prompts")
+  it("didactic fixture для level-1 start рендерится без ведущего перевода строки", async () => {
+    const root = await createDidacticPromptFixture()
 
     const out = await renderPromptTemplateFromRoot(root, path.join("levels", "level-1", "start.njk"), {}, { required: true })
 
@@ -29,8 +50,8 @@ describe("onboarding prompt templates (nunjucks)", () => {
     expect(out).toContain("использовать компоненты из React/Next.js запрещено")
   })
 
-  it("level-2 check сохраняет параграфы и разрешение lucide-react", async () => {
-    const root = path.join(process.cwd(), "onboarding", "prompts")
+  it("didactic fixture для level-2 check сохраняет параграфы и разрешение lucide-react", async () => {
+    const root = await createDidacticPromptFixture()
 
     const out = await renderPromptTemplateFromRoot(root, path.join("levels", "level-2", "check.njk"), {}, { required: true })
 
@@ -39,8 +60,8 @@ describe("onboarding prompt templates (nunjucks)", () => {
     expect(out).toContain("\n\nБиблиотека lucide-react разрешена к использованию.")
   })
 
-  it("level-3 iterate рендерится без ведущего перевода строки", async () => {
-    const root = path.join(process.cwd(), "onboarding", "prompts")
+  it("didactic fixture для level-3 iterate рендерится без ведущего перевода строки", async () => {
+    const root = await createDidacticPromptFixture()
 
     const out = await renderPromptTemplateFromRoot(root, path.join("levels", "level-3", "iterate.njk"), {}, { required: true })
 
@@ -48,8 +69,8 @@ describe("onboarding prompt templates (nunjucks)", () => {
     expect(out).toContain("Приоритеты:")
   })
 
-  it("level-3 check требует канонический styles.ts", async () => {
-    const root = path.join(process.cwd(), "onboarding", "prompts")
+  it("didactic fixture для level-3 check требует канонический styles.ts", async () => {
+    const root = await createDidacticPromptFixture()
 
     const out = await renderPromptTemplateFromRoot(root, path.join("levels", "level-3", "check.njk"), {}, { required: true })
 

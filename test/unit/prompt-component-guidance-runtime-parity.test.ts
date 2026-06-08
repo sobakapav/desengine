@@ -40,20 +40,18 @@ function readProjectFile(...segments: string[]) {
 }
 
 describe("prompt component guidance runtime parity", () => {
-  it("общий guidance не рекламирует next/router-компоненты как безопасный дефолт preview", () => {
-    const partial = readProjectFile(
-      "onboarding",
-      "prompts",
-      "partials",
-      "default-allowed-components.njk",
-    )
+  it("repo-owned prompt guidance не рекламирует next/router-компоненты как безопасный дефолт preview", () => {
+    const defaultPrompt = readProjectFile("prompts", "default.njk")
+    const iteratePrompt = readProjectFile("prompts", "iterate-component.njk")
+    const commonRules = readProjectFile("prompts", "partials", "common-rules.njk")
 
-    expect(partial).toContain("Fragment")
-    expect(partial).toContain('"@/components/ui/"')
-    expect(partial).toContain("Стандартные HTML-теги использовать можно")
+    expect(commonRules).toContain("не используй внешние зависимости, кроме React")
+    expect(commonRules).toContain("Tailwind CSS допустим")
+    expect(iteratePrompt).toContain("`styles.ts`")
 
     for (const componentName of unsupportedPromptComponents) {
-      expect(partial).not.toMatch(new RegExp(`\\b${componentName}\\b`))
+      expect(defaultPrompt).not.toMatch(new RegExp(`\\b${componentName}\\b`))
+      expect(iteratePrompt).not.toMatch(new RegExp(`\\b${componentName}\\b`))
     }
   })
 
@@ -74,19 +72,13 @@ describe("prompt component guidance runtime parity", () => {
     }
   })
 
-  it("task hint для mp-inspector-mobile-subject-actions не требует неподдерживаемый Link", () => {
-    const tip = readProjectFile(
-      "onboarding",
-      "tasks",
-      "mp-inspector-mobile-subject-actions",
-      "levels",
-      "level-2",
-      "tip.md",
-    )
+  it("repo-owned prompt guidance не требует неподдерживаемый Link", () => {
+    const defaultPrompt = readProjectFile("prompts", "default.njk")
+    const startPrompt = readProjectFile("prompts", "start-component.njk")
 
-    expect(tip).not.toContain("<Link>")
-    expect(tip).not.toContain("nextjs.org/docs")
-    expect(tip).toContain("семантика имеет значение")
-    expect(tip).toContain("обычная ссылка `<a>`")
+    expect(defaultPrompt).not.toContain("<Link>")
+    expect(defaultPrompt).not.toContain("nextjs.org/docs")
+    expect(startPrompt).not.toContain("<Link>")
+    expect(startPrompt).not.toContain("nextjs.org/docs")
   })
 })

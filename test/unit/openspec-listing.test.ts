@@ -5,12 +5,14 @@
 // @openSpec  - "Разработчик фильтрует внимание через `npm run os -- <word>`"
 // @openSpec  - "Названия root changes подсвечиваются ярко-белым"
 
-import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 
 import { afterEach, describe, expect, it } from "vitest"
+
+import { runListActiveOpenSpecChanges } from "../../tools/list-active-openspec-changes.mjs"
+import { runToolInFixture } from "../helpers/run-tool-fixture"
 
 const tempDirs: string[] = []
 
@@ -66,10 +68,13 @@ describe("openspec listing", () => {
       'change_kind: "idea"\nshort: "идея демо"',
     )
 
-    const output = execFileSync(process.execPath, [path.join(process.cwd(), "tools", "list-active-openspec-changes.mjs")], {
+    const { stdout, thrown } = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      runner: runListActiveOpenSpecChanges,
     })
+
+    expect(thrown).toBeUndefined()
+    const output = stdout
 
     expect(output).toContain("🩸 \u001B[97mfocus-demo\u001B[0m\tфокус демо")
     expect(output).toContain("  🍀 producer-demo\tпродюсер демо")
@@ -89,14 +94,14 @@ describe("openspec listing", () => {
       'change_kind: "dispatcher"\nshort: "диспетчер demo dispatcher"',
     )
 
-    const output = execFileSync(
-      process.execPath,
-      [path.join(process.cwd(), "tools", "list-active-openspec-changes.mjs"), "dispatcher"],
-      {
-        cwd: fixtureRoot,
-        encoding: "utf8",
-      },
-    )
+    const { stdout, thrown } = runToolInFixture({
+      cwd: fixtureRoot,
+      argv: ["dispatcher"],
+      runner: runListActiveOpenSpecChanges,
+    })
+
+    expect(thrown).toBeUndefined()
+    const output = stdout
 
     expect(output).toContain("\u001B[31mdispatcher\u001B[0m-demo")
     expect(output).toContain("demo \u001B[31mdispatcher\u001B[0m")
@@ -127,14 +132,14 @@ describe("openspec listing", () => {
       'change_kind: "fix"\nparent_change: "dispatcher-demo"\nshort: "фикс демо"',
     )
 
-    const output = execFileSync(
-      process.execPath,
-      [path.join(process.cwd(), "tools", "list-active-openspec-changes.mjs"), "--short"],
-      {
-        cwd: fixtureRoot,
-        encoding: "utf8",
-      },
-    )
+    const { stdout, thrown } = runToolInFixture({
+      cwd: fixtureRoot,
+      argv: ["--short"],
+      runner: runListActiveOpenSpecChanges,
+    })
+
+    expect(thrown).toBeUndefined()
+    const output = stdout
 
     expect(output).toContain("🩸 focus-demo\tфокус демо")
     expect(output).toContain("  🔸 dispatcher-demo\tдиспетчер демо")

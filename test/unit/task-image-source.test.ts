@@ -3,20 +3,56 @@
 // @openSpec  - "Пользователь видит референс и результат"
 // @openSpec  - "Пользователь открывает рабочий экран на desktop"
 
-import { describe, expect, it } from "vitest"
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises"
+import os from "node:os"
+import path from "node:path"
 
-import { readTaskImageDataUrl, resolveTaskImageAsset } from "../../lib/task/image-source"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+async function createTaskImageFixture() {
+  const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), "desengine-task-image-"))
+  const taskRoot = path.join(fixtureRoot, "dipole-checkbox")
+  await mkdir(taskRoot, { recursive: true })
+  await writeFile(
+    path.join(taskRoot, "base.png"),
+    Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7Z0mQAAAAASUVORK5CYII=", "base64"),
+  )
+  return { fixtureRoot, taskRoot }
+}
 
 describe("task image source", () => {
+  beforeEach(() => {
+    vi.resetModules()
+  })
+
+  afterEach(() => {
+    vi.resetModules()
+    vi.doUnmock("@/lib/user/server")
+  })
+
   it("резолвит base image из каталога задачи", async () => {
+    const { taskRoot } = await createTaskImageFixture()
+
+    vi.doMock("@/lib/user/server", () => ({
+      getTaskCatalogFilePath: (taskId: string, fileName: string) => path.join(path.dirname(taskRoot), taskId, fileName),
+    }))
+
+    const { resolveTaskImageAsset } = await import("../../lib/task/image-source")
     const asset = await resolveTaskImageAsset("dipole-checkbox", "base")
 
     expect(asset).not.toBeNull()
-    expect(asset?.filePath.endsWith("/onboarding/tasks/dipole-checkbox/base.png")).toBe(true)
+    expect(asset?.filePath).toBe(path.join(taskRoot, "base.png"))
     expect(asset?.contentType).toBe("image/png")
   })
 
   it("строит inline data url для лаборатории", async () => {
+    const { taskRoot } = await createTaskImageFixture()
+
+    vi.doMock("@/lib/user/server", () => ({
+      getTaskCatalogFilePath: (taskId: string, fileName: string) => path.join(path.dirname(taskRoot), taskId, fileName),
+    }))
+
+    const { readTaskImageDataUrl } = await import("../../lib/task/image-source")
     const dataUrl = await readTaskImageDataUrl("dipole-checkbox", "base")
 
     expect(dataUrl).toBeTruthy()

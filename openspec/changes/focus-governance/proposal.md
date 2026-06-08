@@ -4,7 +4,7 @@
 
 ## What Changes
 
-- Вводится focus-change `focus-workflow` как верхнеуровневый контекст для process/governance ветки.
+- Вводится focus-change `focus-governance` как верхнеуровневый контекст для process/governance ветки.
 - Диспетчеры производственного контура становятся потомками этого фокуса.
 
 ## Non-goals
@@ -14,5 +14,5 @@
 
 ## Acceptance Criteria
 
-- `focus-workflow` отображается в `npm run os`.
-- `dispatcher-openspec` привязан как потомок `focus-workflow`.
+- `focus-governance` отображается в `npm run os`.
+- `dispatcher-openspec` привязан как потомок `focus-governance`.

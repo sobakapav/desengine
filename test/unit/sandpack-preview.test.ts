@@ -2,6 +2,8 @@
 // @openSpec scenarios:
 // @openSpec  - "Пользователь видит референс и результат"
 // @openSpec  - "Пользователь открывает рабочий экран на desktop"
+// @openSpec  - "Preview payload build возвращает cache и size diagnostics"
+// @openSpec  - "Preview compatibility fallback помечается как degradation signal"
 // @openSpec capability: task
 // @openSpec scenarios:
 // @openSpec  - "Preview принимает UI-импорты из components/ui"
@@ -14,6 +16,9 @@
 // @openSpec capability: ui-foundation
 // @openSpec scenarios:
 // @openSpec  - "Команда работает с динамическим render-островком"
+// @openSpec capability: testing-layer
+// @openSpec scenarios:
+// @openSpec  - "Unit-проверка читает runtime diagnostics preview payload"
 
 import { describe, expect, it } from "vitest"
 
@@ -148,6 +153,21 @@ export default function Component() {
     expect(payload.files["/src/lib/system/utils.ts"]).toEqual(expect.objectContaining({
       code: expect.stringContaining("twMerge(clsx(inputs))"),
     }))
+    expect(payload.runtimeDiagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        path: "preview_payload_build",
+        stage: "sandpack_preview",
+        status: "ok",
+        size: expect.objectContaining({
+          dependencyCount: expect.any(Number),
+          sandpackFileCount: expect.any(Number),
+        }),
+        load: expect.objectContaining({
+          cacheStatus: "miss",
+          effectiveUiKitId: "shadcn",
+        }),
+      }),
+    ]))
   })
 
   it("умеет выключать shadcn/ui через uiKitId=none", async () => {
@@ -228,6 +248,16 @@ export default function Component() {
       status: "incompatible",
       message: expect.stringContaining("не подключает imports из components/ui"),
     })
+    expect(payload.runtimeDiagnostics).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        path: "preview_payload_build",
+        stage: "sandpack_preview",
+        status: "degraded",
+        degradation: expect.objectContaining({
+          reason: "project_compatibility_fallback",
+        }),
+      }),
+    ]))
   })
 
   it("подключает Material UI через адаптер (@mui/material + emotion)", async () => {
@@ -295,6 +325,37 @@ export default function Component() {
       tailwindcss: expect.any(String),
     })
     expect(payload.options.externalResources).toEqual([])
+    expect(payload.runtimeDiagnostics?.[0]).toEqual(expect.objectContaining({
+      path: "preview_payload_build",
+      load: expect.objectContaining({
+        cacheStatus: "miss",
+      }),
+      size: expect.objectContaining({
+        compiledCssChars: expect.any(Number),
+        candidateClassCount: expect.any(Number),
+      }),
+    }))
+  })
+
+  it("помечает повторную сборку preview как cache hit в diagnostics", async () => {
+    const sourceFiles = {
+      component: `export default function Component() {
+  return <div className="bg-slate-100 px-2">Preview</div>;
+}
+`,
+      uiBadge: badgeSource,
+      systemUtils: utilsSource,
+    }
+
+    await buildSandpackPreviewPayload(sourceFiles)
+    const payload = await buildSandpackPreviewPayload(sourceFiles)
+
+    expect(payload.runtimeDiagnostics?.[0]).toEqual(expect.objectContaining({
+      path: "preview_payload_build",
+      load: expect.objectContaining({
+        cacheStatus: "hit",
+      }),
+    }))
   })
 
   it("не тащит весь shadcn dependency graph, если компонент не импортирует ui-kit пакеты", async () => {

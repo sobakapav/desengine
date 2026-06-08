@@ -52,6 +52,18 @@ vi.mock("@/lib/prompt/server", () => ({
   readPrompt: checkActionMocks.readPrompt,
 }))
 
+vi.mock("@/lib/task/actions/shared", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/task/actions/shared")>("@/lib/task/actions/shared")
+
+  return {
+    ...actual,
+    taskActionShared: {
+      ...actual.taskActionShared,
+      readPromptImages: vi.fn().mockResolvedValue(["base64-image-base", "base64-image-variants"]),
+    },
+  }
+})
+
 vi.mock("@/lib/task/mutation-boundary", () => ({
   runTaskMutation: (_taskId: string, callback: () => Promise<unknown>) => callback(),
 }))

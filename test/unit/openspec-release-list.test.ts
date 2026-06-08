@@ -3,12 +3,14 @@
 // @openSpec  - "Разработчик выводит список релизов"
 // @openSpec  - "Названия root changes подсвечиваются ярко-белым"
 
-import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 
 import { afterEach, describe, expect, it } from "vitest"
+
+import { runListOpenSpecReleases } from "../../tools/list-openspec-releases.mjs"
+import { runToolInFixture } from "../helpers/run-tool-fixture"
 
 function writeChange(baseDir: string, relativeDir: string, metadata: string) {
   const changeDir = path.join(baseDir, relativeDir)
@@ -54,10 +56,13 @@ describe("openspec release list", () => {
       'change_kind: "implement"\nshort: "архивная поставка"\nparent_change: ""\nrelease_ref: "release-live"',
     )
 
-    const output = execFileSync(process.execPath, [path.join(process.cwd(), "tools", "list-openspec-releases.mjs")], {
+    const { stdout, thrown } = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      runner: runListOpenSpecReleases,
     })
+
+    expect(thrown).toBeUndefined()
+    const output = stdout
 
     expect(output).toContain("\u001B[97mrelease-live\u001B[0m\tактуальный релиз")
     expect(output).toContain("  implement-live\tактуальная поставка")
@@ -92,10 +97,13 @@ describe("openspec release list", () => {
       'change_kind: "fix"\nshort: "поставка б"\nparent_change: "dispatcher-alpha"\nrelease_ref: "release-live"',
     )
 
-    const output = execFileSync(process.execPath, [path.join(process.cwd(), "tools", "list-openspec-releases.mjs")], {
+    const { stdout, thrown } = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      runner: runListOpenSpecReleases,
     })
+
+    expect(thrown).toBeUndefined()
+    const output = stdout
 
     expect(output).toContain("  dispatcher-alpha\tдиспетчер альфа")
     expect(output).toContain("    fix-b\tпоставка б")

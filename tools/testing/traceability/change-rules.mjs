@@ -45,7 +45,15 @@ function validateReferenceRules(changeName, metadata, context, errors) {
   }
   if (!releaseRef) {
   } else if (!context.allChangeNames.has(releaseRef)) {
-    errors.push(`${changeName}: release_ref ссылается на неизвестный change: ${releaseRef}`)
+    if (context.archivedChangeKindsByName.get(releaseRef) === "release") {
+      const activeMembers = [...(context.activeReleaseMembersByReleaseRef.get(releaseRef) || [])].sort((left, right) => left.localeCompare(right))
+      const membersLabel = activeMembers.length > 0 ? ` (${activeMembers.join(", ")})` : ""
+      errors.push(
+        `${changeName}: release_ref ссылается на архивированный release ${releaseRef}; release change можно закрывать только после закрытия всех active changes состава${membersLabel}`,
+      )
+    } else {
+      errors.push(`${changeName}: release_ref ссылается на неизвестный change: ${releaseRef}`)
+    }
   } else if (context.changeKindsByName.get(releaseRef) !== "release") {
     errors.push(`${changeName}: release_ref должен ссылаться на change_kind=release`)
   }
@@ -213,6 +221,10 @@ function validateProducerContextRules(changeName, changeKind, parentChange, meta
   }
 }
 
+/**
+ * @example
+ * validateChangeKindRules("implement-demo", metadata, context)
+ */
 export function validateChangeKindRules(changeName, metadata, context) {
   const errors = []
   const changeKind = context.changeKindsByName.get(changeName) || ""

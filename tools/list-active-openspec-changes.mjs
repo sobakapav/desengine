@@ -1,7 +1,10 @@
 import fs from "node:fs"
 import path from "node:path"
+import { pathToFileURL } from "node:url"
 
-const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
+function resolveChangesDir() {
+  return path.resolve(process.cwd(), "openspec/changes")
+}
 const KIND_ORDER = ["focus", "release", "idea", "producer", "dispatcher", "implement", "fix"]
 const KIND_ICONS = new Map([
   ["focus", "🩸"],
@@ -223,8 +226,11 @@ function buildTreeLines(changes, highlightNeedle, shortMode) {
   return lines
 }
 
-function main() {
-  const args = process.argv.slice(2)
+/**
+ * @example
+ * runListActiveOpenSpecChanges(["--short"])
+ */
+export function runListActiveOpenSpecChanges(args = process.argv.slice(2)) {
 
   if (args.includes("--help") || args.includes("-h")) {
     printUsage()
@@ -242,12 +248,14 @@ function main() {
     process.exit(1)
   }
 
-  if (!fs.existsSync(CHANGES_DIR)) {
-    console.error(`Каталог changes не найден: ${CHANGES_DIR}`)
+  const changesDir = resolveChangesDir()
+
+  if (!fs.existsSync(changesDir)) {
+    console.error(`Каталог changes не найден: ${changesDir}`)
     process.exit(1)
   }
 
-  const changes = filterChanges(listChangeDirs(CHANGES_DIR).map(readChange).filter(Boolean), parsedArgs.shortMode)
+  const changes = filterChanges(listChangeDirs(changesDir).map(readChange).filter(Boolean), parsedArgs.shortMode)
 
   if (changes.length === 0) {
     console.log("Нет актуальных changes.")
@@ -267,4 +275,9 @@ function main() {
   }
 }
 
-main()
+const entrypointArg = process.argv[1]
+const isCliEntrypoint = entrypointArg ? import.meta.url === pathToFileURL(entrypointArg).href : false
+
+if (isCliEntrypoint) {
+  runListActiveOpenSpecChanges()
+}

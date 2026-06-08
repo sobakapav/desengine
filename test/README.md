@@ -32,6 +32,12 @@ npm run quality:text
 npm run test:e2e
 ```
 
+Реальный onboarding checkout проверяется отдельной командой:
+
+```bash
+npm run test:onboarding:real
+```
+
 Targeted smoke переключения UI kit использует fixture-доступ без live allowlist:
 
 ```bash
@@ -61,6 +67,7 @@ npm run test:live
 | `npm run test:e2e` | Playwright route smoke без live credentials. |
 | `npm run test:integration` | Integration-проверки route/API-flow в `test/integration/**/*.test.ts`. |
 | `npm run test:live` | Env-aware preflight для активного provider без реальных сетевых вызовов. |
+| `npm run test:onboarding:real` | Явный smoke-контракт реального `/onboarding` checkout через текущий repair path. |
 | `npm run test:spec -- <capability>` | Зарезервировано для выборочного запуска по OpenSpec capability. |
 
 ## Структура
@@ -252,6 +259,8 @@ E2E helper делает snapshot каталога `user/` до и после а�
 ## Fixtures и credentials
 
 Обычные команды `npm test`, `npm run test:unit`, `npm run test:full` и `npm run test:e2e` не должны требовать live credentials.
+
+`npm run test:onboarding:real` намеренно не относится к этому обязательному детерминированному набору: команда использует реальный `ONBOARDING_REPO_URL`, может запускать repair и нужна именно для внешней проверки совместимости настоящего checkout.
 
 Секреты нельзя хранить в git. Для live/provider-проверок использовать только env или локальные некоммитимые файлы.
 

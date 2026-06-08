@@ -119,6 +119,9 @@ npm run os -- dispatcher
     <child-change>\t<короткое пояснение>
 ```
 
+Release закрывается только после того, как `npm run os:r` перестаёт показывать у него active implement/fix members.
+Если архивировать release раньше, `npm run test:traceability` должен упасть на active changes, у которых `release_ref` всё ещё смотрит на этот архивированный release.
+
 ### `npm run os:p`
 
 Печатает только те active producer changes, у которых есть связанные implement/fix changes по producer-контексту.
@@ -201,7 +204,16 @@ npm run os:dispatch -- release-... --dispatcher dispatcher-... --kind fix --name
 1. для `fix` с `verification_level=component/browser` сначала выполняет обязательный browser preflight через канонический wrapper `node tools/testing/run-browser-verification-runtime.mjs ...`;
 2. если `verification_command` содержит прямой `npm run test:e2e -- test/e2e/*.spec.ts`, tool автоматически переводит его в тот же wrapper-path;
 3. выполняет `npm run test:traceability`;
-4. архивирует change в `openspec/changes/archive/YYYY-MM-DD-<change>`.
+4. если у change задан `release_ref`, читает `artifacts/release-note.md` и добавляет его в `openspec/changes/<release>/release-notes.md`;
+5. архивирует change в `openspec/changes/archive/YYYY-MM-DD-<change>`.
+
+Для release-linked implement/fix `artifacts/release-note.md` обязателен. Этот файл должен быть написан простым языком и содержать:
+
+- `Что меняется для пользователя:`
+- `Как это влияет на пользователя:`
+- `Как проверить:`
+
+Если change уже упомянут в `release-notes.md`, `os:close` не создаёт дубликат записи.
 
 Wrapper сам:
 - сначала пытается переиспользовать уже живой target server через `DESENGINE_E2E_BASE_URL` или стандартный localhost-port browser/e2e;

@@ -73,6 +73,20 @@ Task service boundary SHALL строить prompt-related runtime context чер
 - **THEN** core logic остаётся в `lib/task/actions.ts`
 - **AND** route handlers отвечают за access guard, params/body parsing и HTTP response mapping
 
+### Requirement: Task runtime публикует structured speed diagnostics
+
+Система SHALL возвращать для key runtime paths `start`, `iterate`, `check` и task mutation boundary структурированные diagnostics, пригодные для локальной диагностики и downstream speed/load harness.
+
+#### Scenario: Runtime start/iterate/check возвращает structured diagnostics для speed/load путей
+- **WHEN** task runtime завершает `start`, `iterate` или `check`
+- **THEN** ответ содержит structured diagnostics с `durationMs`, path/stage status и size/load полями
+- **AND** diagnostics остаются machine-readable и не сводятся только к текстовому логу
+
+#### Scenario: Runtime boundary помечает очередь мутаций как degradation signal
+- **WHEN** task action попадает в очередь `runTaskMutation`
+- **THEN** runtime diagnostics фиксирует queue wait и факт сериализации по `taskId`
+- **AND** downstream tooling может отличить immediate path от queued/degraded path
+
 ### Requirement: Неконсистентный пользовательский компонент не рушит task-экран
 
 Система SHALL изолировать ошибки пользовательского component preview так, чтобы неконсистентный код компонента не валил task-экран целиком.
