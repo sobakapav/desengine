@@ -80,6 +80,7 @@ const editorOptions = {
 } satisfies Record<string, unknown>;
 
 type MonacoCancellationLike = {
+  cause?: unknown;
   message?: unknown;
   name?: unknown;
   stack?: unknown;
@@ -152,20 +153,55 @@ function toErrorString(value: unknown) {
   return typeof value === "string" ? value : null;
 }
 
+function normalizeErrorText(value: unknown) {
+  return toErrorString(value)?.trim().toLowerCase() ?? "";
+}
+
+function hasMonacoSourceMarker(text: string) {
+  return (
+    text.includes("monaco-editor") ||
+    text.includes("@monaco-editor") ||
+    text.includes("/vs/base/common/cancellation") ||
+    text.includes("/vs/base/common/async") ||
+    text.includes("/vs/editor/") ||
+    text.includes("cdn.jsdelivr.net/npm/monaco-editor") ||
+    text.includes("cdnjs.cloudflare.com/ajax/libs/monaco-editor")
+  );
+}
+
+function hasCancellationMarker(text: string) {
+  return (
+    text === "canceled" ||
+    text === "canceled: canceled" ||
+    text.includes("canceled: canceled") ||
+    text.includes("operation is canceled") ||
+    text.includes("operation was canceled")
+  );
+}
+
 function isMonacoCancellationNoise(reason: unknown) {
+  const stringReason = normalizeErrorText(reason);
+  if (stringReason === "canceled: canceled") {
+    return true;
+  }
+
   if (typeof reason !== "object" || reason === null) {
     return false;
   }
 
   const { message, name, stack } = reason as MonacoCancellationLike;
-  const errorName = toErrorString(name);
-  const errorMessage = toErrorString(message);
-  const errorStack = toErrorString(stack)?.toLowerCase() ?? "";
-  const isCanceledError = errorName === "Canceled" && errorMessage === "Canceled";
-  const isMonacoStack =
-    errorStack.includes("monaco-editor") ||
-    errorStack.includes("@monaco-editor") ||
-    errorStack.includes("vs/base/common/cancellation");
+  const nestedCause = (reason as MonacoCancellationLike).cause;
+  const errorTexts = [
+    normalizeErrorText(name),
+    normalizeErrorText(message),
+    normalizeErrorText(stack),
+    normalizeErrorText((nestedCause as MonacoCancellationLike | null | undefined)?.name),
+    normalizeErrorText((nestedCause as MonacoCancellationLike | null | undefined)?.message),
+    normalizeErrorText((nestedCause as MonacoCancellationLike | null | undefined)?.stack),
+  ].filter(Boolean);
+
+  const isCanceledError = errorTexts.some(hasCancellationMarker);
+  const isMonacoStack = errorTexts.some(hasMonacoSourceMarker);
 
   return isCanceledError && isMonacoStack;
 }

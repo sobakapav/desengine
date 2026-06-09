@@ -71,7 +71,7 @@ describe("openspec release list", () => {
     const output = stdout
 
     expect(output).toMatch(/🌟 \u001B\[97mrelease-live\u001B\[0m\s{2,}актуальный релиз/)
-    expect(output).toMatch(/      implement-live\s{2,}актуальная поставка/)
+    expect(output).toMatch(/\s+implement-live\s{2,}актуальная поставка/)
     expect(output).not.toContain("release-old")
     expect(output).not.toContain("архивный релиз")
     expect(output).not.toContain("implement-old")
@@ -254,6 +254,6 @@ describe("openspec release list", () => {
     })
 
     expect(thrown).toBeUndefined()
-    expect(stripAnsi(stdout)).toContain("релиз альфа\n\n🌟 release-beta")
+    expect(stripAnsi(stdout)).toContain("релиз альфа\n  (пусто)  нет привязанных changes\n\n🌟 release-beta")
   })
 })

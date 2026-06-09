@@ -71,14 +71,13 @@ function installDigestOnExistingSubtle(digest: DigestImplementation) {
   }
 }
 
-function installDigestOnCryptoObject(digest: DigestImplementation) {
-  const cryptoPrototype = globalThis.crypto && typeof globalThis.crypto === "object"
-    ? globalThis.crypto
-    : {}
-  const cryptoFallback = Object.create(cryptoPrototype)
-  const subtleFallback = "subtle" in cryptoPrototype && cryptoPrototype.subtle && typeof cryptoPrototype.subtle === "object"
-    ? cryptoPrototype.subtle
-    : {}
+function installDigestOnExistingCrypto(digest: DigestImplementation) {
+  const cryptoCandidate = globalThis.crypto
+  if (!cryptoCandidate || typeof cryptoCandidate !== "object") {
+    return false
+  }
+
+  const subtleFallback = {}
 
   try {
     Object.defineProperty(subtleFallback, "digest", {
@@ -86,19 +85,10 @@ function installDigestOnCryptoObject(digest: DigestImplementation) {
       value: digest,
       writable: true,
     })
-    Object.defineProperty(cryptoFallback, "subtle", {
+    // Не подменяем весь `crypto`, чтобы не потерять native-методы с привязкой к экземпляру.
+    Object.defineProperty(cryptoCandidate, "subtle", {
       configurable: true,
       value: subtleFallback,
-      writable: true,
-    })
-  } catch {
-    return false
-  }
-
-  try {
-    Object.defineProperty(globalThis, "crypto", {
-      configurable: true,
-      value: cryptoFallback,
       writable: true,
     })
     return hasDigestImplementation()
@@ -123,7 +113,7 @@ function installPreviewDigestFallback() {
   }
 
   previewDigestFallbackInstallAttempted = true
-  previewDigestFallbackInstalled = installDigestOnExistingSubtle(digestWithFallback) || installDigestOnCryptoObject(digestWithFallback)
+  previewDigestFallbackInstalled = installDigestOnExistingSubtle(digestWithFallback) || installDigestOnExistingCrypto(digestWithFallback)
 
   return previewDigestFallbackInstalled
 }
