@@ -161,6 +161,10 @@ function iconForKind(kind) {
   return KIND_ICONS.get(kind) || "  "
 }
 
+function visibleLength(text) {
+  return text.replace(/\u001B\[[0-9;]*m/g, "").length
+}
+
 function kindRank(kind) {
   const index = KIND_ORDER.indexOf(kind)
   return index === -1 ? KIND_ORDER.length : index
@@ -192,7 +196,7 @@ function buildTreeLines(changes, highlightNeedle, shortMode) {
   )
 
   const visited = new Set()
-  const lines = []
+  const entries = []
 
   function collectNode(node, depth) {
     if (visited.has(node.name)) {
@@ -203,10 +207,16 @@ function buildTreeLines(changes, highlightNeedle, shortMode) {
 
     const indent = "  ".repeat(depth)
     const icon = iconForKind(node.kind)
+    const plainName = `${indent}${icon} ${node.name}`
     const name = styleRootName(highlightText(node.name, highlightNeedle), depth, shortMode)
     const summary = highlightText(node.summary, highlightNeedle)
 
-    lines.push({ depth, text: `${indent}${icon} ${name}\t${summary}` })
+    entries.push({
+      depth,
+      prefixWidth: visibleLength(plainName),
+      prefixText: `${indent}${icon} ${name}`,
+      summary,
+    })
 
     for (const child of children.get(node.name) || []) {
       collectNode(child, depth + 1)
@@ -223,7 +233,23 @@ function buildTreeLines(changes, highlightNeedle, shortMode) {
     collectNode(orphan, 0)
   }
 
-  return lines
+  const maxPrefixWidthByDepth = new Map()
+
+  for (const entry of entries) {
+    const current = maxPrefixWidthByDepth.get(entry.depth) || 0
+    if (entry.prefixWidth > current) {
+      maxPrefixWidthByDepth.set(entry.depth, entry.prefixWidth)
+    }
+  }
+
+  return entries.map((entry) => {
+    const targetWidth = maxPrefixWidthByDepth.get(entry.depth) || entry.prefixWidth
+    const padding = " ".repeat(targetWidth - entry.prefixWidth + 2)
+    return {
+      depth: entry.depth,
+      text: `${entry.prefixText}${padding}${entry.summary}`,
+    }
+  })
 }
 
 /**

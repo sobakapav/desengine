@@ -50,6 +50,8 @@
 - **AND** archived changes из `openspec/changes/archive/*` не печатаются ни как release, ни как элементы состава
 - **AND** активный состав релиза печатается как delivery-матрица `parent dispatcher -> implement/fix`, если у элементов состава задан `parent_change`
 - **AND** в состав релиза не попадают changes с `change_kind`, отличным от `implement` и `fix`
+- **AND** release и элементы состава используют те же role-иконки, что и `npm run os`
+- **AND** краткие описания элементов одного уровня начинаются в общей выровненной колонке
 
 ### Requirement: Release оркестрирует delivery-матрицу, не подменяя dispatcher
 
