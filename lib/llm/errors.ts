@@ -1,4 +1,4 @@
-type LlmErrorKind = "config" | "auth" | "network" | "timeout" | "provider" | "invalid_response"
+export type LlmErrorKind = "config" | "auth" | "network" | "timeout" | "provider" | "invalid_response" | "budget"
 
 class LlmError extends Error {
   kind: LlmErrorKind
@@ -37,6 +37,8 @@ function toLlmErrorResponse(error: unknown) {
   const status =
     llmError.kind === "config"
       ? 400
+      : llmError.kind === "budget"
+        ? 413
       : llmError.kind === "timeout"
         ? 504
         : llmError.kind === "auth" || llmError.kind === "network" || llmError.kind === "invalid_response"

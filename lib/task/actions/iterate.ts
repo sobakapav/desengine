@@ -11,8 +11,18 @@ import { runStructuredLlmRequest, toLlmErrorResponse } from "@/lib/llm/server"
 import { appendPromptHistory, isTaskStarted, readTaskData } from "@/lib/onboarding/repository"
 import { formatPromptHistoryTimestamp, TEACHING_COST_PER_ITERATION_CENTS } from "@/lib/prompt/history"
 import { readLevelIteratePrompt, readPrompt } from "@/lib/prompt/server"
-import { runTaskMutation } from "@/lib/task/mutation-boundary"
+import {
+  createTaskMutationOverloadHttpResult,
+  isTaskMutationOverloadError,
+  runTaskMutation,
+} from "@/lib/task/mutation-boundary"
 import { buildTaskRuntimePromptContext } from "@/lib/task/prompt-context"
+import {
+  attachRuntimeDiagnostics,
+  createRuntimeDiagnosticsRecord,
+  emitRuntimeDiagnostics,
+  sumTextLengths,
+} from "@/lib/task/runtime-observability"
 import {
   clearTaskCheckResult,
   getLevelForTaskItem,
@@ -25,6 +35,12 @@ import {
   getUserTaskFilePath,
 } from "@/lib/user/server"
 
+import {
+  getTaskActionBudgetErrorDetails,
+  validateTaskActionInputBudget,
+  validateTaskActionStructuredOutputBudget,
+  validateTaskActionWriteSetBudget,
+} from "./runtime-llm-budget"
 import { taskIterateLlm } from "./iterate-llm"
 import { taskActionShared } from "./shared"
 import type {
@@ -34,6 +50,15 @@ import type {
   OutputFile,
   TaskActionHttpResult,
 } from "./types"
+
+function finalizeIterationResult(
+  result: TaskActionHttpResult,
+  diagnostics: Omit<ReturnType<typeof createRuntimeDiagnosticsRecord>, "timestamp">,
+) {
+  const record = createRuntimeDiagnosticsRecord(diagnostics)
+  emitRuntimeDiagnostics(record)
+  return attachRuntimeDiagnostics(result, [record])
+}
 
 type IterationContext = {
   taskItem: NonNullable<Awaited<ReturnType<typeof getTaskListItemById>>>
@@ -130,13 +155,35 @@ async function writeIterationFiles(args: {
   const filteredPayload = filterWorkbenchPayloadByAllowlist(args.payload, args.editableFileIds)
   const changedFileIds: string[] = []
   const changedFileNames: string[] = []
+  const pendingWrites = filteredPayload.allowedEntries.reduce<Array<{
+    fileId: string
+    fileName: string
+    content: string
+  }>>((entries, entry) => {
+    if (typeof entry.content !== "string") {
+      return entries
+    }
+
+    if (entry.content === (args.contentByFileId[entry.fileId] ?? "")) {
+      return entries
+    }
+
+    entries.push({
+      fileId: entry.fileId,
+      fileName: entry.fileName,
+      content: entry.content,
+    })
+    return entries
+  }, [])
+
+  validateTaskActionWriteSetBudget({
+    path: "iterate",
+    entries: pendingWrites,
+  })
 
   await ensureUserTaskDir(args.taskId)
 
-  for (const entry of filteredPayload.allowedEntries) {
-    if (typeof entry.content !== "string") continue
-    if (entry.content === (args.contentByFileId[entry.fileId] ?? "")) continue
-
+  for (const entry of pendingWrites) {
     const filePath = getUserTaskFilePath(args.taskId, entry.fileName)
     await writeFile(filePath, entry.content, "utf-8")
     changedFileIds.push(entry.fileId)
@@ -346,54 +393,319 @@ function buildNoopIterationResponse(args: {
 }
 
 async function runIterateTaskLevelMutation(taskId: string, promptText: string): Promise<TaskActionHttpResult> {
+  const startedAt = Date.now()
   const request = await validateIterationRequest(taskId, promptText)
-  if ("status" in request || !("taskItem" in request)) return request
+  if ("status" in request || !("taskItem" in request)) {
+    return finalizeIterationResult(request as TaskActionHttpResult, {
+      scope: "task",
+      path: "iterate",
+      stage: "task_iterate",
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        promptTextChars: promptText.length,
+      },
+      degradation: {
+        reason: "request_rejected",
+      },
+    })
+  }
 
   const loaded = await loadIterationContext(taskId, request.taskItem)
-  if ("error" in loaded) return loaded.error
+  if ("error" in loaded) {
+    return finalizeIterationResult(loaded.error, {
+      scope: "task",
+      path: "iterate",
+      stage: "task_iterate",
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        promptTextChars: promptText.length,
+      },
+      degradation: {
+        reason: "load_context_failed",
+      },
+    })
+  }
 
   const { context, cleanupBeforeIteration, promptImages } = loaded
   let imageBase64List: string[]
   try {
     imageBase64List = await taskActionShared.readPromptImages(taskId, promptImages)
   } catch {
-    return taskActionShared.jsonResult({ ok: false, error: "Не найдены обязательные картинки текущего уровня" }, 404)
+    return finalizeIterationResult(
+      taskActionShared.jsonResult({ ok: false, error: "Не найдены обязательные картинки текущего уровня" }, 404),
+      {
+        scope: "task",
+        path: "iterate",
+        stage: "task_iterate",
+        status: "error",
+        durationMs: Date.now() - startedAt,
+        taskId,
+        load: {
+          promptImageCount: promptImages.length,
+        },
+        degradation: {
+          reason: "missing_required_images",
+        },
+      },
+    )
   }
 
   const llmInput = await buildIterationLlmInput({ taskId, promptText, context, promptImages })
+  try {
+    validateTaskActionInputBudget({
+      path: "iterate",
+      instruction: llmInput.instruction,
+      imageBase64List,
+    })
+  } catch (error) {
+    const response = toLlmErrorResponse(error)
+    return finalizeIterationResult(taskActionShared.jsonResult(response.body, response.status), {
+      scope: "task",
+      path: "iterate",
+      stage: "task_iterate",
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        promptTextChars: promptText.length,
+        instructionChars: llmInput.instruction.length,
+        promptImageBase64Chars: sumTextLengths(imageBase64List),
+      },
+      load: {
+        promptImageCount: imageBase64List.length,
+        editableFileCount: context.editableFiles.length,
+      },
+      degradation: {
+        reason: "runtime_budget_exceeded",
+        details: getTaskActionBudgetErrorDetails(error) ?? undefined,
+      },
+    })
+  }
+
   const llmStage = await runIterationLlmStage(
     llmInput.instruction,
     imageBase64List,
     context.editableFiles,
   )
-  if ("response" in llmStage) return llmStage.response
+  if ("response" in llmStage) {
+    return finalizeIterationResult(llmStage.response, {
+      scope: "task",
+      path: "iterate",
+      stage: "task_iterate",
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        promptTextChars: promptText.length,
+        instructionChars: llmInput.instruction.length,
+        promptImageBase64Chars: sumTextLengths(imageBase64List),
+      },
+      load: {
+        promptImageCount: imageBase64List.length,
+        editableFileCount: context.editableFiles.length,
+      },
+      degradation: {
+        reason: "llm_request_failed",
+      },
+    })
+  }
+
+  try {
+    validateTaskActionStructuredOutputBudget({
+      path: "iterate",
+      outputText: llmStage.outputText,
+    })
+  } catch (error) {
+    const response = toLlmErrorResponse(error)
+    return finalizeIterationResult(taskActionShared.jsonResult(response.body, response.status), {
+      scope: "task",
+      path: "iterate",
+      stage: "task_iterate",
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        promptTextChars: promptText.length,
+        instructionChars: llmInput.instruction.length,
+        promptImageBase64Chars: sumTextLengths(imageBase64List),
+        outputChars: llmStage.outputText.length,
+      },
+      load: {
+        promptImageCount: imageBase64List.length,
+        editableFileCount: context.editableFiles.length,
+      },
+      degradation: {
+        reason: "runtime_budget_exceeded",
+        details: getTaskActionBudgetErrorDetails(error) ?? undefined,
+      },
+    })
+  }
 
   const parseStage = parseIterationStage(llmStage.outputText, context.editableFiles)
-  if ("response" in parseStage) return parseStage.response
+  if ("response" in parseStage) {
+    return finalizeIterationResult(parseStage.response, {
+      scope: "task",
+      path: "iterate",
+      stage: "task_iterate",
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        promptTextChars: promptText.length,
+        instructionChars: llmInput.instruction.length,
+        promptImageBase64Chars: sumTextLengths(imageBase64List),
+        outputChars: llmStage.outputText.length,
+      },
+      load: {
+        promptImageCount: imageBase64List.length,
+        editableFileCount: context.editableFiles.length,
+      },
+      degradation: {
+        reason: "structured_output_parse_failed",
+      },
+    })
+  }
 
-  const written = await writeIterationFiles({
-    taskId,
-    payload: parseStage.payload,
-    editableFileIds: context.labContext.editableFileIds,
-    contentByFileId: llmInput.taskData.contentByFileId,
-  })
+  let written: IterationWriteResult
+  try {
+    written = await writeIterationFiles({
+      taskId,
+      payload: parseStage.payload,
+      editableFileIds: context.labContext.editableFileIds,
+      contentByFileId: llmInput.taskData.contentByFileId,
+    })
+  } catch (error) {
+    const response = toLlmErrorResponse(error)
+    return finalizeIterationResult(taskActionShared.jsonResult(response.body, response.status), {
+      scope: "task",
+      path: "iterate",
+      stage: "task_iterate",
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        promptTextChars: promptText.length,
+        instructionChars: llmInput.instruction.length,
+        promptImageBase64Chars: sumTextLengths(imageBase64List),
+        outputChars: llmStage.outputText.length,
+      },
+      load: {
+        promptImageCount: imageBase64List.length,
+        editableFileCount: context.editableFiles.length,
+      },
+      degradation: {
+        reason: getTaskActionBudgetErrorDetails(error) ? "runtime_budget_exceeded" : "write_stage_failed",
+        details: getTaskActionBudgetErrorDetails(error) ?? undefined,
+      },
+    })
+  }
+
   logIterationAllowlist({ taskId, written, cleanupBeforeIteration })
 
   if (written.changedFileIds.length === 0) {
-    return buildNoopIterationResponse({
+    const noopResult = buildNoopIterationResponse({
       context,
       taskData: llmInput.taskData,
       written,
       cleanupBeforeIteration,
     })
+    const noopReason = resolveIterationNoopReason({
+      written,
+      cleanupBeforeIteration,
+    })
+    return finalizeIterationResult(noopResult, {
+      scope: "task",
+      path: "iterate",
+      stage: "task_iterate",
+      status: "noop",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        promptTextChars: promptText.length,
+        instructionChars: llmInput.instruction.length,
+        promptImageBase64Chars: sumTextLengths(imageBase64List),
+        outputChars: llmStage.outputText.length,
+      },
+      load: {
+        promptImageCount: imageBase64List.length,
+        editableFileCount: context.editableFiles.length,
+        ignoredFileCount: written.ignoredFileIds.length,
+      },
+      degradation: {
+        reason: noopReason,
+        details: {
+          ignoredFileIds: written.ignoredFileIds,
+          deletedBeforeIterationFileIds: cleanupBeforeIteration.deletedFileIds,
+          deletedAfterIterationFileIds: written.deletedAfterIterationFileIds,
+        },
+      },
+    })
   }
 
   await appendIterationEntry({ taskId, promptText, context, taskData: llmInput.taskData, written, llmCall: llmStage.llmCall })
-  return completeIterationTaskLevel(taskId)
+  const completed = await completeIterationTaskLevel(taskId)
+  const wasDegraded = (
+    written.ignoredFileIds.length > 0
+    || cleanupBeforeIteration.deletedFileIds.length > 0
+    || written.deletedAfterIterationFileIds.length > 0
+  )
+  return finalizeIterationResult(completed, {
+    scope: "task",
+    path: "iterate",
+    stage: "task_iterate",
+    status: wasDegraded ? "degraded" : "ok",
+    durationMs: Date.now() - startedAt,
+    taskId,
+    size: {
+      promptTextChars: promptText.length,
+      instructionChars: llmInput.instruction.length,
+      promptImageBase64Chars: sumTextLengths(imageBase64List),
+      outputChars: llmStage.outputText.length,
+      changedFileCount: written.changedFileIds.length,
+    },
+    load: {
+      promptImageCount: imageBase64List.length,
+      editableFileCount: context.editableFiles.length,
+      ignoredFileCount: written.ignoredFileIds.length,
+    },
+    degradation: wasDegraded
+      ? {
+          reason: "allowlist_or_cleanup_enforced",
+          details: {
+            ignoredFileIds: written.ignoredFileIds,
+            deletedBeforeIterationFileIds: cleanupBeforeIteration.deletedFileIds,
+            deletedAfterIterationFileIds: written.deletedAfterIterationFileIds,
+          },
+        }
+      : undefined,
+  })
 }
 
 export const taskIterateAction = {
   async iterateTaskLevel(taskId: string, promptText: string): Promise<TaskActionHttpResult> {
-    return runTaskMutation(taskId, () => runIterateTaskLevelMutation(taskId, promptText))
+    try {
+      return await runTaskMutation(taskId, () => runIterateTaskLevelMutation(taskId, promptText))
+    } catch (error) {
+      if (!isTaskMutationOverloadError(error)) {
+        throw error
+      }
+
+      return finalizeIterationResult(createTaskMutationOverloadHttpResult(error), {
+        scope: "task",
+        path: "iterate",
+        stage: "task_iterate",
+        status: "error",
+        durationMs: 0,
+        taskId,
+        load: error.diagnostics.load,
+        degradation: {
+          reason: "mutation_boundary_overload",
+        },
+      })
+    }
   },
 }

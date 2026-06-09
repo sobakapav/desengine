@@ -36,12 +36,12 @@ function LevelStartIntro({
       </p>
       <h1 className="text-2xl font-semibold text-black">
         {isFirstLevel && !started
-          ? `Начать задачу ${taskId}`
-          : `Начать уровень ${currentLevel} в задаче ${taskId}`}
+          ? `Довести задачу ${taskId} до состояния «Проверка пройдена»`
+          : `Продолжить задачу ${taskId} и пройти проверку уровня ${currentLevel}`}
       </h1>
       <p className="max-w-3xl text-muted-foreground">
-        Это одноразовая стартовая страница уровня. После явного старта система выполнит скрытый запуск
-        и откроет рабочий экран.
+        Это старт текущего уровня. После явного старта система подготовит рабочую среду и откроет экран,
+        где вы сможете сделать решение и довести его до состояния «Проверка пройдена».
       </p>
     </div>
   )
@@ -82,13 +82,13 @@ function LevelStartActions({
         <p className="font-medium">Что произойдёт после старта</p>
         <p className="text-muted-foreground">
           Система подготовит файлы именно для этого уровня, сохранит совместимые наработки и затем переведёт
-          вас в рабочий экран.
+          вас в рабочий экран. Дальше останется один цикл: сделать решение и пройти проверку.
         </p>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <Button onClick={onStart} disabled={startStatus === "starting"}>
-          {startStatus === "starting" ? "Запуск уровня…" : "Начать уровень"}
+          {startStatus === "starting" ? "Готовим решение…" : "Начать и перейти к решению"}
         </Button>
         <Button variant="outline" onClick={onBackToLevelList} disabled={startStatus === "starting"}>
           К списку задач уровня

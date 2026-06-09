@@ -94,4 +94,11 @@ describe("lab route contract", () => {
       expect(source).not.toContain("`/tasks/")
     }
   })
+
+  it("успешный check-result с новым уровнем возвращает к списку задач уровня, а не в lab автоматически", () => {
+    const source = readProjectFile("components", "desengine", "lab", "LabScreen", "ScreenSections.tsx")
+
+    expect(source).toContain("if (screen.transition?.toLevel)")
+    expect(source).toContain("void handleReturnToLevelList(taskItem?.progress.currentLevelId);")
+  })
 })

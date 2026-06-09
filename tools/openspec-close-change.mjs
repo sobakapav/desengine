@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { spawnSync } from "node:child_process"
+import { appendReleaseNoteToRelease } from "./openspec-release-notes.mjs"
 
 const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
 const ARCHIVE_DIR = path.join(CHANGES_DIR, "archive")
@@ -41,6 +42,7 @@ function readMetadata(changeName) {
 
   return {
     kind: readValue("change_kind"),
+    releaseRef: readValue("release_ref"),
     verificationLevel: readValue("verification_level"),
     verificationCommand: readValue("verification_command"),
   }
@@ -108,6 +110,22 @@ function archiveChange(changeName) {
   return target
 }
 
+function syncReleaseNotes(changeName, metadata) {
+  if (!metadata.releaseRef) {
+    return
+  }
+
+  const result = appendReleaseNoteToRelease({
+    changeName,
+    changesDir: CHANGES_DIR,
+    releaseRef: metadata.releaseRef,
+  })
+
+  if (result.status === "appended") {
+    console.log(`\nRelease notes обновлены: ${result.releaseNotesPath}`)
+  }
+}
+
 function run() {
   const parsed = parseArgs(process.argv.slice(2))
   if (parsed.help) {
@@ -133,6 +151,7 @@ function run() {
 
   runCommand("Проверка change verification_command", "zsh", ["-lc", getWrappedBrowserVerificationCommand(metadata)])
   runCommand("Проверка traceability", "npm", ["run", "test:traceability"])
+  syncReleaseNotes(parsed.changeName, metadata)
 
   const archivedPath = archiveChange(parsed.changeName)
   console.log(`\nChange закрыт и архивирован: ${archivedPath}`)

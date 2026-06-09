@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-09
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "fix"
+execution_mode: "code"
+parent_change: "dispatcher-openspec"
+strategy_root: "focus-governance"
+roadmap_ref: "focus-governance/roadmaps/openspec.md"
+release_ref: "release-2026-06-02-quality"
+producer_ref: ""
+verification_level: "static/contract + unit"
+verification_command: "npm run test:traceability && npm run test:unit -- openspec-roadmap-inheritance openspec-release-list"
+issue: ""
+short: "запретить включать в релиз changes вне implement и fix"

@@ -1,5 +1,9 @@
 import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
 import { resetTaskRuntime } from "@/lib/task/actions"
+import {
+  createTaskMutationOverloadHttpResult,
+  isTaskMutationOverloadError,
+} from "@/lib/task/mutation-boundary"
 
 type Params = { taskId: string }
 
@@ -19,7 +23,18 @@ export async function POST(
   if (unauthorizedResponse) return unauthorizedResponse
 
   const { taskId } = await params
-  const result = await resetTaskRuntime(taskId)
+  let result: Awaited<ReturnType<typeof resetTaskRuntime>>
+
+  try {
+    result = await resetTaskRuntime(taskId)
+  } catch (error) {
+    if (!isTaskMutationOverloadError(error)) {
+      throw error
+    }
+
+    const overloadResult = createTaskMutationOverloadHttpResult(error)
+    return Response.json(overloadResult.body, { status: overloadResult.status ?? 503 })
+  }
 
   if (result.kind === "not_found") {
     return Response.json({ ok: false, error: result.error }, { status: 404 })

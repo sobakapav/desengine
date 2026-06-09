@@ -45,9 +45,9 @@ describe("task progress presentation", () => {
   it("показывает отдельный текст для нового текущего уровня, который ещё не начат", () => {
     const task = createTask()
 
-    expect(getStatusText(task)).toBe("Уровень 2 из 3 ещё не начат")
+    expect(getStatusText(task)).toBe("До состояния «Проверка пройдена»: начните уровень 2 из 3")
     expect(getPromptRemainderText(task)).toBe(
-      "Новый текущий уровень ещё не начат. После старта будет доступно 5 уточнений.",
+      "После старта останется дойти до «Проверка пройдена». Доступно 5 уточнений и 3 попытки проверки.",
     )
     expect(getLevelBadgeText(task)).toBe("lvl 2")
     expect(getIndicatorWidth(task)).toBe("66.66666666666666%")
@@ -66,8 +66,8 @@ describe("task progress presentation", () => {
       },
     })
 
-    expect(getStatusText(task)).toBe("Уровень 2 из 3")
-    expect(getPromptRemainderText(task)).toBe("Осталось уточнений на уровне: 3 из 5")
+    expect(getStatusText(task)).toBe("До состояния «Проверка пройдена»: уровень 2 из 3 в работе")
+    expect(getPromptRemainderText(task)).toBe("Осталось уточнений: 3 из 5. Попыток проверки осталось 3 из 3.")
     expect(getLevelBadgeText(task)).toBe("lvl 2")
   })
 
@@ -82,8 +82,8 @@ describe("task progress presentation", () => {
       },
     })
 
-    expect(getStatusText(task)).toBe("Ждёт проверки")
-    expect(getPromptRemainderText(task)).toBe("Осталось уточнений на уровне: 5 из 5")
+    expect(getStatusText(task)).toBe("До состояния «Проверка пройдена»: повторите проверку")
+    expect(getPromptRemainderText(task)).toBe("Следующий шаг: повторить проверку. Попыток проверки осталось 3 из 3.")
   })
 
   it("показывает завершённую задачу отдельно от уровня в работе", () => {
@@ -102,7 +102,7 @@ describe("task progress presentation", () => {
       },
     })
 
-    expect(getStatusText(task)).toBe("Задача завершена")
+    expect(getStatusText(task)).toBe("Проверка пройдена")
     expect(getLevelBadgeText(task)).toBe("done")
     expect(getIndicatorWidth(task)).toBe("100%")
   })

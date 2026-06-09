@@ -17,7 +17,13 @@ import {
   ensureUserTaskDir,
   getUserTaskFilePath,
 } from "@/lib/user/server"
+import { toLlmErrorResponse } from "@/lib/llm/server"
 
+import {
+  getTaskActionBudgetErrorDetails,
+  validateTaskActionWriteSetBudget,
+  type RuntimeBudgetExceededDetails,
+} from "./runtime-llm-budget"
 import { taskActionShared } from "./shared"
 import type { StartRuntimeContext } from "./start-context"
 import type { FilesPayload, TaskActionHttpResult } from "./types"
@@ -32,7 +38,7 @@ type StartWriteResult = {
 
 type StartWriteStageResult =
   | { writeResult: StartWriteResult }
-  | { response: TaskActionHttpResult }
+  | { response: TaskActionHttpResult; budgetErrorDetails?: RuntimeBudgetExceededDetails | null }
 
 async function writeStartFiles(
   taskId: string,
@@ -41,12 +47,22 @@ async function writeStartFiles(
 ): Promise<StartWriteResult> {
   const filteredPayload = filterWorkbenchPayloadByAllowlist(payload, editableFileIds)
   const writtenFiles: string[] = []
+  const pendingWrites = filteredPayload.allowedEntries.map((entry) => ({
+    fileId: entry.fileId,
+    fileName: entry.fileName,
+    content: String(entry.content ?? ""),
+  }))
+
+  validateTaskActionWriteSetBudget({
+    path: "start",
+    entries: pendingWrites,
+  })
 
   await ensureUserTaskDir(taskId)
 
-  for (const entry of filteredPayload.allowedEntries) {
+  for (const entry of pendingWrites) {
     const filePath = getUserTaskFilePath(taskId, entry.fileName)
-    await writeFile(filePath, String(entry.content ?? ""), "utf-8")
+    await writeFile(filePath, entry.content, "utf-8")
     writtenFiles.push(filePath)
   }
 
@@ -70,6 +86,12 @@ async function writeStartStage(
   try {
     return { writeResult: await writeStartFiles(taskId, payload, editableFileIds) }
   } catch (error) {
+    const budgetErrorDetails = getTaskActionBudgetErrorDetails(error)
+    if (budgetErrorDetails) {
+      const response = toLlmErrorResponse(error)
+      return { response: taskActionShared.jsonResult(response.body, response.status), budgetErrorDetails }
+    }
+
     console.error("[desengine][task-start] write_error", {
       taskId,
       durationMs: Date.now() - startedAt,

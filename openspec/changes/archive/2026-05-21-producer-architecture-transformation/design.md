@@ -70,7 +70,7 @@ dispatcher-ui-kit
 - `producer-task-and-workflow-entities` становится входом для Task/Workflow/Artifact contract.
 - `producer-platform-component-sourcing-strategy` становится продюсерским контуром, который задаёт общий вектор на использование готовых React-primitives без поштучного ведения уже внедрённых модулей.
 - `dispatcher-workbench-entity-workflow-step`, `producer-image-inspector`, `dispatcher-workbench-layout-space` идут после Workbench Platform Registry.
-- `dispatcher-task-hints` и `idea-prompt-builder` идут после Prompt Context Runtime Boundary.
+- `dispatcher-tasks` и `idea-prompt-builder` идут после Prompt Context Runtime Boundary.
 - `user-experience-generalization`, `user-action-logging`, `cost-accounting-layer` идут через общий Event Envelope.
 - `figma-project-import-adapter`, `project-roadmap-entity`, packaging changes ждут Project/Artifact/Storage readiness.
 - Readability follow-up refactor'ы идут после соответствующих foundation steps и не объявляются заменой capability roadmap.

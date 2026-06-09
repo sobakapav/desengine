@@ -3,11 +3,21 @@ import "server-only"
 import {
   getLevelEditableWorkbenchFiles,
 } from "@/lib/lab/workbench"
-import { runStructuredLlmRequest } from "@/lib/llm/server"
+import { runStructuredLlmRequest, toLlmErrorResponse } from "@/lib/llm/server"
 import { isTaskStarted, readTaskData } from "@/lib/onboarding/repository"
 import { readLevelCheckPrompt, readPrompt } from "@/lib/prompt/server"
 import type { Project } from "@/lib/project/runtime"
-import { runTaskMutation } from "@/lib/task/mutation-boundary"
+import {
+  createTaskMutationOverloadHttpResult,
+  isTaskMutationOverloadError,
+  runTaskMutation,
+} from "@/lib/task/mutation-boundary"
+import {
+  attachRuntimeDiagnostics,
+  createRuntimeDiagnosticsRecord,
+  emitRuntimeDiagnostics,
+  sumTextLengths,
+} from "@/lib/task/runtime-observability"
 import {
   clearTaskCheckResult,
   failCurrentTaskLevelCheck,
@@ -21,6 +31,11 @@ import {
 import type { TaskCheckResult } from "@/lib/task/types"
 
 import { buildTaskRuntimePromptContext } from "../prompt-context"
+import {
+  getTaskActionBudgetErrorDetails,
+  validateTaskActionInputBudget,
+  validateTaskActionStructuredOutputBudget,
+} from "./runtime-llm-budget"
 import { taskActionShared } from "./shared"
 import type { OutputFile, TaskActionHttpResult } from "./types"
 
@@ -34,6 +49,7 @@ type CheckContext = {
 type CheckResponse = {
   passed: boolean
   message: string
+  llmCall: Awaited<ReturnType<typeof runStructuredLlmRequest>>
 }
 
 type CheckContextLoadResult =
@@ -150,6 +166,11 @@ async function callCheckLlm(instruction: string, imageBase64List: string[]) {
     },
   })
 
+  validateTaskActionStructuredOutputBudget({
+    path: "check",
+    outputText: llmCall.outputText,
+  })
+
   const parsed = JSON.parse(llmCall.outputText)
   if (
     !parsed
@@ -164,7 +185,17 @@ async function callCheckLlm(instruction: string, imageBase64List: string[]) {
   return {
     passed: parsed.passed,
     message: parsed.message.trim(),
+    llmCall,
   }
+}
+
+function finalizeCheckResult(
+  result: TaskActionHttpResult,
+  diagnostics: Omit<ReturnType<typeof createRuntimeDiagnosticsRecord>, "timestamp">,
+) {
+  const record = createRuntimeDiagnosticsRecord(diagnostics)
+  emitRuntimeDiagnostics(record)
+  return attachRuntimeDiagnostics(result, [record])
 }
 
 function buildCheckResult(
@@ -285,73 +316,251 @@ async function buildTechnicalCheckResponse(taskId: string, context: CheckContext
 
 export const taskCheckAction = {
   async checkTaskLevel(taskId: string, project?: Project): Promise<TaskActionHttpResult> {
-    return runTaskMutation(taskId, async (): Promise<TaskActionHttpResult> => {
-      const request = await validateCheckRequest(taskId)
-      if ("status" in request || !("taskItem" in request)) return request
+    try {
+      return await runTaskMutation(taskId, async (): Promise<TaskActionHttpResult> => {
+        const startedAt = Date.now()
+        const request = await validateCheckRequest(taskId)
+        if ("status" in request || !("taskItem" in request)) {
+          return finalizeCheckResult(request as TaskActionHttpResult, {
+            scope: "task",
+            path: "check",
+            stage: "task_check",
+            status: "error",
+            durationMs: Date.now() - startedAt,
+            taskId,
+            degradation: {
+              reason: "request_rejected",
+            },
+          })
+        }
 
-      const loaded = await loadCheckContext(request.taskItem)
-      if ("error" in loaded) return loaded.error
+        const loaded = await loadCheckContext(request.taskItem)
+        if ("error" in loaded) {
+          return finalizeCheckResult(loaded.error, {
+            scope: "task",
+            path: "check",
+            stage: "task_check",
+            status: "error",
+            durationMs: Date.now() - startedAt,
+            taskId,
+            degradation: {
+              reason: "load_context_failed",
+            },
+          })
+        }
 
-      const { context, promptImages } = loaded
-      const taskData = await readTaskData(context.taskItem, context.labContext)
-      const promptContext = buildTaskRuntimePromptContext({
-        taskId,
-        taskMaxLevel: context.taskItem.maxLevel,
-        taskImages: context.labContext.images,
-        levelTaskTip: context.labContext.taskTip,
-        levelTaskCheckContract: context.labContext.taskCheckContract,
-        level: context.level,
-        project,
-        taskData,
-        taskItem: context.taskItem,
-        workbenchFiles: context.editableFiles.map((file) => ({
+        const { context, promptImages } = loaded
+        const taskData = await readTaskData(context.taskItem, context.labContext)
+        const promptContext = buildTaskRuntimePromptContext({
+          taskId,
+          taskMaxLevel: context.taskItem.maxLevel,
+          taskImages: context.labContext.images,
+          levelTaskTip: context.labContext.taskTip,
+          levelTaskCheckContract: context.labContext.taskCheckContract,
+          level: context.level,
+          project,
+          taskData,
+          taskItem: context.taskItem,
+          workbenchFiles: context.editableFiles.map((file) => ({
+            ...file,
+            title: file.fileName,
+            edit: true,
+          })),
+          constraints: ["structured-json-check-result", "allowed-workbench-files-only"],
+          providerCapabilities: ["vision", "structured-output"],
+        })
+        const [defaultProductionPrompt, defaultDidacticPrompt, levelCheckPrompt] = await Promise.all([
+          readPrompt("production", "default"),
+          readPrompt("didactic", "default"),
+          readLevelCheckPrompt(context.level.id, promptContext.renderContext),
+        ])
+
+        let imageBase64List: string[]
+        try {
+          imageBase64List = await taskActionShared.readPromptImages(taskId, promptImages)
+        } catch {
+          return finalizeCheckResult(
+            taskActionShared.jsonResult({ ok: false, error: "Не найдены обязательные картинки текущего уровня" }, 404),
+            {
+              scope: "task",
+              path: "check",
+              stage: "task_check",
+              status: "error",
+              durationMs: Date.now() - startedAt,
+              taskId,
+              load: {
+                promptImageCount: promptImages.length,
+              },
+              degradation: {
+                reason: "missing_required_images",
+              },
+            },
+          )
+        }
+
+        const selectedFiles = context.editableFiles.map((file) => ({
           ...file,
-          title: file.fileName,
-          edit: true,
-        })),
-        constraints: ["structured-json-check-result", "allowed-workbench-files-only"],
-        providerCapabilities: ["vision", "structured-output"],
+          content: taskData.contentByFileId[file.id] ?? "",
+        }))
+        const instruction = buildCheckInstruction({
+          defaultProductionPrompt,
+          defaultDidacticPrompt,
+          levelCheckPrompt,
+          commonExplanation: context.labContext.commonExplanation,
+          taskCheckContract: context.labContext.taskCheckContract,
+          allowedFilesText: taskActionShared.formatAllowedFilesText(context.editableFiles),
+          imagesText: promptImages.map((image) => `- ${image.id}.png — ${image.width}x${image.height}`).join("\n"),
+          selectedFilesText: taskActionShared.formatFilesContextText(selectedFiles),
+        })
+
+        try {
+          validateTaskActionInputBudget({
+            path: "check",
+            instruction,
+            imageBase64List,
+          })
+        } catch (error) {
+          const response = toLlmErrorResponse(error)
+          return finalizeCheckResult(taskActionShared.jsonResult(response.body, response.status), {
+            scope: "task",
+            path: "check",
+            stage: "task_check",
+            status: "error",
+            durationMs: Date.now() - startedAt,
+            taskId,
+            size: {
+              instructionChars: instruction.length,
+              promptImageBase64Chars: sumTextLengths(imageBase64List),
+              selectedFileChars: sumTextLengths(selectedFiles.map((file) => file.content)),
+            },
+            load: {
+              promptImageCount: imageBase64List.length,
+              editableFileCount: context.editableFiles.length,
+            },
+            degradation: {
+              reason: "runtime_budget_exceeded",
+              details: getTaskActionBudgetErrorDetails(error) ?? undefined,
+            },
+          })
+        }
+
+        let checkResponse: CheckResponse
+        try {
+          checkResponse = await callCheckLlm(instruction, imageBase64List)
+        } catch (error) {
+          if (getTaskActionBudgetErrorDetails(error)) {
+            const response = toLlmErrorResponse(error)
+            return finalizeCheckResult(taskActionShared.jsonResult(response.body, response.status), {
+              scope: "task",
+              path: "check",
+              stage: "task_check",
+              status: "error",
+              durationMs: Date.now() - startedAt,
+              taskId,
+              size: {
+                instructionChars: instruction.length,
+                promptImageBase64Chars: sumTextLengths(imageBase64List),
+                selectedFileChars: sumTextLengths(selectedFiles.map((file) => file.content)),
+              },
+              load: {
+                promptImageCount: imageBase64List.length,
+                editableFileCount: context.editableFiles.length,
+              },
+              degradation: {
+                reason: "runtime_budget_exceeded",
+                details: getTaskActionBudgetErrorDetails(error) ?? undefined,
+              },
+            })
+          }
+
+          const technicalResult = await buildTechnicalCheckResponse(taskId, context, error)
+          return finalizeCheckResult(technicalResult, {
+            scope: "task",
+            path: "check",
+            stage: "task_check",
+            status: "error",
+            durationMs: Date.now() - startedAt,
+            taskId,
+            size: {
+              instructionChars: instruction.length,
+              promptImageBase64Chars: sumTextLengths(imageBase64List),
+              selectedFileChars: sumTextLengths(selectedFiles.map((file) => file.content)),
+            },
+            load: {
+              promptImageCount: imageBase64List.length,
+              editableFileCount: context.editableFiles.length,
+            },
+            degradation: {
+              reason: "technical_check_error",
+              details: {
+                message: error instanceof Error ? error.message : String(error),
+              },
+            },
+          })
+        }
+
+        if (checkResponse.passed) {
+          const successResult = await buildSuccessfulCheckResponse(taskId, context, checkResponse)
+          return finalizeCheckResult(successResult, {
+            scope: "task",
+            path: "check",
+            stage: "task_check",
+            status: "ok",
+            durationMs: Date.now() - startedAt,
+            taskId,
+            size: {
+              instructionChars: instruction.length,
+              promptImageBase64Chars: sumTextLengths(imageBase64List),
+              selectedFileChars: sumTextLengths(selectedFiles.map((file) => file.content)),
+              outputChars: checkResponse.llmCall.outputText.length,
+            },
+            load: {
+              promptImageCount: imageBase64List.length,
+              editableFileCount: context.editableFiles.length,
+            },
+          })
+        }
+
+        const failedResult = await buildFailedCheckResponse(taskId, context, checkResponse)
+        return finalizeCheckResult(failedResult, {
+          scope: "task",
+          path: "check",
+          stage: "task_check",
+          status: "degraded",
+          durationMs: Date.now() - startedAt,
+          taskId,
+          size: {
+            instructionChars: instruction.length,
+            promptImageBase64Chars: sumTextLengths(imageBase64List),
+            selectedFileChars: sumTextLengths(selectedFiles.map((file) => file.content)),
+            outputChars: checkResponse.llmCall.outputText.length,
+          },
+          load: {
+            promptImageCount: imageBase64List.length,
+            editableFileCount: context.editableFiles.length,
+          },
+          degradation: {
+            reason: "check_failed",
+          },
+        })
       })
-      const [defaultProductionPrompt, defaultDidacticPrompt, levelCheckPrompt] = await Promise.all([
-        readPrompt("production", "default"),
-        readPrompt("didactic", "default"),
-        readLevelCheckPrompt(context.level.id, promptContext.renderContext),
-      ])
-
-      let imageBase64List: string[]
-      try {
-        imageBase64List = await taskActionShared.readPromptImages(taskId, promptImages)
-      } catch {
-        return taskActionShared.jsonResult({ ok: false, error: "Не найдены обязательные картинки текущего уровня" }, 404)
+    } catch (error) {
+      if (!isTaskMutationOverloadError(error)) {
+        throw error
       }
 
-      const selectedFiles = context.editableFiles.map((file) => ({
-        ...file,
-        content: taskData.contentByFileId[file.id] ?? "",
-      }))
-      const instruction = buildCheckInstruction({
-        defaultProductionPrompt,
-        defaultDidacticPrompt,
-        levelCheckPrompt,
-        commonExplanation: context.labContext.commonExplanation,
-        taskCheckContract: context.labContext.taskCheckContract,
-        allowedFilesText: taskActionShared.formatAllowedFilesText(context.editableFiles),
-        imagesText: promptImages.map((image) => `- ${image.id}.png — ${image.width}x${image.height}`).join("\n"),
-        selectedFilesText: taskActionShared.formatFilesContextText(selectedFiles),
+      return finalizeCheckResult(createTaskMutationOverloadHttpResult(error), {
+        scope: "task",
+        path: "check",
+        stage: "task_check",
+        status: "error",
+        durationMs: 0,
+        taskId,
+        load: error.diagnostics.load,
+        degradation: {
+          reason: "mutation_boundary_overload",
+        },
       })
-
-      let checkResponse: CheckResponse
-      try {
-        checkResponse = await callCheckLlm(instruction, imageBase64List)
-      } catch (error) {
-        return buildTechnicalCheckResponse(taskId, context, error)
-      }
-
-      if (checkResponse.passed) {
-        return buildSuccessfulCheckResponse(taskId, context, checkResponse)
-      }
-
-      return buildFailedCheckResponse(taskId, context, checkResponse)
-    })
+    }
   },
 }

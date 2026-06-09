@@ -46,6 +46,16 @@
 - **THEN** система явно сообщает о mismatch источника
 - **AND** предлагает пересинхронизировать `/onboarding` из канонического репозитория
 
+### Requirement: Реальный onboarding checkout проверяется отдельным runnable smoke-контрактом
+
+Система SHALL иметь явную команду проверки реального `/onboarding` checkout, которая подтверждает совместимость layout и источника отдельно от deterministic unit-слоя.
+
+#### Scenario: Инженер сопровождения запускает проверку реального onboarding checkout
+- **WHEN** инженер выполняет `npm run test:onboarding:real`
+- **THEN** система читает `ONBOARDING_REPO_URL`, проверяет текущий `/onboarding` и при необходимости запускает repair
+- **AND** успешный verdict требует подтверждённый source marker и полный runtime-compatible layout
+- **AND** неуспех объясняет проблему через repo URL, layout, source marker или ошибку repair, а не через unit-фикстуры
+
 ### Requirement: Канонические инструкции локального запуска согласованы между собой
 
 Система SHALL поддерживать `README.md`, `INSTALL.md` и релевантные документы из `docs/**` в согласованном состоянии, чтобы они описывали один и тот же актуальный локальный пользовательский и административный поток.

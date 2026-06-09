@@ -18,6 +18,17 @@
 - **THEN** система не блокирует их общей глобальной очередью
 - **AND** каждая задача сохраняет собственную последовательность мутаций
 
+#### Scenario: Очередь одной задачи превысила bounded лимит
+- **WHEN** для одного `taskId` уже выполняется мутация
+- **AND** backlog этой задачи достиг configured budget ожидания
+- **THEN** следующее действие получает retriable overload-отказ до постановки в очередь
+- **AND** runtime не удерживает лишний pending context для отклонённого действия
+
+#### Scenario: Runtime превысил лимит pending mutation contexts
+- **WHEN** несколько task action flow уже заняли глобальный budget pending contexts
+- **THEN** следующее действие получает retriable overload-отказ
+- **AND** уже принятые мутации продолжают выполняться без corruption очереди
+
 ### Requirement: Route handlers используют переиспользуемые lab action services
 
 Система SHALL держать core logic lab action flow в переиспользуемом runtime/service слое, а route handlers использовать как HTTP boundary.
@@ -68,10 +79,40 @@ Task service boundary SHALL строить prompt-related runtime context чер
 - **THEN** route handler делегирует level-scoped reset отдельной runtime/service функции
 - **AND** не переиспользует полный reset задачи как скрытую реализацию
 
+#### Scenario: Task action runtime возвращает retriable overload-отказ
+- **WHEN** `start`, `iterate`, `check`, `save files`, `reset task` или `reset current level` попадают в bounded overload runtime
+- **THEN** service или route boundary возвращает явный retriable error
+- **AND** действие не оставляет частично поставленную в очередь мутацию
+- **AND** runtime diagnostics фиксирует fast-fail overload path
+
 #### Scenario: Route handlers используют переиспользуемые lab action services
 - **WHEN** разработчик меняет route handlers ключевых lab actions
 - **THEN** core logic остаётся в `lib/task/actions.ts`
 - **AND** route handlers отвечают за access guard, params/body parsing и HTTP response mapping
+
+### Requirement: Task runtime публикует structured speed diagnostics
+
+Система SHALL возвращать для key runtime paths `start`, `iterate`, `check` и task mutation boundary структурированные diagnostics, пригодные для локальной диагностики и downstream speed/load harness.
+
+#### Scenario: Runtime start/iterate/check возвращает structured diagnostics для speed/load путей
+- **WHEN** task runtime завершает `start`, `iterate` или `check`
+- **THEN** ответ содержит structured diagnostics с `durationMs`, path/stage status и size/load полями
+- **AND** diagnostics остаются machine-readable и не сводятся только к текстовому логу
+
+#### Scenario: Runtime boundary помечает очередь мутаций как degradation signal
+- **WHEN** task action попадает в очередь `runTaskMutation`
+- **THEN** runtime diagnostics фиксирует queue wait и факт сериализации по `taskId`
+- **AND** downstream tooling может отличить immediate path от queued/degraded path
+
+### Requirement: Runtime отклоняет oversized write-set до записи пользовательских файлов
+
+Система SHALL проверять итоговый write-set до `ensureUserTaskDir` и до записи рабочих файлов пользователя.
+Budget write-set SHALL измеряться по количеству файлов и по суммарному размеру в байтах.
+
+#### Scenario: Runtime отклоняет oversized write-set до записи пользовательских файлов
+- **WHEN** `start` или `iterate` сформировали допустимый structured-output, но итоговый write-set превышает runtime budget
+- **THEN** система возвращает bounded ошибку с `errorKind=budget`
+- **AND** не записывает пользовательские файлы частично
 
 ### Requirement: Неконсистентный пользовательский компонент не рушит task-экран
 

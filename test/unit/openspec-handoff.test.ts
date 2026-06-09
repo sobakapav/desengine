@@ -5,14 +5,21 @@
 // @openSpec  - "Разработчик пытается начать неисполнительский change"
 // @openSpec  - "Разработчик начинает implement/fix change"
 // @openSpec  - "Release-диспетчеризация новой хотелки"
+// @openSpec  - "Release inclusion не завершился полностью"
 
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { buildHandoffTemplate, ensureHandoffFile, getHandoffReadiness } from "../../tools/openspec-handoff.mjs"
+import {
+  assertHandoffInheritedContext,
+  buildHandoffTemplate,
+  ensureHandoffFile,
+  getHandoffReadiness,
+  syncHandoffInheritedContext,
+} from "../../tools/openspec-handoff.mjs"
 import { runOpenSpecBegin } from "../../tools/openspec-begin-change.mjs"
 import { runOpenSpecDispatch } from "../../tools/openspec-dispatch-change.mjs"
 
@@ -98,6 +105,8 @@ function runToolInFixture(args: {
 
 describe("openspec handoff", () => {
   afterEach(() => {
+    vi.restoreAllMocks()
+    vi.resetModules()
     while (tempDirs.length > 0) {
       const dirPath = tempDirs.pop()
       if (dirPath) {
@@ -197,6 +206,61 @@ describe("openspec handoff", () => {
 
     expect(readiness.ready).toBe(true)
     expect(readiness.errors).toEqual([])
+  })
+
+  it("не синхронизирует inherited context, если в handoff отсутствует release_ref строка", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-handoff-sync-"))
+    tempDirs.push(fixtureRoot)
+    const changeDir = path.join(fixtureRoot, "openspec", "changes", "implement-demo")
+
+    fs.mkdirSync(changeDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(changeDir, "handoff.md"),
+      `## Миссия
+
+- Подготовить release-linked change.
+
+## Унаследованный контекст
+
+- parent_change: dispatcher-demo
+- strategy_root: focus-demo
+- producer_ref: (не задан)
+- Что из родительского change уже решено: release linkage уже определён.
+- Кто отвечает за стратегию, тактику и приёмку результата: dispatcher-demo.
+
+## Обязательные источники
+
+- openspec/changes/dispatcher-demo/proposal.md
+
+## Границы исполнения
+
+- Входит: sync metadata.
+- Не входит: новые capabilities.
+- Какие решения уже принадлежат parent dispatcher / strategy_root и не должны переоткрываться: release policy.
+
+## Проверка результата
+
+- verification_level: unit
+- verification_command: npm run test:unit
+- Что именно должен доказать результат проверки: inherited context синхронен.
+
+## Открытые вопросы
+
+- Нет.
+`,
+      "utf8",
+    )
+
+    expect(() =>
+      syncHandoffInheritedContext(changeDir, {
+        parentChange: "dispatcher-demo",
+        strategyRoot: "focus-demo",
+        releaseRef: "release-demo",
+        producerRef: "",
+        verificationLevel: "unit",
+        verificationCommand: "npm run test:unit",
+      }),
+    ).toThrow('В handoff.md отсутствует строка "release_ref"')
   })
 
   it("os:begin блокирует implement без готового handoff", () => {
@@ -525,6 +589,156 @@ execution_mode: "no-code"
     expect(metadata).toContain('release_ref: "release-demo"')
     expect(handoff).toContain("## Миссия")
     expect(handoff).toContain("parent_change: dispatcher-demo")
+    expect(handoff).toContain("release_ref: release-demo")
     expect(handoff).toContain("Что должен изменить этот change: подготовить демонстрационный implement change")
+    expect(() =>
+      assertHandoffInheritedContext(createdDir, {
+        parentChange: "dispatcher-demo",
+        strategyRoot: "focus-demo",
+        releaseRef: "release-demo",
+        producerRef: "",
+        verificationLevel: "unit",
+        verificationCommand: "npm run test:unit",
+      }),
+    ).not.toThrow()
+  })
+
+  it("os:dispatch в release-режиме валится, если post-check находит рассинхрон release_ref между metadata и handoff", async () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-dispatch-handoff-desync-"))
+    tempDirs.push(fixtureRoot)
+    const binDir = path.join(fixtureRoot, "bin")
+    const npmShimPath = path.join(binDir, "npm")
+    const openspecShimPath = path.join(binDir, "openspec")
+    const fixtureToolsDir = path.join(fixtureRoot, "tools")
+
+    fs.mkdirSync(binDir, { recursive: true })
+    fs.mkdirSync(fixtureToolsDir, { recursive: true })
+    fs.symlinkSync(path.join(process.cwd(), "tools", "create-openspec-change.mjs"), path.join(fixtureToolsDir, "create-openspec-change.mjs"))
+    fs.symlinkSync(path.join(process.cwd(), "tools", "openspec-change-name.mjs"), path.join(fixtureToolsDir, "openspec-change-name.mjs"))
+    fs.symlinkSync(path.join(process.cwd(), "tools", "openspec-handoff.mjs"), path.join(fixtureToolsDir, "openspec-handoff.mjs"))
+
+    fs.writeFileSync(
+      npmShimPath,
+      `#!/bin/sh
+if [ "$1" = "run" ] && [ "$2" = "os:begin" ]; then
+  shift 3
+  exec ${process.execPath} ${path.join(process.cwd(), "tools", "openspec-begin-change.mjs")} "$@"
+fi
+echo "unsupported mock npm args: $*" >&2
+exit 1
+`,
+      "utf8",
+    )
+    fs.chmodSync(npmShimPath, 0o755)
+    fs.writeFileSync(
+      openspecShimPath,
+      `#!/bin/sh
+if [ "$1" = "new" ] && [ "$2" = "change" ] && [ -n "$3" ]; then
+  change_name="$3"
+  change_dir="openspec/changes/$change_name"
+  mkdir -p "$change_dir"
+  cat > "$change_dir/.openspec.yaml" <<'EOF'
+schema: spec-driven
+created: 2026-05-24
+EOF
+  cat > "$change_dir/tasks.md" <<'EOF'
+## Tasks
+
+- [ ] 1. Уточнить постановку и границы реализации
+- [ ] 2. Внести кодовые изменения
+- [ ] 3. Выполнить проверку по verification_command из metadata
+EOF
+  exit 0
+fi
+echo "unsupported mock openspec args: $*" >&2
+exit 1
+`,
+      "utf8",
+    )
+    fs.chmodSync(openspecShimPath, 0o755)
+
+    fs.writeFileSync(
+      path.join(fixtureRoot, "package.json"),
+      JSON.stringify(
+        {
+          scripts: {
+            "os:begin": `node ${path.join(process.cwd(), "tools", "openspec-begin-change.mjs")}`,
+          },
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    )
+
+    const dispatcherDir = path.join(fixtureRoot, "openspec", "changes", "dispatcher-demo")
+    const releaseDir = path.join(fixtureRoot, "openspec", "changes", "release-demo")
+    fs.mkdirSync(dispatcherDir, { recursive: true })
+    fs.mkdirSync(releaseDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(dispatcherDir, ".openspec.yaml"),
+      `change_kind: "dispatcher"
+execution_mode: "no-code"
+parent_change: "focus-demo"
+strategy_root: "focus-demo"
+roadmap_ref: "focus-demo/roadmaps/demo.md"
+release_ref: ""
+`,
+      "utf8",
+    )
+    fs.writeFileSync(
+      path.join(releaseDir, ".openspec.yaml"),
+      `change_kind: "release"
+execution_mode: "no-code"
+`,
+      "utf8",
+    )
+
+    vi.doMock("../../tools/openspec-handoff.mjs", async () => {
+      const actual = await vi.importActual<typeof import("../../tools/openspec-handoff.mjs")>("../../tools/openspec-handoff.mjs")
+
+      return {
+        ...actual,
+        assertHandoffInheritedContext(changeDir: string, expected: Parameters<typeof actual.assertHandoffInheritedContext>[1]) {
+          const handoffPath = path.join(changeDir, "handoff.md")
+          const broken = fs
+            .readFileSync(handoffPath, "utf8")
+            .replace("- release_ref: release-demo", "- release_ref: release-broken")
+          fs.writeFileSync(handoffPath, broken, "utf8")
+          return actual.assertHandoffInheritedContext(changeDir, expected)
+        },
+      }
+    })
+
+    const { runOpenSpecDispatch: mockedRunOpenSpecDispatch } = await import("../../tools/openspec-dispatch-change.mjs")
+
+    const createdDir = path.join(fixtureRoot, "openspec", "changes", "implement-demo-task")
+    const result = runToolInFixture({
+      cwd: fixtureRoot,
+      argv: [
+        "release-demo",
+        "--dispatcher",
+        "dispatcher-demo",
+        "--kind",
+        "implement",
+        "--name",
+        "demo-task",
+        "--description",
+        "подготовить демонстрационный implement change",
+      ],
+      runner: mockedRunOpenSpecDispatch,
+      env: {
+        PATH: `${binDir}:${process.env.PATH || ""}`,
+      },
+    })
+
+    expect(result.thrown).toBeInstanceOf(Error)
+    expect(String(result.thrown)).toContain("Inherited context в handoff.md не синхронизирован")
+    expect(result.stdout).not.toContain("Релизная диспетчеризация завершена")
+
+    const metadata = fs.readFileSync(path.join(createdDir, ".openspec.yaml"), "utf8")
+    const handoff = fs.readFileSync(path.join(createdDir, "handoff.md"), "utf8")
+    expect(metadata).toContain('release_ref: "release-demo"')
+    expect(handoff).toContain("release_ref: release-broken")
   })
 })

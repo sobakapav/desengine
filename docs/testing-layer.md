@@ -35,11 +35,38 @@ npm run test:unit
 | `npm run test:integration` | работает | Запускает Vitest project `integration` по `test/integration/**/*.test.ts` для route/API-flow на fixtures и stubs. |
 | `npm run test:e2e` | работает частично | Запускает Playwright route smoke без live credentials; runtime-зависимые маршруты могут быть явно skipped с причиной. |
 | `npm run test:live` | preflight | Проверяет env активного provider без сетевых вызовов и честно сообщает о недостающих переменных. |
+| `npm run test:onboarding:real` | работает | Проверяет реальный `/onboarding` checkout через smoke/repair контракт и не использует unit-фикстуры как доказательство совместимости. |
 | `npm run test:spec -- <capability>` | placeholder | Зарезервировано для выборочного запуска по OpenSpec capability. |
 
 Placeholder-команды завершаются успешно и печатают, какой этап `testing-layer` должен наполнить команду реальной проверкой. Сейчас это сделано намеренно для ещё не реализованного `test:spec`: стабильная точка входа уже существует, но не блокирует обычную разработку.
 
 `test:traceability` уже не placeholder: команда валидирует существующие связи тестов со specs. Пока она работает в миграционном режиме: неполное покрытие существующих specs допустимо только если capability есть в `test/traceability/coverage-plan.json`.
+
+## Реальный onboarding smoke
+
+Проверка, которая подтверждает именно реальный onboarding checkout, запускается отдельно:
+
+```bash
+npm run test:onboarding:real
+```
+
+Этот слой намеренно не входит в `test:full`:
+
+- `test:full` остаётся детерминированным и не зависит от внешнего checkout;
+- `test:onboarding:real` подтверждает именно реальный `/onboarding`, а не unit-фикстуры;
+- команда использует текущий smoke/repair контракт и, если нужно, сама пытается пересинхронизировать `/onboarding`.
+
+Предусловия:
+
+- в `desengine.config.txt` задан `ONBOARDING_REPO_URL`;
+- локальная среда может выполнить `git clone` канонического onboarding-репозитория;
+- у процесса есть права на замену локального каталога `/onboarding`.
+
+Что именно доказывает команда:
+
+- текущий `/onboarding` уже подтверждён marker'ом и runtime-compatible layout;
+- либо repair смог пересинхронизировать checkout и повторная проверка подтвердила marker + layout;
+- если подтверждение не получено, в выводе остаётся диагностика про repo URL, layout, source marker или ошибку repair.
 
 ## Integration
 

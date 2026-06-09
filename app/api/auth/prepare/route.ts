@@ -1,7 +1,7 @@
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
-import { shouldUseSecureCookies } from "@/lib/auth/control"
+import { shouldUseSecureCookies } from "@/lib/auth/shared"
 import { ACCESS_RETURN_PATH_COOKIE_NAME } from "@/lib/auth/server"
 import { getAuthUrl, sanitizeUrl } from "@/lib/auth/navigation"
 

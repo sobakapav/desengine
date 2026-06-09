@@ -35,13 +35,13 @@ export function TaskDone({
     <section className="space-y-4 rounded-md border p-6">
       <div className="space-y-2">
         <p className="text-muted-foreground">
-          Задача решена целиком
+          Проверка пройдена на последнем уровне
         </p>
         <h1 className="font-semibold">
           {`Задача ${transition.taskId} завершена на уровне ${transition.fromLevel.number}`}
         </h1>
         <p className="text-muted-foreground">
-          Последний уровень успешно прошёл содержательную проверку, новых уровней для этой задачи больше нет.
+          Главный outcome достигнут: последний уровень успешно прошёл проверку, новых уровней для этой задачи больше нет.
         </p>
       </div>
 
@@ -74,7 +74,7 @@ export function TaskDone({
         <div className="space-y-2 rounded-md border p-4">
           <p className="font-medium">Что это означает дальше</p>
           <p className="text-muted-foreground whitespace-pre-wrap">
-            Эта задача исчерпала свою траекторию по уровням. Можно вернуться к списку задач или открыть лабораторию ещё раз, чтобы посмотреть финальное состояние файлов.
+            Единый цикл «сделать решение, потом пройти проверку» завершён для всей задачи. Можно вернуться к списку задач или ещё раз открыть лабораторию и посмотреть финальное состояние файлов.
           </p>
         </div>
       </div>

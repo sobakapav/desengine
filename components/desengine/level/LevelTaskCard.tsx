@@ -15,7 +15,7 @@ type LevelTaskCardProps = {
 
 function renderTaskMeta(task: LevelOverviewTaskItem) {
   if (task.progress.currentLevelDisplayStatus === "awaiting_check_retry") {
-    return "Задача ждёт повторной проверки результата"
+    return "До состояния «Проверка пройдена» осталась повторная проверка"
   }
 
   if (task.nextUnlockedLevel !== null) {
@@ -48,19 +48,19 @@ export function LevelTaskCard({
           <div>
             <p className="font-medium">{task.id}</p>
             <p className="text-muted-foreground">
-              Текущий уровень задачи: {task.progress.currentLevel} из {task.maxLevel}
+              До состояния «Проверка пройдена»: уровень {task.progress.currentLevel} из {task.maxLevel}
             </p>
           </div>
           {onOpenTask ? (
             <Button disabled={pending} onClick={() => onOpenTask(task.id)}>
-              Открыть задачу
+              Продолжить задачу
             </Button>
           ) : (
             <Link
              
               href={getLabUrl(task.id)}
             >
-              Открыть задачу
+              Продолжить задачу
             </Link>
           )}
         </div>

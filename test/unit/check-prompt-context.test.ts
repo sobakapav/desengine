@@ -1,4 +1,4 @@
-import { mkdtemp, writeFile } from "node:fs/promises"
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
 
@@ -18,8 +18,14 @@ const level: Pick<LevelConfig, "id" | "number" | "title" | "labId" | "editableFi
 }
 
 describe("check prompt context", () => {
-  it("рендерит реальный onboarding check prompt уровня 2 с user.designSystemName", async () => {
-    const root = path.join(process.cwd(), "onboarding", "prompts")
+  it("рендерит check prompt с user.designSystemName через временную didactic fixture", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "desengine-check-prompt-root-"))
+    await mkdir(path.join(root, "levels", "level-2"), { recursive: true })
+    await writeFile(
+      path.join(root, "levels", "level-2", "check.njk"),
+      "Разрешены UI-библиотеки {{ user.designSystemName }}.",
+      "utf-8",
+    )
     const context = buildTaskPromptContext({
       taskId: "task-1",
       taskMaxLevel: 3,
@@ -37,7 +43,7 @@ describe("check prompt context", () => {
       required: true,
     })
 
-    expect(out).toContain("UI-библиотеки Ant Design")
+    expect(out).toContain("Разрешены UI-библиотеки Ant Design.")
     expect(out).not.toContain("UI-библиотеки .")
     expect(out).not.toContain("{{ user.designSystemName }}")
   })

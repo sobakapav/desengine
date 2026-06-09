@@ -2,12 +2,14 @@
 // @openSpec scenarios:
 // @openSpec  - "Разработчик выводит исполнительские задачи по producer"
 
-import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 
 import { afterEach, describe, expect, it } from "vitest"
+
+import { runListOpenSpecProducers } from "../../tools/list-openspec-producers.mjs"
+import { runToolInFixture } from "../helpers/run-tool-fixture"
 
 function writeChange(baseDir: string, relativeDir: string, metadata: string) {
   const changeDir = path.join(baseDir, relativeDir)
@@ -58,10 +60,13 @@ describe("openspec producer list", () => {
       'change_kind: "producer"\nshort: "producer empty"',
     )
 
-    const output = execFileSync(process.execPath, [path.join(process.cwd(), "tools", "list-openspec-producers.mjs")], {
+    const { stdout, thrown } = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      runner: runListOpenSpecProducers,
     })
+
+    expect(thrown).toBeUndefined()
+    const output = stdout
 
     expect(output).toContain("\u001B[97mproducer-alpha\u001B[0m\tproducer alpha")
     expect(output).toContain("  implement-alpha\tреализация alpha")

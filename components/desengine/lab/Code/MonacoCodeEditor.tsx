@@ -79,6 +79,13 @@ const editorOptions = {
   wordWrap: "on",
 } satisfies Record<string, unknown>;
 
+type MonacoCancellationLike = {
+  cause?: unknown;
+  message?: unknown;
+  name?: unknown;
+  stack?: unknown;
+};
+
 function getEditorLanguage(fileName: string) {
   if (fileName.endsWith(".json")) {
     return "json";
@@ -142,6 +149,72 @@ function configureLabDiagnostics(monaco: MonacoInstance) {
   });
 }
 
+function toErrorString(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+function normalizeErrorText(value: unknown) {
+  return toErrorString(value)?.trim().toLowerCase() ?? "";
+}
+
+function hasMonacoSourceMarker(text: string) {
+  return (
+    text.includes("monaco-editor") ||
+    text.includes("@monaco-editor") ||
+    text.includes("/vs/base/common/cancellation") ||
+    text.includes("/vs/base/common/async") ||
+    text.includes("/vs/editor/") ||
+    text.includes("cdn.jsdelivr.net/npm/monaco-editor") ||
+    text.includes("cdnjs.cloudflare.com/ajax/libs/monaco-editor")
+  );
+}
+
+function hasCancellationMarker(text: string) {
+  return (
+    text === "canceled" ||
+    text === "canceled: canceled" ||
+    text.includes("canceled: canceled") ||
+    text.includes("operation is canceled") ||
+    text.includes("operation was canceled")
+  );
+}
+
+function isMonacoCancellationNoise(reason: unknown) {
+  const stringReason = normalizeErrorText(reason);
+  if (stringReason === "canceled: canceled") {
+    return true;
+  }
+
+  if (typeof reason !== "object" || reason === null) {
+    return false;
+  }
+
+  const { message, name, stack } = reason as MonacoCancellationLike;
+  const nestedCause = (reason as MonacoCancellationLike).cause;
+  const errorName = normalizeErrorText(name);
+  const errorMessage = normalizeErrorText(message);
+  const errorStack = normalizeErrorText(stack);
+  const isExactCanceledPair = errorName === "canceled" && errorMessage === "canceled";
+
+  if (isExactCanceledPair && errorStack.length === 0) {
+    return true;
+  }
+
+  const errorTexts = [
+    errorName,
+    errorMessage,
+    errorStack,
+    normalizeErrorText((nestedCause as MonacoCancellationLike | null | undefined)?.name),
+    normalizeErrorText((nestedCause as MonacoCancellationLike | null | undefined)?.message),
+    normalizeErrorText((nestedCause as MonacoCancellationLike | null | undefined)?.stack),
+  ].filter(Boolean);
+
+  const isCanceledError = errorTexts.some(hasCancellationMarker);
+  const isMonacoStack = errorTexts.some(hasMonacoSourceMarker);
+
+  return isCanceledError && isMonacoStack;
+}
+
 function EditorFallback(props: MonacoEditorProps) {
   return <FallbackCodeEditor {...props} />;
 }
@@ -169,6 +242,26 @@ function MonacoCodeEditor({ fileId, fileName, value, onChange, onSaveShortcut }:
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (loadFailed) {
+      return;
+    }
+
+    function handleUnhandledRejection(event: PromiseRejectionEvent) {
+      if (!isMonacoCancellationNoise(event.reason)) {
+        return;
+      }
+
+      event.preventDefault();
+    }
+
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+    };
+  }, [loadFailed]);
 
   const language = useMemo(() => getEditorLanguage(fileName), [fileName]);
   const fallback = (
@@ -209,4 +302,4 @@ function MonacoCodeEditor({ fileId, fileName, value, onChange, onSaveShortcut }:
   );
 }
 
-export { MonacoCodeEditor };
+export { MonacoCodeEditor, isMonacoCancellationNoise };

@@ -19,6 +19,13 @@ function buildLevelSandpackDir(rootDir: string, levelId: string) {
   return path.join(rootDir, "onboarding", "levels", levelId, "sandpack")
 }
 
+function buildLevelSandpackDirCandidates(rootDir: string, levelId: string) {
+  return [
+    buildLevelSandpackDir(rootDir, levelId),
+    path.join(rootDir, "levels", levelId, "sandpack"),
+  ]
+}
+
 async function readTextIfExists(filePath: string) {
   try {
     return await readFile(filePath, "utf-8")
@@ -47,18 +54,21 @@ export async function readLevelSandpackTemplate(
   options: { rootDir?: string } = {},
 ): Promise<SandpackLevelTemplate> {
   const rootDir = options.rootDir ?? process.cwd()
-  const sandpackDir = buildLevelSandpackDir(rootDir, levelId)
-  const appPath = path.join(sandpackDir, "App.tsx")
-  const previewCssPath = path.join(sandpackDir, "preview.css")
+  let previewCss: string | null = null
 
-  const appTsx = await readTextIfExists(appPath)
-  const previewCss = await readTextIfExists(previewCssPath)
+  for (const sandpackDir of buildLevelSandpackDirCandidates(rootDir, levelId)) {
+    const appPath = path.join(sandpackDir, "App.tsx")
+    const previewCssPath = path.join(sandpackDir, "preview.css")
+    const appTsx = await readTextIfExists(appPath)
+    const localPreviewCss = await readTextIfExists(previewCssPath)
+    previewCss = previewCss ?? localPreviewCss
 
-  if (appTsx !== null) {
-    return {
-      appTsx,
-      previewCss,
-      source: "level",
+    if (appTsx !== null) {
+      return {
+        appTsx,
+        previewCss: localPreviewCss,
+        source: "level",
+      }
     }
   }
 

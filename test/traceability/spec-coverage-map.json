@@ -32,7 +32,9 @@
         "Root-документ упоминает административную команду",
         "Читатель открывает `tools/README.md` или admin-раздел root-документации",
         "Разработчик запускает unit-проект Vitest",
-        "Разработчик добавляет новый модуль в `lib`"
+        "Разработчик добавляет новый модуль в `lib`",
+        "Разработчик закрывает release-linked implement/fix change",
+        "Release notes уже содержат запись о change"
       ]
     },
     "artifacts": {
@@ -270,6 +272,11 @@
           "Модель изменила только часть файлов",
           "LLM вернул запрещённый `fileId`",
           "Провайдер вернул ошибку",
+          "Инициирующий запуск уровня превышает runtime payload budget",
+          "Уточнение превышает runtime payload budget",
+          "Проверка уровня превышает runtime payload budget",
+          "Уточнение получает bounded overload-отказ",
+          "Проверка уровня получает bounded overload-отказ",
           "Лимит текущего уровня ещё не исчерпан",
           "Лимит текущего уровня исчерпан"
         ],
@@ -339,7 +346,8 @@
           "Пользователь открывает рабочую задачу лаборатории",
           "Пользователь открывает рабочий файл задачи",
           "Legacy route ведёт к transition экрану",
-          "Задача ещё не стартовала"
+          "Задача ещё не стартовала",
+          "Лаборатория получает retriable overload-отказ task action runtime"
         ]
       },
       "requiredScenarios": [
@@ -347,7 +355,8 @@
         "Пользователь переключает UI kit проекта без перезагрузки страницы",
         "Пользователь включает режим html-tags",
         "Лаборатория показывает диагностику несовместимости UI kit",
-        "Лаборатория показывает runtime-диагностику Sandpack preview"
+        "Лаборатория показывает runtime-диагностику Sandpack preview",
+        "Preview budget exceed переводит runtime в safe degradation mode"
       ]
     },
     "llm": {
@@ -394,6 +403,8 @@
           "Claude вернул ошибку",
           "Z.AI вернул ошибку",
           "Initiator-запрос превысил отдельный timeout",
+          "Инициирующий запуск уровня превышает runtime payload budget",
+          "Iterate или check превышают runtime payload budget",
           "Пользователь просматривает историю итераций",
           "Провайдер не вернул метрики"
         ]
@@ -501,11 +512,15 @@
         "Клиент пытается использовать удалённый дублирующий endpoint",
         "Два действия одновременно меняют одну задачу",
         "Два действия меняют разные задачи",
+        "Очередь одной задачи превысила bounded лимит",
+        "Runtime превысил лимит pending mutation contexts",
         "Пользователь сохраняет рабочие файлы",
         "Пользователь сбрасывает задачу через service boundary",
         "Пользователь запускает уровень через service boundary",
         "Пользователь уточняет задачу через service boundary",
         "Пользователь проверяет результат через service boundary",
+        "Task action runtime возвращает retriable overload-отказ",
+        "Runtime отклоняет oversized write-set до записи пользовательских файлов",
         "Route handlers используют переиспользуемые lab action services",
         "Sandpack preview использует project.uiKitId",
         "Режим html-tags работает без UI kit",
@@ -564,7 +579,8 @@
           "Пользователь завершил максимальный уровень задачи"
         ],
         "checks-and-limits": [
-          "Пользователь нажал `Проверить результат`",
+          "Пользователь нажал `Отправить решение на проверку`",
+          "Рабочий экран показывает единый путь до `Проверка пройдена`",
           "Проверка уровня успешна",
           "Пользователь запускает проверки результата уровня",
           "Техническая ошибка проверки не расходует лимит",
@@ -602,6 +618,13 @@
         "Разработчик запускает live/provider-проверку",
         "Тестовый слой ещё покрывает не все specs",
         "Добавляется новый behavior-change",
+        "Разработчик проверяет controlled speed-path против performance budget",
+        "Одиночный шумовой spike не считается speed regression",
+        "Reusable harness прогоняет cold/warm speed-path",
+        "Reusable harness прогоняет repeated preview rebuild",
+        "Reusable harness прогоняет repeated iterate/check path",
+        "Reusable harness прогоняет overload backlog path",
+        "Reusable harness прогоняет oversized payload/output refusal",
         "Integration-слой покрывает route handlers через fixture boundary",
         "Разработчик проверяет lab runtime после hardening",
         "Проверка использует временное пользовательское состояние"

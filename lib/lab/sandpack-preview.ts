@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
+import { createHash } from "node:crypto"
 
 import type {
   SandpackFileEntry,
@@ -31,6 +32,10 @@ import {
   type ProjectUiMode,
   type RawProject,
 } from "@/lib/project/runtime"
+import {
+  createRuntimeDiagnosticsRecord,
+  emitRuntimeDiagnostics,
+} from "@/lib/task/runtime-observability"
 import { compile as compileTailwindCss } from "tailwindcss"
 
 function toHiddenFiles(
@@ -59,7 +64,57 @@ const defaultStylesSource = "export const styles = {};\n"
 const defaultMockSource = "export const mock = {};\n"
 const defaultPropsSource = "export {};\n"
 const previewStylesheetVirtualPath = "/src/styles.css"
+const previewCompiledCssCacheLimit = 12
+const previewDerivedArtifactsCacheLimit = 24
+const previewBudgetMaxSourceChars = 350_000
+const previewBudgetMaxTailwindCandidates = 4_000
 const previewCompiledCssCache = new Map<string, Promise<string>>()
+const previewDerivedArtifactsCache = new Map<string, Promise<DerivedPreviewArtifacts>>()
+
+type PreviewCacheStatus = "bypass" | "hit" | "miss"
+
+type PreviewCacheMetrics = {
+  entries: number
+  evictedEntries: number
+  evictionPolicy: "lru"
+  limit: number
+}
+
+type PreviewBudgetVerdict = {
+  status: "ok"
+  sourceChars: number
+  candidateClassCount: number
+} | {
+  status: "degraded"
+  sourceChars: number
+  candidateClassCount: number
+  dimension: "source_chars" | "tailwind_candidates"
+  reason: "preview_budget_exceeded"
+  budget: {
+    maxSourceChars: number
+    maxTailwindCandidates: number
+  }
+}
+
+type PrecompiledPreviewCssResult = {
+  compiledCss: string
+  cacheStatus: PreviewCacheStatus
+  candidateClassCount: number
+  sourceChars: number
+  budgetVerdict: PreviewBudgetVerdict
+  cacheMetrics: PreviewCacheMetrics
+}
+
+type DerivedPreviewArtifacts = {
+  componentSource: string
+  dependencies: Record<string, string>
+  compiledCssBuild: PrecompiledPreviewCssResult
+  compatibility: ProjectCompatibility
+  derivedCacheStatus: PreviewCacheStatus
+  derivedCacheMetrics: PreviewCacheMetrics
+  resolvedAppTsx: string
+  resolvedLevelRuntime: string
+}
 
 function extractImportSpecifiers(source: string) {
   const specifiers = new Set<string>()
@@ -203,6 +258,8 @@ const READY_STATUS = "ready";
 const UNSTYLED_STATUS = "unstyled-dom";
 const RENDER_ERROR_STATUS = "render-error";
 const PROBE_DATASET_ATTR = "data-desengine-preview-contract";
+const PROBE_MESSAGE_DATASET_ATTR = "data-desengine-preview-contract-message";
+const RENDER_ERROR_ATTR = "data-desengine-preview-render-error";
 const probeExpectations = {
   backgroundColor: "rgb(1, 2, 3)",
   color: "rgb(4, 5, 6)",
@@ -212,18 +269,40 @@ const probeExpectations = {
 
 function updateHost(status: string, message = "") {
   document.documentElement.setAttribute(PROBE_DATASET_ATTR, status);
-  window.parent?.postMessage({
-    source: PREVIEW_SOURCE,
-    type: "contract",
-    previewSessionId: PREVIEW_SESSION_ID,
-    status,
-    message,
-  }, "*");
+  if (message) {
+    document.documentElement.setAttribute(PROBE_MESSAGE_DATASET_ATTR, message);
+  } else {
+    document.documentElement.removeAttribute(PROBE_MESSAGE_DATASET_ATTR);
+  }
+  const targetWindow = window.top && window.top !== window ? window.top : window.parent;
+  window.setTimeout(() => {
+    targetWindow?.postMessage({
+      source: PREVIEW_SOURCE,
+      type: "contract",
+      previewSessionId: PREVIEW_SESSION_ID,
+      status,
+      message,
+    }, "*");
+  }, 0);
 }
 
-function renderErrorNotice(message: string) {
+function PreviewRuntimeErrorFallback({ message }: { message: string }) {
+  useLayoutEffect(() => {
+    const retryDelays = [0, 80, 300];
+    const timeoutIds = retryDelays.map((delay) => window.setTimeout(() => {
+      updateHost(RENDER_ERROR_STATUS, message);
+    }, delay));
+
+    return () => {
+      for (const timeoutId of timeoutIds) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [message]);
+
   return (
     <section
+      data-desengine-preview-render-error="true"
       style={{
         border: "1px solid rgba(220, 38, 38, 0.35)",
         borderRadius: 12,
@@ -234,7 +313,7 @@ function renderErrorNotice(message: string) {
       }}
     >
       <h2 style={{ margin: "0 0 8px", fontSize: 16 }}>Компонент не удалось отрендерить в preview</h2>
-      <pre style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{message}</pre>
+      <pre data-desengine-preview-contract-message={message} style={{ margin: 0, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{message}</pre>
     </section>
   );
 }
@@ -251,7 +330,9 @@ class PreviewRuntimeErrorBoundary extends React.Component<
   state = { errorMessage: null };
 
   static getDerivedStateFromError(error: unknown) {
-    return { errorMessage: getRenderErrorMessage(error) };
+    const errorMessage = getRenderErrorMessage(error);
+    updateHost(RENDER_ERROR_STATUS, errorMessage);
+    return { errorMessage };
   }
 
   componentDidCatch(error: unknown) {
@@ -260,7 +341,7 @@ class PreviewRuntimeErrorBoundary extends React.Component<
 
   render() {
     if (this.state.errorMessage) {
-      return renderErrorNotice(this.state.errorMessage);
+      return <PreviewRuntimeErrorFallback message={this.state.errorMessage} />;
     }
 
     return this.props.children;
@@ -274,10 +355,33 @@ function PreviewRuntimeProbe() {
     let timeoutId = 0;
     let attemptIndex = 0;
 
+    const handleWindowError = (event: ErrorEvent) => {
+      updateHost(RENDER_ERROR_STATUS, event.message || "Неизвестная runtime-ошибка preview.");
+    };
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      const message = reason instanceof Error
+        ? reason.message
+        : typeof reason === "string"
+          ? reason
+          : "Неизвестная ошибка unhandled rejection внутри preview.";
+      updateHost(RENDER_ERROR_STATUS, message);
+    };
+
     updateHost(LOADING_STATUS, "Sandpack runtime загружается.");
+    window.addEventListener("error", handleWindowError);
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
     const evaluateProbe = () => {
       if (cancelled) return;
+
+      if (document.documentElement.getAttribute(PROBE_DATASET_ATTR) === RENDER_ERROR_STATUS) {
+        updateHost(
+          RENDER_ERROR_STATUS,
+          document.documentElement.getAttribute(PROBE_MESSAGE_DATASET_ATTR) || "Неизвестная ошибка React-рендера внутри preview.",
+        );
+        return;
+      }
 
       const probe = document.querySelector<HTMLElement>("[data-desengine-preview-probe='tailwind']");
       if (!probe) {
@@ -313,6 +417,8 @@ function PreviewRuntimeProbe() {
     return () => {
       cancelled = true;
       window.clearTimeout(timeoutId);
+      window.removeEventListener("error", handleWindowError);
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
     };
   }, []);
 
@@ -565,6 +671,31 @@ function extractTailwindCandidates(source: string) {
   return [...tokens]
 }
 
+function touchBoundedPromiseCache<T>(
+  cache: Map<string, Promise<T>>,
+  cacheKey: string,
+  value: Promise<T>,
+  limit: number,
+) {
+  let evictedEntries = 0
+  cache.delete(cacheKey)
+  cache.set(cacheKey, value)
+
+  while (cache.size > limit) {
+    const oldestKey = cache.keys().next().value
+    if (!oldestKey) break
+    cache.delete(oldestKey)
+    evictedEntries += 1
+  }
+
+  return {
+    entries: cache.size,
+    evictedEntries,
+    evictionPolicy: "lru" as const,
+    limit,
+  }
+}
+
 function resolveTailwindBase(base: string | undefined) {
   if (typeof base === "string" && base.length > 0) {
     return base
@@ -589,7 +720,6 @@ function resolveTailwindVirtualPath(id: string, base: string | undefined) {
 
 async function buildPrecompiledPreviewCss(args: {
   componentSource: string
-  previewSessionId: string
   resolvedAppTsx: string
   resolvedLevelRuntime: string
   resolvedPreviewCss: string
@@ -597,13 +727,12 @@ async function buildPrecompiledPreviewCss(args: {
 }) {
   const {
     componentSource,
-    previewSessionId,
     resolvedAppTsx,
     resolvedLevelRuntime,
     resolvedPreviewCss,
     sourceFiles,
   } = args
-  const runtimeContractSource = buildPreviewRuntimeContractSource(previewSessionId)
+  const runtimeContractSource = buildPreviewRuntimeContractSource("preview-session-cache")
   const candidateSources = [
     componentSource,
     sourceFiles.stories ?? "",
@@ -617,7 +746,54 @@ async function buildPrecompiledPreviewCss(args: {
     resolvedLevelRuntime,
     runtimeContractSource,
   ]
+  const sourceChars = candidateSources.reduce((total, source) => total + source.length, 0)
   const candidates = [...new Set(candidateSources.flatMap((source) => extractTailwindCandidates(source)))].sort()
+  const budgetVerdict = sourceChars > previewBudgetMaxSourceChars
+    ? {
+        status: "degraded" as const,
+        sourceChars,
+        candidateClassCount: candidates.length,
+        dimension: "source_chars" as const,
+        reason: "preview_budget_exceeded" as const,
+        budget: {
+          maxSourceChars: previewBudgetMaxSourceChars,
+          maxTailwindCandidates: previewBudgetMaxTailwindCandidates,
+        },
+      }
+    : candidates.length > previewBudgetMaxTailwindCandidates
+      ? {
+        status: "degraded" as const,
+        sourceChars,
+        candidateClassCount: candidates.length,
+        dimension: "tailwind_candidates" as const,
+        reason: "preview_budget_exceeded" as const,
+        budget: {
+          maxSourceChars: previewBudgetMaxSourceChars,
+          maxTailwindCandidates: previewBudgetMaxTailwindCandidates,
+        },
+      }
+      : {
+          status: "ok" as const,
+          sourceChars,
+          candidateClassCount: candidates.length,
+        }
+
+  if (budgetVerdict.status === "degraded") {
+    return {
+      compiledCss: buildBudgetDegradedPreviewCss(),
+      cacheStatus: "bypass" as const,
+      candidateClassCount: candidates.length,
+      sourceChars,
+      budgetVerdict,
+      cacheMetrics: {
+        entries: previewCompiledCssCache.size,
+        evictedEntries: 0,
+        evictionPolicy: "lru" as const,
+        limit: previewCompiledCssCacheLimit,
+      },
+    }
+  }
+
   const cacheKey = JSON.stringify({
     candidates,
     previewCss: resolvedPreviewCss,
@@ -625,7 +801,20 @@ async function buildPrecompiledPreviewCss(args: {
   const cachedCompiledCss = previewCompiledCssCache.get(cacheKey)
 
   if (cachedCompiledCss) {
-    return cachedCompiledCss
+    const cacheMetrics = touchBoundedPromiseCache(
+      previewCompiledCssCache,
+      cacheKey,
+      cachedCompiledCss,
+      previewCompiledCssCacheLimit,
+    )
+    return cachedCompiledCss.then((compiledCss) => ({
+      compiledCss,
+      cacheStatus: "hit" as const,
+      candidateClassCount: candidates.length,
+      sourceChars,
+      budgetVerdict,
+      cacheMetrics,
+    }))
   }
 
   const compilePromise = (async () => {
@@ -673,14 +862,130 @@ async function buildPrecompiledPreviewCss(args: {
     return compiled.build(candidates)
   })()
 
-  previewCompiledCssCache.set(cacheKey, compilePromise)
+  const cacheMetrics = touchBoundedPromiseCache(
+    previewCompiledCssCache,
+    cacheKey,
+    compilePromise,
+    previewCompiledCssCacheLimit,
+  )
 
   try {
-    return await compilePromise
+    return {
+      compiledCss: await compilePromise,
+      cacheStatus: "miss" as const,
+      candidateClassCount: candidates.length,
+      sourceChars,
+      budgetVerdict,
+      cacheMetrics,
+    }
   } catch (error) {
     previewCompiledCssCache.delete(cacheKey)
     throw error
   }
+}
+
+function buildBudgetDegradedPreviewCss() {
+  return `
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: transparent;
+  color: #111827;
+}
+
+.desengine-preview-root {
+  min-height: 8rem;
+}
+
+.w-\\[137px\\] { width: 137px; }
+.h-\\[19px\\] { height: 19px; }
+.bg-\\[rgb\\(1\\,2\\,3\\)\\] { background-color: rgb(1, 2, 3); }
+.text-\\[rgb\\(4\\,5\\,6\\)\\] { color: rgb(4, 5, 6); }
+`
+}
+
+function buildPreviewBudgetFallbackComponent(message: string) {
+  const safeMessage = JSON.stringify(message)
+
+  return `export default function Component() {
+  const message = ${safeMessage};
+
+  return (
+    <section style={{
+      border: "1px solid rgba(217, 119, 6, 0.32)",
+      borderRadius: 12,
+      padding: 16,
+      background: "rgba(255, 251, 235, 0.96)",
+      color: "#92400e",
+      fontFamily: '"Segoe UI", sans-serif'
+    }}>
+      <h2 style={{ margin: "0 0 8px", fontSize: 16 }}>Preview переключён в безопасный режим</h2>
+      <p style={{ margin: 0 }}>{message}</p>
+    </section>
+  );
+}
+`
+}
+
+function buildDerivedPreviewArtifactsCacheKey(args: {
+  appTemplate: SandpackAppTemplateOptions | null
+  compatibility: ProjectCompatibility
+  project: Project
+  resolvedUiKitId: SandpackUiKitId
+  sourceFiles: SandpackPreviewSourceFiles
+}) {
+  const hash = createHash("sha1")
+  const stableEntries = [
+    args.project.id,
+    args.project.title,
+    args.project.settings.uiKitId,
+    args.project.settings.uiMode,
+    args.resolvedUiKitId,
+    args.compatibility.status,
+    args.compatibility.message,
+    args.sourceFiles.component,
+    args.sourceFiles.stories ?? "",
+    args.sourceFiles.styles ?? "",
+    args.sourceFiles.mock ?? "",
+    args.sourceFiles.props ?? "",
+    args.sourceFiles.previewCss ?? "",
+    args.sourceFiles.uiBadge,
+    args.sourceFiles.systemUtils,
+    args.appTemplate?.appTsx ?? "",
+    args.appTemplate?.previewCss ?? "",
+    args.appTemplate?.levelTemplateRuntime ?? "",
+  ]
+
+  for (const value of stableEntries) {
+    hash.update(typeof value === "string" ? value : "")
+    hash.update("\u0000")
+  }
+
+  for (const [filePath, code] of Object.entries(args.sourceFiles.shadcnFiles ?? {}).sort(([left], [right]) => left.localeCompare(right))) {
+    hash.update(filePath)
+    hash.update("\u0000")
+    hash.update(code)
+    hash.update("\u0000")
+  }
+
+  for (const [filePath, code] of Object.entries(args.sourceFiles.supportFiles ?? {}).sort(([left], [right]) => left.localeCompare(right))) {
+    hash.update(filePath)
+    hash.update("\u0000")
+    hash.update(code)
+    hash.update("\u0000")
+  }
+
+  return hash.digest("hex")
 }
 
 function resolvePreviewProject(
@@ -790,6 +1095,7 @@ async function buildSandpackPreviewPayload(
     previewSessionId?: string | null
   } = {},
 ): Promise<SandpackPreviewPayload> {
+  const startedAt = Date.now()
   validateSandpackUiKitsConfig()
 
   const templates = loadSandpackDefaultTemplates()
@@ -797,77 +1103,151 @@ async function buildSandpackPreviewPayload(
   const uiKit = sandpackUiKitsConfig[resolvedUiKitId] ?? sandpackUiKitsConfig[DEFAULT_SANDPACK_UI_KIT_ID]
   const appTemplate = options.appTemplate ?? null
   const previewSessionId = options.previewSessionId?.trim() || "preview-session-missing"
-  const componentSource = compatibility.status === "compatible"
-    ? sourceFiles.component
-    : buildHtmlTagsFallbackComponent(compatibility.message)
-  const resolvedAppTsx = injectPreviewRuntimeContract(appTemplate?.appTsx ?? fallbackAppTsx)
-  const resolvedLevelRuntime = appTemplate?.levelTemplateRuntime ?? "export const levelRuntime = {} as const;\n"
-  const previewRuntimeContractSource = buildPreviewRuntimeContractSource(previewSessionId)
-  const dependencySourceFiles: Record<string, string> = {
-    "/src/App.tsx": resolvedAppTsx,
-    "/src/Component.tsx": componentSource,
-    "/src/mock.ts": sourceFiles.mock ?? defaultMockSource,
-    "/src/props.ts": sourceFiles.props ?? defaultPropsSource,
-    "/src/level-template-runtime.ts": resolvedLevelRuntime,
-    "/src/preview-runtime-contract.tsx": previewRuntimeContractSource,
-  }
-
-  if (sourceFiles.styles) {
-    dependencySourceFiles["/src/styles.ts"] = sourceFiles.styles
-  }
-
-  if (resolvedUiKitId === "shadcn") {
-    dependencySourceFiles["/src/components/ui/badge.tsx"] = sourceFiles.uiBadge
-    for (const [filePath, code] of Object.entries(sourceFiles.shadcnFiles ?? {})) {
-      dependencySourceFiles[path.posix.join("/src", filePath)] = code
+  const derivedArtifactsCacheKey = buildDerivedPreviewArtifactsCacheKey({
+    appTemplate,
+    compatibility,
+    project,
+    resolvedUiKitId,
+    sourceFiles,
+  })
+  const cachedDerivedArtifacts = previewDerivedArtifactsCache.get(derivedArtifactsCacheKey)
+  const derivedArtifactsPromise: Promise<DerivedPreviewArtifacts> = cachedDerivedArtifacts ?? (async () => {
+    const resolvedAppTsx = injectPreviewRuntimeContract(appTemplate?.appTsx ?? fallbackAppTsx)
+    const resolvedLevelRuntime = appTemplate?.levelTemplateRuntime ?? "export const levelRuntime = {} as const;\n"
+    const previewRuntimeContractSource = buildPreviewRuntimeContractSource("preview-session-cache")
+    const initialComponentSource = compatibility.status === "compatible"
+      ? sourceFiles.component
+      : buildHtmlTagsFallbackComponent(compatibility.message)
+    const initialCssBuild = await buildPrecompiledPreviewCss({
+      componentSource: initialComponentSource,
+      resolvedAppTsx,
+      resolvedLevelRuntime,
+      resolvedPreviewCss: resolvePreviewCss(sourceFiles, templates, appTemplate),
+      sourceFiles,
+    })
+    const componentSource = initialCssBuild.budgetVerdict.status === "degraded"
+      ? buildPreviewBudgetFallbackComponent(
+          initialCssBuild.budgetVerdict.dimension === "source_chars"
+            ? `Preview payload превысил budget по входному объёму (${initialCssBuild.budgetVerdict.sourceChars} символов).`
+            : `Preview payload превысил budget по Tailwind candidate-классам (${initialCssBuild.budgetVerdict.candidateClassCount}).`,
+        )
+      : initialComponentSource
+    const compiledCssBuild = initialCssBuild.budgetVerdict.status === "degraded"
+      ? {
+          ...initialCssBuild,
+          cacheStatus: "bypass" as const,
+        }
+      : initialCssBuild
+    const dependencySourceFiles: Record<string, string> = {
+      "/src/App.tsx": resolvedAppTsx,
+      "/src/Component.tsx": componentSource,
+      "/src/mock.ts": sourceFiles.mock ?? defaultMockSource,
+      "/src/props.ts": sourceFiles.props ?? defaultPropsSource,
+      "/src/level-template-runtime.ts": resolvedLevelRuntime,
+      "/src/preview-runtime-contract.tsx": previewRuntimeContractSource,
     }
-    for (const [filePath, code] of Object.entries(sourceFiles.supportFiles ?? {})) {
-      dependencySourceFiles[path.posix.join("/src", filePath)] = code
-    }
-    dependencySourceFiles["/src/lib/system/utils.ts"] = sourceFiles.systemUtils
-  }
 
-  const usedRuntimePackages = collectRuntimeDependencyImports(
-    dependencySourceFiles,
-    ["/src/App.tsx", "/src/Component.tsx"],
-  )
-  const uiKitDependencyVersions = resolveUiKitDependencyVersions(uiKit)
-  const directRuntimeDependencies = resolvedUiKitId === "shadcn"
-    ? Object.fromEntries(
-      usedRuntimePackages.map((packageName) => [
-        packageName,
-        uiKitDependencyVersions[packageName] ?? getInstalledPackageVersion(packageName),
-      ]),
+    if (sourceFiles.styles) {
+      dependencySourceFiles["/src/styles.ts"] = sourceFiles.styles
+    }
+
+    if (resolvedUiKitId === "shadcn") {
+      dependencySourceFiles["/src/components/ui/badge.tsx"] = sourceFiles.uiBadge
+      for (const [filePath, code] of Object.entries(sourceFiles.shadcnFiles ?? {})) {
+        dependencySourceFiles[path.posix.join("/src", filePath)] = code
+      }
+      for (const [filePath, code] of Object.entries(sourceFiles.supportFiles ?? {})) {
+        dependencySourceFiles[path.posix.join("/src", filePath)] = code
+      }
+      dependencySourceFiles["/src/lib/system/utils.ts"] = sourceFiles.systemUtils
+    }
+
+    const usedRuntimePackages = collectRuntimeDependencyImports(
+      dependencySourceFiles,
+      ["/src/App.tsx", "/src/Component.tsx"],
     )
-    : {
-      ...uiKitDependencyVersions,
-      ...Object.fromEntries(
+    const uiKitDependencyVersions = resolveUiKitDependencyVersions(uiKit)
+    const directRuntimeDependencies = resolvedUiKitId === "shadcn"
+      ? Object.fromEntries(
         usedRuntimePackages.map((packageName) => [
           packageName,
           uiKitDependencyVersions[packageName] ?? getInstalledPackageVersion(packageName),
         ]),
-      ),
+      )
+      : {
+        ...uiKitDependencyVersions,
+        ...Object.fromEntries(
+          usedRuntimePackages.map((packageName) => [
+            packageName,
+            uiKitDependencyVersions[packageName] ?? getInstalledPackageVersion(packageName),
+          ]),
+        ),
+      }
+    const dependencies = {
+      ...basePackageJson.dependencies,
+      ...resolveRuntimeDependencies(directRuntimeDependencies),
     }
-  const dependencies = {
-    ...basePackageJson.dependencies,
-    ...resolveRuntimeDependencies(directRuntimeDependencies),
+
+    return {
+      componentSource,
+      dependencies,
+      compiledCssBuild,
+      compatibility,
+      derivedCacheStatus: "miss" as const,
+      derivedCacheMetrics: {
+        entries: previewDerivedArtifactsCache.size,
+        evictedEntries: 0,
+        evictionPolicy: "lru" as const,
+        limit: previewDerivedArtifactsCacheLimit,
+      },
+      resolvedAppTsx,
+      resolvedLevelRuntime,
+    }
+  })()
+
+  const derivedCacheMetrics = cachedDerivedArtifacts
+    ? touchBoundedPromiseCache(
+        previewDerivedArtifactsCache,
+        derivedArtifactsCacheKey,
+        cachedDerivedArtifacts,
+        previewDerivedArtifactsCacheLimit,
+      )
+    : touchBoundedPromiseCache(
+        previewDerivedArtifactsCache,
+        derivedArtifactsCacheKey,
+        derivedArtifactsPromise,
+        previewDerivedArtifactsCacheLimit,
+      )
+
+  let derivedArtifacts: DerivedPreviewArtifacts
+  try {
+    derivedArtifacts = await derivedArtifactsPromise
+  } catch (error) {
+    previewDerivedArtifactsCache.delete(derivedArtifactsCacheKey)
+    throw error
   }
-  const compiledPreviewCss = await buildPrecompiledPreviewCss({
-    componentSource,
-    previewSessionId,
-    resolvedAppTsx,
-    resolvedLevelRuntime,
-    resolvedPreviewCss: resolvePreviewCss(sourceFiles, templates, appTemplate),
-    sourceFiles,
-  })
+
+  if (cachedDerivedArtifacts) {
+    derivedArtifacts = {
+      ...derivedArtifacts,
+      derivedCacheStatus: "hit",
+      derivedCacheMetrics,
+    }
+  } else {
+    derivedArtifacts = {
+      ...derivedArtifacts,
+      derivedCacheMetrics,
+    }
+  }
+
   const files = createBaseSandpackFiles({
     sourceFiles,
     templates,
-    dependencies,
-    componentSource,
-    compiledPreviewCss,
-    resolvedAppTsx,
-    resolvedLevelRuntime,
+    dependencies: derivedArtifacts.dependencies,
+    componentSource: derivedArtifacts.componentSource,
+    compiledPreviewCss: derivedArtifacts.compiledCssBuild.compiledCss,
+    resolvedAppTsx: derivedArtifacts.resolvedAppTsx,
+    resolvedLevelRuntime: derivedArtifacts.resolvedLevelRuntime,
     uiKit,
     previewSessionId,
   })
@@ -888,10 +1268,61 @@ async function buildSandpackPreviewPayload(
     const readCode = (entry: SandpackFileEntry | undefined) =>
       typeof entry === "string" ? entry : entry?.code
 
+    const runtimeDiagnostics = [createRuntimeDiagnosticsRecord({
+      scope: "level-labs",
+        path: "preview_payload_build",
+        stage: "sandpack_preview",
+        status: compatibility.status === "compatible" && derivedArtifacts.compiledCssBuild.budgetVerdict.status === "ok" ? "ok" : "degraded",
+        durationMs: Date.now() - startedAt,
+        previewSessionId,
+        size: {
+          dependencyCount: Object.keys(derivedArtifacts.dependencies).length,
+          sandpackFileCount: Object.keys(files).length,
+          compiledCssChars: derivedArtifacts.compiledCssBuild.compiledCss.length,
+          candidateClassCount: derivedArtifacts.compiledCssBuild.candidateClassCount,
+          sourceChars: derivedArtifacts.compiledCssBuild.sourceChars,
+          derivedArtifactCacheEntries: derivedArtifacts.derivedCacheMetrics.entries,
+          derivedArtifactCacheLimit: derivedArtifacts.derivedCacheMetrics.limit,
+          compiledCssCacheEntries: derivedArtifacts.compiledCssBuild.cacheMetrics.entries,
+          compiledCssCacheLimit: derivedArtifacts.compiledCssBuild.cacheMetrics.limit,
+        },
+        load: {
+          cacheStatus: derivedArtifacts.derivedCacheStatus,
+          derivedArtifactCacheStatus: derivedArtifacts.derivedCacheStatus,
+          derivedArtifactCacheEvictedEntries: derivedArtifacts.derivedCacheMetrics.evictedEntries,
+          derivedArtifactCacheEvictionPolicy: derivedArtifacts.derivedCacheMetrics.evictionPolicy,
+          compiledCssCacheStatus: derivedArtifacts.compiledCssBuild.cacheStatus,
+          compiledCssCacheEvictedEntries: derivedArtifacts.compiledCssBuild.cacheMetrics.evictedEntries,
+          compiledCssCacheEvictionPolicy: derivedArtifacts.compiledCssBuild.cacheMetrics.evictionPolicy,
+          effectiveUiKitId: resolvedUiKitId,
+          tailwindCompilePath: derivedArtifacts.compiledCssBuild.cacheStatus === "bypass" ? "skipped-budget" : "compiled",
+        },
+      degradation: compatibility.status === "compatible"
+        ? (
+            derivedArtifacts.compiledCssBuild.budgetVerdict.status === "degraded"
+              ? {
+                  reason: derivedArtifacts.compiledCssBuild.budgetVerdict.reason,
+                  details: {
+                    dimension: derivedArtifacts.compiledCssBuild.budgetVerdict.dimension,
+                    budget: derivedArtifacts.compiledCssBuild.budgetVerdict.budget,
+                    sourceChars: derivedArtifacts.compiledCssBuild.budgetVerdict.sourceChars,
+                    candidateClassCount: derivedArtifacts.compiledCssBuild.budgetVerdict.candidateClassCount,
+                  },
+                }
+              : undefined
+          )
+        : {
+            reason: "project_compatibility_fallback",
+            details: {
+              compatibility,
+            },
+          },
+    })]
+    emitRuntimeDiagnostics(runtimeDiagnostics[0])
     return {
       files,
       customSetup: {
-        dependencies,
+        dependencies: derivedArtifacts.dependencies,
         entry: "/src/index.tsx",
         environment: "create-react-app",
       },
@@ -905,6 +1336,7 @@ async function buildSandpackPreviewPayload(
         effectiveUiKitId: resolvedUiKitId,
         compatibility,
       },
+      runtimeDiagnostics,
       debug: {
         shimVersion: "2026-05-20-ant-shim-v3",
         rcShimPaths: shimPaths,
@@ -916,10 +1348,62 @@ async function buildSandpackPreviewPayload(
     }
   }
 
+  const runtimeDiagnostics = [createRuntimeDiagnosticsRecord({
+    scope: "level-labs",
+    path: "preview_payload_build",
+    stage: "sandpack_preview",
+    status: compatibility.status === "compatible" && derivedArtifacts.compiledCssBuild.budgetVerdict.status === "ok" ? "ok" : "degraded",
+    durationMs: Date.now() - startedAt,
+    previewSessionId,
+    size: {
+      dependencyCount: Object.keys(derivedArtifacts.dependencies).length,
+      sandpackFileCount: Object.keys(files).length,
+      compiledCssChars: derivedArtifacts.compiledCssBuild.compiledCss.length,
+      candidateClassCount: derivedArtifacts.compiledCssBuild.candidateClassCount,
+      sourceChars: derivedArtifacts.compiledCssBuild.sourceChars,
+      derivedArtifactCacheEntries: derivedArtifacts.derivedCacheMetrics.entries,
+      derivedArtifactCacheLimit: derivedArtifacts.derivedCacheMetrics.limit,
+      compiledCssCacheEntries: derivedArtifacts.compiledCssBuild.cacheMetrics.entries,
+      compiledCssCacheLimit: derivedArtifacts.compiledCssBuild.cacheMetrics.limit,
+    },
+    load: {
+      cacheStatus: derivedArtifacts.derivedCacheStatus,
+      derivedArtifactCacheStatus: derivedArtifacts.derivedCacheStatus,
+      derivedArtifactCacheEvictedEntries: derivedArtifacts.derivedCacheMetrics.evictedEntries,
+      derivedArtifactCacheEvictionPolicy: derivedArtifacts.derivedCacheMetrics.evictionPolicy,
+      compiledCssCacheStatus: derivedArtifacts.compiledCssBuild.cacheStatus,
+      compiledCssCacheEvictedEntries: derivedArtifacts.compiledCssBuild.cacheMetrics.evictedEntries,
+      compiledCssCacheEvictionPolicy: derivedArtifacts.compiledCssBuild.cacheMetrics.evictionPolicy,
+      effectiveUiKitId: resolvedUiKitId,
+      tailwindCompilePath: derivedArtifacts.compiledCssBuild.cacheStatus === "bypass" ? "skipped-budget" : "compiled",
+    },
+    degradation: compatibility.status === "compatible"
+      ? (
+          derivedArtifacts.compiledCssBuild.budgetVerdict.status === "degraded"
+            ? {
+                reason: derivedArtifacts.compiledCssBuild.budgetVerdict.reason,
+                details: {
+                  dimension: derivedArtifacts.compiledCssBuild.budgetVerdict.dimension,
+                  budget: derivedArtifacts.compiledCssBuild.budgetVerdict.budget,
+                  sourceChars: derivedArtifacts.compiledCssBuild.budgetVerdict.sourceChars,
+                  candidateClassCount: derivedArtifacts.compiledCssBuild.budgetVerdict.candidateClassCount,
+                },
+              }
+            : undefined
+        )
+      : {
+          reason: "project_compatibility_fallback",
+          details: {
+            compatibility,
+          },
+        },
+  })]
+  emitRuntimeDiagnostics(runtimeDiagnostics[0])
+
   return {
     files,
     customSetup: {
-      dependencies,
+      dependencies: derivedArtifacts.dependencies,
       entry: "/src/index.tsx",
       environment: "create-react-app",
     },
@@ -933,6 +1417,7 @@ async function buildSandpackPreviewPayload(
       effectiveUiKitId: resolvedUiKitId,
       compatibility,
     },
+    runtimeDiagnostics,
   }
 }
 

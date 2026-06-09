@@ -5,6 +5,7 @@ import { toLlmErrorResponse } from "@/lib/llm/server"
 import { readTaskData } from "@/lib/onboarding/repository"
 import { readLevelIteratePrompt, readLevelStartPrompt, readPrompt } from "@/lib/prompt/server"
 import { buildTaskRuntimePromptContext } from "@/lib/task/prompt-context"
+import { sumTextLengths } from "@/lib/task/runtime-observability"
 
 import { taskActionShared } from "./shared"
 import type { StartRuntimeContext } from "./start-context"
@@ -18,7 +19,16 @@ type StartLlmInput = {
 }
 
 type StartLlmStageResult =
-  | { outputText: string }
+  | {
+    outputText: string
+    llmCall: Awaited<ReturnType<typeof taskStartLlm.call>>
+    inputSize: {
+      instructionChars: number
+      promptImageCount: number
+      promptImageBase64Chars: number
+      editableFileCount: number
+    }
+  }
   | { response: TaskActionHttpResult }
 
 type StartParseStageResult =
@@ -92,7 +102,16 @@ async function runStartLlmStage(
       outputTextLength: result.outputText.length,
       durationMs: Date.now() - startedAt,
     })
-    return { outputText: result.outputText }
+    return {
+      outputText: result.outputText,
+      llmCall: result,
+      inputSize: {
+        instructionChars: instruction.length,
+        promptImageCount: context.imageBase64List.length,
+        promptImageBase64Chars: sumTextLengths(context.imageBase64List),
+        editableFileCount: fileList.length,
+      },
+    }
   } catch (error) {
     const response = toLlmErrorResponse(error)
     console.error("[desengine][task-start] llm_request_failed", {

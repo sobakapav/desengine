@@ -9,6 +9,7 @@ const rootDir =
     : path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["163.5.29.79"],
   devIndicators: false,
   turbopack: {
     root: rootDir,

@@ -39,15 +39,26 @@ function validateReferenceRules(changeName, metadata, context, errors) {
   const releaseRef = parseMetadataValue(metadata, RELEASE_REF_PATTERN) || ""
   const producerRef = parseMetadataValue(metadata, PRODUCER_REF_PATTERN) || ""
   const strategyRoot = parseMetadataValue(metadata, STRATEGY_ROOT_PATTERN) || ""
+  const changeKind = context.changeKindsByName.get(changeName) || ""
 
   if (parentChange && !context.allChangeNames.has(parentChange)) {
     errors.push(`${changeName}: parent_change ссылается на неизвестный change: ${parentChange}`)
   }
   if (!releaseRef) {
   } else if (!context.allChangeNames.has(releaseRef)) {
-    errors.push(`${changeName}: release_ref ссылается на неизвестный change: ${releaseRef}`)
+    if (context.archivedChangeKindsByName.get(releaseRef) === "release") {
+      const activeMembers = [...(context.activeReleaseMembersByReleaseRef.get(releaseRef) || [])].sort((left, right) => left.localeCompare(right))
+      const membersLabel = activeMembers.length > 0 ? ` (${activeMembers.join(", ")})` : ""
+      errors.push(
+        `${changeName}: release_ref ссылается на архивированный release ${releaseRef}; release change можно закрывать только после закрытия всех active changes состава${membersLabel}`,
+      )
+    } else {
+      errors.push(`${changeName}: release_ref ссылается на неизвестный change: ${releaseRef}`)
+    }
   } else if (context.changeKindsByName.get(releaseRef) !== "release") {
     errors.push(`${changeName}: release_ref должен ссылаться на change_kind=release`)
+  } else if (!["implement", "fix"].includes(changeKind)) {
+    errors.push(`${changeName}: release_ref разрешён только для change_kind=implement или change_kind=fix`)
   }
   if (!producerRef) {
   } else if (!context.allChangeNames.has(producerRef)) {
@@ -213,6 +224,10 @@ function validateProducerContextRules(changeName, changeKind, parentChange, meta
   }
 }
 
+/**
+ * @example
+ * validateChangeKindRules("implement-demo", metadata, context)
+ */
 export function validateChangeKindRules(changeName, metadata, context) {
   const errors = []
   const changeKind = context.changeKindsByName.get(changeName) || ""

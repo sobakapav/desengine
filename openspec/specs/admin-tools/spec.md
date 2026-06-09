@@ -49,22 +49,55 @@
 - **THEN** в вывод попадают только changes из `openspec/changes/*`
 - **AND** archived changes из `openspec/changes/archive/*` не печатаются ни как release, ни как элементы состава
 - **AND** активный состав релиза печатается как delivery-матрица `parent dispatcher -> implement/fix`, если у элементов состава задан `parent_change`
+- **AND** в состав релиза не попадают changes с `change_kind`, отличным от `implement` и `fix`
+- **AND** release и элементы состава используют те же role-иконки, что и `npm run os`
+- **AND** краткие описания элементов одного уровня начинаются в общей выровненной колонке
 
 ### Requirement: Release оркестрирует delivery-матрицу, не подменяя dispatcher
 
 Система SHALL позволять release change управлять составом поставки через связь `release_ref`, сохраняя тактическое подчинение исполнительских changes их parent dispatcher.
 
+#### Scenario: Non-executable change пытается войти в release composition
+- **WHEN** metadata change с `change_kind=focus|idea|producer|dispatcher|release` содержит `release_ref`
+- **THEN** статическая проверка OpenSpec metadata завершается ошибкой
+- **AND** ошибка явно объясняет, что `release_ref` разрешён только для `implement` и `fix`
+
 #### Scenario: Release-диспетчеризация новой хотелки
 - **WHEN** разработчик запускает `npm run os:dispatch -- <release-change> --dispatcher <dispatcher-change> --kind <implement|fix> --name <name>`
 - **THEN** создаётся исполнительский change с `parent_change=<dispatcher-change>`
 - **AND** у него проставляется `release_ref=<release-change>`
+- **AND** тот же `release_ref` синхронно фиксируется в `.openspec.yaml` и inherited context `handoff.md`
 - **AND** дальнейшая реализация выполняется только в этом implement/fix change
+
+#### Scenario: Release inclusion не завершился полностью
+- **WHEN** release-диспетчеризация не может синхронно обновить `.openspec.yaml` и `handoff.md`
+- **THEN** команда завершается ошибкой
+- **AND** не сообщает об успешном включении change в релиз
 
 #### Scenario: Разработчик открывает implement/fix из release-контекста через `os:ctx`
 - **WHEN** разработчик запускает `npm run os:ctx -- <implement-or-fix-change>`, у которого задан `release_ref`
 - **THEN** команда показывает `release_ref`, parent dispatcher и его ключевые артефакты
 - **AND** показывает inherited roadmap стратегических владельцев dispatcher
 - **AND** явно напоминает, что parent dispatcher отвечает за тактику и приёмку результата
+
+#### Scenario: Разработчик пытается закрыть release с незакрытым составом
+- **GIVEN** в active слое остаётся хотя бы один implement/fix change с `release_ref=<release-change>`
+- **WHEN** соответствующий release уже архивирован или исключён из active слоя
+- **THEN** traceability-проверка завершается ошибкой
+- **AND** ошибка явно требует сначала закрыть или перепривязать весь active состав этого release
+
+#### Scenario: Разработчик закрывает release-linked implement/fix change
+- **GIVEN** implement или fix change ссылается на active release через `release_ref`
+- **AND** у change есть заполненный `artifacts/release-note.md`
+- **WHEN** разработчик запускает `npm run os:close -- <implement-or-fix-change>`
+- **THEN** инструмент добавляет user-facing запись этого change в `openspec/changes/<release>/release-notes.md`
+- **AND** только после этого продолжает архивирование change
+
+#### Scenario: Release notes уже содержат запись о change
+- **GIVEN** release-linked implement или fix уже упомянут в `release-notes.md` релиза
+- **WHEN** close-path повторно пытается синхронизировать release note
+- **THEN** инструмент не создаёт дубликат записи
+- **AND** существующее пользовательское описание релиза сохраняется без повторов
 
 ### Requirement: Команда `npm run os` показывает иерархию active changes
 

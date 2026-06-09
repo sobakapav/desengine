@@ -5,6 +5,7 @@
 // @openSpec  - "Пользователь запускает уровень через service boundary"
 // @openSpec  - "Пользователь уточняет задачу через service boundary"
 // @openSpec  - "Пользователь проверяет результат через service boundary"
+// @openSpec  - "Task action runtime возвращает retriable overload-отказ"
 // @openSpec  - "Route handlers используют переиспользуемые lab action services"
 // @openSpec capability: iteration
 // @openSpec scenarios:
@@ -15,6 +16,7 @@
 // @openSpec  - "Integration-слой покрывает route handlers через fixture boundary"
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { TaskMutationOverloadError } from "@/lib/task/mutation-boundary"
 
 import { createJsonRequest, readJsonResponse } from "./helpers/route-harness"
 
@@ -67,6 +69,25 @@ import { POST as postResetLevel } from "@/app/api/tasks/[taskId]/reset-level/rou
 import { POST as postReset } from "@/app/api/tasks/[taskId]/reset/route"
 import { GET as getTask } from "@/app/api/tasks/[taskId]/route"
 import { POST as postStart } from "@/app/api/tasks/[taskId]/start/route"
+
+function createRouteOverloadError(taskId: string) {
+  return new TaskMutationOverloadError({
+    taskId,
+    reason: "pending_context_limit",
+    load: {
+      pendingBeforeEnqueue: 8,
+      pendingAfterEnqueue: 8,
+      pendingForTaskBeforeEnqueue: 0,
+      pendingForTaskAfterEnqueue: 0,
+      queueDepthForTask: 0,
+      queuedForTask: false,
+      activeTaskMutations: 4,
+      pendingTaskMutationContexts: 8,
+      maxQueuePerTask: 2,
+      maxPendingContexts: 8,
+    },
+  })
+}
 
 describe("task route integration wave", () => {
   beforeEach(() => {
@@ -323,6 +344,64 @@ describe("task route integration wave", () => {
       ok: false,
       written: 1,
       errors: [{ fileId: "styles", error: "disk full" }],
+    })
+  })
+
+  it("маппит save files overload в retriable 503 без partial write contract", async () => {
+    mocks.saveTaskFiles.mockRejectedValue(createRouteOverloadError("task-1"))
+
+    const response = await postFiles(
+      createJsonRequest({
+        body: { updates: [{ fileId: "styles", content: "export {}" }] },
+        method: "POST",
+        url: "http://localhost/api/tasks/task-1/files",
+      }),
+      { params: Promise.resolve({ taskId: "task-1" }) },
+    )
+
+    expect(response.status).toBe(503)
+    await expect(readJsonResponse<Record<string, unknown>>(response)).resolves.toMatchObject({
+      ok: false,
+      errorKind: "overload",
+      retryable: true,
+      runtimeDiagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          path: "mutation_boundary",
+          stage: "task_mutation_refused",
+        }),
+      ]),
+    })
+  })
+
+  it("маппит reset overload в retriable 503", async () => {
+    mocks.resetTaskRuntime.mockRejectedValue(createRouteOverloadError("task-1"))
+
+    const response = await postReset(
+      new Request("http://localhost/api/tasks/task-1/reset", { method: "POST" }),
+      { params: Promise.resolve({ taskId: "task-1" }) },
+    )
+
+    expect(response.status).toBe(503)
+    await expect(readJsonResponse<Record<string, unknown>>(response)).resolves.toMatchObject({
+      ok: false,
+      errorKind: "overload",
+      retryable: true,
+    })
+  })
+
+  it("маппит reset-level overload в retriable 503", async () => {
+    mocks.resetCurrentTaskLevelRuntime.mockRejectedValue(createRouteOverloadError("task-1"))
+
+    const response = await postResetLevel(
+      new Request("http://localhost/api/tasks/task-1/reset-level", { method: "POST" }),
+      { params: Promise.resolve({ taskId: "task-1" }) },
+    )
+
+    expect(response.status).toBe(503)
+    await expect(readJsonResponse<Record<string, unknown>>(response)).resolves.toMatchObject({
+      ok: false,
+      errorKind: "overload",
+      retryable: true,
     })
   })
 })

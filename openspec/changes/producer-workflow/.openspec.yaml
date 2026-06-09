@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-09
+short_policy: "none"
+review_sync_state: "none"
+issue: ""
+short: "продюсер workflow-модели как видимого производственного процесса продукта"
+change_kind: "producer"
+execution_mode: "no-code"
+parent_change: "focus-domain"
+strategy_root: "focus-domain"
+roadmap_ref: ""
+release_ref: ""
+producer_ref: ""
+verification_level: "static"
+verification_command: "npm run test:traceability"

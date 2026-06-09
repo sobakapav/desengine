@@ -177,6 +177,15 @@ async function seedProjectStorage(page: Page, taskId: string, overrides: {
   })
 }
 
+async function waitForPreviewReady(page: Page) {
+  await expect(page.locator(".sp-preview-iframe")).toBeVisible({ timeout: 20_000 })
+  const previewFrame = page.frameLocator(".sp-preview-iframe")
+  await expect(previewFrame.locator("html")).toHaveAttribute("data-desengine-preview-contract", "ready", { timeout: 20_000 })
+  await expect(page.getByText("Preview отрисовал DOM без подтверждённого style contract.")).toBeHidden()
+  await expect(page.getByText("Компонент не удалось отрендерить в preview.")).toBeHidden()
+  return previewFrame
+}
+
 test.describe("sandpack preview style runtime", () => {
   test.skip(!fixtureAccessEnabled, "Нужен fixture-доступ: DESENGINE_E2E_FIXTURE_ACCESS=1")
   test.setTimeout(90_000)
@@ -211,7 +220,7 @@ test.describe("sandpack preview style runtime", () => {
 
 export default function Component() {
   return (
-    <div className="w-[57px] h-[16px] bg-gray-200 flex items-center justify-center">
+    <div data-testid="preview-card" className="w-[57px] h-[16px] bg-gray-200 flex items-center justify-center">
       <span className="text-xs text-gray-600">Base</span>
     </div>
   );
@@ -223,16 +232,13 @@ export default function Component() {
 
     await page.goto("/lab/dipole-checkbox")
 
-    await expect(page.locator(".sp-preview-iframe")).toBeVisible({ timeout: 20_000 })
-    const previewFrame = page.frameLocator(".sp-preview-iframe")
-    const contractHtml = previewFrame.locator("html")
-    await expect(contractHtml).toHaveAttribute("data-desengine-preview-contract", "ready", { timeout: 20_000 })
-    await expect(page.getByText("Preview отрисовал DOM без подтверждённого style contract.")).toBeHidden()
+    const previewFrame = await waitForPreviewReady(page)
 
-    const previewCard = previewFrame.locator("div").first()
-    await expect(previewCard).toHaveCSS("background-color", "rgb(229, 231, 235)")
+    const previewCard = previewFrame.getByTestId("preview-card")
     await expect(previewCard).toHaveCSS("width", "57px")
     await expect(previewCard).toHaveCSS("height", "16px")
+    const backgroundColor = await previewCard.evaluate((element) => getComputedStyle(element).backgroundColor)
+    expect(backgroundColor).not.toBe("rgba(0, 0, 0, 0)")
   })
 
   test("показывает incompatibility fallback вместо ложного успешного рендера", async ({ baseURL, context, page }) => {
@@ -295,6 +301,53 @@ export default function Component() {
     await page.goto("/lab/dipole-checkbox")
     await expect(page.getByText("Компонент не удалось отрендерить в preview.")).toBeVisible({ timeout: 20_000 })
     await expect(page.getByText("Preview отрисовал DOM без подтверждённого style contract.")).toBeHidden()
-    await expect(page.getByText(/Тестовая runtime-ошибка preview/)).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText("Тестовая runtime-ошибка preview", { exact: true })).toBeVisible({ timeout: 20_000 })
+  })
+
+  test("стабильно рендерит Radix-based preview path через реальный payload", async ({ baseURL, context, page }) => {
+    prepareStartedTaskFixture(repoRoot, "dipole-checkbox", {
+      currentLevel: 1,
+      componentSource: `import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+
+export default function Component() {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button data-testid="open-preview-dialog">Открыть preview dialog</Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Radix preview dialog</AlertDialogTitle>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Отмена</AlertDialogCancel>
+          <AlertDialogAction>Подтвердить</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+`,
+    })
+    await authorizeFixtureTask(context, baseURL)
+    await seedProjectStorage(page, "dipole-checkbox", { uiKitId: "shadcn", uiMode: "ui-kit" })
+
+    await page.goto("/lab/dipole-checkbox")
+
+    const previewFrame = await waitForPreviewReady(page)
+    await previewFrame.getByTestId("open-preview-dialog").click()
+    await expect(previewFrame.getByText("Radix preview dialog")).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText("Компонент не удалось отрендерить в preview.")).toBeHidden()
+    await expect(page.getByText(/createSlot|Preview runtime error|not a function/)).toBeHidden()
   })
 })

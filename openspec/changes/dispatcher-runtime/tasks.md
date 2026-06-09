@@ -3,7 +3,7 @@
 - [x] 1. Зафиксировать `dispatcher-runtime` как tactical owner линии укрепления lab runtime.
 - [x] 2. Отделить runtime-line от `dispatcher-dataflow` и других соседних dispatcher.
 - [x] 3. Перепривязать `implement-lab-runtime-contract-hardening` к `dispatcher-runtime`.
-- [x] 4. Связать dispatcher с roadmap `focus-tech/roadmaps/architecture-transformation.md` и producer `producer-architecture-transformation`.
+- [x] 4. Связать dispatcher с roadmap `focus-tech/roadmaps/architecture-transformation.md` и producer `producer-architecture-transform`.
 
 ## Тестовая часть change
 

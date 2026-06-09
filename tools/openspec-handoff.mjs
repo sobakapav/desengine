@@ -141,6 +141,74 @@ export function writeHandoffFile(changeDir, handoffContext = {}) {
   return handoffPath
 }
 
+function replaceRequiredLine(source, label, value) {
+  const pattern = new RegExp(`^- ${label}: .*?$`, "m")
+  const line = `- ${label}: ${value}`
+
+  if (!pattern.test(source)) {
+    throw new Error(`В ${HANDOFF_FILE} отсутствует строка "${label}" для синхронизации inherited context`)
+  }
+
+  return source.replace(pattern, line)
+}
+
+export function syncHandoffInheritedContext(changeDir, {
+  parentChange = "",
+  strategyRoot = "",
+  releaseRef = "",
+  producerRef = "",
+  verificationLevel = "",
+  verificationCommand = "",
+} = {}) {
+  const handoffPath = path.join(changeDir, HANDOFF_FILE)
+
+  if (!fs.existsSync(handoffPath)) {
+    throw new Error(`Не найден ${HANDOFF_FILE}: ${handoffPath}`)
+  }
+
+  let source = fs.readFileSync(handoffPath, "utf8")
+  source = replaceRequiredLine(source, "parent_change", parentChange || HANDOFF_PLACEHOLDER)
+  source = replaceRequiredLine(source, "strategy_root", strategyRoot || HANDOFF_PLACEHOLDER)
+  source = replaceRequiredLine(source, "release_ref", releaseRef || "(не задан)")
+  source = replaceRequiredLine(source, "producer_ref", producerRef || "(не задан)")
+  source = replaceRequiredLine(source, "verification_level", verificationLevel || HANDOFF_PLACEHOLDER)
+  source = replaceRequiredLine(source, "verification_command", verificationCommand || HANDOFF_PLACEHOLDER)
+  fs.writeFileSync(handoffPath, source, "utf8")
+
+  return handoffPath
+}
+
+export function assertHandoffInheritedContext(changeDir, {
+  parentChange = "",
+  strategyRoot = "",
+  releaseRef = "",
+  producerRef = "",
+  verificationLevel = "",
+  verificationCommand = "",
+} = {}) {
+  const handoffPath = path.join(changeDir, HANDOFF_FILE)
+  if (!fs.existsSync(handoffPath)) {
+    throw new Error(`Не найден ${HANDOFF_FILE}: ${handoffPath}`)
+  }
+
+  const source = fs.readFileSync(handoffPath, "utf8")
+  const expectedLines = [
+    `- parent_change: ${parentChange || HANDOFF_PLACEHOLDER}`,
+    `- strategy_root: ${strategyRoot || HANDOFF_PLACEHOLDER}`,
+    `- release_ref: ${releaseRef || "(не задан)"}`,
+    `- producer_ref: ${producerRef || "(не задан)"}`,
+    `- verification_level: ${verificationLevel || HANDOFF_PLACEHOLDER}`,
+    `- verification_command: ${verificationCommand || HANDOFF_PLACEHOLDER}`,
+  ]
+
+  const missing = expectedLines.filter((line) => !source.includes(line))
+  if (missing.length > 0) {
+    throw new Error(`Inherited context в ${HANDOFF_FILE} не синхронизирован: ${missing.join("; ")}`)
+  }
+
+  return true
+}
+
 /**
  * @example
  * ```js

@@ -1,6 +1,5 @@
-import { readFile } from "node:fs/promises"
+import { readFile, readdir, stat } from "node:fs/promises"
 import path from "node:path"
-import { readdir } from "node:fs/promises"
 
 import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
 import { buildSandpackPreviewPayload } from "@/lib/lab/sandpack-preview"
@@ -13,7 +12,10 @@ import { normalizeSandpackUiKitId } from "@/lib/lab/sandpack-ui-kits.config"
 import { normalizeProject, resolveProjectPreviewConfig } from "@/lib/project/runtime"
 import { getLevelsCatalog, getTaskListItemById } from "@/lib/system/server"
 import { getUserTaskFilePath } from "@/lib/user/server"
-import { readFilesRecursively } from "@/lib/system/shadcn-files"
+import {
+  readFilesRecursively,
+  readRecursiveTypeScriptTreeSignature,
+} from "@/lib/system/shadcn-files"
 import { appConfig } from "@/lib/system/config/server"
 
 type Params = { taskId: string }
@@ -22,11 +24,96 @@ export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 const uiBadgePath = path.join(process.cwd(), "components", "ui", "badge.tsx")
+const shadcnUiRootPath = path.join(process.cwd(), "components", "ui")
 const systemUtilsPath = path.join(process.cwd(), "lib", "system", "utils.ts")
 const useMobileHookPath = path.join(process.cwd(), "hooks", "use-mobile.ts")
+const stablePreviewSourceCacheLimit = 2
+
+type StablePreviewSourceFiles = {
+  systemUtils: string
+  uiBadge: string
+  supportFiles: Record<string, string>
+  shadcnFiles: Record<string, string>
+}
+
+const stablePreviewSourceCache = new Map<string, StablePreviewSourceFiles>()
 
 async function readUserTaskFile(taskId: string, fileName: string, fallback = "") {
   return readFile(getUserTaskFilePath(taskId, fileName), "utf-8").catch(() => fallback)
+}
+
+function touchStablePreviewSourceCacheEntry(
+  cacheKey: string,
+  files: StablePreviewSourceFiles,
+) {
+  stablePreviewSourceCache.delete(cacheKey)
+  stablePreviewSourceCache.set(cacheKey, files)
+
+  while (stablePreviewSourceCache.size > stablePreviewSourceCacheLimit) {
+    const oldestKey = stablePreviewSourceCache.keys().next().value
+    if (!oldestKey) break
+    stablePreviewSourceCache.delete(oldestKey)
+  }
+}
+
+async function readFileSignature(filePath: string) {
+  const fileStat = await stat(filePath)
+  return `${filePath}:${fileStat.size}:${Math.trunc(fileStat.mtimeMs)}`
+}
+
+async function buildStablePreviewSourceSignature(includeShadcnFiles: boolean) {
+  const baseSignatures = await Promise.all([
+    readFileSignature(systemUtilsPath),
+  ])
+
+  if (!includeShadcnFiles) {
+    return baseSignatures.join("|")
+  }
+
+  const [uiBadgeSignature, useMobileSignature, shadcnTreeSignature] = await Promise.all([
+    readFileSignature(uiBadgePath),
+    readFileSignature(useMobileHookPath),
+    readRecursiveTypeScriptTreeSignature(shadcnUiRootPath),
+  ])
+
+  return [...baseSignatures, uiBadgeSignature, useMobileSignature, shadcnTreeSignature].join("|")
+}
+
+async function readCachedStablePreviewSourceFiles(includeShadcnFiles: boolean): Promise<StablePreviewSourceFiles> {
+  const signature = await buildStablePreviewSourceSignature(includeShadcnFiles)
+  const cacheKey = `${includeShadcnFiles ? "shadcn" : "base"}:${signature}`
+  const cachedFiles = stablePreviewSourceCache.get(cacheKey)
+
+  if (cachedFiles) {
+    touchStablePreviewSourceCacheEntry(cacheKey, cachedFiles)
+    return cachedFiles
+  }
+
+  const systemUtils = await readFile(systemUtilsPath, "utf-8")
+  const files: StablePreviewSourceFiles = {
+    systemUtils,
+    uiBadge: "",
+    supportFiles: {},
+    shadcnFiles: {},
+  }
+
+  if (includeShadcnFiles) {
+    const [uiBadge, shadcnFiles, useMobileHook] = await Promise.all([
+      readFile(uiBadgePath, "utf-8"),
+      readFilesRecursively(shadcnUiRootPath, "/components/ui"),
+      readFile(useMobileHookPath, "utf-8"),
+    ])
+
+    files.uiBadge = uiBadge
+    files.shadcnFiles = shadcnFiles
+    files.supportFiles = {
+      "/hooks/use-mobile.ts": useMobileHook,
+    }
+  }
+
+  touchStablePreviewSourceCacheEntry(cacheKey, files)
+
+  return files
 }
 
 const defaultSandpackUiKitId = normalizeSandpackUiKitId(process.env.SANDPACK_UI_KIT)
@@ -78,28 +165,35 @@ async function resolvePreviewLevel(taskItem: Awaited<ReturnType<typeof getTaskLi
 }
 
 async function readTaskPreviewSourceFiles(taskId: string, includeShadcnFiles: boolean): Promise<SandpackPreviewSourceFiles> {
-  const [component, stories, styles, mock, props, systemUtils, useMobileHook] = await Promise.all([
+  const stablePreviewFilesPromise = readCachedStablePreviewSourceFiles(includeShadcnFiles)
+  const [component, stories, styles, mock, props, stablePreviewFiles] = await Promise.all([
     readUserTaskFile(taskId, "Component.tsx"),
     readUserTaskFile(taskId, "Component.stories.ts", "export {};\n"),
     readUserTaskFile(taskId, "styles.ts", "export const styles = {};\n"),
     readUserTaskFile(taskId, "mock.ts", "export const mock = {};\n"),
     readUserTaskFile(taskId, "props.ts", "export {};\n"),
-    readFile(systemUtilsPath, "utf-8"),
-    readFile(useMobileHookPath, "utf-8"),
+    stablePreviewFilesPromise,
   ])
 
-  const [uiBadge, shadcnFiles] = includeShadcnFiles
-    ? await Promise.all([
-      readFile(uiBadgePath, "utf-8"),
-      readFilesRecursively(path.join(process.cwd(), "components", "ui"), "/components/ui"),
-    ])
-    : ["", {} as Record<string, string>]
-
-  const supportFiles: Record<string, string> | undefined = includeShadcnFiles
-    ? { "/hooks/use-mobile.ts": useMobileHook }
+  const supportFiles = includeShadcnFiles
+    ? stablePreviewFiles.supportFiles
     : undefined
 
-  return { component, stories, styles, mock, props, systemUtils, uiBadge, shadcnFiles, supportFiles }
+  const shadcnFiles = includeShadcnFiles
+    ? stablePreviewFiles.shadcnFiles
+    : undefined
+
+  return {
+    component,
+    stories,
+    styles,
+    mock,
+    props,
+    systemUtils: stablePreviewFiles.systemUtils,
+    uiBadge: stablePreviewFiles.uiBadge,
+    shadcnFiles,
+    supportFiles,
+  }
 }
 
 /**

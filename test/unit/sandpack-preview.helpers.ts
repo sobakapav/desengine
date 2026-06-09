@@ -7,6 +7,55 @@ import ts from "typescript"
 import { readLevelSandpackTemplate } from "../../lib/lab/sandpack-template"
 import { readFilesRecursively } from "../../lib/system/shadcn-files"
 
+const level5AppTemplateSource = `import React from "react";
+import Component from "./Component";
+import * as mockModule from "./mock";
+import { PreviewRuntimeContractBoundary } from "./preview-runtime-contract";
+
+function resolvePreviewProps() {
+  const explicit = mockModule.mockProps ?? mockModule.mock;
+
+  if (explicit && typeof explicit === "object" && !Array.isArray(explicit)) {
+    return explicit;
+  }
+
+  return {};
+}
+
+export default function App() {
+  const previewMock = mockModule.mock;
+  const explicit = mockModule.mockProps ?? mockModule.mock;
+
+  if (explicit && typeof explicit === "object" && !Array.isArray(explicit)) {
+    return (
+      <PreviewRuntimeContractBoundary>
+        <Component {...explicit} />
+      </PreviewRuntimeContractBoundary>
+    );
+  }
+
+  if (Array.isArray(previewMock)) {
+    return (
+      <>
+        {previewMock.map((item, index) => (
+          <PreviewRuntimeContractBoundary key={index}>
+            <Component key={index} {...item} />
+          </PreviewRuntimeContractBoundary>
+        ))}
+      </>
+    );
+  }
+
+  const previewProps = resolvePreviewProps();
+
+  return (
+    <PreviewRuntimeContractBoundary>
+      <Component {...previewProps} />
+    </PreviewRuntimeContractBoundary>
+  );
+}
+`
+
 const badgeSource = `import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -54,11 +103,9 @@ async function readRepositoryShadcnSourceFiles() {
 }
 
 async function readLevel5AppTemplateOptions() {
-  const template = await readLevelSandpackTemplate("level-5", { rootDir: process.cwd() })
-
   return {
-    appTsx: template.appTsx,
-    previewCss: template.previewCss,
+    appTsx: level5AppTemplateSource,
+    previewCss: null,
     levelTemplateRuntime: "export const levelRuntime = {} as const;\n",
   }
 }
@@ -134,6 +181,7 @@ function renderBuiltLevel5App(args: {
 
 export {
   badgeSource,
+  level5AppTemplateSource,
   readLevelAppTemplate,
   readLevel5AppTemplateOptions,
   readRepositoryShadcnSourceFiles,

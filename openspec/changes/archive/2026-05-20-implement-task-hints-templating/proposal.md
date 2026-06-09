@@ -1,6 +1,6 @@
 ## Why
 
-Dispatcher `dispatcher-task-hints` требует перевести подсказки задач на тот же шаблонный механизм, который уже используется для hidden prompts. Сейчас runtime читает только статичный `tip.md`, поэтому подсказка не может учитывать task/level/context и не имеет unit/traceability опоры.
+Dispatcher `dispatcher-tasks` требует перевести подсказки задач на тот же шаблонный механизм, который уже используется для hidden prompts. Сейчас runtime читает только статичный `tip.md`, поэтому подсказка не может учитывать task/level/context и не имеет unit/traceability опоры.
 
 ## What Changes
 

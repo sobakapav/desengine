@@ -10,9 +10,9 @@ import { Button } from "@/components/ui/button";
 
 import {
   Tabs,
-  TabsList,
   TabsTrigger,
   TabsContent,
+  TabsList,
 } from "@/components/ui/tabs";
 import { TabsStyles } from "./styles"
 import { isEditorSaveHotkey } from "@/lib/lab/editor";

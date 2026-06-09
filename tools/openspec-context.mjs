@@ -1,8 +1,11 @@
 import fs from "node:fs"
 import path from "node:path"
+import { pathToFileURL } from "node:url"
 import { HANDOFF_FILE } from "./openspec-handoff.mjs"
 
-const CHANGES_DIR = path.resolve(process.cwd(), "openspec/changes")
+function resolveChangesDir() {
+  return path.resolve(process.cwd(), "openspec/changes")
+}
 
 function printUsage() {
   console.error("Использование:")
@@ -53,7 +56,7 @@ function parseRoadmapRefs(text) {
 }
 
 function readMetadata(changeName) {
-  const metadataPath = path.join(CHANGES_DIR, changeName, ".openspec.yaml")
+  const metadataPath = path.join(resolveChangesDir(), changeName, ".openspec.yaml")
   if (!fs.existsSync(metadataPath)) {
     throw new Error(`Change не найден: ${changeName}`)
   }
@@ -72,8 +75,12 @@ function readMetadata(changeName) {
   }
 }
 
-function run() {
-  const parsed = parseArgs(process.argv.slice(2))
+/**
+ * @example
+ * runOpenSpecContext(["implement-demo"])
+ */
+export function runOpenSpecContext(argv = process.argv.slice(2)) {
+  const parsed = parseArgs(argv)
   if (parsed.help) {
     printUsage()
     return
@@ -119,4 +126,9 @@ function run() {
   console.log(`- local handoff: openspec/changes/${parsed.changeName}/${HANDOFF_FILE}`)
 }
 
-run()
+const entrypointArg = process.argv[1]
+const isCliEntrypoint = entrypointArg ? import.meta.url === pathToFileURL(entrypointArg).href : false
+
+if (isCliEntrypoint) {
+  runOpenSpecContext()
+}

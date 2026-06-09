@@ -2,6 +2,8 @@
 // @openSpec scenarios:
 // @openSpec  - "Пользователь открывает результат проверки по каноническому route"
 // @openSpec  - "Проверка уровня успешна"
+// @openSpec  - "У задачи есть следующий уровень"
+// @openSpec  - "Пользователь завершил максимальный уровень задачи"
 
 import fs from "node:fs"
 import os from "node:os"
@@ -172,8 +174,13 @@ test.describe("check result before next level screen", () => {
 
     await page.goto(`/tasks/${taskId}/check`, { waitUntil: "domcontentloaded" })
 
-    await expect(page.getByRole("heading", { name: "Проверка пройдена, можно переходить к Вызываем UI-библиотеку" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Проверка пройдена. Уровень Вызываем UI-библиотеку уже доступен" })).toBeVisible()
     await expect(page.getByRole("heading", { name: `Начать уровень 2 в задаче ${taskId}` })).toHaveCount(0)
+
+    await page.getByRole("button", { name: "Вернуться к задачам уровня" }).click()
+
+    await expect(page).toHaveURL(new RegExp("/levels/level-2$"), { timeout: 15_000 })
+    await expect(page.getByRole("heading", { name: "Вызываем UI-библиотеку" })).toBeVisible()
   })
 
   test("последний уровень тоже сначала показывает check-result и только потом done flow", async ({ baseURL, context, page }) => {
@@ -182,7 +189,7 @@ test.describe("check result before next level screen", () => {
 
     await page.goto(`/tasks/${taskId}/check`, { waitUntil: "domcontentloaded" })
 
-    await expect(page.getByRole("heading", { name: "Проверка пройдена, задача решена целиком" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Проверка пройдена. Задача решена целиком" })).toBeVisible()
     await expect(page.getByRole("heading", { name: `Задача ${taskId} завершена на уровне 5` })).toHaveCount(0)
 
     await page.getByRole("button", { name: "Открыть итог задачи" }).click()

@@ -253,3 +253,21 @@ Start, iterate и check LLM flows SHALL строить PromptContext через 
 #### Scenario: Провайдер не вернул метрики
 - **WHEN** у итерации нет токеновых или денежных метрик от провайдера
 - **THEN** система сохраняет отсутствие этих данных отдельно от учебной стоимости
+
+### Requirement: Runtime budget-ошибки LLM path не маскируются под provider/network timeout
+
+Система SHALL отклонять oversized LLM input/output path отдельной bounded ошибкой `budget`, чтобы пользователь и test-layer могли отличить её от timeout, network и provider failures.
+
+Budget для instructions и runtime context SHALL измеряться в символах.
+Budget для входных картинок SHALL измеряться по количеству картинок и по суммарному base64-объёму.
+Budget для structured-output SHALL измеряться в символах до JSON parse.
+
+#### Scenario: Инициирующий запуск уровня превышает runtime payload budget
+- **WHEN** `start` собирает instruction/context или входные картинки, превышающие runtime budget
+- **THEN** система завершает путь явной bounded ошибкой с `errorKind=budget`
+- **AND** не делает provider-call для этого oversized input
+
+#### Scenario: Iterate или check превышают runtime payload budget
+- **WHEN** `iterate` или `check` получают oversized input или oversized structured-output
+- **THEN** система возвращает bounded ошибку с `errorKind=budget`
+- **AND** не маскирует её под timeout, network или provider error

@@ -8,17 +8,19 @@
 // @openSpec  - "Implement или fix помечается producer-контекстом"
 // @openSpec  - "Dispatcher не подчиняется producer напрямую"
 // @openSpec  - "Dispatcher не может хранить producer-контекст"
+// @openSpec  - "Non-executable change пытается войти в release composition"
 // @openSpec  - "Разработчик открывает implement/fix через `os:ctx`"
 // @openSpec  - "Разработчик открывает implement/fix из release-контекста через `os:ctx`"
 
-import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 
 import { afterEach, describe, expect, it } from "vitest"
 
+import { runOpenSpecContext } from "../../tools/openspec-context.mjs"
 import { validateChanges } from "../../tools/testing/traceability/changes.mjs"
+import { runToolInFixture } from "../helpers/run-tool-fixture"
 
 const tempDirs: string[] = []
 
@@ -172,6 +174,39 @@ short: "диспетчер демо"
     expect(errors.join("\n")).toContain("dispatcher change не может иметь producer_ref")
   })
 
+  it("не допускает dispatcher в составе release через release_ref", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-release-members-kind-"))
+    tempDirs.push(fixtureRoot)
+
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "focus-demo", ".openspec.yaml"),
+      'change_kind: "focus"\nexecution_mode: "no-code"\nparent_change: ""\nstrategy_root: ""\nshort: "фокус демо"\n',
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "focus-demo", "roadmaps", "demo.md"),
+      "# demo\n",
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "release-demo", ".openspec.yaml"),
+      'change_kind: "release"\nexecution_mode: "no-code"\nshort: "релиз демо"\n',
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "dispatcher-demo", ".openspec.yaml"),
+      `change_kind: "dispatcher"
+execution_mode: "no-code"
+parent_change: "focus-demo"
+strategy_root: "focus-demo"
+roadmap_ref: "focus-demo/roadmaps/demo.md"
+release_ref: "release-demo"
+short: "диспетчер демо"
+`,
+    )
+
+    const errors = validateChanges(fixtureRoot, path.join(fixtureRoot, "openspec", "changes"))
+
+    expect(errors.join("\n")).toContain("release_ref разрешён только для change_kind=implement или change_kind=fix")
+  })
+
   it("os:ctx показывает inherited roadmap parent dispatcher", () => {
     const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-roadmaps-ctx-"))
     tempDirs.push(fixtureRoot)
@@ -221,10 +256,14 @@ short: "реализация демо"
     )
     writeFile(path.join(fixtureRoot, "openspec", "changes", "implement-demo", "handoff.md"), "# handoff\n")
 
-    const output = execFileSync(process.execPath, [path.join(process.cwd(), "tools", "openspec-context.mjs"), "implement-demo"], {
+    const { stdout, thrown } = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      argv: ["implement-demo"],
+      runner: runOpenSpecContext,
     })
+
+    expect(thrown).toBeUndefined()
+    const output = stdout
 
     expect(output).toContain("dispatcher proposal")
     expect(output).toContain("release_ref: release-demo")

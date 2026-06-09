@@ -8,17 +8,59 @@
       "reason": "Route ещё объединяет parsing ProjectWorkspace и сборку Sandpack payload; декомпозиция должна идти отдельным route-service refactor без изменения HTTP-контракта.",
       "targetStage": "architecture-followup-route-services"
     },
+    "components/desengine/lab/Code/Code.tsx": {
+      "rules": ["file-length", "function-length"],
+      "owner": "team-desengine",
+      "reason": "Code-панель уже была orchestration-компонентом, а текущий рабочий diff затрагивает её вместе с preview/runtime boundary. Безопасное разбиение на presentation/controller части нужно делать отдельным UI refactor.",
+      "targetStage": "architecture-followup-code-panel-split"
+    },
     "components/desengine/lab/Workbench/useWorkbenchController.ts": {
       "rules": ["file-length"],
       "owner": "team-desengine",
       "reason": "Controller уже был крупным orchestration-модулем; ProjectWorkspace storage boundary добавил integration glue, а выделение project/workbench hooks нужно делать отдельным UI-safe refactor.",
       "targetStage": "architecture-followup-workbench-controller-split"
     },
+    "lib/task/actions/check.ts": {
+      "rules": ["file-length", "function-length"],
+      "owner": "team-desengine",
+      "reason": "Hidden check сейчас совмещает request validation, prompt assembly, observability и mutation orchestration. Разнос по services нужно делать отдельным change, чтобы не менять поведение проверки в релизной ветке.",
+      "targetStage": "architecture-followup-task-check-split"
+    },
+    "lib/task/actions/iterate.ts": {
+      "rules": ["file-length", "function-length"],
+      "owner": "team-desengine",
+      "reason": "Iterate-action накопил orchestration для prompt history, limits, provider metrics и runtime diagnostics. Декомпозиция должна идти отдельным change с сохранением task-flow контракта.",
+      "targetStage": "architecture-followup-task-iterate-split"
+    },
+    "lib/task/actions/start.ts": {
+      "rules": ["function-length"],
+      "owner": "team-desengine",
+      "reason": "Start-action пока держит единый happy-path и технические деградации в одной функции. Выделение service-слоёв лучше делать отдельно после стабилизации текущих release fixes.",
+      "targetStage": "architecture-followup-task-start-split"
+    },
     "lib/lab/sandpack-preview.ts": {
       "rules": ["file-length", "function-length"],
       "owner": "team-desengine",
       "reason": "Sandpack facade теперь совмещает legacy fallback, UI kit compatibility и ProjectWorkspace settings; разнос resolver/builders нужен отдельным change после стабилизации preview boundary.",
       "targetStage": "architecture-followup-sandpack-facade-split"
+    },
+    "lib/task/mutation-boundary.ts": {
+      "rules": ["function-length"],
+      "owner": "team-desengine",
+      "reason": "Mutation boundary временно держит и lock-координацию, и observability/result wrapping. Разделение на smaller helpers требует отдельного refactor, чтобы не расшатать serialisation semantics.",
+      "targetStage": "architecture-followup-task-mutation-boundary-split"
+    },
+    "tools/list-openspec-releases.mjs": {
+      "rules": ["function-length"],
+      "owner": "team-desengine",
+      "reason": "CLI пока печатает release matrix одним проходом. Выделение formatter/build-tree helper-слоёв безопасно, но это отдельная housekeeping-задача, не связанная с текущим восстановлением test:full.",
+      "targetStage": "architecture-followup-openspec-release-printer-split"
+    },
+    "tools/testing/traceability/changes.mjs": {
+      "rules": ["function-length"],
+      "owner": "team-desengine",
+      "reason": "Traceability context builder агрегирует active/archive metadata в одном месте. Разделение на smaller readers стоит делать отдельным change, чтобы не вносить шум в текущую стабилизацию quality gate.",
+      "targetStage": "architecture-followup-traceability-context-split"
     }
   }
 }

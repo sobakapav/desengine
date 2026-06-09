@@ -5,14 +5,21 @@
 // @openSpec  - "Разработчик фильтрует внимание через `npm run os -- <word>`"
 // @openSpec  - "Названия root changes подсвечиваются ярко-белым"
 
-import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 
 import { afterEach, describe, expect, it } from "vitest"
 
+import { runListActiveOpenSpecChanges } from "../../tools/list-active-openspec-changes.mjs"
+import { runToolInFixture } from "../helpers/run-tool-fixture"
+
 const tempDirs: string[] = []
+const ANSI_PATTERN = /\u001B\[[0-9;]*m/g
+
+function stripAnsi(value: string) {
+  return value.replace(ANSI_PATTERN, "")
+}
 
 function writeChange(baseDir: string, relativeDir: string, metadata: string, proposal = "## Why\n\nТестовый change.\n") {
   const changeDir = path.join(baseDir, relativeDir)
@@ -66,17 +73,20 @@ describe("openspec listing", () => {
       'change_kind: "idea"\nshort: "идея демо"',
     )
 
-    const output = execFileSync(process.execPath, [path.join(process.cwd(), "tools", "list-active-openspec-changes.mjs")], {
+    const { stdout, thrown } = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      runner: runListActiveOpenSpecChanges,
     })
 
-    expect(output).toContain("🩸 \u001B[97mfocus-demo\u001B[0m\tфокус демо")
-    expect(output).toContain("  🍀 producer-demo\tпродюсер демо")
-    expect(output).toContain("  🔸 dispatcher-demo\tдиспетчер демо")
-    expect(output).toContain("    🔥 fix-demo\tфикс демо")
-    expect(output).toContain("🌟 \u001B[97mrelease-demo\u001B[0m\tрелиз демо")
-    expect(output).toContain("🦋 \u001B[97midea-demo\u001B[0m\tидея демо")
+    expect(thrown).toBeUndefined()
+    const output = stdout
+
+    expect(output).toMatch(/🩸 \u001B\[97mfocus-demo\u001B\[0m\s{2,}фокус демо/)
+    expect(output).toMatch(/  🍀 producer-demo\s{2,}продюсер демо/)
+    expect(output).toMatch(/  🔸 dispatcher-demo\s{2,}диспетчер демо/)
+    expect(output).toMatch(/    🔥 fix-demo\s{2,}фикс демо/)
+    expect(output).toMatch(/🌟 \u001B\[97mrelease-demo\u001B\[0m\s{2,}релиз демо/)
+    expect(output).toMatch(/🦋 \u001B\[97midea-demo\u001B\[0m\s{2,}идея демо/)
   })
 
   it("подсвечивает переданное слово красным ANSI-цветом", () => {
@@ -89,14 +99,14 @@ describe("openspec listing", () => {
       'change_kind: "dispatcher"\nshort: "диспетчер demo dispatcher"',
     )
 
-    const output = execFileSync(
-      process.execPath,
-      [path.join(process.cwd(), "tools", "list-active-openspec-changes.mjs"), "dispatcher"],
-      {
-        cwd: fixtureRoot,
-        encoding: "utf8",
-      },
-    )
+    const { stdout, thrown } = runToolInFixture({
+      cwd: fixtureRoot,
+      argv: ["dispatcher"],
+      runner: runListActiveOpenSpecChanges,
+    })
+
+    expect(thrown).toBeUndefined()
+    const output = stdout
 
     expect(output).toContain("\u001B[31mdispatcher\u001B[0m-demo")
     expect(output).toContain("demo \u001B[31mdispatcher\u001B[0m")
@@ -127,18 +137,53 @@ describe("openspec listing", () => {
       'change_kind: "fix"\nparent_change: "dispatcher-demo"\nshort: "фикс демо"',
     )
 
-    const output = execFileSync(
-      process.execPath,
-      [path.join(process.cwd(), "tools", "list-active-openspec-changes.mjs"), "--short"],
-      {
-        cwd: fixtureRoot,
-        encoding: "utf8",
-      },
-    )
+    const { stdout, thrown } = runToolInFixture({
+      cwd: fixtureRoot,
+      argv: ["--short"],
+      runner: runListActiveOpenSpecChanges,
+    })
 
-    expect(output).toContain("🩸 focus-demo\tфокус демо")
-    expect(output).toContain("  🔸 dispatcher-demo\tдиспетчер демо")
+    expect(thrown).toBeUndefined()
+    const output = stdout
+
+    expect(output).toMatch(/🩸 focus-demo\s{2,}фокус демо/)
+    expect(output).toMatch(/  🔸 dispatcher-demo\s{2,}диспетчер демо/)
     expect(output).not.toContain("implement-demo")
     expect(output).not.toContain("fix-demo")
+  })
+
+  it("выравнивает краткие описания changes одного уровня в общую колонку", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-listing-align-"))
+    tempDirs.push(fixtureRoot)
+
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "focus-demo"),
+      'change_kind: "focus"\nshort: "фокус демо"',
+    )
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "dispatcher-short"),
+      'change_kind: "dispatcher"\nparent_change: "focus-demo"\nshort: "краткий sibling"',
+    )
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "dispatcher-very-long-name"),
+      'change_kind: "dispatcher"\nparent_change: "focus-demo"\nshort: "длинный sibling"',
+    )
+
+    const { stdout, thrown } = runToolInFixture({
+      cwd: fixtureRoot,
+      runner: runListActiveOpenSpecChanges,
+    })
+
+    expect(thrown).toBeUndefined()
+
+    const lines = stripAnsi(stdout)
+      .split("\n")
+      .filter((line) => line.includes("sibling"))
+
+    expect(lines).toHaveLength(2)
+    expect(lines[0].indexOf("краткий sibling")).toBe(lines[1].indexOf("длинный sibling"))
   })
 })

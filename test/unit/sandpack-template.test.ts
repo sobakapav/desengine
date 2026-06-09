@@ -12,6 +12,7 @@ import {
   buildLevelTemplateRuntimeSource,
   readLevelSandpackTemplate,
 } from "../../lib/lab/sandpack-template"
+import { level5AppTemplateSource } from "./sandpack-preview.helpers"
 
 function buildTempRootDir(testName: string) {
   return path.join(
@@ -22,8 +23,13 @@ function buildTempRootDir(testName: string) {
 }
 
 describe("readLevelSandpackTemplate", () => {
-  it("читает level-5 template из репозитория", async () => {
-    const result = await readLevelSandpackTemplate("level-5", { rootDir: process.cwd() })
+  it("читает level-owned template из onboarding-совместимого layout", async () => {
+    const rootDir = buildTempRootDir("level-owned-onboarding")
+    const sandpackDir = path.join(rootDir, "onboarding", "levels", "level-5", "sandpack")
+    await mkdir(sandpackDir, { recursive: true })
+    await writeFile(path.join(sandpackDir, "App.tsx"), level5AppTemplateSource, "utf-8")
+
+    const result = await readLevelSandpackTemplate("level-5", { rootDir })
 
     expect(result.source).toBe("level")
     expect(result.appTsx).toContain('import * as mockModule from "./mock"')
@@ -31,6 +37,8 @@ describe("readLevelSandpackTemplate", () => {
     expect(result.appTsx).toContain("const explicit = mockModule.mockProps ?? mockModule.mock")
     expect(result.appTsx).toContain("Array.isArray(previewMock)")
     expect(result.appTsx).toContain("PreviewRuntimeContractBoundary")
+
+    await rm(rootDir, { recursive: true, force: true })
   })
 
   it("возвращает level-owned template, если он есть на диске", async () => {
@@ -46,6 +54,23 @@ describe("readLevelSandpackTemplate", () => {
     const result = await readLevelSandpackTemplate("level-1", { rootDir })
     expect(result.source).toBe("level")
     expect(result.appTsx).toContain("level-1-template")
+
+    await rm(rootDir, { recursive: true, force: true })
+  })
+
+  it("поддерживает плоский layout levels/<levelId>/sandpack без onboarding-префикса", async () => {
+    const rootDir = buildTempRootDir("flat-levels")
+    const sandpackDir = path.join(rootDir, "levels", "level-2", "sandpack")
+    await mkdir(sandpackDir, { recursive: true })
+    await writeFile(
+      path.join(sandpackDir, "App.tsx"),
+      'export default function App(){ return <div data-testid="flat-level-template" /> }\n',
+      "utf-8",
+    )
+
+    const result = await readLevelSandpackTemplate("level-2", { rootDir })
+    expect(result.source).toBe("level")
+    expect(result.appTsx).toContain("flat-level-template")
 
     await rm(rootDir, { recursive: true, force: true })
   })

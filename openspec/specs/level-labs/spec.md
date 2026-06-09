@@ -35,6 +35,13 @@
 - **THEN** он строит `TaskData` через общий helper
 - **AND** `contentByFileId`, `promptHistory`, `llmUsageSummary` и `labContext` имеют стабильный shape
 
+#### Scenario: Лаборатория получает retriable overload-отказ task action runtime
+- **WHEN** Workbench вызывает `save files`, `reset task` или `reset current level`
+- **AND** task action runtime уже достиг bounded overload budget
+- **THEN** route boundary возвращает retriable overload-ошибку
+- **AND** текущий Workbench state не теряет уже применённые данные
+- **AND** действие не оставляет частично поставленную в очередь мутацию
+
 ### Requirement: Task screen распространяет один screen event contract
 
 Система SHALL собирать для MVP task/workbench flow один screen-level event contract и передавать его по цепочке `page -> LabScreen -> TaskScreenSection -> Workbench -> child consumer` без второго ad-hoc shape.
@@ -282,6 +289,12 @@
 - **WHEN** у уровня есть редактируемые файлы
 - **THEN** система показывает эти файлы через Monaco Editor
 
+#### Scenario: Monaco штатно отменяет внутреннюю async-операцию
+- **WHEN** Monaco отменяет собственную внутреннюю async-операцию во время dispose, remount или смены модели
+- **AND** редактор при этом остаётся рабочим
+- **THEN** система не показывает пользователю ложный overlay как признак падения лаборатории
+- **AND** suppression не распространяется на посторонние runtime-ошибки вне Monaco cancellation
+
 ### Requirement: Переключение файлов сохраняет текущее состояние редактирования
 
 Система SHALL корректно сохранять текущее содержимое активного файла в состоянии страницы при переключении между файлами.
@@ -360,11 +373,11 @@
 - **THEN** система создаёт локальный `ProjectWorkspace` с `id`, `title`, `createdAt`, `updatedAt` и `settings`
 - **AND** `uiKitId` и `uiMode` сохраняются внутри `ProjectWorkspace.settings`
 
-#### Scenario: Лаборатория переводит локальные project settings на shadcn/ui при rehydration
+#### Scenario: Лаборатория сохраняет локальные project settings при rehydration
 - **WHEN** лаборатория читает локальный `ProjectWorkspace` из browser storage
-- **THEN** система нормализует `project.settings.uiKitId` к `shadcn`
-- **AND** нормализует `project.settings.uiMode` к `ui-kit`
-- **AND** preview не наследует старые локальные `ant`, `mui` или `html-tags` настройки
+- **THEN** система сохраняет прочитанные `project.settings.uiKitId` и `project.settings.uiMode`, если они валидны
+- **AND** preview наследует текущие project settings без принудительного перевода в `shadcn/ui-kit`
+- **AND** не создаёт новый несовместимый project shape поверх сохранённого `ProjectWorkspace`
 
 #### Scenario: Пользователь переключает UI kit проекта без перезагрузки страницы
 - **WHEN** пользователь меняет `project.settings.uiKitId` в лаборатории
@@ -385,6 +398,26 @@
 - **WHEN** Sandpack preview сообщает runtime-ошибку после сборки payload
 - **THEN** лаборатория показывает host-level диагностическое сообщение рядом с preview
 - **AND** не отключает внутренний Sandpack error overlay
+
+### Requirement: Sandpack preview публикует structured diagnostics payload build
+
+Система SHALL возвращать из preview payload builder structured runtime diagnostics для build/cache/degradation paths, чтобы speed/load verdicts и локальная диагностика читали единый surface.
+
+#### Scenario: Preview payload build возвращает cache и size diagnostics
+- **WHEN** runtime собирает Sandpack preview payload
+- **THEN** payload содержит structured diagnostics с `durationMs`, bounded cache hit/miss и size/load полями
+- **AND** diagnostics позволяют оценить объём dependency/file build без внешней telemetry
+- **AND** diagnostics различают reuse тяжёлых derived artifacts и CSS compile path
+
+#### Scenario: Preview compatibility fallback помечается как degradation signal
+- **WHEN** preview builder вынужден переключиться в compatibility fallback или safe component mode
+- **THEN** structured diagnostics помечает этот путь как degraded
+- **AND** downstream tests могут отличить обычную сборку от degraded branch
+
+#### Scenario: Preview budget exceed переводит runtime в safe degradation mode
+- **WHEN** preview payload превышает budget по входному объёму или числу Tailwind candidates
+- **THEN** runtime не запускает дорогую preview-сборку без ограничений
+- **AND** пользователь получает безопасный fallback и structured diagnostics с причиной `preview_budget_exceeded`
 
 ### Requirement: Lab level может быть представлен как workflow step profile
 

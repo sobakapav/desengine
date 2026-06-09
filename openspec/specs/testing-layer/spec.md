@@ -21,6 +21,13 @@
 - **AND** интеграционные и e2e smoke-проверки не запускаются автоматически в составе `test:full`
 - **AND** live/provider-проверки с реальными внешними сервисами не запускаются случайно
 
+#### Scenario: Разработчик запускает явную smoke-проверку реального onboarding checkout
+
+- **WHEN** разработчик выполняет `npm run test:onboarding:real`
+- **THEN** система проверяет совместимость реального `/onboarding` checkout через текущий smoke/repair контракт
+- **AND** команда не использует unit-фикстуры как доказательство готовности реального checkout
+- **AND** при проблеме возвращает диагностику про `ONBOARDING_REPO_URL`, layout, source marker или результат repair
+
 #### Scenario: Разработчик запускает проверки по capability
 
 - **WHEN** разработчик указывает OpenSpec capability для выборочного запуска
@@ -111,6 +118,56 @@
 - **THEN** change содержит тестовую часть: уровень проверки, команду запуска, mock/live требования и связь с общим тестовым слоем
 - **AND** если покрытие откладывается, это фиксируется в coverage-plan с причиной
 
+### Requirement: Controlled performance verdicts выражаются как reusable contract
+
+Система SHALL позволять тестовому слою выражать controlled speed-path verdicts для user-facing сценариев `npm run start` без live/provider нестабильности.
+
+#### Scenario: Разработчик проверяет controlled speed-path против performance budget
+
+- **WHEN** разработчик запускает unit- или contract-проверку speed-path на fixture/mocked измерениях
+- **THEN** тестовый слой возвращает явный verdict `ok`, `regression` или `budget-exceeded`
+- **AND** verdict использует reusable contract c baseline, budget и controlled samples
+
+#### Scenario: Одиночный шумовой spike не считается speed regression
+
+- **WHEN** один из controlled samples резко медленнее baseline, но representative duration остаётся внутри noise threshold
+- **THEN** verdict остаётся `ok`
+- **AND** тестовый слой не подменяет speed regression единичным infra noise
+
+### Requirement: Speed/load regression harness переиспользуется между сценариями
+
+Система SHALL держать reusable regression harness для speed/load линии `npm run start`, чтобы downstream checks не собирали локальные ad-hoc loops для cold/warm, repeated actions, overload и oversize веток.
+
+#### Scenario: Reusable harness прогоняет cold/warm speed-path
+
+- **WHEN** тестовый слой проверяет cold и warm вариант одного speed-path
+- **THEN** harness прогоняет их через единый sample/verdict contract
+- **AND** cold/warm различие выражается через machine-readable diagnostics, а не через ручной разбор логов
+
+#### Scenario: Reusable harness прогоняет repeated preview rebuild
+
+- **WHEN** тестовый слой прогоняет повторные rebuild preview payload
+- **THEN** harness удерживает общий surface для repeated samples и итогового verdict
+- **AND** repeated path не требует отдельной ad-hoc логики в каждом downstream тесте
+
+#### Scenario: Reusable harness прогоняет repeated iterate/check path
+
+- **WHEN** тестовый слой проверяет повторные `iterate` или `check`
+- **THEN** harness читает единый response/diagnostics contract этих action-path'ов
+- **AND** сценарий не требует live credentials и браузерной интеракции
+
+#### Scenario: Reusable harness прогоняет overload backlog path
+
+- **WHEN** тестовый слой воспроизводит queued или overload backlog path
+- **THEN** harness фиксирует degradation/load сигнал через structured diagnostics
+- **AND** queued path остаётся различимым относительно immediate path
+
+#### Scenario: Reusable harness прогоняет oversized payload/output refusal
+
+- **WHEN** тестовый слой проверяет oversized input или output refusal
+- **THEN** harness ожидает bounded error response и structured refusal diagnostics
+- **AND** oversized path не требует реального provider-call
+
 ### Requirement: Lab-flow проверяется без live credentials
 
 Система SHALL иметь воспроизводимую проверку ключевого lab-flow или его service-level эквивалента без реальных LLM credentials.
@@ -130,3 +187,17 @@
 - **THEN** тесты проходят через реальные route handlers, request/params parsing и HTTP response mapping
 - **AND** runtime/service зависимости подменяются fixture или stub boundary без live provider credentials
 - **AND** тест не оставляет изменения в рабочем пользовательском состоянии
+
+### Requirement: Downstream speed/load проверки читают единый runtime diagnostics contract
+
+Система SHALL держать канонический runtime diagnostics contract для task actions и preview payload, чтобы verdict layer не собирал ad-hoc speed/load сигналы из разноформатных логов.
+
+#### Scenario: Unit-проверка читает runtime diagnostics task action
+- **WHEN** unit-слой проверяет `start`, `iterate` или `check`
+- **THEN** он читает structured diagnostics из action result
+- **AND** проверка не требует внешнего telemetry backend или live credentials
+
+#### Scenario: Unit-проверка читает runtime diagnostics preview payload
+- **WHEN** unit-слой проверяет сборку Sandpack preview
+- **THEN** он читает structured diagnostics из preview payload
+- **AND** может отличить bounded cache hit/miss, budget degradation path и degraded compatibility path

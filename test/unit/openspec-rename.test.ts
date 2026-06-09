@@ -3,7 +3,6 @@
 // @openSpec  - "Разработчик переименовывает change через admin-команду"
 // @openSpec  - "Разработчик задаёт имя change с голым суффиксом даты"
 
-import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -11,6 +10,8 @@ import path from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 
 import { assertValidChangeName, normalizeDispatchedChangeName } from "../../tools/openspec-change-name.mjs"
+import { runOpenSpecRename } from "../../tools/rename-openspec-change.mjs"
+import { runToolInFixture } from "../helpers/run-tool-fixture"
 
 const tempDirs: string[] = []
 
@@ -51,10 +52,14 @@ describe("openspec rename", () => {
       "release_ref: release-may-21",
     )
 
-    execFileSync(process.execPath, [path.join(process.cwd(), "tools", "rename-openspec-change.mjs"), "release-may-21", "release-2026-05-21-day"], {
+    const result = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      argv: ["release-may-21", "release-2026-05-21-day"],
+      runner: runOpenSpecRename,
     })
+
+    expect(result.thrown).toBeUndefined()
+    expect(result.exitCode).toBeUndefined()
 
     expect(fs.existsSync(path.join(fixtureRoot, "openspec", "changes", "release-may-21"))).toBe(false)
     expect(fs.existsSync(path.join(fixtureRoot, "openspec", "changes", "release-2026-05-21-day"))).toBe(true)
@@ -107,10 +112,14 @@ short: "диспетчер workflow"`,
       "utf8",
     )
 
-    execFileSync(process.execPath, [path.join(process.cwd(), "tools", "rename-openspec-change.mjs"), "focus-workflow", "focus-governance"], {
+    const result = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      argv: ["focus-workflow", "focus-governance"],
+      runner: runOpenSpecRename,
     })
+
+    expect(result.thrown).toBeUndefined()
+    expect(result.exitCode).toBeUndefined()
 
     const dispatcherMeta = fs.readFileSync(
       path.join(fixtureRoot, "openspec", "changes", "dispatcher-openspec", ".openspec.yaml"),
@@ -144,10 +153,14 @@ short: "диспетчер workflow"`,
       'change_kind: "implement"\nexecution_mode: "code"\nparent_change: "dispatcher-demo"\nstrategy_root: "focus-demo"\nproducer_ref: "producer-demo"\nverification_level: "unit"\nverification_command: "npm run test:unit"\nshort: "реализация demo"',
     )
 
-    execFileSync(process.execPath, [path.join(process.cwd(), "tools", "rename-openspec-change.mjs"), "producer-demo", "producer-guidance"], {
+    const result = runToolInFixture({
       cwd: fixtureRoot,
-      encoding: "utf8",
+      argv: ["producer-demo", "producer-guidance"],
+      runner: runOpenSpecRename,
     })
+
+    expect(result.thrown).toBeUndefined()
+    expect(result.exitCode).toBeUndefined()
 
     const implementMeta = fs.readFileSync(
       path.join(fixtureRoot, "openspec", "changes", "implement-demo", ".openspec.yaml"),

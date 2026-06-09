@@ -12,6 +12,7 @@
   - [ ] 5.2 route fixture wave: `implement-route-integration-fixture-wave`
   - [ ] 5.3 live preflight wave: `implement-live-provider-test-preflight`
   - [ ] 5.4 traceability remediation wave: `fix-test-spec-coverage-map-completeness`
+  - [ ] 5.5 browser phase stability wave: `fix-browser-test-phase-stability`
 - [ ] 6. Заполнить handoff и поддерживать его в состоянии, пригодном для передачи исполнения downstream changes.
 
 ## Тестовая часть change

@@ -1,10 +1,11 @@
-const ACCESS_COOKIE_NAME = "desengine-access"
+import {
+  ACCESS_COOKIE_NAME,
+  normalizeEmail,
+  isPlausibleEmail,
+} from "@/lib/auth/shared"
 
 const ACCESS_ALLOWED_PAYLOAD = "allowlist-access-granted"
 const ACCESS_SESSION_TTL_MS = 24 * 60 * 60 * 1000
-
-const ALLOWLIST_BASE_URL_ENV = "ALLOWLIST_BASE_URL"
-const ALLOWLIST_SALT_ENV = "ALLOWLIST_SALT"
 
 type AccessSessionPayload = {
   access?: string
@@ -62,39 +63,6 @@ function base64UrlToBytes(value: string): Uint8Array | null {
   } catch {
     return null
   }
-}
-
-function getAccessControlConfig() {
-  const baseUrl =
-    process.env[ALLOWLIST_BASE_URL_ENV]?.trim()
-    || process.env.DESENGINE_ALLOWLIST_BASE_URL?.trim()
-    || ""
-  const salt =
-    process.env[ALLOWLIST_SALT_ENV]?.trim()
-    || process.env.DESENGINE_ALLOWLIST_SALT?.trim()
-    || ""
-
-  return {
-    baseUrl,
-    salt,
-    isConfigured: Boolean(baseUrl && salt),
-  }
-}
-
-function shouldUseSecureCookies(requestUrl: string): boolean {
-  try {
-    return new URL(requestUrl).protocol === "https:"
-  } catch {
-    return false
-  }
-}
-
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase()
-}
-
-function isPlausibleEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 async function sha256Hex(value: string): Promise<string> {
@@ -202,14 +170,8 @@ async function verifyAccessSessionValue(
 export {
   ACCESS_COOKIE_NAME,
   ACCESS_SESSION_TTL_MS,
-  ALLOWLIST_BASE_URL_ENV,
-  ALLOWLIST_SALT_ENV,
   createAccessSessionValue,
   createAllowlistMarker,
-  getAccessControlConfig,
-  isPlausibleEmail,
-  normalizeEmail,
-  shouldUseSecureCookies,
   type VerifiedAccessSession,
   verifyAccessSessionValue,
 }

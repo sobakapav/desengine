@@ -17,7 +17,8 @@
 // @openSpec  - "Система загружает конфигурацию уровня"
 // @openSpec  - "Новый уровень запрещает файл, существовавший раньше"
 // @openSpec  - "Пользователь завершил максимальный уровень задачи"
-// @openSpec  - "Пользователь нажал `Я закончил`"
+// @openSpec  - "Пользователь нажал `Отправить решение на проверку`"
+// @openSpec  - "Рабочий экран показывает единый путь до `Проверка пройдена`"
 // @openSpec  - "Пользователь открывает результат проверки по каноническому route"
 // @openSpec  - "Проверка уровня успешна"
 // @openSpec  - "Пользователь запускает проверки результата уровня"
@@ -140,14 +141,16 @@ describe("P1 source contracts", () => {
   })
 
   it("level-3 onboarding-контракт согласован по editable files, overview и hidden check", () => {
-    const levelConfig = readProjectFile("onboarding", "levels", "level-3", "config.json")
-    const overview = readProjectFile("onboarding", "levels", "level-3", "overview.md")
-    const checkPrompt = readProjectFile("onboarding", "prompts", "levels", "level-3", "check.njk")
+    const appConfig = readProjectFile("desengine.config.json")
+    const levelLabsSpec = readProjectFile("openspec", "specs", "level-labs", "spec.md")
+    const iteratePrompt = readProjectFile("prompts", "iterate-component.njk")
+    const taskActionDefaults = readProjectFile("lib", "task", "actions", "shared.ts")
 
-    expect(levelConfig).toContain('"styles"')
-    expect(overview).toContain("`styles.ts`")
-    expect(checkPrompt).toContain("`Component.tsx` и `styles.ts`")
-    expect(checkPrompt).not.toContain("style.ts")
+    expect(appConfig).toContain('"id": "styles"')
+    expect(levelLabsSpec).toContain("`styles.ts`")
+    expect(levelLabsSpec).not.toContain("style.ts")
+    expect(iteratePrompt).toContain("`styles.ts`")
+    expect(taskActionDefaults).toContain('"styles.ts": "export {};"')
   })
 
   it("user progress читается и пишется только через user-owned progress storage", () => {
@@ -213,6 +216,15 @@ describe("P1 source contracts", () => {
     expect(levelsPage).toContain("getAllLevelOverviews")
   })
 
+  it("workbench и check-result показывают единый путь до состояния «Проверка пройдена»", () => {
+    const workbenchView = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchView.tsx")
+    const checkResult = readProjectFile("components", "desengine", "task", "TaskCheckResult.tsx")
+
+    expect(workbenchView).toContain("До состояния «Проверка пройдена»")
+    expect(workbenchView).toContain("Отправить решение на проверку")
+    expect(checkResult).toContain("Главный outcome уровня достигнут")
+  })
+
   it("start и iterate routes собирают prompt context, enforcing limits and prompt history", () => {
     const taskActions = readProjectFile("lib", "task", "actions.ts")
     const promptComposer = readProjectFile(
@@ -258,6 +270,13 @@ describe("P1 source contracts", () => {
     expect(promptComposer).toContain("Shift+Enter")
     expect(editor).toContain("FallbackCodeEditor")
     expect(editor).toContain("@monaco-editor/react")
+    expect(editor).toContain('window.addEventListener("unhandledrejection", handleUnhandledRejection)')
+    expect(editor).toContain('window.removeEventListener("unhandledrejection", handleUnhandledRejection)')
+    expect(editor).toContain("isMonacoCancellationNoise(event.reason)")
+    expect(editor).toContain('stringReason === "canceled: canceled"')
+    expect(editor).toContain('if (isExactCanceledPair && errorStack.length === 0)')
+    expect(editor).toContain("const nestedCause = (reason as MonacoCancellationLike).cause")
+    expect(editor).toContain("errorTexts.some(hasMonacoSourceMarker)")
   })
 
   it("лаборатория включает image inspector по умолчанию и поддерживает явный query override на отключение", () => {
