@@ -191,10 +191,19 @@ function isMonacoCancellationNoise(reason: unknown) {
 
   const { message, name, stack } = reason as MonacoCancellationLike;
   const nestedCause = (reason as MonacoCancellationLike).cause;
+  const errorName = normalizeErrorText(name);
+  const errorMessage = normalizeErrorText(message);
+  const errorStack = normalizeErrorText(stack);
+  const isExactCanceledPair = errorName === "canceled" && errorMessage === "canceled";
+
+  if (isExactCanceledPair && errorStack.length === 0) {
+    return true;
+  }
+
   const errorTexts = [
-    normalizeErrorText(name),
-    normalizeErrorText(message),
-    normalizeErrorText(stack),
+    errorName,
+    errorMessage,
+    errorStack,
     normalizeErrorText((nestedCause as MonacoCancellationLike | null | undefined)?.name),
     normalizeErrorText((nestedCause as MonacoCancellationLike | null | undefined)?.message),
     normalizeErrorText((nestedCause as MonacoCancellationLike | null | undefined)?.stack),

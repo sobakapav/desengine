@@ -274,6 +274,7 @@ describe("P1 source contracts", () => {
     expect(editor).toContain('window.removeEventListener("unhandledrejection", handleUnhandledRejection)')
     expect(editor).toContain("isMonacoCancellationNoise(event.reason)")
     expect(editor).toContain('stringReason === "canceled: canceled"')
+    expect(editor).toContain('if (isExactCanceledPair && errorStack.length === 0)')
     expect(editor).toContain("const nestedCause = (reason as MonacoCancellationLike).cause")
     expect(editor).toContain("errorTexts.some(hasMonacoSourceMarker)")
   })

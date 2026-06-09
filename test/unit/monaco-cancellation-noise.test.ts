@@ -36,6 +36,13 @@ describe("Monaco cancellation noise filter", () => {
       }),
     ).toBe(true)
 
+    expect(
+      isMonacoCancellationNoise({
+        name: "Canceled",
+        message: "Canceled",
+      }),
+    ).toBe(true)
+
     expect(isMonacoCancellationNoise("Canceled: Canceled")).toBe(true)
   })
 
@@ -61,6 +68,13 @@ describe("Monaco cancellation noise filter", () => {
         name: "TypeError",
         message: "Cannot read properties of undefined",
         stack: "TypeError: Cannot read properties of undefined\n    at https://cdn.example/monaco-editor/vs/editor/editor.main.js:1:1",
+      }),
+    ).toBe(false)
+
+    expect(
+      isMonacoCancellationNoise({
+        name: "Error",
+        message: "Canceled",
       }),
     ).toBe(false)
 
