@@ -110,6 +110,8 @@ npm run os -- dispatcher
 Печатает список release changes и их состав по полю `release_ref` в виде дерева.
 В вывод включаются только активные changes из `openspec/changes`.
 Архив `openspec/changes/archive` в этой команде не показывается.
+В состав релиза считаются валидными только `implement` и `fix`; `dispatcher`, `producer`, `focus`, `idea` и `release` не могут входить в релиз через `release_ref`.
+Если change включается в релиз, `os:dispatch` обязан синхронно обновить `release_ref` и в `.openspec.yaml`, и в inherited context `handoff.md`; при расхождении команда завершается ошибкой и не считает inclusion успешным.
 
 Формат вывода:
 
@@ -172,6 +174,7 @@ npm run os:dispatch -- release-... --dispatcher dispatcher-... --kind fix --name
 ```
 
 В этом режиме исполнительский change тактически подчиняется `dispatcher` (через `parent_change`), одновременно входит в релиз (через `release_ref`) и при необходимости отдельно помечается `producer_ref`.
+Release-dispatch path не допускает partial update: если `release_ref` не удалось одинаково записать в metadata и handoff, команда должна упасть.
 
 Итоговое имя change проходит ту же проверку схемы, что и `openspec:new`: голый суффикс даты вида `-YYYY-MM-DD` на конце запрещён.
 Созданный change получает `handoff.md`, который создатель обязан заполнить перед передачей исполнения.
@@ -263,6 +266,7 @@ short: "краткое описание change"
 
 Для dispatcher `roadmap_ref` хранит одиночную ссылку на roadmap стратегического владельца в формате `<change>/roadmaps/<file>.md`.
 Если нужен не один roadmap, используется `roadmap_refs` как YAML-список с тем же форматом ссылок.
+`release_ref` разрешён только для `implement` и `fix`: release собирает только исполнительский состав поставки и не может включать `focus`, `idea`, `producer`, `dispatcher` или другой `release`.
 Если исполнительская ветка работает в контексте конкретного producer, для `implement` и `fix` используется отдельная метка `producer_ref`.
 Прямое родительство `dispatcher -> producer` запрещено, и сам `dispatcher` не может хранить `producer_ref`.
 

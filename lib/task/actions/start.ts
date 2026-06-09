@@ -1,6 +1,10 @@
 import "server-only"
 
-import { runTaskMutation } from "@/lib/task/mutation-boundary"
+import {
+  createTaskMutationOverloadHttpResult,
+  isTaskMutationOverloadError,
+  runTaskMutation,
+} from "@/lib/task/mutation-boundary"
 import { saveCurrentTaskLevelSnapshot } from "@/lib/task/level-reset-storage"
 import {
   attachRuntimeDiagnostics,
@@ -21,7 +25,14 @@ import {
   parseStartStage,
   runStartLlmStage,
 } from "./start-stage"
+import {
+  getTaskActionBudgetErrorDetails,
+  validateTaskActionInputBudget,
+  validateTaskActionStructuredOutputBudget,
+} from "./runtime-llm-budget"
+import { taskActionShared } from "./shared"
 import type { TaskActionHttpResult } from "./types"
+import { toLlmErrorResponse } from "@/lib/llm/server"
 
 function finalizeStartResult(
   result: TaskActionHttpResult,
@@ -71,6 +82,36 @@ async function runStartTaskLevelMutation(taskId: string, startedAt: number): Pro
   }
 
   const llmInput = await buildStartLlmInput(context)
+  try {
+    validateTaskActionInputBudget({
+      path: "start",
+      instruction: llmInput.instruction,
+      imageBase64List: context.imageBase64List,
+    })
+  } catch (error) {
+    const response = toLlmErrorResponse(error)
+    return finalizeStartResult(taskActionShared.jsonResult(response.body, response.status), {
+      scope: "task",
+      path: "start",
+      stage: "task_start",
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        instructionChars: llmInput.instruction.length,
+        promptImageBase64Chars: context.imageBase64List.reduce((total, image) => total + image.length, 0),
+      },
+      load: {
+        promptImageCount: context.imageBase64List.length,
+        editableFileCount: llmInput.fileList.length,
+      },
+      degradation: {
+        reason: "runtime_budget_exceeded",
+        details: getTaskActionBudgetErrorDetails(error) ?? undefined,
+      },
+    })
+  }
+
   await saveCurrentTaskLevelSnapshot(
     taskId,
     context.level.number,
@@ -96,6 +137,35 @@ async function runStartTaskLevelMutation(taskId: string, startedAt: number): Pro
       },
       degradation: {
         reason: "llm_request_failed",
+      },
+    })
+  }
+
+  try {
+    validateTaskActionStructuredOutputBudget({
+      path: "start",
+      outputText: llmStage.outputText,
+    })
+  } catch (error) {
+    const response = toLlmErrorResponse(error)
+    return finalizeStartResult(taskActionShared.jsonResult(response.body, response.status), {
+      scope: "task",
+      path: "start",
+      stage: "task_start",
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        instructionChars: llmStage.inputSize.instructionChars,
+        outputChars: llmStage.outputText.length,
+      },
+      load: {
+        promptImageCount: llmStage.inputSize.promptImageCount,
+        editableFileCount: llmStage.inputSize.editableFileCount,
+      },
+      degradation: {
+        reason: "runtime_budget_exceeded",
+        details: getTaskActionBudgetErrorDetails(error) ?? undefined,
       },
     })
   }
@@ -152,7 +222,8 @@ async function runStartTaskLevelMutation(taskId: string, startedAt: number): Pro
         editableFileCount: llmStage.inputSize.editableFileCount,
       },
       degradation: {
-        reason: "write_stage_failed",
+        reason: writeStage.budgetErrorDetails ? "runtime_budget_exceeded" : "write_stage_failed",
+        details: writeStage.budgetErrorDetails ?? undefined,
       },
     })
   }
@@ -188,6 +259,25 @@ async function runStartTaskLevelMutation(taskId: string, startedAt: number): Pro
 
 export const taskStartAction = {
   async startTaskLevel(taskId: string): Promise<TaskActionHttpResult> {
-    return runTaskMutation(taskId, () => runStartTaskLevelMutation(taskId, Date.now()))
+    try {
+      return await runTaskMutation(taskId, () => runStartTaskLevelMutation(taskId, Date.now()))
+    } catch (error) {
+      if (!isTaskMutationOverloadError(error)) {
+        throw error
+      }
+
+      return finalizeStartResult(createTaskMutationOverloadHttpResult(error), {
+        scope: "task",
+        path: "start",
+        stage: "task_start",
+        status: "error",
+        durationMs: 0,
+        taskId,
+        load: error.diagnostics.load,
+        degradation: {
+          reason: "mutation_boundary_overload",
+        },
+      })
+    }
   },
 }

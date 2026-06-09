@@ -109,4 +109,37 @@ describe("openspec release list", () => {
     expect(output).toContain("    fix-b\tпоставка б")
     expect(output).toContain("    implement-a\tпоставка а")
   })
+
+  it("не считает dispatcher и producer валидным составом релиза, если нет implement/fix", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-release-list-kinds-"))
+    tempDirs.push(fixtureRoot)
+
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "release-live"),
+      'change_kind: "release"\nshort: "актуальный релиз"',
+    )
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "dispatcher-alpha"),
+      'change_kind: "dispatcher"\nshort: "диспетчер альфа"\nparent_change: "focus-demo"\nrelease_ref: "release-live"',
+    )
+    writeChange(
+      fixtureRoot,
+      path.join("openspec", "changes", "producer-alpha"),
+      'change_kind: "producer"\nshort: "продюсер альфа"\nparent_change: "focus-demo"\nrelease_ref: "release-live"',
+    )
+
+    const { stdout, thrown } = runToolInFixture({
+      cwd: fixtureRoot,
+      runner: runListOpenSpecReleases,
+    })
+
+    expect(thrown).toBeUndefined()
+    const output = stdout
+
+    expect(output).toContain("  (пусто)\tнет привязанных changes")
+    expect(output).not.toContain("диспетчер альфа")
+    expect(output).not.toContain("продюсер альфа")
+  })
 })

@@ -9,6 +9,7 @@ const rootDir =
     : path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["163.5.29.79"],
   devIndicators: false,
   turbopack: {
     root: rootDir,
@@ -17,9 +18,5 @@ const nextConfig: NextConfig = {
     "/api/**": ["lib/lab/sandpack-templates/**"],
   },
 };
-
-module.exports = {
-  allowedDevOrigins: ['163.5.29.79'],
-}
 
 export default nextConfig;

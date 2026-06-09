@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-09
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "release"
+execution_mode: "no-code"
+parent_change: ""
+strategy_root: ""
+roadmap_ref: ""
+release_ref: ""
+producer_ref: ""
+verification_level: "static/contract"
+verification_command: "npm run test:traceability"
+issue: ""
+short: "архитектурный релиз старта трансформации продукта на 10 июня 2026"

@@ -17,7 +17,7 @@ function mergePreviewRuntimeContractState(
         return current.status === "idle" || current.status === "loading" ? next : current;
     }
 
-    if (next.status === "render-error" && current.status === "ready") {
+    if (current.status === "render-error" && next.status !== "render-error") {
         return current;
     }
 

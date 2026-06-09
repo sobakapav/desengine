@@ -114,6 +114,7 @@ export function runListOpenSpecReleases(args = process.argv.slice(2)) {
 
     const members = [...byName.values()]
       .filter((change) => change.releaseRef === release.name)
+      .filter((change) => change.kind === "implement" || change.kind === "fix")
       .sort((a, b) => a.name.localeCompare(b.name))
 
     if (members.length === 0) {

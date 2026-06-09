@@ -1,4 +1,4 @@
-import { readdir, readFile } from "node:fs/promises"
+import { readdir, readFile, stat } from "node:fs/promises"
 import path from "node:path"
 
 async function readFilesRecursively(rootDir: string, virtualRoot: string) {
@@ -31,6 +31,38 @@ async function readFilesRecursively(rootDir: string, virtualRoot: string) {
   return result
 }
 
+async function readRecursiveTypeScriptTreeSignature(rootDir: string) {
+  const signatures: string[] = []
+
+  async function walk(dir: string) {
+    const entries = await readdir(dir, { withFileTypes: true })
+    const sortedEntries = [...entries].sort((left, right) => left.name.localeCompare(right.name))
+
+    for (const entry of sortedEntries) {
+      const fullPath = path.join(dir, entry.name)
+
+      if (entry.isDirectory()) {
+        signatures.push(`dir:${path.relative(rootDir, fullPath).replaceAll("\\", "/")}`)
+        await walk(fullPath)
+        continue
+      }
+
+      if (!entry.name.endsWith(".ts") && !entry.name.endsWith(".tsx")) {
+        continue
+      }
+
+      const fileStat = await stat(fullPath)
+      const relativePath = path.relative(rootDir, fullPath).replaceAll("\\", "/")
+      signatures.push(`file:${relativePath}:${fileStat.size}:${Math.trunc(fileStat.mtimeMs)}`)
+    }
+  }
+
+  await walk(rootDir)
+
+  return signatures.join("|")
+}
+
 export {
-    readFilesRecursively
+  readFilesRecursively,
+  readRecursiveTypeScriptTreeSignature,
 }

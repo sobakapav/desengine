@@ -7,7 +7,7 @@ import {
     useSandpack,
     useSandpackPreviewProgress,
 } from "@codesandbox/sandpack-react/unstyled";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
 import type { SandpackPreviewPayload } from "@/lib/lab/sandpack-preview.types";
 import { createDefaultProject } from "@/lib/project/runtime";
@@ -19,10 +19,22 @@ import {
 } from "../preview-runtime-contract-state";
 import { getPreviewCheckGuardMessage, readPreviewRuntimeContractMessage } from "../preview-runtime-contract-message";
 import { resolvePreviewClientId } from "../preview-client-id";
+import {
+    getPreviewRuntimeSupport,
+    PreviewCheckGuardNotice,
+    PreviewErrorNotice,
+    PreviewRuntimeContractErrorNotice,
+    PreviewSecureContextNotice,
+    PreviewStyleContractNotice,
+    ProjectCompatibilityNotice,
+} from "./preview-runtime-notices";
 const SANDBOX_RUNTIME_VERSION = "2026-05-20-ant-shim-v3";
 const PREVIEW_RUNTIME_CONTRACT_TIMEOUT_MS = 12_000;
 const PREVIEW_FETCH_TIMEOUT_MS = 12_000;
-const CHECK_BUTTON_LABEL = "Проверить результат";
+const CHECK_BUTTON_LABEL = "Отправить решение на проверку";
+const PREVIEW_RUNTIME_CONTRACT_ATTR = "data-desengine-preview-contract";
+const PREVIEW_RUNTIME_CONTRACT_MESSAGE_ATTR = "data-desengine-preview-contract-message";
+const PREVIEW_RUNTIME_RENDER_ERROR_ATTR = "data-desengine-preview-render-error";
 
 type SandpackPreviewRef = {
     clientId: string;
@@ -30,60 +42,6 @@ type SandpackPreviewRef = {
 
 function getErrorMessage(error: unknown, fallbackMessage: string) {
     return error instanceof Error && error.message ? error.message : fallbackMessage;
-}
-
-function PreviewErrorNotice({ message }: { message: string }) {
-    return (
-        <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
-            <p className="font-medium text-destructive">Не удалось показать превью компонента.</p>
-            <pre className="text-destructive whitespace-pre-wrap break-words">{message}</pre>
-        </div>
-    );
-}
-
-function PreviewStyleContractNotice({ message }: { message: string }) {
-    return (
-        <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-            <p className="font-medium">Preview отрисовал DOM без подтверждённого style contract.</p>
-            <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
-        </div>
-    );
-}
-
-function PreviewRuntimeContractErrorNotice({ message }: { message: string }) {
-    return (
-        <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-            <p className="font-medium">Компонент не удалось отрендерить в preview.</p>
-            <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
-        </div>
-    );
-}
-
-function PreviewCheckGuardNotice({ message }: { message: string }) {
-    return (
-        <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-            <p className="font-medium">Проверка результата временно недоступна.</p>
-            <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
-        </div>
-    );
-}
-
-function ProjectCompatibilityNotice({ payload }: { payload: SandpackPreviewPayload }) {
-    const compatibility = payload.project.compatibility;
-
-    if (compatibility.status !== "incompatible") {
-        return null;
-    }
-
-    return (
-        <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-            <p className="font-medium">
-                Project UI: {payload.project.settings.uiKitId}, режим {payload.project.settings.uiMode}
-                {payload.project.effectiveUiKitId !== payload.project.settings.uiKitId ? `, runtime ${payload.project.effectiveUiKitId}` : ""}
-            </p>
-            <p className="mt-1">{compatibility.message}</p>
-        </div>
-    );
 }
 
 function getSandpackRuntimeDiagnosticMessage(error: unknown) {
@@ -94,6 +52,48 @@ function getSandpackRuntimeDiagnosticMessage(error: unknown) {
         return typeof message === "string" ? message : "";
     }
     return "";
+}
+
+function readPreviewIframeContractState(
+    previewRootRef: RefObject<HTMLDivElement | null>,
+): PreviewRuntimeContractState | null {
+    const iframe = previewRootRef.current?.querySelector<HTMLIFrameElement>("iframe.sp-preview-iframe");
+    if (!(iframe instanceof HTMLIFrameElement)) {
+        return null;
+    }
+
+    try {
+        const document = iframe.contentWindow?.document;
+        const html = document?.documentElement;
+        const status = html?.getAttribute(PREVIEW_RUNTIME_CONTRACT_ATTR);
+
+        if (
+            status !== "loading"
+            && status !== "ready"
+            && status !== "unstyled-dom"
+            && status !== "render-error"
+        ) {
+            const renderErrorRoot = document?.querySelector<HTMLElement>(`[${PREVIEW_RUNTIME_RENDER_ERROR_ATTR}="true"]`);
+            if (!renderErrorRoot) {
+                return null;
+            }
+
+            return {
+                status: "render-error",
+                message:
+                    renderErrorRoot.querySelector<HTMLElement>(`[${PREVIEW_RUNTIME_CONTRACT_MESSAGE_ATTR}]`)?.getAttribute(PREVIEW_RUNTIME_CONTRACT_MESSAGE_ATTR)
+                    ?? renderErrorRoot.textContent?.trim()
+                    ?? "",
+            };
+        }
+
+        return {
+            status,
+            message: html?.getAttribute(PREVIEW_RUNTIME_CONTRACT_MESSAGE_ATTR) ?? "",
+        };
+    } catch {
+        return null;
+    }
 }
 
 function SandpackRuntimeDiagnosticsNotice({ payload }: { payload: SandpackPreviewPayload }) {
@@ -122,7 +122,12 @@ function SandpackRuntimeDiagnosticsNotice({ payload }: { payload: SandpackPrevie
     );
 }
 
-function usePreviewRuntimeContract(moduleUrl: string, previewSessionId: string, enabled: boolean) {
+function usePreviewRuntimeContract(
+    moduleUrl: string,
+    previewSessionId: string,
+    enabled: boolean,
+    previewRootRef: RefObject<HTMLDivElement | null>,
+) {
     const [contractState, setContractState] = useState<PreviewRuntimeContractState>({
         status: "idle",
         message: "",
@@ -157,12 +162,22 @@ function usePreviewRuntimeContract(moduleUrl: string, previewSessionId: string, 
             ));
         }, PREVIEW_RUNTIME_CONTRACT_TIMEOUT_MS);
 
+        const iframeContractPollId = window.setInterval(() => {
+            const iframeContractState = readPreviewIframeContractState(previewRootRef);
+            if (!iframeContractState) {
+                return;
+            }
+
+            setContractState((current) => mergePreviewRuntimeContractState(current, iframeContractState));
+        }, 100);
+
         window.addEventListener("message", handleMessage);
         return () => {
             window.clearTimeout(timeoutId);
+            window.clearInterval(iframeContractPollId);
             window.removeEventListener("message", handleMessage);
         };
-    }, [enabled, moduleUrl, previewSessionId]);
+    }, [enabled, moduleUrl, previewRootRef, previewSessionId]);
 
     return {
         contractState,
@@ -260,9 +275,32 @@ function SandpackRuntimeActivityBridge({
     clientId: string | null;
     onRuntimeContractChange: (next: PreviewRuntimeContractState) => void;
 }) {
-    const { sandpack } = useSandpack();
+    const { sandpack, listen } = useSandpack();
     const progressMessage = useSandpackPreviewProgress(clientId ? { clientId } : undefined);
     const loadingOverlayState = useLoadingOverlayState(clientId ?? undefined, false);
+
+    useEffect(() => {
+        if (!clientId) {
+            return;
+        }
+
+        return listen((message) => {
+            if (message.type === "action" && message.action === "show-error") {
+                onRuntimeContractChange({
+                    status: "render-error",
+                    message: getErrorMessage((message as { message?: unknown }).message, "Sandpack runtime сообщил об ошибке рендера компонента."),
+                });
+                return;
+            }
+
+            if (message.type === "action" && message.action === "notification" && message.notificationType === "error") {
+                onRuntimeContractChange({
+                    status: "render-error",
+                    message: getErrorMessage((message as { title?: unknown }).title, "Sandpack runtime сообщил об ошибке рендера компонента."),
+                });
+            }
+        }, clientId);
+    }, [clientId, listen, onRuntimeContractChange]);
 
     useEffect(() => {
         if (!clientId) {
@@ -324,7 +362,7 @@ function usePreviewPayload({ moduleUrl, started }: { moduleUrl: string; started:
                     reject(createTimeoutError());
                 }, PREVIEW_FETCH_TIMEOUT_MS);
 
-                promise.then(
+                void promise.then(
                     (value) => {
                         window.clearTimeout(timeoutId);
                         resolve(value);
@@ -395,57 +433,27 @@ function IdlePreviewNotice({ startStatus }: { startStatus: string }) {
     );
 }
 
-function SandpackPreviewFrame({ moduleUrl, previewPayload, previewSessionId }: {
+function SandpackRuntimeSurface({
+    handlePreviewRef,
+    moduleUrl,
+    onRuntimeContractChange,
+    previewClientId,
+    previewPayload,
+    runtimeContract,
+    previewCheckGuardMessage,
+    previewRootRef,
+}: {
+    handlePreviewRef: (value: SandpackPreviewRef | null) => void;
     moduleUrl: string;
+    onRuntimeContractChange: (next: PreviewRuntimeContractState) => void;
+    previewClientId: string | null;
     previewPayload: SandpackPreviewPayload;
-    previewSessionId: string;
+    runtimeContract: PreviewRuntimeContractState;
+    previewCheckGuardMessage: string | null;
+    previewRootRef: RefObject<HTMLDivElement | null>;
 }) {
-    const compatibility = previewPayload.project.compatibility;
-    const {
-        contractState: runtimeContract,
-        setRuntimeContractState,
-    } = usePreviewRuntimeContract(
-        moduleUrl,
-        previewSessionId,
-        compatibility.status === "compatible",
-    );
-    const [previewClientId, setPreviewClientId] = useState<string | null>(null);
-    const previewClientIdRef = useRef<string | null>(null);
-
-    useEffect(() => {
-        previewClientIdRef.current = null;
-        setPreviewClientId(null);
-    }, [moduleUrl]);
-
-    const handlePreviewRef = useCallback((value: SandpackPreviewRef | null) => {
-        const nextClientId = value?.clientId ?? null;
-        const resolvedClientId = resolvePreviewClientId(previewClientIdRef.current, nextClientId);
-
-        if (resolvedClientId === previewClientIdRef.current) {
-            return;
-        }
-
-        previewClientIdRef.current = resolvedClientId;
-        setPreviewClientId(resolvedClientId);
-    }, []);
-
-    const handleRuntimeContractChange = useCallback((next: PreviewRuntimeContractState) => {
-        setRuntimeContractState((current) => mergePreviewRuntimeContractState(current, next));
-    }, [setRuntimeContractState]);
-    const previewCheckGuardMessage = useMemo(() => getPreviewCheckGuardMessage(runtimeContract), [runtimeContract]);
-
-    usePreviewCheckButtonGuard(previewCheckGuardMessage);
-
-    if (compatibility.status === "incompatible") {
-        return (
-            <div className="w-full">
-                <ProjectCompatibilityNotice payload={previewPayload} />
-            </div>
-        );
-    }
-
     return (
-        <div className="w-full">
+        <div className="w-full" ref={previewRootRef}>
             {runtimeContract.status === "unstyled-dom" ? (
                 <PreviewStyleContractNotice
                     message={runtimeContract.message || "Sandpack runtime не подтвердил применение preview CSS/Tailwind."}
@@ -482,7 +490,7 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload, previewSessionId }: {
             >
                 <SandpackRuntimeActivityBridge
                     clientId={previewClientId}
-                    onRuntimeContractChange={handleRuntimeContractChange}
+                    onRuntimeContractChange={onRuntimeContractChange}
                 />
                 <SandpackRuntimeDiagnosticsNotice payload={previewPayload} />
                 <SandpackPreview
@@ -503,6 +511,80 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload, previewSessionId }: {
                 />
             </SandpackProvider>
         </div>
+    );
+}
+
+function SandpackPreviewFrame({ moduleUrl, previewPayload, previewSessionId }: {
+    moduleUrl: string;
+    previewPayload: SandpackPreviewPayload;
+    previewSessionId: string;
+}) {
+    const compatibility = previewPayload.project.compatibility;
+    const previewRootRef = useRef<HTMLDivElement | null>(null);
+    const {
+        contractState: runtimeContract,
+        setRuntimeContractState,
+    } = usePreviewRuntimeContract(
+        moduleUrl,
+        previewSessionId,
+        compatibility.status === "compatible",
+        previewRootRef,
+    );
+    const [previewClientId, setPreviewClientId] = useState<string | null>(null);
+    const previewClientIdRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        previewClientIdRef.current = null;
+        setPreviewClientId(null);
+    }, [moduleUrl]);
+
+    const handlePreviewRef = useCallback((value: SandpackPreviewRef | null) => {
+        const nextClientId = value?.clientId ?? null;
+        const resolvedClientId = resolvePreviewClientId(previewClientIdRef.current, nextClientId);
+
+        if (resolvedClientId === previewClientIdRef.current) {
+            return;
+        }
+
+        previewClientIdRef.current = resolvedClientId;
+        setPreviewClientId(resolvedClientId);
+    }, []);
+
+    const handleRuntimeContractChange = useCallback((next: PreviewRuntimeContractState) => {
+        setRuntimeContractState((current) => mergePreviewRuntimeContractState(current, next));
+    }, [setRuntimeContractState]);
+    const previewCheckGuardMessage = useMemo(() => getPreviewCheckGuardMessage(runtimeContract), [runtimeContract]);
+    const previewRuntimeSupport = getPreviewRuntimeSupport();
+
+    usePreviewCheckButtonGuard(previewCheckGuardMessage);
+
+    if (compatibility.status === "incompatible") {
+        return (
+            <div className="w-full">
+                <ProjectCompatibilityNotice payload={previewPayload} />
+            </div>
+        );
+    }
+
+    if (!previewRuntimeSupport.supported) {
+        return (
+            <div className="w-full">
+                <PreviewSecureContextNotice message={previewRuntimeSupport.message} />
+            </div>
+        );
+    }
+
+    return (
+        <SandpackRuntimeSurface
+            handlePreviewRef={handlePreviewRef}
+            moduleUrl={moduleUrl}
+            onRuntimeContractChange={handleRuntimeContractChange}
+            previewCheckGuardMessage={previewCheckGuardMessage}
+            previewClientId={previewClientId}
+            previewPayload={previewPayload}
+            previewRootRef={previewRootRef}
+            runtimeContract={runtimeContract}
+        />
     );
 }
 

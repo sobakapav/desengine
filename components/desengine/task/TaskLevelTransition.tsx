@@ -43,13 +43,13 @@ function TransitionHeader({ transition, nextLevel }: { transition: TaskTransitio
   return (
     <div className="space-y-2">
       <p className="text-muted-foreground">
-        Уровень {transition.fromLevel.number} завершён
+        Проверка уровня {transition.fromLevel.number} пройдена
       </p>
       <h1 className="font-semibold">
-        {`Задача ${transition.taskId} готова к переходу на ${nextLevel.title}`}
+        {`Задача ${transition.taskId} готова продолжиться на ${nextLevel.title}`}
       </h1>
       <p className="text-muted-foreground">
-        Причина завершения: успешная проверка результата уровня.
+        Текущий цикл завершён успешно. Следующий уровень открывается как продолжение этой же задачи.
       </p>
     </div>
   );
@@ -63,7 +63,7 @@ function TransitionActions({
   return (
     <div className="flex flex-wrap gap-3">
       <Button disabled={pending} onClick={onContinue}>
-        Решать эту же задачу дальше
+        Перейти к следующему уровню
       </Button>
       <Button variant="outline" disabled={pending} onClick={onBackToLevelList}>
         Перейти в список задач

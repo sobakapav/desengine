@@ -15,30 +15,36 @@ export function getLevelBadgeText(task: TaskListItem) {
 }
 
 export function getStatusText(task: TaskListItem) {
-  if (!task.started) return "Не начиналась"
+  if (!task.started) return "До состояния «Проверка пройдена»: задача ещё не начата"
   if (task.progress.currentLevelDisplayStatus === "awaiting_check_retry") {
-    return "Ждёт проверки"
+    return "До состояния «Проверка пройдена»: повторите проверку"
   }
   if (task.progress.isCompleted) {
-    return "Задача завершена"
+    return "Проверка пройдена"
   }
   if (task.progress.currentLevelNotStarted) {
-    return `Уровень ${task.progress.currentLevel} из ${task.progress.maxLevel} ещё не начат`
+    return `До состояния «Проверка пройдена»: начните уровень ${task.progress.currentLevel} из ${task.progress.maxLevel}`
   }
 
-  return `Уровень ${task.progress.currentLevel} из ${task.progress.maxLevel}`
+  return `До состояния «Проверка пройдена»: уровень ${task.progress.currentLevel} из ${task.progress.maxLevel} в работе`
 }
 
 export function getPromptRemainderText(task: TaskListItem) {
+  const remainingChecks = Math.max(task.progress.checkAttemptsLimit - task.progress.checkAttemptsUsed, 0)
+
   if (!task.started) {
-    return `Уточнений на уровне: ${task.progress.promptsLimit}`
+    return `После старта будет доступно ${task.progress.promptsLimit} уточнений и ${task.progress.checkAttemptsLimit} попытки проверки.`
   }
 
   if (task.progress.currentLevelNotStarted) {
-    return `Новый текущий уровень ещё не начат. После старта будет доступно ${task.progress.promptsLimit} уточнений.`
+    return `После старта останется дойти до «Проверка пройдена». Доступно ${task.progress.promptsLimit} уточнений и ${task.progress.checkAttemptsLimit} попытки проверки.`
   }
 
-  return `Осталось уточнений на уровне: ${task.progress.promptsRemaining} из ${task.progress.promptsLimit}`
+  if (task.progress.currentLevelDisplayStatus === "awaiting_check_retry") {
+    return `Следующий шаг: повторить проверку. Попыток проверки осталось ${remainingChecks} из ${task.progress.checkAttemptsLimit}.`
+  }
+
+  return `Осталось уточнений: ${task.progress.promptsRemaining} из ${task.progress.promptsLimit}. Попыток проверки осталось ${remainingChecks} из ${task.progress.checkAttemptsLimit}.`
 }
 
 import type {

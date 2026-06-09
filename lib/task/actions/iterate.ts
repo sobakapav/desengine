@@ -11,7 +11,11 @@ import { runStructuredLlmRequest, toLlmErrorResponse } from "@/lib/llm/server"
 import { appendPromptHistory, isTaskStarted, readTaskData } from "@/lib/onboarding/repository"
 import { formatPromptHistoryTimestamp, TEACHING_COST_PER_ITERATION_CENTS } from "@/lib/prompt/history"
 import { readLevelIteratePrompt, readPrompt } from "@/lib/prompt/server"
-import { runTaskMutation } from "@/lib/task/mutation-boundary"
+import {
+  createTaskMutationOverloadHttpResult,
+  isTaskMutationOverloadError,
+  runTaskMutation,
+} from "@/lib/task/mutation-boundary"
 import { buildTaskRuntimePromptContext } from "@/lib/task/prompt-context"
 import {
   attachRuntimeDiagnostics,
@@ -31,6 +35,12 @@ import {
   getUserTaskFilePath,
 } from "@/lib/user/server"
 
+import {
+  getTaskActionBudgetErrorDetails,
+  validateTaskActionInputBudget,
+  validateTaskActionStructuredOutputBudget,
+  validateTaskActionWriteSetBudget,
+} from "./runtime-llm-budget"
 import { taskIterateLlm } from "./iterate-llm"
 import { taskActionShared } from "./shared"
 import type {
@@ -145,13 +155,35 @@ async function writeIterationFiles(args: {
   const filteredPayload = filterWorkbenchPayloadByAllowlist(args.payload, args.editableFileIds)
   const changedFileIds: string[] = []
   const changedFileNames: string[] = []
+  const pendingWrites = filteredPayload.allowedEntries.reduce<Array<{
+    fileId: string
+    fileName: string
+    content: string
+  }>>((entries, entry) => {
+    if (typeof entry.content !== "string") {
+      return entries
+    }
+
+    if (entry.content === (args.contentByFileId[entry.fileId] ?? "")) {
+      return entries
+    }
+
+    entries.push({
+      fileId: entry.fileId,
+      fileName: entry.fileName,
+      content: entry.content,
+    })
+    return entries
+  }, [])
+
+  validateTaskActionWriteSetBudget({
+    path: "iterate",
+    entries: pendingWrites,
+  })
 
   await ensureUserTaskDir(args.taskId)
 
-  for (const entry of filteredPayload.allowedEntries) {
-    if (typeof entry.content !== "string") continue
-    if (entry.content === (args.contentByFileId[entry.fileId] ?? "")) continue
-
+  for (const entry of pendingWrites) {
     const filePath = getUserTaskFilePath(args.taskId, entry.fileName)
     await writeFile(filePath, entry.content, "utf-8")
     changedFileIds.push(entry.fileId)
@@ -423,6 +455,37 @@ async function runIterateTaskLevelMutation(taskId: string, promptText: string): 
   }
 
   const llmInput = await buildIterationLlmInput({ taskId, promptText, context, promptImages })
+  try {
+    validateTaskActionInputBudget({
+      path: "iterate",
+      instruction: llmInput.instruction,
+      imageBase64List,
+    })
+  } catch (error) {
+    const response = toLlmErrorResponse(error)
+    return finalizeIterationResult(taskActionShared.jsonResult(response.body, response.status), {
+      scope: "task",
+      path: "iterate",
+      stage: "task_iterate",
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        promptTextChars: promptText.length,
+        instructionChars: llmInput.instruction.length,
+        promptImageBase64Chars: sumTextLengths(imageBase64List),
+      },
+      load: {
+        promptImageCount: imageBase64List.length,
+        editableFileCount: context.editableFiles.length,
+      },
+      degradation: {
+        reason: "runtime_budget_exceeded",
+        details: getTaskActionBudgetErrorDetails(error) ?? undefined,
+      },
+    })
+  }
+
   const llmStage = await runIterationLlmStage(
     llmInput.instruction,
     imageBase64List,
@@ -447,6 +510,37 @@ async function runIterateTaskLevelMutation(taskId: string, promptText: string): 
       },
       degradation: {
         reason: "llm_request_failed",
+      },
+    })
+  }
+
+  try {
+    validateTaskActionStructuredOutputBudget({
+      path: "iterate",
+      outputText: llmStage.outputText,
+    })
+  } catch (error) {
+    const response = toLlmErrorResponse(error)
+    return finalizeIterationResult(taskActionShared.jsonResult(response.body, response.status), {
+      scope: "task",
+      path: "iterate",
+      stage: "task_iterate",
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        promptTextChars: promptText.length,
+        instructionChars: llmInput.instruction.length,
+        promptImageBase64Chars: sumTextLengths(imageBase64List),
+        outputChars: llmStage.outputText.length,
+      },
+      load: {
+        promptImageCount: imageBase64List.length,
+        editableFileCount: context.editableFiles.length,
+      },
+      degradation: {
+        reason: "runtime_budget_exceeded",
+        details: getTaskActionBudgetErrorDetails(error) ?? undefined,
       },
     })
   }
@@ -476,12 +570,40 @@ async function runIterateTaskLevelMutation(taskId: string, promptText: string): 
     })
   }
 
-  const written = await writeIterationFiles({
-    taskId,
-    payload: parseStage.payload,
-    editableFileIds: context.labContext.editableFileIds,
-    contentByFileId: llmInput.taskData.contentByFileId,
-  })
+  let written: IterationWriteResult
+  try {
+    written = await writeIterationFiles({
+      taskId,
+      payload: parseStage.payload,
+      editableFileIds: context.labContext.editableFileIds,
+      contentByFileId: llmInput.taskData.contentByFileId,
+    })
+  } catch (error) {
+    const response = toLlmErrorResponse(error)
+    return finalizeIterationResult(taskActionShared.jsonResult(response.body, response.status), {
+      scope: "task",
+      path: "iterate",
+      stage: "task_iterate",
+      status: "error",
+      durationMs: Date.now() - startedAt,
+      taskId,
+      size: {
+        promptTextChars: promptText.length,
+        instructionChars: llmInput.instruction.length,
+        promptImageBase64Chars: sumTextLengths(imageBase64List),
+        outputChars: llmStage.outputText.length,
+      },
+      load: {
+        promptImageCount: imageBase64List.length,
+        editableFileCount: context.editableFiles.length,
+      },
+      degradation: {
+        reason: getTaskActionBudgetErrorDetails(error) ? "runtime_budget_exceeded" : "write_stage_failed",
+        details: getTaskActionBudgetErrorDetails(error) ?? undefined,
+      },
+    })
+  }
+
   logIterationAllowlist({ taskId, written, cleanupBeforeIteration })
 
   if (written.changedFileIds.length === 0) {
@@ -565,6 +687,25 @@ async function runIterateTaskLevelMutation(taskId: string, promptText: string): 
 
 export const taskIterateAction = {
   async iterateTaskLevel(taskId: string, promptText: string): Promise<TaskActionHttpResult> {
-    return runTaskMutation(taskId, () => runIterateTaskLevelMutation(taskId, promptText))
+    try {
+      return await runTaskMutation(taskId, () => runIterateTaskLevelMutation(taskId, promptText))
+    } catch (error) {
+      if (!isTaskMutationOverloadError(error)) {
+        throw error
+      }
+
+      return finalizeIterationResult(createTaskMutationOverloadHttpResult(error), {
+        scope: "task",
+        path: "iterate",
+        stage: "task_iterate",
+        status: "error",
+        durationMs: 0,
+        taskId,
+        load: error.diagnostics.load,
+        degradation: {
+          reason: "mutation_boundary_overload",
+        },
+      })
+    }
   },
 }

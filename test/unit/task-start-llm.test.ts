@@ -1,6 +1,7 @@
 // @openSpec capability: llm
 // @openSpec scenarios:
 // @openSpec  - "Система выполняет start"
+// @openSpec  - "Инициирующий запуск уровня превышает runtime payload budget"
 // @openSpec capability: task
 // @openSpec scenarios:
 // @openSpec  - "Пользователь запускает уровень через service boundary"
@@ -9,6 +10,7 @@ import { describe, expect, it, vi } from "vitest"
 
 vi.mock("server-only", () => ({}))
 
+import { taskActionLlmBudgets, validateTaskActionStructuredOutputBudget } from "../../lib/task/actions/runtime-llm-budget"
 import { taskStartLlm } from "../../lib/task/actions/start-llm"
 
 const startOutputFiles = [
@@ -49,5 +51,12 @@ describe("taskStartLlm.parsePayload", () => {
     })
 
     expect(payload.component).toContain("stable")
+  })
+
+  it("отклоняет oversized structured-output отдельной bounded ошибкой", () => {
+    expect(() => validateTaskActionStructuredOutputBudget({
+      path: "start",
+      outputText: "x".repeat(taskActionLlmBudgets.maxStructuredOutputChars + 1),
+    })).toThrow("Превышен runtime budget")
   })
 })

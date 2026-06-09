@@ -8,6 +8,7 @@
 // @openSpec  - "Implement или fix помечается producer-контекстом"
 // @openSpec  - "Dispatcher не подчиняется producer напрямую"
 // @openSpec  - "Dispatcher не может хранить producer-контекст"
+// @openSpec  - "Non-executable change пытается войти в release composition"
 // @openSpec  - "Разработчик открывает implement/fix через `os:ctx`"
 // @openSpec  - "Разработчик открывает implement/fix из release-контекста через `os:ctx`"
 
@@ -171,6 +172,39 @@ short: "диспетчер демо"
     const errors = validateChanges(fixtureRoot, path.join(fixtureRoot, "openspec", "changes"))
 
     expect(errors.join("\n")).toContain("dispatcher change не может иметь producer_ref")
+  })
+
+  it("не допускает dispatcher в составе release через release_ref", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-release-members-kind-"))
+    tempDirs.push(fixtureRoot)
+
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "focus-demo", ".openspec.yaml"),
+      'change_kind: "focus"\nexecution_mode: "no-code"\nparent_change: ""\nstrategy_root: ""\nshort: "фокус демо"\n',
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "focus-demo", "roadmaps", "demo.md"),
+      "# demo\n",
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "release-demo", ".openspec.yaml"),
+      'change_kind: "release"\nexecution_mode: "no-code"\nshort: "релиз демо"\n',
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "dispatcher-demo", ".openspec.yaml"),
+      `change_kind: "dispatcher"
+execution_mode: "no-code"
+parent_change: "focus-demo"
+strategy_root: "focus-demo"
+roadmap_ref: "focus-demo/roadmaps/demo.md"
+release_ref: "release-demo"
+short: "диспетчер демо"
+`,
+    )
+
+    const errors = validateChanges(fixtureRoot, path.join(fixtureRoot, "openspec", "changes"))
+
+    expect(errors.join("\n")).toContain("release_ref разрешён только для change_kind=implement или change_kind=fix")
   })
 
   it("os:ctx показывает inherited roadmap parent dispatcher", () => {

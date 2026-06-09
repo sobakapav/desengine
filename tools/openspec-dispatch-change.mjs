@@ -1,8 +1,9 @@
-import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { normalizeDispatchedChangeName } from "./openspec-change-name.mjs"
+import { readMetadata, updateMetadata } from "./openspec-change-state.mjs"
+import { assertHandoffInheritedContext, syncHandoffInheritedContext } from "./openspec-handoff.mjs"
 import { runOpenSpecBegin } from "./openspec-begin-change.mjs"
 
 function getChangesDir() {
@@ -83,34 +84,36 @@ function parseArgs(argv) {
   return { ...parsed, help: false }
 }
 
-function readMetadata(changeName) {
-  const metadataPath = path.join(getChangesDir(), changeName, ".openspec.yaml")
-  if (!fs.existsSync(metadataPath)) {
-    throw new Error(`Change не найден: ${changeName}`)
-  }
-  const text = fs.readFileSync(metadataPath, "utf8")
-  const readValue = (key) => {
-    const match = text.match(new RegExp(`^${key}:\\s*(.+)\\s*$`, "m"))
-    return match ? match[1].trim().replace(/^["']|["']$/g, "") : ""
-  }
-  return {
-    kind: readValue("change_kind"),
-  }
-}
+function syncReleaseInclusion(changeName, releaseName) {
+  updateMetadata(changeName, {
+    release_ref: releaseName,
+  })
 
-function setReleaseRef(changeName, releaseName) {
-  const metadataPath = path.join(getChangesDir(), changeName, ".openspec.yaml")
-  let text = fs.readFileSync(metadataPath, "utf8")
-  const line = `release_ref: "${releaseName}"`
-  const pattern = /^release_ref:\s*.*$/m
+  const finalMeta = readMetadata(changeName)
+  const changeDir = path.join(getChangesDir(), changeName)
 
-  if (pattern.test(text)) {
-    text = text.replace(pattern, line)
-  } else {
-    text = `${text.endsWith("\n") ? text : `${text}\n`}${line}\n`
+  syncHandoffInheritedContext(changeDir, {
+    parentChange: finalMeta.parentChange,
+    strategyRoot: finalMeta.strategyRoot,
+    releaseRef: finalMeta.releaseRef,
+    producerRef: finalMeta.producerRef,
+    verificationLevel: finalMeta.verificationLevel,
+    verificationCommand: finalMeta.verificationCommand,
+  })
+
+  const reloadedMeta = readMetadata(changeName)
+  if (reloadedMeta.releaseRef !== releaseName) {
+    throw new Error(`Release inclusion не завершён: .openspec.yaml для ${changeName} не содержит ожидаемый release_ref=${releaseName}`)
   }
 
-  fs.writeFileSync(metadataPath, text, "utf8")
+  assertHandoffInheritedContext(changeDir, {
+    parentChange: reloadedMeta.parentChange,
+    strategyRoot: reloadedMeta.strategyRoot,
+    releaseRef: reloadedMeta.releaseRef,
+    producerRef: reloadedMeta.producerRef,
+    verificationLevel: reloadedMeta.verificationLevel,
+    verificationCommand: reloadedMeta.verificationCommand,
+  })
 }
 
 function runOpenSpecDispatch(argv = process.argv.slice(2)) {
@@ -148,7 +151,7 @@ function runOpenSpecDispatch(argv = process.argv.slice(2)) {
   runOpenSpecBegin(args)
 
   if (releaseName) {
-    setReleaseRef(changeName, releaseName)
+    syncReleaseInclusion(changeName, releaseName)
   }
 
   console.log("")

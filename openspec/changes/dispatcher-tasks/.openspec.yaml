@@ -1,0 +1,12 @@
+schema: spec-driven
+created: 2026-05-19
+short_policy: "none"
+review_sync_state: "in-sync"
+issue: "https://github.com/sobakapav/desengine/issues/9"
+short: "проработка системы задач онбординга"
+change_kind: "dispatcher"
+execution_mode: "no-code"
+parent_change: "focus-onboarding"
+strategy_root: "focus-onboarding"
+roadmap_ref: "focus-onboarding/roadmaps/tasks.md"
+release_ref: ""

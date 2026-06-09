@@ -79,6 +79,12 @@ const editorOptions = {
   wordWrap: "on",
 } satisfies Record<string, unknown>;
 
+type MonacoCancellationLike = {
+  message?: unknown;
+  name?: unknown;
+  stack?: unknown;
+};
+
 function getEditorLanguage(fileName: string) {
   if (fileName.endsWith(".json")) {
     return "json";
@@ -142,6 +148,28 @@ function configureLabDiagnostics(monaco: MonacoInstance) {
   });
 }
 
+function toErrorString(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+function isMonacoCancellationNoise(reason: unknown) {
+  if (typeof reason !== "object" || reason === null) {
+    return false;
+  }
+
+  const { message, name, stack } = reason as MonacoCancellationLike;
+  const errorName = toErrorString(name);
+  const errorMessage = toErrorString(message);
+  const errorStack = toErrorString(stack)?.toLowerCase() ?? "";
+  const isCanceledError = errorName === "Canceled" && errorMessage === "Canceled";
+  const isMonacoStack =
+    errorStack.includes("monaco-editor") ||
+    errorStack.includes("@monaco-editor") ||
+    errorStack.includes("vs/base/common/cancellation");
+
+  return isCanceledError && isMonacoStack;
+}
+
 function EditorFallback(props: MonacoEditorProps) {
   return <FallbackCodeEditor {...props} />;
 }
@@ -169,6 +197,26 @@ function MonacoCodeEditor({ fileId, fileName, value, onChange, onSaveShortcut }:
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (loadFailed) {
+      return;
+    }
+
+    function handleUnhandledRejection(event: PromiseRejectionEvent) {
+      if (!isMonacoCancellationNoise(event.reason)) {
+        return;
+      }
+
+      event.preventDefault();
+    }
+
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+    };
+  }, [loadFailed]);
 
   const language = useMemo(() => getEditorLanguage(fileName), [fileName]);
   const fallback = (
@@ -209,4 +257,4 @@ function MonacoCodeEditor({ fileId, fileName, value, onChange, onSaveShortcut }:
   );
 }
 
-export { MonacoCodeEditor };
+export { MonacoCodeEditor, isMonacoCancellationNoise };

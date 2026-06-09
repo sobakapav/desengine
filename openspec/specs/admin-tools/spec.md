@@ -49,16 +49,28 @@
 - **THEN** в вывод попадают только changes из `openspec/changes/*`
 - **AND** archived changes из `openspec/changes/archive/*` не печатаются ни как release, ни как элементы состава
 - **AND** активный состав релиза печатается как delivery-матрица `parent dispatcher -> implement/fix`, если у элементов состава задан `parent_change`
+- **AND** в состав релиза не попадают changes с `change_kind`, отличным от `implement` и `fix`
 
 ### Requirement: Release оркестрирует delivery-матрицу, не подменяя dispatcher
 
 Система SHALL позволять release change управлять составом поставки через связь `release_ref`, сохраняя тактическое подчинение исполнительских changes их parent dispatcher.
 
+#### Scenario: Non-executable change пытается войти в release composition
+- **WHEN** metadata change с `change_kind=focus|idea|producer|dispatcher|release` содержит `release_ref`
+- **THEN** статическая проверка OpenSpec metadata завершается ошибкой
+- **AND** ошибка явно объясняет, что `release_ref` разрешён только для `implement` и `fix`
+
 #### Scenario: Release-диспетчеризация новой хотелки
 - **WHEN** разработчик запускает `npm run os:dispatch -- <release-change> --dispatcher <dispatcher-change> --kind <implement|fix> --name <name>`
 - **THEN** создаётся исполнительский change с `parent_change=<dispatcher-change>`
 - **AND** у него проставляется `release_ref=<release-change>`
+- **AND** тот же `release_ref` синхронно фиксируется в `.openspec.yaml` и inherited context `handoff.md`
 - **AND** дальнейшая реализация выполняется только в этом implement/fix change
+
+#### Scenario: Release inclusion не завершился полностью
+- **WHEN** release-диспетчеризация не может синхронно обновить `.openspec.yaml` и `handoff.md`
+- **THEN** команда завершается ошибкой
+- **AND** не сообщает об успешном включении change в релиз
 
 #### Scenario: Разработчик открывает implement/fix из release-контекста через `os:ctx`
 - **WHEN** разработчик запускает `npm run os:ctx -- <implement-or-fix-change>`, у которого задан `release_ref`

@@ -25,6 +25,10 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
+function hasHttpLikeBody(value: unknown): value is HttpLikeResult & Record<string, unknown> {
+  return isPlainObject(value) && "body" in value
+}
+
 export function createRuntimeDiagnosticsRecord(
   record: Omit<RuntimeDiagnosticsRecord, "timestamp">,
 ): RuntimeDiagnosticsRecord {
@@ -44,25 +48,30 @@ export function emitRuntimeDiagnosticsBatch(records: RuntimeDiagnosticsRecord[])
   }
 }
 
+/**
+ * @example
+ * ```ts
+ * const nextResult = attachRuntimeDiagnostics(result, [record])
+ * ```
+ */
 export function attachRuntimeDiagnostics<T>(
   result: T,
   records: RuntimeDiagnosticsRecord[],
 ): T {
-  if (!isPlainObject(result) || !("body" in result)) {
+  if (!hasHttpLikeBody(result)) {
     return result
   }
 
-  const httpLikeResult = result as HttpLikeResult
-  if (!isPlainObject(httpLikeResult.body)) {
+  if (!isPlainObject(result.body)) {
     return result
   }
 
-  const responseBody = httpLikeResult.body
+  const responseBody = result.body
   const existing = Array.isArray(responseBody.runtimeDiagnostics)
     ? responseBody.runtimeDiagnostics as RuntimeDiagnosticsRecord[]
     : []
 
-  httpLikeResult.body = {
+  result.body = {
     ...responseBody,
     runtimeDiagnostics: [...existing, ...records],
   }

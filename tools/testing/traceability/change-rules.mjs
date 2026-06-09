@@ -39,6 +39,7 @@ function validateReferenceRules(changeName, metadata, context, errors) {
   const releaseRef = parseMetadataValue(metadata, RELEASE_REF_PATTERN) || ""
   const producerRef = parseMetadataValue(metadata, PRODUCER_REF_PATTERN) || ""
   const strategyRoot = parseMetadataValue(metadata, STRATEGY_ROOT_PATTERN) || ""
+  const changeKind = context.changeKindsByName.get(changeName) || ""
 
   if (parentChange && !context.allChangeNames.has(parentChange)) {
     errors.push(`${changeName}: parent_change ссылается на неизвестный change: ${parentChange}`)
@@ -56,6 +57,8 @@ function validateReferenceRules(changeName, metadata, context, errors) {
     }
   } else if (context.changeKindsByName.get(releaseRef) !== "release") {
     errors.push(`${changeName}: release_ref должен ссылаться на change_kind=release`)
+  } else if (!["implement", "fix"].includes(changeKind)) {
+    errors.push(`${changeName}: release_ref разрешён только для change_kind=implement или change_kind=fix`)
   }
   if (!producerRef) {
   } else if (!context.allChangeNames.has(producerRef)) {

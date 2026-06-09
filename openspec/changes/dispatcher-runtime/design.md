@@ -1,6 +1,6 @@
 ## Context
 
-После перехода от `dispatcher-architecture-transformation` к `producer-architecture-transformation` стратегический roadmap остался, но часть старых implement changes потеряла корректный tactical parent. Для `implement-lab-runtime-contract-hardening` это создало ложную привязку к `dispatcher-dataflow`, хотя содержательно change укрепляет lab runtime, а не общий контур передачи данных.
+После перехода от старой architecture-transformation линии к `producer-architecture-transform` стратегический roadmap остался, но часть старых implement changes потеряла корректный tactical parent. Для `implement-lab-runtime-contract-hardening` это создало ложную привязку к `dispatcher-dataflow`, хотя содержательно change укрепляет lab runtime, а не общий контур передачи данных.
 
 ## Goals
 
@@ -23,7 +23,7 @@
    - cleanup/fix changes, усиливающие эти границы.
 
 2. `dispatcher-runtime` не дублирует producer-level roadmap:
-   - sequencing и architectural rationale остаются в `producer-architecture-transformation`;
+  - sequencing и architectural rationale остаются в `producer-architecture-transform`;
    - dispatcher держит ownership конкретных runtime-hardening implement/fix changes.
 
 3. `implement-lab-runtime-contract-hardening` становится первым закрываемым change этой линии.

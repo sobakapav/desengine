@@ -1,6 +1,6 @@
 ## Context
 
-В active OpenSpec уже есть runtime/spec-основание для Workbench и связанного workflow-контракта. Этот dispatcher не заменяет их и не создаёт новую параллельную capability, а задаёт управляемую рамку для дальнейшего развития workbench-линии внутри `focus-domain`.
+В active OpenSpec уже есть runtime/spec-основание для Workbench и связанного workflow-контракта. Producer-уровень теперь закреплён в `producer-workbench`: Workbench считается главной рабочей поверхностью продукта. Этот dispatcher не заменяет producer и не создаёт новую параллельную capability, а задаёт тактическую рамку для дальнейшего развития workbench-линии внутри `focus-domain`.
 
 Особенно важно зафиксировать две границы:
 
@@ -14,6 +14,7 @@
 - Зафиксировать контракт инструментов верстака и реестр подключений.
 - Определить место layout/space и image inspector внутри общей workbench-линии.
 - Сформировать понятный тестовый и traceability-контур для следующих behavior-change changes.
+- Принять producer-контекст, что Workbench является целевой рабочей поверхностью, а `level-labs` — не долгосрочной моделью.
 
 ## Non-goals
 
@@ -128,6 +129,7 @@ MVP-сценарии навигации:
 - Должен ли downstream runtime трактовать layout как отдельный workflow step или как внутренний tool-набор существующего workbench.
 - Нужен ли отдельный capability-слой для `workbench-tools` в active specs, или достаточно удерживать его как часть `workbench`.
 - Какой минимальный набор image tools и layout tools должен считаться обязательным для первого проверяемого downstream implement change.
+- Как именно downstream changes будут разделять foundation Workbench, workflow manifestation и controlled transition away from `level-labs`.
 
 ## Тестирование (план)
 

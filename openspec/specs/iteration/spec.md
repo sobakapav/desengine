@@ -205,11 +205,40 @@ Reset текущего уровня SHALL очищать только истор
 - **AND** система показывает retriable timeout-сообщение
 - **AND** текущее состояние уровня сохраняется без частичных изменений
 
+#### Scenario: Уточнение получает bounded overload-отказ
+- **WHEN** пользователь запускает уточнение
+- **AND** task action runtime уже достиг bounded backlog budget
+- **THEN** composer выходит из состояния `Запуск…`
+- **AND** система показывает retriable overload-сообщение
+- **AND** текущее состояние файлов и текст уточнения сохраняются без частичных изменений
+
+#### Scenario: Проверка уровня получает bounded overload-отказ
+- **WHEN** пользователь запускает проверку результата уровня
+- **AND** task action runtime уже достиг bounded backlog budget
+- **THEN** кнопка проверки выходит из состояния `Проверка…`
+- **AND** система показывает retriable overload-сообщение
+- **AND** текущее состояние уровня сохраняется без частичных изменений
+
 #### Scenario: Iterate route завис без ответа
 - **WHEN** пользовательский route `POST /api/tasks/<taskId>/iterate` не завершился за bounded client timeout
 - **THEN** composer выходит из состояния `Запуск…`
 - **AND** текущий текст уточнения сохраняется
 - **AND** пользователь видит retriable ошибку и может сразу повторить iterate
+
+#### Scenario: Инициирующий запуск уровня превышает runtime payload budget
+- **WHEN** hidden `start` path собирает oversized instruction/context, картинки или structured-output
+- **THEN** runtime завершает initiator явной bounded ошибкой
+- **AND** не создаёт snapshot, provider-call или файловую запись после отказа
+
+#### Scenario: Уточнение превышает runtime payload budget
+- **WHEN** `iterate` получает oversized input, output или write-set
+- **THEN** runtime возвращает bounded ошибку
+- **AND** не меняет рабочие файлы и не пишет prompt history
+
+#### Scenario: Проверка уровня превышает runtime payload budget
+- **WHEN** `check` получает oversized input или output
+- **THEN** runtime возвращает bounded ошибку
+- **AND** не создаёт technical check-result и не тратит попытку проверки
 
 ### Requirement: Итерация учитывает лимит промптов уровня
 

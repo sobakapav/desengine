@@ -199,8 +199,7 @@ function handleCheckContinue({
 }) {
     if (screen.transition?.toLevel) {
         applyDeferredTaskState(screen.nextTaskItem, screen.nextTaskData);
-        router.push(getLabUrl(screen.transition.taskId));
-        setScreen({ type: "task", screen: "component" });
+        void handleReturnToLevelList(taskItem?.progress.currentLevelId);
         return;
     }
 
@@ -227,7 +226,7 @@ async function handleRetry({
     if (!taskItem) return;
 
     try {
-        setStatus("Повторная проверка уровня…");
+        setStatus("Повторно отправляем решение на проверку…");
         const data = await fetchTaskCheck(taskItem.id);
         setStatus("");
         handleCheckResult(data.checkResult, data.transition ?? null, data.taskItem ?? null, data.taskData);

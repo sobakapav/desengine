@@ -31,11 +31,18 @@ describe("mergePreviewRuntimeContractState", () => {
     )).toEqual(state("ready"));
   });
 
-  it("не даёт позднему внутреннему render-error затереть уже подтверждённый ready", () => {
+  it("разрешает позднему render-error перевести ready-host в ошибку", () => {
     expect(mergePreviewRuntimeContractState(
       state("ready"),
       state("render-error", "timeout"),
-    )).toEqual(state("ready"));
+    )).toEqual(state("render-error", "timeout"));
+  });
+
+  it("не даёт позднему ready скрыть уже подтверждённый render-error", () => {
+    expect(mergePreviewRuntimeContractState(
+      state("render-error", "timeout"),
+      state("ready"),
+    )).toEqual(state("render-error", "timeout"));
   });
 
   it("разрешает iframe-контракту заменить loading на ready или unstyled-dom", () => {

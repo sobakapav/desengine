@@ -65,6 +65,24 @@ const PromptComposer = dynamic(
 type WorkbenchController = ReturnType<typeof useWorkbenchController>;
 const SHOW_UI_KIT_SWITCHER = false;
 
+function getRemainingOutcomeText(taskItem: WorkbenchProps["taskItem"]) {
+    const remainingChecks = Math.max(taskItem.progress.checkAttemptsLimit - taskItem.progress.checkAttemptsUsed, 0);
+
+    if (taskItem.progress.isCompleted) {
+        return "Главный outcome уже достигнут: проверка пройдена.";
+    }
+
+    if (taskItem.progress.currentLevelDisplayStatus === "awaiting_check_retry") {
+        return `До состояния «Проверка пройдена» остался один шаг: повторить проверку. Попыток проверки осталось ${remainingChecks} из ${taskItem.progress.checkAttemptsLimit}.`;
+    }
+
+    if (taskItem.progress.currentLevelNotStarted) {
+        return "До состояния «Проверка пройдена» осталось начать уровень, сделать решение и отправить его на проверку.";
+    }
+
+    return `До состояния «Проверка пройдена» осталось закончить решение и отправить его на проверку. Попыток проверки осталось ${remainingChecks} из ${taskItem.progress.checkAttemptsLimit}.`;
+}
+
 function WorkbenchHeader({
     completePending,
     onBackToLevelList,
@@ -89,6 +107,9 @@ function WorkbenchHeader({
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/45">Рабочий стол</p>
                 <p className="text-muted-foreground">Задача: <code>{taskItem.id}</code></p>
                 <h1 className="text-2xl font-semibold text-black">Уровень {taskItem.progress.currentLevel}</h1>
+                <p className="max-w-2xl text-sm text-muted-foreground">
+                    {getRemainingOutcomeText(taskItem)}
+                </p>
             </div>
             <WorkbenchHeaderActions
                 canCompleteCurrentLevel={taskItem.progress.currentLevelStarted && taskItem.progress.currentLevelStatus !== "completed"}
@@ -215,7 +236,7 @@ function WorkbenchHeaderActions({
                 </AlertDialogContent>
             </AlertDialog>
             <Button variant="secondary" disabled={completePending || resetPending || !canCompleteCurrentLevel} onClick={onCheck}>
-                {completePending ? "Проверка…" : "Проверить результат"}
+                {completePending ? "Проверяем решение…" : "Отправить решение на проверку"}
             </Button>
         </div>
     );
@@ -357,6 +378,9 @@ function TaskTip({
             </div>
 
             <div className="rounded-xl border border-black/10 bg-white/80 p-3">
+                <p className="text-sm text-black/70">
+                    Главный outcome этого экрана: довести решение до состояния «Проверка пройдена».
+                </p>
                 <div className="flex items-center gap-2 text-sm font-medium text-black">
                     <Files className="size-4 text-black/60" aria-hidden="true" />
                     Рабочие файлы уровня: {visibleFiles.length}
@@ -372,7 +396,7 @@ function TaskTip({
                     ))}
                 </div>
                 {currentLevelDisplayStatus === "awaiting_check_retry" ? (
-                    <p className="mt-3 text-sm text-black/70">Статус уровня: ждёт повторной проверки.</p>
+                    <p className="mt-3 text-sm text-black/70">Следующий шаг: повторить проверку, не начиная отдельный новый этап.</p>
                 ) : null}
             </div>
 

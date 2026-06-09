@@ -6,14 +6,16 @@ import { checkAllowlistMarkerReachability } from "@/lib/auth/allowlist"
 import localConfig from "../system/config/local.cjs"
 
 import {
-  ACCESS_COOKIE_NAME,
   createAccessSessionValue,
   createAllowlistMarker,
-  getAccessControlConfig,
-  normalizeEmail,
   type VerifiedAccessSession,
   verifyAccessSessionValue,
 } from "@/lib/auth/control"
+import {
+  ACCESS_COOKIE_NAME,
+  getAccessControlConfig,
+  normalizeEmail,
+} from "@/lib/auth/shared"
 import { getTasksRootUrl } from "../task/navigation"
 import { getAuthPrepareUrl, getAuthUrl, sanitizeUrl } from "./navigation"
 import { AuthState } from "./types"

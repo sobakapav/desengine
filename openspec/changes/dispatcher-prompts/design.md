@@ -22,7 +22,7 @@
 
 Вне рамок dispatcher остаются:
 
-- task hints (`tip.md`/`tip.njk`) как отдельная линия в `dispatcher-task-hints`;
+- task hints (`tip.md`/`tip.njk`) как отдельная линия внутри `dispatcher-tasks`;
 - пользовательский UI редактора промптов;
 - смена шаблонного движка или install-critical инфраструктуры.
 

@@ -5,18 +5,18 @@
 
 ## Унаследованный контекст
 
-- parent_change: dispatcher-task-hints
+- parent_change: dispatcher-tasks
 - strategy_root: focus-onboarding
 - release_ref: release-2026-06-01-grooming
 - producer_ref: (не задан)
-- Что из родительского change уже решено: `dispatcher-task-hints` держит пользовательские подсказки и контентные guidance paths; fix должен вернуть видимость уже существующего контента, а не изобретать новый didactic material.
-- Кто отвечает за стратегию, тактику и приёмку результата: стратегию onboarding/task-hints контура держит `dispatcher-task-hints`; этот fix отвечает за конкретную regression-видимость описания уровня 3.
+- Что из родительского change уже решено: `dispatcher-tasks` держит пользовательские task guidance paths; fix должен вернуть видимость уже существующего контента, а не изобретать новый didactic material.
+- Кто отвечает за стратегию, тактику и приёмку результата: стратегию onboarding task-контура держит `dispatcher-tasks`; этот fix отвечает за конкретную regression-видимость описания уровня 3.
 
 ## Обязательные источники
 
-- openspec/changes/dispatcher-task-hints/proposal.md
-- openspec/changes/dispatcher-task-hints/design.md
-- openspec/changes/dispatcher-task-hints/tasks.md
+- openspec/changes/dispatcher-tasks/proposal.md
+- openspec/changes/dispatcher-tasks/design.md
+- openspec/changes/dispatcher-tasks/tasks.md
 - Какие ещё файлы и спецификации обязательны к чтению для fix-level-3-description-visibility: `onboarding/levels/level-3/overview.md`, `onboarding/tasks/**/levels/level-3/tip.*`, `components/desengine/lab/Workbench/WorkbenchView.tsx`, runtime loaders для level/task hints и документ-источник `https://docs.google.com/document/d/13yc4ovhcnwq0SBsdU6SZTz4Uke_Xip9ZI0sUyEKShQ0/export?format=txt`.
 
 ## Границы исполнения

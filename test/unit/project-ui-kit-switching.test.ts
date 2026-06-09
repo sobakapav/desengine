@@ -1,7 +1,7 @@
 // @openSpec capability: level-labs
 // @openSpec scenarios:
 // @openSpec  - "Лаборатория создаёт локальный проект для preview"
-// @openSpec  - "Лаборатория переводит локальные project settings на shadcn/ui при rehydration"
+// @openSpec  - "Лаборатория сохраняет локальные project settings при rehydration"
 // @openSpec  - "Пользователь переключает UI kit проекта без перезагрузки страницы"
 // @openSpec  - "Пользователь включает режим html-tags"
 // @openSpec  - "Лаборатория показывает диагностику несовместимости UI kit"
@@ -168,7 +168,7 @@ describe("project UI kit switching", () => {
     await expect(storage.getProject("task-a")).resolves.toMatchObject({
       id: "task-a",
       settings: {
-        uiKitId: "shadcn",
+        uiKitId: "ant",
         uiMode: "ui-kit",
       },
     })
@@ -188,7 +188,7 @@ describe("project UI kit switching", () => {
       id: "task-task-a",
       title: "Проект task-a",
       settings: {
-        uiKitId: "shadcn",
+        uiKitId: "mui",
         uiMode: "ui-kit",
       },
     })
@@ -219,8 +219,32 @@ describe("project UI kit switching", () => {
       id: "task-task-a",
       title: "Проект task-a",
       settings: {
-        uiKitId: "shadcn",
-        uiMode: "ui-kit",
+        uiKitId: "none",
+        uiMode: "html-tags",
+      },
+    })
+  })
+
+  it("browser storage сохраняет реальный uiKitId/uiMode без отката к shadcn", async () => {
+    const storageMock = createStorageMock()
+    const storage = createBrowserProjectStorage({ storage: storageMock, taskId: "task-a" })
+    const project = normalizeProject({
+      id: "task-task-a",
+      title: "Проект task-a",
+      settings: {
+        uiKitId: "none",
+        uiMode: "html-tags",
+      },
+    })
+
+    await storage.saveProject(project)
+
+    expect(storageMock.getItem(PROJECT_REGISTRY_STORAGE_KEY)).toContain('"uiKitId":"none"')
+    expect(storageMock.getItem(PROJECT_REGISTRY_STORAGE_KEY)).toContain('"uiMode":"html-tags"')
+    await expect(storage.getProject("task-task-a")).resolves.toMatchObject({
+      settings: {
+        uiKitId: "none",
+        uiMode: "html-tags",
       },
     })
   })
@@ -354,6 +378,8 @@ describe("project UI kit switching", () => {
     expect(hintRoute).toContain('searchParams.get("uiMode")')
     expect(checkRoute).toContain("normalizeProject")
     expect(checkRoute).toContain("await request.json()")
+    expect(sandpackRoute).toContain("readCachedStablePreviewSourceFiles")
+    expect(sandpackRoute).toContain("stablePreviewSourceCache")
     expect(sandpackRoute).toContain("buildSandpackPreviewPayload(sourceFiles, {")
     expect(workbench).toContain("useWorkbenchController")
     expect(workbenchController).toContain("createBrowserProjectStorage")
@@ -366,7 +392,7 @@ describe("project UI kit switching", () => {
     expect(workbenchView).toContain('uiMode: nextUiKitId === "none" ? "html-tags" : "ui-kit"')
     expect(outRender).toContain("new URLSearchParams")
     expect(outRender).toContain("uiKitId: previewProject.settings.uiKitId")
-    expect(outRender).toContain('compatibility.status !== "incompatible"')
+    expect(outRender).toContain('compatibility.status === "incompatible"')
     expect(outRender).toContain("useSandpack")
     expect(outRender).toContain("SandpackRuntimeDiagnosticsNotice")
     expect(outRender).toContain("sandpack.error")

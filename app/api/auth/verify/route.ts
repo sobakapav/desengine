@@ -1,11 +1,11 @@
 import { cookies } from "next/headers"
 
 import {
-  ACCESS_COOKIE_NAME,
   isPlausibleEmail,
   normalizeEmail,
   shouldUseSecureCookies,
-} from "@/lib/auth/control"
+  ACCESS_COOKIE_NAME,
+} from "@/lib/auth/shared"
 import {
   consumeReturnPathCookie,
   createAccessCookieValue,

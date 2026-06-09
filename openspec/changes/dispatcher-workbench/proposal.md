@@ -1,5 +1,7 @@
 ## Why
 
+После фиксации `producer-workbench` нужен tactical owner, который удержит Workbench как живую operating line и не даст следующей волне снова раствориться в лабораторной модели.
+
 Сейчас в системе есть один «зародыш» верстака (лабораторный workbench) под конкретный сценарий. Но верстаки неизбежно будут размножаться:
 
 - под разные типы задач;
@@ -12,7 +14,7 @@
 - невозможность переиспользовать инструменты;
 - сложную навигацию и слабую управляемость.
 
-Нужен отдельный change, который спроектирует сущность **Workbench** и задаст единый способ с ней работать.
+Нужен отдельный change, который тактически удерживает сущность **Workbench** и задаёт единый способ с ней работать.
 
 ## Зависимости
 
@@ -20,7 +22,7 @@
 
 ## What Changes
 
-Этот change — исследовательский/плановый dispatcher над уже существующим workbench-контуром. Он не вводит capability с нуля, а:
+Этот change — tactical dispatcher под producer-контекстом `producer-workbench`. Он не вводит capability с нуля, а:
 
 - нормализует роль Workbench как общей продуктовой сущности над уже существующими runtime/spec-наработками;
 - задаёт зону ответственности для downstream changes, которые будут менять workflow, layout/space, image tools и навигацию;
@@ -69,6 +71,7 @@
 
 - Для OpenSpec-дерева: появляется явный зонтичный dispatcher, через который должны проходить downstream changes по Workbench.
 - Для product topology: layout/space и image inspector больше не трактуются как кандидаты в отдельные параллельные dispatcher-линии.
+- Producer и dispatcher не конфликтуют: стратегический смысл Workbench как главной рабочей поверхности задаёт `producer-workbench`, tactical ownership product/runtime backlog держит `dispatcher-workbench`.
 - Для тестового слоя: будущие behavior-change changes в контуре Workbench обязаны ссылаться на capability/scenarios и указывать уровень проверки, команды запуска, mock/fixture и traceability.
 
 ## Acceptance Criteria

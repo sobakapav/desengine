@@ -1,19 +1,26 @@
 // @openSpec capability: level-labs
 // @openSpec scenarios:
 // @openSpec  - "Пользователь редактирует один файл и переключается на другой"
+// @openSpec  - "Лаборатория получает retriable overload-отказ task action runtime"
 // @openSpec capability: iteration
 // @openSpec scenarios:
 // @openSpec  - "Пользователь сбрасывает задачу"
+// @openSpec  - "Уточнение получает bounded overload-отказ"
+// @openSpec  - "Проверка уровня получает bounded overload-отказ"
 // @openSpec capability: llm
 // @openSpec scenarios:
 // @openSpec  - "Система выполняет start"
 // @openSpec  - "Система выполняет iterate"
+// @openSpec  - "Инициирующий запуск уровня превышает runtime payload budget"
+// @openSpec  - "Iterate или check превышают runtime payload budget"
 // @openSpec capability: task
 // @openSpec scenarios:
 // @openSpec  - "Пользователь запускает уровень через service boundary"
 // @openSpec  - "Пользователь уточняет задачу через service boundary"
 // @openSpec  - "Пользователь проверяет результат через service boundary"
+// @openSpec  - "Task action runtime возвращает retriable overload-отказ"
 // @openSpec  - "Runtime start/iterate/check возвращает structured diagnostics для speed/load путей"
+// @openSpec  - "Runtime отклоняет oversized write-set до записи пользовательских файлов"
 // @openSpec  - "Runtime boundary помечает очередь мутаций как degradation signal"
 // @openSpec  - "Пользователь сохраняет рабочие файлы"
 // @openSpec  - "Пользователь сбрасывает задачу через service boundary"
@@ -23,8 +30,17 @@
 // @openSpec  - "Разработчик проверяет lab runtime после hardening"
 // @openSpec  - "Проверка использует временное пользовательское состояние"
 // @openSpec  - "Unit-проверка читает runtime diagnostics task action"
+// @openSpec capability: iteration
+// @openSpec scenarios:
+// @openSpec  - "Инициирующий запуск уровня превышает runtime payload budget"
+// @openSpec  - "Уточнение превышает runtime payload budget"
+// @openSpec  - "Проверка уровня превышает runtime payload budget"
 
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import {
+  configureTaskMutationBoundaryForTests,
+  resetTaskMutationBoundaryForTests,
+} from "@/lib/task/mutation-boundary"
 
 const mocks = vi.hoisted(() => ({
   appendPromptHistory: vi.fn(),
@@ -94,10 +110,36 @@ vi.mock("@/lib/prompt/server", () => ({
 
 vi.mock("@/lib/llm/server", () => ({
   runStructuredLlmRequest: mocks.runStructuredLlmRequest,
-  toLlmErrorResponse: (error: unknown) => ({
-    status: 503,
-    body: { ok: false, error: error instanceof Error ? error.message : "LLM недоступна" },
-  }),
+  toLlmErrorResponse: (error: unknown) => {
+    const errorKind = (
+      typeof error === "object"
+      && error !== null
+      && "kind" in error
+      && typeof error.kind === "string"
+    )
+      ? error.kind
+      : undefined
+
+    if (errorKind === "budget") {
+      return {
+        status: 413,
+        body: {
+          ok: false,
+          error: error instanceof Error ? error.message : "Превышен runtime budget",
+          errorKind,
+        },
+      }
+    }
+
+    return {
+      status: 503,
+      body: {
+        ok: false,
+        error: error instanceof Error ? error.message : "LLM недоступна",
+        errorKind,
+      },
+    }
+  },
 }))
 
 vi.mock("@/lib/system/config/server", () => ({
@@ -216,9 +258,19 @@ function createLlmCall(outputText: string) {
   }
 }
 
+function createDeferredValue<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((next) => {
+    resolve = next
+  })
+
+  return { promise, resolve }
+}
+
 describe("task action service boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetTaskMutationBoundaryForTests()
 
     mocks.appendPromptHistory.mockResolvedValue(undefined)
     mocks.clearTaskCheckResult.mockResolvedValue(undefined)
@@ -385,6 +437,41 @@ describe("task action service boundary", () => {
     })
   })
 
+  it("startTaskLevel возвращает bounded budget-ошибку до snapshot и provider-call", async () => {
+    const { taskActionLlmBudgets } = await import("@/lib/task/actions/runtime-llm-budget")
+    mocks.isTaskStarted.mockResolvedValue(false)
+    mocks.readPrompt.mockImplementation(async (_variant: string, promptName: string) => (
+      promptName === "start-component"
+        ? "x".repeat(taskActionLlmBudgets.maxInstructionChars + 100)
+        : "base prompt"
+    ))
+    const { startTaskLevel } = await import("@/lib/task/actions")
+
+    const result = await startTaskLevel("task-a")
+
+    expect(result.status).toBe(413)
+    expect(result.body).toMatchObject({
+      ok: false,
+      errorKind: "budget",
+      runtimeDiagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          path: "start",
+          stage: "task_start",
+          status: "error",
+          degradation: expect.objectContaining({
+            reason: "runtime_budget_exceeded",
+            details: expect.objectContaining({
+              phase: "input",
+              dimension: "instruction_chars",
+            }),
+          }),
+        }),
+      ]),
+    })
+    expect(mocks.saveCurrentTaskLevelSnapshot).not.toHaveBeenCalled()
+    expect(mocks.runStructuredLlmRequest).not.toHaveBeenCalled()
+  })
+
   it("iterateTaskLevel сохраняет изменения и prompt history на mock LLM без live credentials", async () => {
     const { iterateTaskLevel } = await import("@/lib/task/actions")
 
@@ -419,6 +506,40 @@ describe("task action service boundary", () => {
         }),
       ]),
     })
+  })
+
+  it("iterateTaskLevel отклоняет oversized write-set до записи файлов и prompt history", async () => {
+    const { taskActionLlmBudgets } = await import("@/lib/task/actions/runtime-llm-budget")
+    mocks.runStructuredLlmRequest.mockResolvedValueOnce(createLlmCall(JSON.stringify({
+      component: "x".repeat(taskActionLlmBudgets.maxWriteSetBytes + 512),
+      styles: null,
+    })))
+    const { iterateTaskLevel } = await import("@/lib/task/actions")
+
+    const result = await iterateTaskLevel("task-a", "Сделай кнопку крупнее")
+
+    expect(result.status).toBe(413)
+    expect(result.body).toMatchObject({
+      ok: false,
+      errorKind: "budget",
+      runtimeDiagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          path: "iterate",
+          stage: "task_iterate",
+          status: "error",
+          degradation: expect.objectContaining({
+            reason: "runtime_budget_exceeded",
+            details: expect.objectContaining({
+              phase: "write_set",
+              dimension: "write_set_bytes",
+            }),
+          }),
+        }),
+      ]),
+    })
+    expect(mocks.writeFile).not.toHaveBeenCalled()
+    expect(mocks.appendPromptHistory).not.toHaveBeenCalled()
+    expect(mocks.registerPromptForCurrentLevel).not.toHaveBeenCalled()
   })
 
   it("checkTaskLevel сохраняет check-result на mock LLM без live credentials", async () => {
@@ -468,5 +589,170 @@ describe("task action service boundary", () => {
         }),
       ]),
     })
+  })
+
+  it("checkTaskLevel возвращает bounded budget-ошибку и не пишет technical check-result", async () => {
+    const { taskActionLlmBudgets } = await import("@/lib/task/actions/runtime-llm-budget")
+    mocks.getTaskLabContext.mockResolvedValue({
+      ...labContext,
+      images: Array.from({ length: taskActionLlmBudgets.maxPromptImageCount + 1 }, (_, index) => ({
+        id: `target-${index}`,
+        src: `/api/tasks/task-a/image?imageId=target-${index}`,
+        width: 320,
+        height: 240,
+        show: true,
+      })),
+    })
+    const { checkTaskLevel } = await import("@/lib/task/actions")
+
+    const result = await checkTaskLevel("task-a")
+
+    expect(result.status).toBe(413)
+    expect(result.body).toMatchObject({
+      ok: false,
+      errorKind: "budget",
+      runtimeDiagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          path: "check",
+          stage: "task_check",
+          status: "error",
+          degradation: expect.objectContaining({
+            reason: "runtime_budget_exceeded",
+            details: expect.objectContaining({
+              phase: "input",
+              dimension: "prompt_image_count",
+            }),
+          }),
+        }),
+      ]),
+    })
+    expect(mocks.runStructuredLlmRequest).not.toHaveBeenCalled()
+    expect(mocks.markCurrentTaskLevelCheckTechnicalError).not.toHaveBeenCalled()
+    expect(mocks.saveTaskCheckResult).not.toHaveBeenCalled()
+  })
+
+  it("startTaskLevel возвращает retriable overload-отказ до частичной мутации", async () => {
+    configureTaskMutationBoundaryForTests({ maxQueuePerTask: 0 })
+    mocks.isTaskStarted.mockResolvedValue(false)
+    const firstLlmCall = createDeferredValue<ReturnType<typeof createLlmCall>>()
+    mocks.runStructuredLlmRequest.mockImplementationOnce(() => firstLlmCall.promise)
+
+    const { startTaskLevel } = await import("@/lib/task/actions")
+
+    const first = startTaskLevel("task-a")
+    await Promise.resolve()
+
+    const refused = await startTaskLevel("task-a")
+
+    expect(refused.status).toBe(503)
+    expect(refused.body).toMatchObject({
+      ok: false,
+      errorKind: "overload",
+      retryable: true,
+      retryAfterMs: 1000,
+      runtimeDiagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          path: "start",
+          stage: "task_start",
+          degradation: expect.objectContaining({
+            reason: "mutation_boundary_overload",
+          }),
+        }),
+        expect.objectContaining({
+          path: "mutation_boundary",
+          stage: "task_mutation_refused",
+          degradation: expect.objectContaining({
+            reason: "task_mutation_overload",
+          }),
+        }),
+      ]),
+    })
+
+    firstLlmCall.resolve(createLlmCall(JSON.stringify({
+      component: "export default function Component() { return <div /> }",
+      styles: "export {};",
+    })))
+    await expect(first).resolves.toMatchObject({ body: { ok: true } })
+    expect(mocks.runStructuredLlmRequest).toHaveBeenCalledTimes(1)
+  })
+
+  it("iterateTaskLevel возвращает retriable overload-отказ и не пишет prompt history второй попытки", async () => {
+    configureTaskMutationBoundaryForTests({ maxQueuePerTask: 0 })
+    const firstLlmCall = createDeferredValue<ReturnType<typeof createLlmCall>>()
+    mocks.runStructuredLlmRequest.mockImplementationOnce(() => firstLlmCall.promise)
+
+    const { iterateTaskLevel } = await import("@/lib/task/actions")
+
+    const first = iterateTaskLevel("task-a", "Сделай кнопку крупнее")
+    await Promise.resolve()
+
+    const refused = await iterateTaskLevel("task-a", "Ещё вариант")
+
+    expect(refused.status).toBe(503)
+    expect(refused.body).toMatchObject({
+      ok: false,
+      errorKind: "overload",
+      retryable: true,
+      runtimeDiagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          path: "iterate",
+          stage: "task_iterate",
+          degradation: expect.objectContaining({
+            reason: "mutation_boundary_overload",
+          }),
+        }),
+        expect.objectContaining({
+          path: "mutation_boundary",
+          stage: "task_mutation_refused",
+        }),
+      ]),
+    })
+
+    firstLlmCall.resolve(createLlmCall(JSON.stringify({
+      component: "export default function Component() { return <section /> }",
+      styles: "export {};",
+    })))
+    await expect(first).resolves.toMatchObject({ body: { ok: true } })
+    expect(mocks.appendPromptHistory).toHaveBeenCalledTimes(1)
+  })
+
+  it("checkTaskLevel возвращает retriable overload-отказ и не пишет check-result второй попытки", async () => {
+    configureTaskMutationBoundaryForTests({ maxQueuePerTask: 0 })
+    const firstLlmCall = createDeferredValue<ReturnType<typeof createLlmCall>>()
+    mocks.runStructuredLlmRequest.mockImplementationOnce(() => firstLlmCall.promise)
+
+    const { checkTaskLevel } = await import("@/lib/task/actions")
+
+    const first = checkTaskLevel("task-a")
+    await Promise.resolve()
+
+    const refused = await checkTaskLevel("task-a")
+
+    expect(refused.status).toBe(503)
+    expect(refused.body).toMatchObject({
+      ok: false,
+      errorKind: "overload",
+      retryable: true,
+      runtimeDiagnostics: expect.arrayContaining([
+        expect.objectContaining({
+          path: "check",
+          stage: "task_check",
+          degradation: expect.objectContaining({
+            reason: "mutation_boundary_overload",
+          }),
+        }),
+        expect.objectContaining({
+          path: "mutation_boundary",
+          stage: "task_mutation_refused",
+        }),
+      ]),
+    })
+
+    firstLlmCall.resolve(createLlmCall(JSON.stringify({
+      passed: true,
+      message: "Уровень принят",
+    })))
+    await expect(first).resolves.toMatchObject({ body: { ok: true } })
+    expect(mocks.saveTaskCheckResult).toHaveBeenCalledTimes(1)
   })
 })

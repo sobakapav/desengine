@@ -1,14 +1,15 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 
-import { ACCESS_COOKIE_NAME, getAccessControlConfig, verifyAccessSessionValue } from "@/lib/auth/control"
+import { verifyAccessSessionValue } from "@/lib/auth/control"
+import { ACCESS_COOKIE_NAME, getAccessControlConfig } from "@/lib/auth/shared"
 
 function isProtectedApiPath(pathname: string): boolean {
   return pathname.startsWith("/api/") && !pathname.startsWith("/api/auth/")
 }
 
 export async function proxy(request: NextRequest) {
-  const { pathname, search } = request.nextUrl
+  const { pathname } = request.nextUrl
 
   if (!isProtectedApiPath(pathname)) {
     return NextResponse.next()

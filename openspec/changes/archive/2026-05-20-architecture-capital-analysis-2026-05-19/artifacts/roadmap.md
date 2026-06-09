@@ -86,7 +86,7 @@ Scope:
 
 ## Итерация 3. Расширять UX без размножения платформенных моделей
 
-### 9. `dispatcher-task-hints`
+### 9. `dispatcher-tasks`
 
 - Зачем: безопасный UX win после стабилизации prompt context.
 - Зависимость: общий context contract из Project/Task/Level.

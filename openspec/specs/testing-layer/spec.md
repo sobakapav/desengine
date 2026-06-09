@@ -134,6 +134,40 @@
 - **THEN** verdict остаётся `ok`
 - **AND** тестовый слой не подменяет speed regression единичным infra noise
 
+### Requirement: Speed/load regression harness переиспользуется между сценариями
+
+Система SHALL держать reusable regression harness для speed/load линии `npm run start`, чтобы downstream checks не собирали локальные ad-hoc loops для cold/warm, repeated actions, overload и oversize веток.
+
+#### Scenario: Reusable harness прогоняет cold/warm speed-path
+
+- **WHEN** тестовый слой проверяет cold и warm вариант одного speed-path
+- **THEN** harness прогоняет их через единый sample/verdict contract
+- **AND** cold/warm различие выражается через machine-readable diagnostics, а не через ручной разбор логов
+
+#### Scenario: Reusable harness прогоняет repeated preview rebuild
+
+- **WHEN** тестовый слой прогоняет повторные rebuild preview payload
+- **THEN** harness удерживает общий surface для repeated samples и итогового verdict
+- **AND** repeated path не требует отдельной ad-hoc логики в каждом downstream тесте
+
+#### Scenario: Reusable harness прогоняет repeated iterate/check path
+
+- **WHEN** тестовый слой проверяет повторные `iterate` или `check`
+- **THEN** harness читает единый response/diagnostics contract этих action-path'ов
+- **AND** сценарий не требует live credentials и браузерной интеракции
+
+#### Scenario: Reusable harness прогоняет overload backlog path
+
+- **WHEN** тестовый слой воспроизводит queued или overload backlog path
+- **THEN** harness фиксирует degradation/load сигнал через structured diagnostics
+- **AND** queued path остаётся различимым относительно immediate path
+
+#### Scenario: Reusable harness прогоняет oversized payload/output refusal
+
+- **WHEN** тестовый слой проверяет oversized input или output refusal
+- **THEN** harness ожидает bounded error response и structured refusal diagnostics
+- **AND** oversized path не требует реального provider-call
+
 ### Requirement: Lab-flow проверяется без live credentials
 
 Система SHALL иметь воспроизводимую проверку ключевого lab-flow или его service-level эквивалента без реальных LLM credentials.
@@ -166,4 +200,4 @@
 #### Scenario: Unit-проверка читает runtime diagnostics preview payload
 - **WHEN** unit-слой проверяет сборку Sandpack preview
 - **THEN** он читает structured diagnostics из preview payload
-- **AND** может отличить cache hit/miss и degraded compatibility path
+- **AND** может отличить bounded cache hit/miss, budget degradation path и degraded compatibility path
