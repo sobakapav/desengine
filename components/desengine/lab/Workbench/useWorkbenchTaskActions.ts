@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Project } from "@/lib/project/runtime";
+import type { Project, ProjectMigrationTarget } from "@/lib/project/runtime";
 import type { WorkbenchProps } from "./props";
 import { buildWorkbenchActionNetworkMessage, fetchWorkbenchActionJson } from "./actionTimeout";
 import { changeLabTaskScreenEventInput, readLabTaskScreenEventActiveScreen } from "../LabScreen/screen-event";
@@ -22,11 +22,51 @@ type CheckRunOutcome = {
   error: string;
 };
 
+type ProjectMigrationSuccessBody = {
+  ok: true;
+  invalidationScope: "current-level";
+  taskData: WorkbenchProps["taskData"];
+  taskItem?: WorkbenchProps["taskItem"] | null;
+};
+
 async function postTaskCheck(taskId: string, project: Project) {
   return fetchWorkbenchActionJson<CheckSuccessBody>({
     url: `/api/tasks/${taskId}/check`,
     actionLabel: "Проверка уровня",
     fallbackError: "Не удалось проверить уровень",
+    init: {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ project }),
+    },
+  });
+}
+
+async function postProjectMigration(taskId: string, project: Project, target: ProjectMigrationTarget) {
+  return fetchWorkbenchActionJson<ProjectMigrationSuccessBody>({
+    url: `/api/tasks/${taskId}/project-migration`,
+    actionLabel: "Migration проекта",
+    fallbackError: "Не удалось выполнить migration проекта",
+    init: {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ project, target }),
+    },
+  });
+}
+
+async function postTaskReset(taskId: string, project: Project, scope: "task" | "level") {
+  return fetchWorkbenchActionJson<{
+    ok: true;
+    taskData?: WorkbenchProps["taskData"] | null;
+    taskItem?: WorkbenchProps["taskItem"] | null;
+    started?: boolean;
+  }>({
+    url: scope === "level"
+      ? `/api/tasks/${taskId}/reset-level`
+      : `/api/tasks/${taskId}/reset`,
+    actionLabel: scope === "level" ? "Сброс уровня" : "Сброс задачи",
+    fallbackError: scope === "level" ? "Не удалось сбросить текущий уровень" : "Не удалось сбросить задачу",
     init: {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -71,6 +111,13 @@ async function runCheckSubmission(args: {
   }
 }
 
+/**
+ * @example
+ * ```ts
+ * const actions = useWorkbenchActions(props, project, saveBeforeAction, replaceTaskData)
+ * await actions.handleCheck()
+ * ```
+ */
 export function useWorkbenchActions(
   props: WorkbenchProps,
   project: Project,
@@ -105,21 +152,28 @@ export function useWorkbenchActions(
   return { completeError, completePending, handleCheck, resetError, resetPending, setResetError, setResetPending };
 }
 
+/**
+ * @example
+ * ```ts
+ * const reset = useResetAction(props, project, saveBeforeAction, replaceTaskData, actionState)
+ * await reset.handleLevelReset()
+ * ```
+ */
 export function useResetAction(
   props: WorkbenchProps,
+  project: Project,
   saveBeforeAction: () => Promise<boolean>,
   replaceTaskData: (taskData: WorkbenchProps["taskData"]) => void,
   actionState: ReturnType<typeof useWorkbenchActions>,
 ) {
-  async function runResetRequest(pathname: string, fallbackError: string) {
+  async function runResetRequest(scope: "task" | "level", fallbackError: string) {
     if (!(await saveBeforeAction())) return false;
     actionState.setResetPending(true);
     actionState.setResetError("");
 
     try {
-      const res = await fetch(pathname, { method: "POST" });
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.ok) throw new Error(data?.error || fallbackError);
+      const data = await postTaskReset(props.taskItem.id, project, scope);
+      if (!data?.ok) throw new Error(data?.error || fallbackError);
       if (data.taskItem) props.onTaskItemChange(data.taskItem);
       if (data.taskData) replaceTaskData(data.taskData);
       props.onTransition(null);
@@ -138,14 +192,14 @@ export function useResetAction(
 
   async function handleLevelReset() {
     return runResetRequest(
-      `/api/tasks/${props.taskItem.id}/reset-level`,
+      "level",
       "Не удалось сбросить текущий уровень",
     );
   }
 
   async function handleTaskReset() {
     return runResetRequest(
-      `/api/tasks/${props.taskItem.id}/reset`,
+      "task",
       "Не удалось сбросить задачу",
     );
   }
@@ -153,4 +207,5 @@ export function useResetAction(
   return { handleLevelReset, handleTaskReset };
 }
 
-export { postTaskCheck, runCheckSubmission };
+export { postTaskCheck, postTaskReset, runCheckSubmission };
+export { postProjectMigration };

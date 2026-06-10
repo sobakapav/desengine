@@ -16,6 +16,16 @@
       "priority": "P2",
       "reason": "Capability добавлен в рамках quality-контуров; пока нет отдельного полного набора @openSpec тестов на все 21 scenario.",
       "targetStage": "5.5"
+    },
+    "architecture-roadmap": {
+      "priority": "P1",
+      "reason": "Сейчас runnable evidence закрывает только routing/evidence часть capability: scenarios про маршрутизацию через `dispatcher-architecture`, сохранение ownership у предметного dispatcher и обязательный evidence-пакет для boundary change. Остальные roadmap/lifecycle scenarios описывают порядок архитектурных waves, cleanup lane, governance baseline и platform-sourcing decisions; для них ещё нет отдельного runnable harness и они сознательно отложены, чтобы не подменять архитектурный контракт случайными unit-проверками без реального operational evidence.",
+      "targetStage": "architecture-roadmap-lifecycle-harness"
+    },
+    "projects": {
+      "priority": "P1",
+      "reason": "Foundation create/select flow для ProjectWorkspace закрыт через unit и source-contract слой, но browser/e2e-сценарий на выбор active project и создание нового проекта из Workbench UI ещё не добавлен.",
+      "targetStage": "project-workspace-browser-flow"
     }
   }
 }

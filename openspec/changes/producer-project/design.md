@@ -105,20 +105,112 @@ Producer заранее фиксирует важное продуктовое �
 - workbench compatibility;
 - fixture expectations для тестов.
 
-### 5. Project-scoped миграция идёт поэтапно
+### 5. Project-scoped миграция идёт поэтапно и через конкретные delivery-waves
 
-Producer задаёт не финальную модель, а порядок первых волн:
+Producer задаёт не только общий порядок, но и точную MVP decomposition, которую downstream changes не должны переоткрывать без нового producer-level решения:
 
-1. `ProjectWorkspace` и active project boundary как foundation-слой.
-2. Привязка onboarding/task-слоя к проекту.
-3. Привязка workflow-слоя к проекту как отдельного процесса решения.
-4. Привязка `workbench` и preview semantics к project contract.
-5. Отдельное решение по progress invalidation при смене `UI kit`.
-6. Привязка базового `LLM` и ключа к проекту, если это станет продуктово оправданным.
-7. Привязка `Figma` source к проекту.
-8. Привязка `Git` / `GitHub` repositories к проекту.
+1. `implement-project-workspace-mvp` (`implement`)
+   - scope: `ProjectWorkspace`, active project boundary, `project.settings.uiKitId`, `project.settings.uiMode`;
+   - не включает task/workflow/workbench migration и progress invalidation.
+2. `implement-project-task-onboarding-binding` (`implement`)
+   - scope: project-aware task onboarding, open/start/check/save/reset boundaries;
+   - не включает workflow ownership и `UI kit` invalidation semantics.
+3. `implement-project-workflow-binding` (`implement`)
+   - scope: project-aware workflow artifacts, process-layer bindings и runtime boundary для workflow;
+   - не включает workbench-preview contract и migration notices.
+4. `implement-project-workbench-preview-binding` (`implement`)
+   - scope: project-aware workbench shell, preview/runtime contract и workbench-level context propagation;
+   - не включает progress invalidation semantics.
+5. `fix-project-ui-kit-migration-invalidation` (`fix`)
+   - scope: смена project `UI kit` как отдельная migration-операция, invalidation правил, notices и verification вокруг migration path;
+   - не переоткрывает foundation/task/workflow decomposition.
+6. Последующие product waves
+   - project-level `LLM` binding;
+   - `Figma` binding;
+   - `Git` / `GitHub` binding.
 
-Такой порядок позволяет постепенно проверять последствия project context для уже существующих сущностей, а не перепривязывать всё одновременно.
+Такой порядок нужен, чтобы постепенно проверять последствия project context для уже существующих сущностей, а не перепривязывать всё одновременно.
+
+### 5.1. Допустимая orchestration-обёртка
+
+Producer фиксирует decomposition на уровне behavior-changes, а не на уровне одного обязательного release/dispatcher shape.
+
+Это означает:
+
+- downstream waves могут быть собраны под release-level или dispatcher-level orchestration;
+- но состав MVP-wave и границы между foundation/task/workflow/workbench/migration остаются фиксированными;
+- запрещено сливать `workflow binding` в `task binding` или `progress invalidation` в foundation-wave без нового producer-level решения.
+
+### 5.2. Нормативная verification-рамка downstream волн
+
+Producer заранее фиксирует минимально допустимую verification-модель для каждой MVP-wave.
+
+#### Foundation: `implement-project-workspace-mvp`
+
+- уровни проверки: `static/contract`, `unit`;
+- обязательные команды:
+  - `npm run test:traceability`
+  - `npm run test:unit -- <project-workspace-focused-tests>`
+- обязательные fixtures/mocks:
+  - `ProjectWorkspace` fixture;
+  - active project selection fixture;
+  - project settings fixture c `uiKitId` и `uiMode`.
+
+#### Task: `implement-project-task-onboarding-binding`
+
+- уровни проверки: `static/contract`, `unit`, `integration`;
+- обязательные команды:
+  - `npm run test:traceability`
+  - `npm run test:unit -- <task-project-boundary-tests>`
+  - `npm run test:integration -- <task-route-tests>`
+- обязательные fixtures/mocks:
+  - task fixture, привязанный к `projectId`;
+  - project-aware request payloads для open/start/check/save/reset;
+  - task route fixture c active project context.
+
+#### Workflow: `implement-project-workflow-binding`
+
+- уровни проверки: `static/contract`, `unit`;
+- обязательные команды:
+  - `npm run test:traceability`
+  - `npm run test:unit -- <workflow-project-binding-tests>`
+- обязательные fixtures/mocks:
+  - workflow artifact fixture c `projectId`;
+  - runtime fixture для process-layer boundary между task/workflow/workbench.
+
+#### Workbench: `implement-project-workbench-preview-binding`
+
+- уровни проверки: `static/contract`, `unit`, `browser/runtime`;
+- обязательные команды:
+  - `npm run test:traceability`
+  - `npm run test:unit -- <workbench-project-binding-tests>`
+  - `DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs <workbench-specs>`
+- обязательные fixtures/mocks:
+  - workbench fixture c active project context;
+  - preview/runtime fixture, читающий `project.settings`;
+  - browser fixture для project-aware preview path.
+
+#### Migration: `fix-project-ui-kit-migration-invalidation`
+
+- уровни проверки: `static/contract`, `unit`, `browser/runtime`;
+- обязательные команды:
+  - `npm run test:traceability`
+  - `npm run test:unit -- <ui-kit-migration-tests>`
+  - `DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs <migration-specs>`
+- обязательные fixtures/mocks:
+  - project `UI kit` switch fixture;
+  - invalidation fixture для completed/in-progress task state;
+  - browser/runtime fixture для migration notice и project-aware preview after switch.
+
+### 5.3. Обязательное правило coverage-plan при отсрочке
+
+Если downstream wave не закрывает один из требуемых уровней проверки в своей же волне, она обязана:
+
+- добавить запись в `test/traceability/coverage-plan.json`;
+- назвать конкретный недостающий capability/scenario;
+- указать, какой уровень проверки отложен (`unit`, `integration`, `browser/runtime`, `live/provider`);
+- описать mock/fixture или credential gap;
+- указать change или stage, в котором покрытие будет закрыто.
 
 ## Риски и компромиссы
 
@@ -131,12 +223,4 @@ Producer задаёт не финальную модель, а порядок п
 ## Открытые вопросы
 
 - Какой минимальный UX входа в проект нужен для первой волны, если решение о стартовом экране пока отложено.
-- Какие именно части onboarding/task-слоя должны стать project-scoped сразу после завершения `project entity and storage boundary`.
-- Как именно workflow должен проявляться как отдельный process-layer до привязки `workbench`.
-- Нужно ли вводить явную project-level модель progress сразу вместе с проектом или только после первой task-интеграции.
-- В каком порядке downstream changes должны разделить:
-  - project entity and storage boundary;
-  - task binding;
-  - workflow binding;
-  - workbench binding;
-  - progress invalidation при смене `UI kit`.
+- Нужно ли вводить отдельный live/provider verification в будущих `LLM`, `Figma` и `Git/GitHub` waves или достаточно будет release-level orchestration поверх их собственных changes.

@@ -6,6 +6,7 @@
 
 import fs from "node:fs"
 import path from "node:path"
+import { pathToFileURL } from "node:url"
 
 import { describe, expect, it } from "vitest"
 
@@ -40,6 +41,50 @@ function resolveBrowserVerificationChangePath(...parts: string[]) {
 }
 
 describe("browser verification runtime contract", () => {
+  it("wrapper сохраняет все переданные browser spec-файлы в итоговом playwright command", async () => {
+    const wrapperModule = await import(
+      pathToFileURL(
+        path.join(process.cwd(), "tools", "testing", "run-browser-verification-runtime.mjs"),
+      ).href
+    )
+
+    expect(
+      wrapperModule.readSpecs([
+        "test/e2e/project-ui-kit-switching.spec.ts",
+        "--grep",
+        "runtime",
+        "test/e2e/sandpack-preview-style-runtime.spec.ts",
+      ]),
+    ).toEqual([
+      "test/e2e/project-ui-kit-switching.spec.ts",
+      "test/e2e/sandpack-preview-style-runtime.spec.ts",
+    ])
+    expect(
+      wrapperModule.buildPlaywrightCommandArgs([
+        "test/e2e/project-ui-kit-switching.spec.ts",
+        "test/e2e/sandpack-preview-style-runtime.spec.ts",
+      ]),
+    ).toEqual([
+      "run",
+      "test:e2e",
+      "--",
+      "test/e2e/project-ui-kit-switching.spec.ts",
+      "test/e2e/sandpack-preview-style-runtime.spec.ts",
+    ])
+  })
+
+  it("wrapper использует канонический default spec только когда явные browser spec-файлы не переданы", async () => {
+    const wrapperModule = await import(
+      pathToFileURL(
+        path.join(process.cwd(), "tools", "testing", "run-browser-verification-runtime.mjs"),
+      ).href
+    )
+
+    expect(wrapperModule.readSpecs(["--grep", "runtime"])).toEqual([
+      "test/e2e/browser-verification-runtime.spec.ts",
+    ])
+  })
+
   it("требует явный base URL для external server режима", () => {
     expect(() => resolveBrowserVerificationRuntime({
       DESENGINE_E2E_EXTERNAL_SERVER: "1",
@@ -257,6 +302,9 @@ describe("browser verification runtime contract", () => {
     )
 
     expect(wrapper).toContain("test/e2e/browser-verification-runtime.spec.ts")
+    expect(wrapper).toContain("function readSpecs")
+    expect(wrapper).toContain("function buildPlaywrightCommandArgs")
+    expect(wrapper).toContain('["run", "test:e2e", "--", ...specPaths]')
     expect(wrapper).toContain('DESENGINE_E2E_RUNNER: "browser-wrapper"')
     expect(wrapper).toContain('const DEFAULT_CHANNEL = "chromium"')
     expect(wrapper).toContain('"npm"')

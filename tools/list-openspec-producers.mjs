@@ -95,10 +95,17 @@ export function runListOpenSpecProducers(args = process.argv.slice(2)) {
     .filter(Boolean)
     .sort((a, b) => a.name.localeCompare(b.name))
 
-  const executableTasks = changes.filter((change) => ["implement", "fix"].includes(change.kind) && change.producerRef)
+  const changeKindByName = new Map(changes.map((change) => [change.name, change.kind]))
+  const executableTasks = changes
+    .filter((change) => ["implement", "fix"].includes(change.kind))
+    .map((change) => ({
+      ...change,
+      effectiveProducer: change.producerRef || (changeKindByName.get(change.parent) === "producer" ? change.parent : ""),
+    }))
+    .filter((change) => change.effectiveProducer)
   const producers = changes
     .filter((change) => change.kind === "producer")
-    .filter((producer) => executableTasks.some((task) => task.producerRef === producer.name))
+    .filter((producer) => executableTasks.some((task) => task.effectiveProducer === producer.name))
 
   if (producers.length === 0) {
     console.log("Нет active producer changes с привязанными implement/fix.")
@@ -110,7 +117,7 @@ export function runListOpenSpecProducers(args = process.argv.slice(2)) {
     console.log(`${BRIGHT_WHITE}${producer.name}${RESET}\t${producer.short}`)
 
     const tasks = executableTasks
-      .filter((change) => change.producerRef === producer.name)
+      .filter((change) => change.effectiveProducer === producer.name)
       .sort((a, b) => a.name.localeCompare(b.name))
 
     printTasks(tasks)

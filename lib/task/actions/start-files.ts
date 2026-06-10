@@ -14,10 +14,10 @@ import {
   markCurrentTaskLevelInitialized,
 } from "@/lib/task/server"
 import {
-  ensureUserTaskDir,
-  getUserTaskFilePath,
+  ensureParentDir,
 } from "@/lib/user/server"
 import { toLlmErrorResponse } from "@/lib/llm/server"
+import { getScopedTaskRuntimeFilePath } from "@/lib/task/project-runtime-scope"
 
 import {
   getTaskActionBudgetErrorDetails,
@@ -42,6 +42,7 @@ type StartWriteStageResult =
 
 async function writeStartFiles(
   taskId: string,
+  projectId: string,
   payload: FilesPayload,
   editableFileIds: string[],
 ): Promise<StartWriteResult> {
@@ -58,10 +59,9 @@ async function writeStartFiles(
     entries: pendingWrites,
   })
 
-  await ensureUserTaskDir(taskId)
-
   for (const entry of pendingWrites) {
-    const filePath = getUserTaskFilePath(taskId, entry.fileName)
+    const filePath = getScopedTaskRuntimeFilePath(taskId, projectId, entry.fileName)
+    await ensureParentDir(filePath)
     await writeFile(filePath, entry.content, "utf-8")
     writtenFiles.push(filePath)
   }
@@ -80,11 +80,12 @@ async function writeStartFiles(
 async function writeStartStage(
   taskId: string,
   startedAt: number,
+  projectId: string,
   payload: FilesPayload,
   editableFileIds: string[],
 ): Promise<StartWriteStageResult> {
   try {
-    return { writeResult: await writeStartFiles(taskId, payload, editableFileIds) }
+    return { writeResult: await writeStartFiles(taskId, projectId, payload, editableFileIds) }
   } catch (error) {
     const budgetErrorDetails = getTaskActionBudgetErrorDetails(error)
     if (budgetErrorDetails) {
@@ -118,7 +119,7 @@ async function completeStartTaskLevel(
   const progress = await markCurrentTaskLevelInitialized(taskId)
   const nextTaskItem = await getTaskListItemById(taskId)
   const nextLabContext = nextTaskItem ? await getTaskLabContext(nextTaskItem) : null
-  const nextTaskData = await readTaskData({ id: taskId }, nextLabContext)
+  const nextTaskData = await readTaskData({ id: taskId }, nextLabContext, context.project)
   console.log("[desengine][task-start] success", {
     taskId,
     writtenFileCount: writeResult.writtenFiles.length,

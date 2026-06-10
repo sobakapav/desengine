@@ -11,8 +11,12 @@ import {
   ensureParentDir,
   ensureUserProgressStorage,
   getTaskCatalogFilePath,
-  getTaskCheckResultPath,
 } from "@/lib/user/server"
+import {
+  getScopedTaskRuntimeFilePath,
+  resolveTaskProject,
+  resolveTaskRuntimeFilePath,
+} from "@/lib/task/project-runtime-scope"
 import { UserProgressStoreSchema } from "@/lib/user/schema"
 import type { UserProgressStore } from "@/lib/user/types"
 
@@ -52,7 +56,11 @@ async function readLevelsCatalogRaw() {
 
 async function readTaskCheckResult(taskId: string): Promise<TaskCheckResult | null> {
   try {
-    const raw = await readFile(getTaskCheckResultPath(taskId), "utf-8")
+    const project = await resolveTaskProject(taskId)
+    const raw = await readFile(
+      await resolveTaskRuntimeFilePath(taskId, project.id, "check-result.json"),
+      "utf-8",
+    )
     const parsed = JSON.parse(raw) as TaskCheckResult
 
     if (
@@ -142,7 +150,8 @@ async function writeUserProgressStore(store: UserProgressStore) {
 }
 
 async function writeTaskCheckResult(result: TaskCheckResult) {
-  const filePath = getTaskCheckResultPath(result.taskId)
+  const project = await resolveTaskProject(result.taskId)
+  const filePath = getScopedTaskRuntimeFilePath(result.taskId, project.id, "check-result.json")
   await ensureParentDir(filePath)
   await writeFile(filePath, JSON.stringify(result, null, 2), "utf-8")
 }

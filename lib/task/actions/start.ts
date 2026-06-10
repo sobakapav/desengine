@@ -1,5 +1,6 @@
 import "server-only"
 
+import type { Project } from "@/lib/project/runtime"
 import {
   createTaskMutationOverloadHttpResult,
   isTaskMutationOverloadError,
@@ -11,6 +12,10 @@ import {
   createRuntimeDiagnosticsRecord,
   emitRuntimeDiagnostics,
 } from "@/lib/task/runtime-observability"
+import {
+  buildTaskMutationScopeKey,
+  resolveTaskProject,
+} from "@/lib/task/project-runtime-scope"
 
 import {
   loadStartRuntimeContext,
@@ -43,10 +48,14 @@ function finalizeStartResult(
   return attachRuntimeDiagnostics(result, [record])
 }
 
-async function runStartTaskLevelMutation(taskId: string, startedAt: number): Promise<TaskActionHttpResult> {
+async function runStartTaskLevelMutation(
+  taskId: string,
+  startedAt: number,
+  project: Project,
+): Promise<TaskActionHttpResult> {
   console.log("[desengine][task-start] start", { taskId })
 
-  const loaded = await loadStartRuntimeContext(taskId)
+  const loaded = await loadStartRuntimeContext(taskId, project)
   if ("response" in loaded) {
     return finalizeStartResult(loaded.response, {
       scope: "task",
@@ -63,7 +72,7 @@ async function runStartTaskLevelMutation(taskId: string, startedAt: number): Pro
 
   const { context } = loaded
   if (context.already && context.taskItem.progress.currentLevelStarted) {
-    const resumed = await resumeStartedLevel(taskId, context.taskItem)
+    const resumed = await resumeStartedLevel(taskId, context.taskItem, context.project)
     return finalizeStartResult(resumed, {
       scope: "task",
       path: "start",
@@ -114,6 +123,7 @@ async function runStartTaskLevelMutation(taskId: string, startedAt: number): Pro
 
   await saveCurrentTaskLevelSnapshot(
     taskId,
+    context.project,
     context.level.number,
     context.labContext.editableFileIds,
     llmInput.taskData.contentByFileId,
@@ -202,6 +212,7 @@ async function runStartTaskLevelMutation(taskId: string, startedAt: number): Pro
   const writeStage = await writeStartStage(
     taskId,
     startedAt,
+    context.project.id,
     parseStage.payload,
     context.labContext.editableFileIds,
   )
@@ -258,9 +269,12 @@ async function runStartTaskLevelMutation(taskId: string, startedAt: number): Pro
 }
 
 export const taskStartAction = {
-  async startTaskLevel(taskId: string): Promise<TaskActionHttpResult> {
+  async startTaskLevel(taskId: string, project?: Project): Promise<TaskActionHttpResult> {
+    const resolvedProject = await resolveTaskProject(taskId, project)
+    const mutationScopeKey = buildTaskMutationScopeKey(taskId, resolvedProject.id)
+
     try {
-      return await runTaskMutation(taskId, () => runStartTaskLevelMutation(taskId, Date.now()))
+      return await runTaskMutation(mutationScopeKey, () => runStartTaskLevelMutation(taskId, Date.now(), resolvedProject))
     } catch (error) {
       if (!isTaskMutationOverloadError(error)) {
         throw error

@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-10
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "fix"
+execution_mode: "code"
+parent_change: "producer-project"
+strategy_root: "producer-project"
+roadmap_ref: ""
+release_ref: ""
+producer_ref: "producer-project"
+verification_level: "unit"
+verification_command: "npm run test:unit"
+issue: ""
+short: "довести producer-контракт по downstream decomposition и test/traceability р"

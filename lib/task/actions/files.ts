@@ -2,34 +2,49 @@ import "server-only"
 
 import { writeFile } from "node:fs/promises"
 
+import {
+  projectNeedsUiKitMigration,
+  type Project,
+  type ProjectMigrationTarget,
+} from "@/lib/project/runtime"
 import { createEmptyTaskData } from "@/lib/task/data"
 import { runTaskMutation } from "@/lib/task/mutation-boundary"
 import {
   clearTaskCheckResult,
   getTaskLabContext,
   getTaskListItemById,
+  invalidateCurrentTaskLevelForProjectMigration,
   resetCurrentTaskLevel,
   resetTask,
 } from "@/lib/task/server"
 import {
-  ensureUserTaskDir,
-  getUserTaskFilePath,
+  ensureParentDir,
 } from "@/lib/user/server"
+import {
+  buildTaskMutationScopeKey,
+  getScopedTaskRuntimeFilePath,
+  resolveTaskProject,
+} from "@/lib/task/project-runtime-scope"
 
 import { getLevelEditableWorkbenchFileMap } from "../../lab/workbench"
 import type {
+  ProjectUiKitMigrationRuntimeResult,
   ResetCurrentTaskLevelRuntimeResult,
   ResetTaskRuntimeResult,
   SaveTaskFilesResult,
   TaskFileUpdate,
 } from "./types"
+import { taskActionShared } from "./shared"
 
 export const taskFilesAction = {
   async saveTaskFiles(
     taskId: string,
     updates: TaskFileUpdate[],
+    project?: Project,
   ): Promise<SaveTaskFilesResult> {
-    return runTaskMutation(taskId, async () => {
+    const resolvedProject = await resolveTaskProject(taskId, project)
+
+    return runTaskMutation(buildTaskMutationScopeKey(taskId, resolvedProject.id), async () => {
       const taskItem = await getTaskListItemById(taskId)
 
       if (!taskItem) {
@@ -41,8 +56,6 @@ export const taskFilesAction = {
       const errors: Array<{ fileId: string; error: string }> = []
       let written = 0
 
-      await ensureUserTaskDir(taskId)
-
       for (const update of updates) {
         if (!update || typeof update.fileId !== "string") continue
 
@@ -50,9 +63,10 @@ export const taskFilesAction = {
         if (!fileName) continue
         if (fileName.toLowerCase().endsWith(".png")) continue
 
-        const filePath = getUserTaskFilePath(taskId, fileName)
+        const filePath = getScopedTaskRuntimeFilePath(taskId, resolvedProject.id, fileName)
 
         try {
+          await ensureParentDir(filePath)
           await writeFile(filePath, update.content ?? "", "utf-8")
           written += 1
         } catch (error) {
@@ -70,15 +84,17 @@ export const taskFilesAction = {
       return { kind: "saved", written }
     })
   },
-  async resetTaskRuntime(taskId: string): Promise<ResetTaskRuntimeResult> {
-    return runTaskMutation(taskId, async () => {
+  async resetTaskRuntime(taskId: string, project?: Project): Promise<ResetTaskRuntimeResult> {
+    const resolvedProject = await resolveTaskProject(taskId, project)
+
+    return runTaskMutation(buildTaskMutationScopeKey(taskId, resolvedProject.id), async () => {
       const taskItem = await getTaskListItemById(taskId)
 
       if (!taskItem) {
         return { kind: "not_found", error: "Задание не найдено" }
       }
 
-      await resetTask(taskId)
+      await resetTask(taskId, { project: resolvedProject })
       await clearTaskCheckResult(taskId)
 
       const nextTaskItem = await getTaskListItemById(taskId)
@@ -92,8 +108,10 @@ export const taskFilesAction = {
       }
     })
   },
-  async resetCurrentTaskLevelRuntime(taskId: string): Promise<ResetCurrentTaskLevelRuntimeResult> {
-    return runTaskMutation(taskId, async () => {
+  async resetCurrentTaskLevelRuntime(taskId: string, project?: Project): Promise<ResetCurrentTaskLevelRuntimeResult> {
+    const resolvedProject = await resolveTaskProject(taskId, project)
+
+    return runTaskMutation(buildTaskMutationScopeKey(taskId, resolvedProject.id), async () => {
       const taskItem = await getTaskListItemById(taskId)
 
       if (!taskItem) {
@@ -101,7 +119,7 @@ export const taskFilesAction = {
       }
 
       try {
-        const progress = await resetCurrentTaskLevel(taskId)
+        const progress = await resetCurrentTaskLevel(taskId, resolvedProject)
         const nextTaskItem = await getTaskListItemById(taskId)
         const labContext = nextTaskItem ? await getTaskLabContext(nextTaskItem) : null
 
@@ -115,6 +133,63 @@ export const taskFilesAction = {
         return {
           kind: "snapshot_missing",
           error: error instanceof Error ? error.message : "Не удалось сбросить текущий уровень",
+        }
+      }
+    })
+  },
+  async migrateProjectUiKitRuntime(
+    taskId: string,
+    project: Project,
+    target: ProjectMigrationTarget,
+  ): Promise<ProjectUiKitMigrationRuntimeResult> {
+    const resolvedProject = await resolveTaskProject(taskId, project)
+
+    return runTaskMutation(buildTaskMutationScopeKey(taskId, resolvedProject.id), async () => {
+      const taskItem = await getTaskListItemById(taskId)
+
+      if (!taskItem) {
+        return { kind: "not_found", error: "Задание не найдено" }
+      }
+
+      const matchesPendingTarget = (
+        resolvedProject.migration.targetUiKitId === target.uiKitId
+        && resolvedProject.migration.targetUiMode === target.uiMode
+      )
+      if (!matchesPendingTarget) {
+        return {
+          kind: "invalid_request",
+          error: "Project migration request не совпадает с подтверждённым target UI kit.",
+        }
+      }
+
+      if (!projectNeedsUiKitMigration(resolvedProject, target)) {
+        return {
+          kind: "invalid_request",
+          error: "Project migration request не меняет текущий project contract.",
+        }
+      }
+
+      try {
+        const progress = await invalidateCurrentTaskLevelForProjectMigration(taskId, resolvedProject)
+        const nextTaskItem = await getTaskListItemById(taskId)
+        if (!nextTaskItem) {
+          return { kind: "not_found", error: "Задание не найдено" }
+        }
+
+        const currentTaskItem = { ...nextTaskItem, progress }
+        const { taskData } = await taskActionShared.buildTaskResponse(taskId, currentTaskItem, resolvedProject)
+
+        return {
+          kind: "project_migration",
+          taskItem: currentTaskItem,
+          taskData,
+          started: true,
+          invalidationScope: "current-level",
+        }
+      } catch (error) {
+        return {
+          kind: "snapshot_missing",
+          error: error instanceof Error ? error.message : "Не удалось подготовить уровень к migration проекта",
         }
       }
     })

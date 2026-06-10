@@ -24,13 +24,29 @@
   - [ ] 5.6 базовый `LLM` и ключ;
   - [ ] 5.7 `Figma` source;
   - [ ] 5.8 `Git` / `GitHub` repositories.
-- [ ] 6. Развести границы первой волны и будущих направлений:
-  - [ ] 6.1 явно исключить `Project Roadmap` из MVP;
-  - [ ] 6.2 определить, какие downstream dispatcher/implement changes нужны для MVP;
-  - [ ] 6.3 отделить project entity, task binding, workflow binding, workbench binding и progress invalidation как разные delivery-вопросы.
-- [ ] 7. Обеспечить тестовую и traceability-готовность будущих behavior-change changes:
-  - [ ] 7.1 указать ожидаемые уровни проверки для project entity, task binding, workflow binding, workbench binding и progress invalidation;
-  - [ ] 7.2 зафиксировать требования к verification commands, mock/fixture-данным и coverage-plan для downstream-веток.
+- [x] 6. Развести границы первой волны и будущих направлений:
+  - [x] 6.1 явно исключить `Project Roadmap` из MVP;
+  - [x] 6.2 определить точную MVP decomposition как набор downstream waves:
+    - [x] `implement-project-workspace-mvp` (`implement`);
+    - [x] `implement-project-task-onboarding-binding` (`implement`);
+    - [x] `implement-project-workflow-binding` (`implement`);
+    - [x] `implement-project-workbench-preview-binding` (`implement`);
+    - [x] `fix-project-ui-kit-migration-invalidation` (`fix`).
+  - [x] 6.3 отделить project entity, task binding, workflow binding, workbench binding и progress invalidation как разные delivery-вопросы с запретом на их обратное слияние без нового producer-level решения.
+- [x] 7. Обеспечить тестовую и traceability-готовность будущих behavior-change changes:
+  - [x] 7.1 указать ожидаемые уровни проверки для foundation, task, workflow, workbench и migration waves:
+    - [x] foundation: `static/contract` + `unit`;
+    - [x] task: `static/contract` + `unit` + `integration`;
+    - [x] workflow: `static/contract` + `unit`;
+    - [x] workbench: `static/contract` + `unit` + `browser/runtime`;
+    - [x] migration: `static/contract` + `unit` + `browser/runtime`.
+  - [x] 7.2 зафиксировать требования к verification commands, mock/fixture-данным и coverage-plan для downstream-веток:
+    - [x] каждая wave обязана пройти `npm run test:traceability`;
+    - [x] wave с `unit` обязана указать `npm run test:unit -- <targeted-tests>`;
+    - [x] task-wave обязана указать `npm run test:integration -- <task-route-tests>`;
+    - [x] workbench/migration waves обязаны указать `DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs <spec...>`;
+    - [x] все waves обязаны перечислить project-aware fixtures/mocks;
+    - [x] при отсрочке покрытия обязателен `test/traceability/coverage-plan.json` с причиной, уровнем проверки и stage закрытия.
 - [ ] 8. Выполнить проверку по verification_command из metadata.
 
 ## Тестовая часть change
@@ -53,7 +69,19 @@
   - `npm run test:traceability`
 - Mock/fixture-данные:
   - для самого producer-change не требуются;
-  - downstream changes должны явно зафиксировать fixture/mocks отдельно для `ProjectWorkspace`, project state, task binding, workflow binding, workbench binding и `UI kit` migration.
+  - downstream changes обязаны явно зафиксировать fixture/mocks отдельно для:
+    - `ProjectWorkspace` и active project selection;
+    - project-aware task payloads и route fixtures;
+    - workflow artifacts с `projectId`;
+    - workbench/preview fixtures, читающих `project.settings`;
+    - `UI kit` migration / invalidation fixtures.
 - Live credentials:
   - для самого producer-change не требуются;
   - downstream changes по `LLM`, `Figma`, `Git/GitHub` должны отдельно фиксировать свои credential expectations.
+- Downstream verification matrix, которую producer обязан задать заранее:
+  - foundation-wave: `npm run test:traceability` + `npm run test:unit -- <project-workspace-focused-tests>`;
+  - task-wave: `npm run test:traceability` + `npm run test:unit -- <task-project-boundary-tests>` + `npm run test:integration -- <task-route-tests>`;
+  - workflow-wave: `npm run test:traceability` + `npm run test:unit -- <workflow-project-binding-tests>`;
+  - workbench-wave: `npm run test:traceability` + `npm run test:unit -- <workbench-project-binding-tests>` + `DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs <workbench-specs>`;
+  - migration-wave: `npm run test:traceability` + `npm run test:unit -- <ui-kit-migration-tests>` + `DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs <migration-specs>`;
+  - если downstream wave не выполняет один из этих уровней в своей же поставке, она обязана добавить запись в `test/traceability/coverage-plan.json` с причиной, временным workaround и change/stage закрытия.

@@ -11,10 +11,15 @@ import {
 import type { PromptHistoryEntry } from "@/lib/prompt/types"
 import {
   ensureParentDir,
-  getUserTaskFilePath,
   pathExists,
   promptHistoryFileName,
 } from "@/lib/user/server"
+import {
+  getScopedTaskRuntimeFilePath,
+  resolveTaskProject,
+  resolveTaskRuntimeFilePath,
+} from "@/lib/task/project-runtime-scope"
+import type { Project } from "@/lib/project/runtime"
 
 function isStringArray(value: unknown) {
   return Array.isArray(value) && value.every((item) => typeof item === "string")
@@ -76,7 +81,9 @@ function buildTaskLlmUsageSummary(promptHistory: PromptHistoryEntry[]): TaskLlmU
 export async function readTaskData(
   task: { id: string },
   labContext: TaskLabContext | null = null,
+  project?: Project,
 ): Promise<TaskData> {
+  const resolvedProject = await resolveTaskProject(task.id, project)
   const levelEditableFileIds = labContext
     ? new Set(getLevelEditableWorkbenchFiles(labContext.editableFileIds).map((file) => file.id))
     : null
@@ -95,13 +102,13 @@ export async function readTaskData(
 
   const entries = await Promise.all(
     textFiles.map(async (file) => {
-      const filePath = getUserTaskFilePath(task.id, file.fileName)
+      const filePath = await resolveTaskRuntimeFilePath(task.id, resolvedProject.id, file.fileName)
       const content = await readFile(filePath, "utf-8").catch(() => "")
       return [file.id, content] as const
     }),
   )
 
-  const promptHistory = await readPromptHistory(task.id)
+  const promptHistory = await readPromptHistory(task.id, resolvedProject)
 
   return {
     taskId: task.id,
@@ -112,15 +119,23 @@ export async function readTaskData(
   }
 }
 
-export async function isTaskStarted(taskId: string): Promise<boolean> {
+/**
+ * @example
+ * ```ts
+ * const started = await isTaskStarted("task-1", { id: "project-1", title: "Проект 1" })
+ * ```
+ */
+export async function isTaskStarted(taskId: string, project?: Project): Promise<boolean> {
   const componentFile = appConfig.taskWorkbenchFiles.find((f) => f.id === "component")
   if (!componentFile) return false
 
-  return pathExists(getUserTaskFilePath(taskId, componentFile.fileName))
+  const resolvedProject = await resolveTaskProject(taskId, project)
+  const filePath = await resolveTaskRuntimeFilePath(taskId, resolvedProject.id, componentFile.fileName)
+  return pathExists(filePath)
 }
 
-function getPromptHistoryPath(taskId: string) {
-  return getUserTaskFilePath(taskId, promptHistoryFileName)
+function getPromptHistoryPath(taskId: string, projectId: string) {
+  return getScopedTaskRuntimeFilePath(taskId, projectId, promptHistoryFileName)
 }
 
 /**
@@ -129,8 +144,9 @@ function getPromptHistoryPath(taskId: string) {
  * const history = await readPromptHistory("task-1")
  * ```
  */
-export async function readPromptHistory(taskId: string): Promise<PromptHistoryEntry[]> {
-  const filePath = getPromptHistoryPath(taskId)
+export async function readPromptHistory(taskId: string, project?: Project): Promise<PromptHistoryEntry[]> {
+  const resolvedProject = await resolveTaskProject(taskId, project)
+  const filePath = await resolveTaskRuntimeFilePath(taskId, resolvedProject.id, promptHistoryFileName)
 
   try {
     const raw = await readFile(filePath, "utf-8")
@@ -170,14 +186,21 @@ export async function readPromptHistory(taskId: string): Promise<PromptHistoryEn
  * await appendPromptHistory("task-1", { text: "Сделай кнопку заметнее", createdAt: new Date().toISOString() })
  * ```
  */
-export async function appendPromptHistory(taskId: string, entry: PromptHistoryEntry) {
-  const history = await readPromptHistory(taskId)
+export async function appendPromptHistory(taskId: string, entry: PromptHistoryEntry, project?: Project) {
+  const history = await readPromptHistory(taskId, project)
   history.push(entry)
-  await writePromptHistory(taskId, history)
+  await writePromptHistory(taskId, history, project)
 }
 
-export async function writePromptHistory(taskId: string, history: PromptHistoryEntry[]) {
-  const filePath = getPromptHistoryPath(taskId)
+/**
+ * @example
+ * ```ts
+ * await writePromptHistory("task-1", history, { id: "project-1", title: "Проект 1" })
+ * ```
+ */
+export async function writePromptHistory(taskId: string, history: PromptHistoryEntry[], project?: Project) {
+  const resolvedProject = await resolveTaskProject(taskId, project)
+  const filePath = getPromptHistoryPath(taskId, resolvedProject.id)
   await ensureParentDir(filePath)
   await writeFile(filePath, JSON.stringify(history, null, 2), "utf-8")
 }

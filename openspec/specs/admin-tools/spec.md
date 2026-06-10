@@ -48,14 +48,14 @@
 - **WHEN** разработчик запускает `npm run os:r`
 - **THEN** в вывод попадают только changes из `openspec/changes/*`
 - **AND** archived changes из `openspec/changes/archive/*` не печатаются ни как release, ни как элементы состава
-- **AND** активный состав релиза печатается как delivery-матрица `parent dispatcher -> implement/fix`, если у элементов состава задан `parent_change`
+- **AND** активный состав релиза печатается как delivery-матрица `parent change -> implement/fix`, если у элементов состава задан `parent_change`
 - **AND** в состав релиза не попадают changes с `change_kind`, отличным от `implement` и `fix`
 - **AND** release и элементы состава используют те же role-иконки, что и `npm run os`
 - **AND** краткие описания элементов одного уровня начинаются в общей выровненной колонке
 
-### Requirement: Release оркестрирует delivery-матрицу, не подменяя dispatcher
+### Requirement: Release оркестрирует delivery-матрицу, не подменяя parent owner
 
-Система SHALL позволять release change управлять составом поставки через связь `release_ref`, сохраняя тактическое подчинение исполнительских changes их parent dispatcher.
+Система SHALL позволять release change управлять составом поставки через связь `release_ref`, сохраняя подчинение исполнительских changes их `parent_change`, которым может быть `producer` или `dispatcher`.
 
 #### Scenario: Non-executable change пытается войти в release composition
 - **WHEN** metadata change с `change_kind=focus|idea|producer|dispatcher|release` содержит `release_ref`
@@ -63,8 +63,8 @@
 - **AND** ошибка явно объясняет, что `release_ref` разрешён только для `implement` и `fix`
 
 #### Scenario: Release-диспетчеризация новой хотелки
-- **WHEN** разработчик запускает `npm run os:dispatch -- <release-change> --dispatcher <dispatcher-change> --kind <implement|fix> --name <name>`
-- **THEN** создаётся исполнительский change с `parent_change=<dispatcher-change>`
+- **WHEN** разработчик запускает `npm run os:dispatch -- <release-change> --dispatcher <producer-or-dispatcher-change> --kind <implement|fix> --name <name>`
+- **THEN** создаётся исполнительский change с `parent_change=<producer-or-dispatcher-change>`
 - **AND** у него проставляется `release_ref=<release-change>`
 - **AND** тот же `release_ref` синхронно фиксируется в `.openspec.yaml` и inherited context `handoff.md`
 - **AND** дальнейшая реализация выполняется только в этом implement/fix change
@@ -76,9 +76,9 @@
 
 #### Scenario: Разработчик открывает implement/fix из release-контекста через `os:ctx`
 - **WHEN** разработчик запускает `npm run os:ctx -- <implement-or-fix-change>`, у которого задан `release_ref`
-- **THEN** команда показывает `release_ref`, parent dispatcher и его ключевые артефакты
-- **AND** показывает inherited roadmap стратегических владельцев dispatcher
-- **AND** явно напоминает, что parent dispatcher отвечает за тактику и приёмку результата
+- **THEN** команда показывает `release_ref`, parent change и его ключевые артефакты
+- **AND** показывает inherited roadmap стратегических владельцев parent change
+- **AND** явно напоминает, что parent change отвечает за постановку и приёмку результата на своём уровне
 
 #### Scenario: Разработчик пытается закрыть release с незакрытым составом
 - **GIVEN** в active слое остаётся хотя бы один implement/fix change с `release_ref=<release-change>`
@@ -179,19 +179,29 @@
 - **THEN** metadata change использует `roadmap_refs` как список ссылок вида `<strategic-change>/roadmaps/<file>.md`
 - **AND** каждая ссылка проходит ту же проверку наследования и существования файла
 
-### Requirement: Producer ведёт собственный roadmap и работает через dispatcher
+### Requirement: Producer ведёт собственный roadmap и работает как полный owner линии
 
-Система SHALL трактовать `producer` как стратегический продюсерский change: он ведёт собственный roadmap, формирует ожидания к delivery и не получает direct implement/fix children.
+Система SHALL трактовать `producer` как полного owner change-линии: он ведёт собственный roadmap, формирует и уточняет смысл линии, активно управляет downstream delivery и работает источником истины для подчинённых changes.
 
 #### Scenario: Создаётся producer change
 - **WHEN** metadata change содержит `change_kind=producer`
 - **THEN** в каталоге change существует как минимум один файл `roadmaps/*.md`
 - **AND** этот roadmap принадлежит самому producer-change, а не его потомку
 
-#### Scenario: Producer передаёт delivery downstream dispatcher
+#### Scenario: Producer напрямую управляет исполнительским change
+- **WHEN** implement или fix использует `parent_change` на producer
+- **THEN** система считает producer полным owner этой исполнительской линии
+- **AND** не требует обязательного промежуточного dispatcher только ради разделения ответственности
+
+#### Scenario: Producer создаёт вспомогательный dispatcher без потери ownership
 - **WHEN** producer-change инициирует follow-up работу
-- **THEN** он согласует её через dispatcher changes
-- **AND** implement/fix changes не используют producer как `parent_change`
+- **THEN** он MAY создать downstream dispatcher как тактический helper change
+- **AND** такой dispatcher не отменяет, что producer остаётся владельцем смысла, roadmap и управленческого контура линии
+
+#### Scenario: Producer появляется раньше формализованных требований и сценариев
+- **WHEN** создаётся producer-change для большой линии трансформации
+- **THEN** система не требует, чтобы requirements и scenarios уже были формализованы на старте самого producer
+- **AND** допускает, что они будут порождены как результат проработки producer roadmap
 
 ### Requirement: Код меняют только implement/fix, остальные roles управляют потомками
 
@@ -207,37 +217,42 @@
 - **WHEN** разработчик запускает `npm run os:begin -- <implement-or-fix-change>`
 - **THEN** команда явно сообщает, что код меняется только на уровне implement/fix
 - **AND** напоминает, что стратегия и тактика уже заданы предками
-- **AND** напоминает, что parent dispatcher отвечает за постановку и приёмку результата
+- **AND** напоминает, что parent change отвечает за постановку и приёмку результата
 
-### Requirement: Producer-контекст задаётся только на исполнительских changes
+### Requirement: Producer-контекст задаётся без дробления ownership
 
-Система SHALL поддерживать поле `producer_ref` только для `implement` и `fix`, чтобы исполнительская ветка могла явно знать свой producer-контекст без превращения producer в иерархического родителя.
+Система SHALL поддерживать producer ownership двумя способами: прямым `parent_change` на `producer` или отдельной меткой `producer_ref` у `implement` и `fix`, когда исполнительский change тактически подчинён dispatcher, но входит в producer-контекст.
 
 #### Scenario: Implement или fix помечается producer-контекстом
 - **WHEN** metadata implement/fix содержит `producer_ref`
 - **THEN** значение указывает на change с `change_kind=producer`
-- **AND** этот producer-контекст не заменяет `parent_change`, а существует как отдельная метка рядом с `release_ref`
+- **AND** этот producer-контекст не заменяет `parent_change`, если parent уже задан на dispatcher, а существует как отдельная метка рядом с `release_ref`
 
-#### Scenario: Dispatcher не подчиняется producer напрямую
+#### Scenario: Implement или fix напрямую подчиняется producer
+- **WHEN** metadata implement/fix содержит `parent_change` на producer
+- **THEN** статическая проверка считает это допустимым способом выразить полный producer ownership
+- **AND** `producer_ref` может отсутствовать, если producer уже выражен через `parent_change`
+
+#### Scenario: Dispatcher подчиняется producer напрямую
 - **WHEN** metadata dispatcher содержит `parent_change` на producer
-- **THEN** статическая проверка OpenSpec metadata завершается ошибкой
-- **AND** producer-контекст не должен выражаться через `parent_change`
+- **THEN** статическая проверка OpenSpec metadata считает такую связь допустимой
+- **AND** producer остаётся owner линии, даже если часть тактики ведёт этот dispatcher
 
 #### Scenario: Dispatcher не может хранить producer-контекст
 - **WHEN** metadata dispatcher содержит `producer_ref`
 - **THEN** статическая проверка OpenSpec metadata завершается ошибкой
-- **AND** producer-контекст должен храниться только на implement/fix
+- **AND** producer ownership для dispatcher должен выражаться через `parent_change`, а не через отдельную контекстную метку
 
-### Requirement: Контекст исполнения показывает унаследованные roadmap dispatcher
+### Requirement: Контекст исполнения показывает parent change и producer ownership
 
-Система SHALL в контекстных командах исполнения показывать roadmap стратегических владельцев, которыми руководствуется dispatcher.
+Система SHALL в контекстных командах исполнения показывать parent change и roadmap стратегических владельцев, которыми руководствуется исполнительская линия.
 
 #### Scenario: Разработчик открывает implement/fix через `os:ctx`
 - **WHEN** разработчик запускает `npm run os:ctx -- <implement-or-fix-change>`
-- **THEN** команда показывает `proposal/design/tasks` parent dispatcher
-- **AND** дополнительно показывает все inherited roadmap, на которые ссылается dispatcher
-- **AND** явно напоминает, что parent dispatcher отвечает за тактику и приёмку результата
-- **AND** при наличии `producer_ref` показывает producer-артефакты и сам producer-контекст
+- **THEN** команда показывает `proposal/design/tasks` parent change
+- **AND** дополнительно показывает inherited roadmap, доступные через parent change или его стратегических владельцев
+- **AND** явно напоминает, что parent change отвечает за постановку и приёмку результата
+- **AND** при наличии `producer_ref` или parent producer показывает producer-артефакты и сам producer-контекст
 
 ### Requirement: Голый суффикс даты запрещён при создании, диспетчеризации и переименовании change
 

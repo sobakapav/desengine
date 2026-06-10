@@ -1,9 +1,9 @@
 ## Tasks
 
-- [ ] 1. Зафиксировать `dispatcher-architecture` как tactical owner архитектурной линии.
-- [ ] 2. Привязать dispatcher к `producer-architecture-transform` и implementation plan producer'а.
-- [ ] 3. Зафиксировать tactical ownership для ADR, архитектурной карты, словаря сущностей и naming discipline.
-- [ ] 4. Подготовить dispatcher к маршрутизации downstream changes по модульным границам и контрактам взаимодействия.
+- [x] 1. Зафиксировать `dispatcher-architecture` как tactical owner архитектурной линии.
+- [x] 2. Привязать dispatcher к `producer-architecture-transform` и implementation plan producer'а.
+- [x] 3. Зафиксировать tactical ownership для ADR, архитектурной карты, словаря сущностей и naming discipline.
+- [x] 4. Подготовить dispatcher к маршрутизации downstream changes по модульным границам и контрактам взаимодействия.
 
 ## Тестовая часть change
 

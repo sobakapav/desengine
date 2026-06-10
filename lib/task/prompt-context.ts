@@ -124,13 +124,20 @@ function buildPromptContextFromProjection(args: {
     throw new Error("PromptContext требует workflow step")
   }
 
+  if (workflowStep.projectId !== args.projection.workflow.projectId) {
+    throw new Error("PromptContext требует project-aware workflow step")
+  }
+
+  const workbenchInstanceId = workflowStep.runtimeBindings?.primaryWorkbenchInstanceId
+    ?? workflowStep.runtimeBindings?.workbenchInstanceIds[0]
+
   return buildPromptContext({
     project: args.project,
     task: args.projection.task,
     workflowStep,
     artifacts: args.projection.artifacts,
     workbench: args.projection.workbenchInstances.find(
-      (workbench) => workbench.id === workflowStep.workbenchInstanceId,
+      (workbench) => workbench.id === workbenchInstanceId,
     ),
     userText: args.userText,
     constraints: args.constraints,

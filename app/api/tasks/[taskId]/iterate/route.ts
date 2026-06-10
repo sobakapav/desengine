@@ -1,10 +1,28 @@
 import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
+import { normalizeProject } from "@/lib/project/runtime"
 import { iterateTaskLevel } from "@/lib/task/actions"
 
 type Params = { taskId: string }
 
 type Body = {
   prompt?: string
+  project?: unknown
+}
+
+function parseProjectPayload(project: unknown, taskId: string) {
+  if (typeof project !== "object" || project === null) {
+    return undefined
+  }
+
+  return normalizeProject({
+    ...project,
+    id: "id" in project && typeof project.id === "string"
+      ? project.id
+      : `task-${taskId}`,
+    title: "title" in project && typeof project.title === "string"
+      ? project.title
+      : `Проект ${taskId}`,
+  })
 }
 
 /**
@@ -26,11 +44,12 @@ export async function POST(
   const { taskId } = await params
   const body = (await request.json().catch(() => null)) as Body | null
   const promptText = String(body?.prompt || "").trim()
+  const project = parseProjectPayload(body?.project, taskId)
 
   if (!promptText) {
     return Response.json({ ok: false, error: "Введите уточняющий промпт" }, { status: 400 })
   }
 
-  const result = await iterateTaskLevel(taskId, promptText)
+  const result = await iterateTaskLevel(taskId, promptText, project)
   return Response.json(result.body, { status: result.status ?? 200 })
 }

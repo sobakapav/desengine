@@ -8,7 +8,10 @@ import { TaskLevelStart } from "../../task/TaskLevelStart";
 import { createTaskCheckPath, createTaskDonePath } from "@/lib/task/navigation";
 import { getLabUrl } from "@/lib/lab/navigation";
 import { getLevelUrl } from "@/lib/level/navigation";
+import { normalizeProject, type Project } from "@/lib/project/runtime";
+import { createBrowserProjectStorage } from "@/lib/project/storage";
 import type { TaskCheckResult, TaskData, TaskListItem, TaskTransition } from "@/lib/task/types";
+import { postTaskStart } from "../task-client-boundary";
 import {
     buildLabTaskScreenEvent,
     changeLabTaskScreenEventInput,
@@ -21,6 +24,22 @@ type TaskRouteProps = {
     initTaskItem: TaskListItem;
     initTaskData: TaskData;
 };
+
+async function readStoredProject(taskId: string): Promise<Project> {
+    const fallbackProject = normalizeProject({
+        id: `task-${taskId}`,
+        title: `Проект ${taskId}`,
+    });
+
+    try {
+        const storage = createBrowserProjectStorage({ storage: window.localStorage, taskId });
+        const activeProjectId = await storage.getActiveProjectId();
+        const project = await storage.getProject(activeProjectId ?? `task-${taskId}`);
+        return project ?? fallbackProject;
+    } catch {
+        return fallbackProject;
+    }
+}
 
 function TaskRoute({ initTaskItem, initTaskData }: TaskRouteProps) {
     const router = useRouter();
@@ -46,7 +65,8 @@ function TaskRoute({ initTaskItem, initTaskData }: TaskRouteProps) {
         setStartStatus("starting");
         setStartError("");
 
-        const res = await fetch(`/api/tasks/${taskItem.id}/start`, { method: "POST" });
+        const project = await readStoredProject(taskItem.id);
+        const res = await postTaskStart(taskItem.id, project);
         const data = await res.json().catch(() => null);
 
         if (!res.ok || !data?.ok) {
@@ -120,3 +140,4 @@ function TaskRoute({ initTaskItem, initTaskData }: TaskRouteProps) {
 }
 
 export { TaskRoute };
+export { readStoredProject };

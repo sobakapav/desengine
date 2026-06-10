@@ -39,6 +39,18 @@ const project: ProjectWorkspace = {
     uiKitId: "ant",
     uiMode: "ui-kit",
   },
+  migration: {
+    state: "idle",
+    sourceUiKitId: "ant",
+    sourceUiMode: "ui-kit",
+    targetUiKitId: "ant",
+    targetUiMode: "ui-kit",
+    invalidationScope: "none",
+    requiresReplay: false,
+    message: "",
+    startedAt: null,
+    finishedAt: null,
+  },
 }
 
 const level: Pick<LevelConfig, "id" | "number" | "title" | "labId" | "editableFileIds"> = {
@@ -153,9 +165,13 @@ describe("PromptContext runtime boundary", () => {
     })
     expect(context.workflowStep).toMatchObject({
       id: "workflow-step:intro-card:level-lab:2",
+      projectId: "project-runtime",
       kind: "level-lab",
       status: "in_progress",
-      workbenchInstanceId: "workbench:intro-card",
+      runtimeBindings: {
+        workbenchInstanceIds: ["workbench:intro-card"],
+        primaryWorkbenchInstanceId: "workbench:intro-card",
+      },
     })
     expect(context.artifacts.map((artifact) => artifact.kind)).toEqual([
       "code-file",

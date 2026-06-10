@@ -34,7 +34,8 @@ async function readStoredProject(taskId: string): Promise<Project> {
 
     try {
         const storage = createBrowserProjectStorage({ storage: window.localStorage, taskId });
-        const project = await storage.getProject(`task-${taskId}`);
+        const activeProjectId = await storage.getActiveProjectId();
+        const project = await storage.getProject(activeProjectId ?? `task-${taskId}`);
         return project ?? fallbackProject;
     } catch {
         return fallbackProject;

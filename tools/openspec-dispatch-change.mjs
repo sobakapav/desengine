@@ -12,8 +12,8 @@ function getChangesDir() {
 
 function printUsage() {
   console.error("Использование:")
-  console.error("  npm run os:dispatch -- <dispatcher-change> --kind <implement|fix> --name <short-name> --description \"...\"")
-  console.error("  npm run os:dispatch -- <release-change> --dispatcher <dispatcher-change> --kind <implement|fix> --name <short-name> --description \"...\"")
+  console.error("  npm run os:dispatch -- <producer-or-dispatcher-change> --kind <implement|fix> --name <short-name> --description \"...\"")
+  console.error("  npm run os:dispatch -- <release-change> --dispatcher <producer-or-dispatcher-change> --kind <implement|fix> --name <short-name> --description \"...\"")
 }
 
 function parseArgs(argv) {
@@ -130,16 +130,16 @@ function runOpenSpecDispatch(argv = process.argv.slice(2)) {
 
   if (sourceMeta.kind === "release") {
     if (!parsed.release) {
-      throw new Error("Для release-диспетчеризации нужен --dispatcher <dispatcher-change>.")
+      throw new Error("Для release-диспетчеризации нужен --dispatcher <producer-or-dispatcher-change>.")
     }
     const dispatcherMeta = readMetadata(parsed.release)
-    if (dispatcherMeta.kind !== "dispatcher") {
-      throw new Error(`--dispatcher должен ссылаться на dispatcher-change. Получено: ${dispatcherMeta.kind}`)
+    if (!["producer", "dispatcher"].includes(dispatcherMeta.kind)) {
+      throw new Error(`--dispatcher должен ссылаться на producer- или dispatcher-change. Получено: ${dispatcherMeta.kind}`)
     }
     releaseName = parsed.dispatcher
     dispatcherName = parsed.release
-  } else if (sourceMeta.kind !== "dispatcher") {
-    throw new Error(`Источник диспетчеризации должен быть release или dispatcher. Получено: ${sourceMeta.kind}`)
+  } else if (!["producer", "dispatcher"].includes(sourceMeta.kind)) {
+    throw new Error(`Источник диспетчеризации должен быть release, producer или dispatcher. Получено: ${sourceMeta.kind}`)
   }
 
   const changeName = normalizeDispatchedChangeName(parsed.kind, parsed.name)

@@ -4,6 +4,20 @@
 
 Зафиксировать контракт устойчивости task-экрана при ошибках preview пользовательского компонента.
 ## Requirements
+### Requirement: Task opening runtime работает внутри active project context
+
+Система SHALL строить task/opening runtime, task screen data и project-aware task actions внутри active project context, а не как безымянный global task flow.
+
+#### Scenario: Пользователь открывает task screen внутри активного проекта
+- **WHEN** пользователь открывает задачу при выбранном active project
+- **THEN** runtime строит task screen data внутри этого project context
+- **AND** task/opening flow не откатывается к project-less global состоянию
+
+#### Scenario: Task runtime сохраняет active project при действиях пользователя
+- **WHEN** пользователь выполняет `start`, `iterate`, `check`, `save files`, `reset task` или `reset current level`
+- **THEN** runtime, storage binding и route/service boundary используют тот же active project context
+- **AND** данные task runtime не смешиваются с project-less fallback вне явного legacy compatibility path
+
 ### Requirement: Мутации задачи выполняются через runtime boundary
 
 Система SHALL выполнять локальные мутации состояния одной задачи через последовательную runtime boundary, чтобы параллельные действия пользователя не приводили к lost update или частично применённому состоянию.
@@ -79,8 +93,13 @@ Task service boundary SHALL строить prompt-related runtime context чер
 - **THEN** route handler делегирует level-scoped reset отдельной runtime/service функции
 - **AND** не переиспользует полный reset задачи как скрытую реализацию
 
+#### Scenario: Пользователь запускает project migration через service boundary
+- **WHEN** API route выполняет project `UI kit` migration для текущей задачи
+- **THEN** route handler делегирует selective invalidation текущего уровня отдельной runtime/service функции
+- **AND** HTTP response contract возвращает обновлённые `taskItem` и `taskData` без полного reset задачи
+
 #### Scenario: Task action runtime возвращает retriable overload-отказ
-- **WHEN** `start`, `iterate`, `check`, `save files`, `reset task` или `reset current level` попадают в bounded overload runtime
+- **WHEN** `start`, `iterate`, `check`, `save files`, `reset task`, `reset current level` или project migration попадают в bounded overload runtime
 - **THEN** service или route boundary возвращает явный retriable error
 - **AND** действие не оставляет частично поставленную в очередь мутацию
 - **AND** runtime diagnostics фиксирует fast-fail overload path
@@ -209,6 +228,12 @@ Budget write-set SHALL измеряться по количеству файло
 - **AND** выбранный UI kit или компонент падает после запуска preview
 - **THEN** `project.compatibility` остаётся `compatible`
 - **AND** лаборатория показывает host-level runtime-диагностику рядом с preview
+
+#### Scenario: Preview показывает безопасный fallback для Server Actions
+- **WHEN** пользовательский компонент или локально импортированный preview-файл использует Next.js Server Actions
+- **THEN** Sandpack preview не пытается исполнять этот код как штатный runtime-path
+- **AND** builder возвращает безопасный fallback-компонент с человекочитаемой диагностикой
+- **AND** structured diagnostics помечает ветку причиной `unsupported_preview_api`
 
 #### Scenario: Preview игнорирует stale runtime contract messages
 - **WHEN** текущий preview уже поднят для активного project/task-сеанса

@@ -236,7 +236,7 @@ describe("openspec handoff", () => {
 
 - Входит: sync metadata.
 - Не входит: новые capabilities.
-- Какие решения уже принадлежат parent dispatcher / strategy_root и не должны переоткрываться: release policy.
+- Какие решения уже принадлежат parent change / strategy_root и не должны переоткрываться: release policy.
 
 ## Проверка результата
 
@@ -328,7 +328,7 @@ roadmap_ref: "focus-demo/roadmaps/demo.md"
     expect(output).toContain("Создать implement/fix change и связать его с dispatcher-demo")
   })
 
-  it("os:begin для producer явно отправляет delivery в dispatcher", () => {
+  it("os:begin для producer признаёт прямое ownership и не требует обязательного dispatcher", () => {
     const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-begin-producer-"))
     tempDirs.push(fixtureRoot)
     const changeDir = path.join(fixtureRoot, "openspec", "changes", "producer-demo")
@@ -352,8 +352,8 @@ strategy_root: "focus-demo"
     const output = `${result.stdout}\n${result.stderr}`
 
     expect(output).toContain("Прямое изменение кода здесь запрещено. Код меняют только implement/fix.")
-    expect(output).toContain("Producer формирует roadmap и ожидания, но не создаёт код напрямую.")
-    expect(output).toContain("Producer обязан работать через downstream dispatcher changes")
+    expect(output).toContain("Producer несёт полную ответственность за смысл, roadmap и процесс линии, но не меняет код напрямую.")
+    expect(output).toContain("Producer может породить implement/fix напрямую или завести вспомогательный dispatcher")
   })
 
   it("os:begin для release явно запрещает прямой код и отправляет в os:dispatch", () => {
@@ -394,7 +394,7 @@ verification_command: "npm run test:unit"
     expect(output).toContain("Прямое изменение кода здесь запрещено. Код меняют только implement/fix.")
     expect(output).toContain("Release управляет delivery implement/fix через os:dispatch")
     expect(output).toContain("Следующий шаг для новой хотелки из release-контекста:")
-    expect(output).toContain("npm run os:dispatch -- release-demo --dispatcher <dispatcher-change> --kind fix --name <name> --description")
+    expect(output).toContain("npm run os:dispatch -- release-demo --dispatcher <producer-or-dispatcher-change> --kind fix --name <name> --description")
   })
 
   it("os:begin для готового implement напоминает границы роли и приёмку родителя", () => {
@@ -440,7 +440,7 @@ verification_command: "npm run test:unit"
 
 - Что входит в этот change: исполнительский код и unit-проверки.
 - Что сознательно не входит в этот change: пересмотр стратегии, тактики и roadmap.
-- Какие решения уже принадлежат parent dispatcher / strategy_root и не должны переоткрываться: тактика, приёмка и roadmap.
+- Какие решения уже принадлежат parent change / strategy_root и не должны переоткрываться: тактика, приёмка и roadmap.
 
 ## Проверка результата
 
@@ -463,7 +463,7 @@ verification_command: "npm run test:unit"
     const output = `${result.stdout}\n${result.stderr}`
 
     expect(output).toContain("код меняется только в implement/fix; стратегия и тактика уже заданы предками")
-    expect(output).toContain("parent dispatcher отвечает за постановку и приёмку результата")
+    expect(output).toContain("parent change отвечает за постановку и приёмку результата")
   })
 
   it("os:dispatch в release-режиме создаёт implement change вместе с handoff", { timeout: 15000 }, () => {

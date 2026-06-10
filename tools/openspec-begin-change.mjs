@@ -44,15 +44,20 @@ function printNonExecutableGuidance(changeName, current) {
   }
 
   if (current.kind === "producer") {
-    console.log("Producer формирует roadmap и ожидания, но не создаёт код напрямую.")
-    console.log("Producer обязан работать через downstream dispatcher changes и принимать их результат на своём уровне.")
+    console.log("Producer несёт полную ответственность за смысл, roadmap и процесс линии, но не меняет код напрямую.")
+    console.log("Producer может породить implement/fix напрямую или завести вспомогательный dispatcher, не теряя ownership.")
+    printRoadmapRefs(current.roadmapRefs)
+    console.log("")
+    console.log("Следующий шаг:")
+    console.log(`- Создать implement/fix change и связать его с ${changeName}`)
+    console.log(`- Пример: npm run os:begin -- ${changeName} --spawn-implement implement-<имя> --description "..."`)
     return
   }
 
   if (current.kind === "release") {
     console.log("Release не меняет код напрямую.")
     console.log("Release управляет delivery implement/fix через os:dispatch и проверяет состав поставки.")
-    console.log(`Следующий шаг: npm run os:dispatch -- ${changeName} --dispatcher <dispatcher-change> --kind fix --name <name> --description "..."`)
+    console.log(`Следующий шаг: npm run os:dispatch -- ${changeName} --dispatcher <producer-or-dispatcher-change> --kind fix --name <name> --description "..."`)
     return
   }
 
@@ -73,8 +78,8 @@ function printNonExecutableGuidance(changeName, current) {
 function printUsage() {
   console.error("Использование:")
   console.error("  npm run os:begin -- <change-name>")
-  console.error("  npm run os:begin -- <dispatcher-change> --spawn-implement <implement-change>")
-  console.error("  npm run os:begin -- <dispatcher-change> --spawn-implement <implement-change> --description \"...\"")
+  console.error("  npm run os:begin -- <producer-or-dispatcher-change> --spawn-implement <implement-change>")
+  console.error("  npm run os:begin -- <producer-or-dispatcher-change> --spawn-implement <implement-change> --description \"...\"")
 }
 
 function parseArgs(argv) {
@@ -157,12 +162,12 @@ function printCreatedImplementSummary(args) {
     console.log(`- создан handoff: openspec/changes/${args.spawnImplement}/${HANDOFF_FILE}`)
     console.log("- перед исполнением обязательно заполнить handoff по существу")
   }
-  console.log("- код меняется только в этом implement/fix change; dispatcher остаётся управляющим контуром")
-  console.log("- после реализации dispatcher обязан принять результат через verification и traceability-слой")
+  console.log(`- код меняется только в этом implement/fix change; parent owner остаётся ${args.parentChange}`)
+  console.log("- после реализации parent owner обязан принять результат через verification и traceability-слой")
   console.log(`Запусти: npm run os:begin -- ${args.spawnImplement}`)
 }
 
-function handleDispatcherBegin(parsed, current) {
+function handleManagerBegin(parsed, current) {
   if (!parsed.spawnImplement) {
     printNonExecutableGuidance(parsed.changeName, current)
     process.exit(2)
@@ -170,11 +175,13 @@ function handleDispatcherBegin(parsed, current) {
 
   createImplementChange(parsed.spawnImplement, parsed.description)
   const created = readMetadata(parsed.spawnImplement)
+  const parentIsProducer = current.kind === "producer"
 
   updateMetadata(parsed.spawnImplement, {
     parent_change: parsed.changeName,
-    strategy_root: current.strategyRoot || parsed.changeName,
+    strategy_root: parentIsProducer ? parsed.changeName : current.strategyRoot || parsed.changeName,
     release_ref: current.releaseRef || created.releaseRef,
+    producer_ref: parentIsProducer ? parsed.changeName : created.producerRef,
   })
 
   const finalMeta = readMetadata(parsed.spawnImplement)
@@ -187,7 +194,7 @@ function handleDispatcherBegin(parsed, current) {
   printCreatedImplementSummary({
     spawnImplement: parsed.spawnImplement,
     parentChange: parsed.changeName,
-    strategyRoot: current.strategyRoot || parsed.changeName,
+    strategyRoot: parentIsProducer ? parsed.changeName : current.strategyRoot || parsed.changeName,
     releaseRef: current.releaseRef,
     createdArtifacts,
     createdHandoff,
@@ -202,7 +209,7 @@ function groupReleaseMembers(members) {
       continue
     }
 
-    const parent = member.parentChange || "(без dispatcher)"
+    const parent = member.parentChange || "(без parent change)"
     const list = grouped.get(parent) || []
     list.push(member)
     grouped.set(parent, list)
@@ -217,7 +224,7 @@ function printReleaseMatrix(grouped) {
     return
   }
 
-  console.log("- Матрица релиза (dispatcher -> implement/fix):")
+  console.log("- Матрица релиза (parent change -> implement/fix):")
   for (const [parent, list] of [...grouped.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     console.log(`  ${parent}`)
     for (const item of list.sort((a, b) => a.name.localeCompare(b.name))) {
@@ -235,7 +242,7 @@ function handleReleaseBegin(parsed) {
   printReleaseMatrix(groupReleaseMembers(members))
   console.log("")
   console.log("Следующий шаг для новой хотелки из release-контекста:")
-  console.log(`npm run os:dispatch -- ${parsed.changeName} --dispatcher <dispatcher-change> --kind fix --name <name> --description "..."`)
+  console.log(`npm run os:dispatch -- ${parsed.changeName} --dispatcher <producer-or-dispatcher-change> --kind fix --name <name> --description "..."`)
 }
 
 function handleImplementBegin(parsed, current) {
@@ -258,7 +265,7 @@ function handleImplementBegin(parsed, current) {
   console.log(`- producer_ref: ${current.producerRef || "(не задан)"}`)
   console.log(`- verification_level: ${current.verificationLevel || "(не задан)"}`)
   console.log(`- verification_command: ${current.verificationCommand || "(не задан)"}`)
-  console.log("- parent dispatcher отвечает за постановку и приёмку результата")
+  console.log("- parent change отвечает за постановку и приёмку результата")
   console.log(`- handoff: openspec/changes/${parsed.changeName}/${HANDOFF_FILE}`)
 }
 
@@ -272,8 +279,8 @@ function runOpenSpecBegin(argv = process.argv.slice(2)) {
 
   const current = readMetadata(parsed.changeName)
 
-  if (current.kind === "dispatcher") {
-    handleDispatcherBegin(parsed, current)
+  if (["producer", "dispatcher"].includes(current.kind)) {
+    handleManagerBegin(parsed, current)
     return
   }
 

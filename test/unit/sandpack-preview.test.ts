@@ -5,6 +5,7 @@
 // @openSpec  - "Preview payload build возвращает cache и size diagnostics"
 // @openSpec  - "Preview compatibility fallback помечается как degradation signal"
 // @openSpec  - "Preview budget exceed переводит runtime в safe degradation mode"
+// @openSpec  - "Preview runtime guardrail помечает неподдерживаемый Server Action API"
 // @openSpec capability: task
 // @openSpec scenarios:
 // @openSpec  - "Preview принимает UI-импорты из components/ui"
@@ -14,6 +15,7 @@
 // @openSpec  - "Пользователь включает Material UI"
 // @openSpec  - "Preview применяет Tailwind arbitrary values и ширину компонента"
 // @openSpec  - "Preview фиксирует exact installed версии runtime-зависимостей"
+// @openSpec  - "Preview показывает безопасный fallback для Server Actions"
 // @openSpec capability: ui-foundation
 // @openSpec scenarios:
 // @openSpec  - "Команда работает с динамическим render-островком"
@@ -578,6 +580,45 @@ export default function Component() {
         reason: "preview_budget_exceeded",
         details: expect.objectContaining({
           dimension: "source_chars",
+        }),
+      }),
+    }))
+  })
+
+  it("показывает безопасный fallback для Server Actions вместо runtime-ошибки Next", async () => {
+    const payload = await buildSandpackPreviewPayload({
+      component: `"use client";
+
+async function submitAction() {
+  "use server";
+}
+
+export default function Component() {
+  return (
+    <form action={submitAction}>
+      <button type="submit">Отправить</button>
+    </form>
+  );
+}
+`,
+      uiBadge: badgeSource,
+      systemUtils: utilsSource,
+    })
+
+    expect(payload.project.compatibility).toEqual({
+      status: "incompatible",
+      message: expect.stringContaining("Sandpack preview не поддерживает Next.js Server Actions"),
+    })
+    expect(payload.files["/src/Component.tsx"]).toEqual(expect.objectContaining({
+      code: expect.stringContaining("Preview переключён в безопасный режим"),
+    }))
+    expect(payload.runtimeDiagnostics?.[0]).toEqual(expect.objectContaining({
+      status: "degraded",
+      degradation: expect.objectContaining({
+        reason: "unsupported_preview_api",
+        details: expect.objectContaining({
+          filePath: "Component.tsx",
+          marker: "use-server-directive",
         }),
       }),
     }))

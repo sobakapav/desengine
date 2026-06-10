@@ -3,10 +3,14 @@ import "server-only"
 import { readFile, rm, writeFile } from "node:fs/promises"
 
 import { getLevelEditableWorkbenchFiles } from "@/lib/lab/workbench"
+import type { Project } from "@/lib/project/runtime"
+import {
+  getScopedTaskRuntimeFilePath,
+  resolveTaskProject,
+  resolveTaskRuntimeFilePath,
+} from "@/lib/task/project-runtime-scope"
 import {
   ensureParentDir,
-  ensureUserTaskDir,
-  getUserTaskFilePath,
 } from "@/lib/user/server"
 
 type TaskLevelSnapshot = {
@@ -15,17 +19,18 @@ type TaskLevelSnapshot = {
   contentByFileId: Record<string, string>
 }
 
-function getTaskLevelSnapshotPath(taskId: string, levelNumber: number) {
-  return getUserTaskFilePath(taskId, `.level-reset/level-${levelNumber}.json`)
+function getTaskLevelSnapshotPath(taskId: string, projectId: string, levelNumber: number) {
+  return getScopedTaskRuntimeFilePath(taskId, projectId, `.level-reset/level-${levelNumber}.json`)
 }
 
 async function writeTaskLevelSnapshot(
   taskId: string,
+  project: Project,
   levelNumber: number,
   editableFileIds: string[],
   contentByFileId: Record<string, string>,
 ) {
-  const filePath = getTaskLevelSnapshotPath(taskId, levelNumber)
+  const filePath = getTaskLevelSnapshotPath(taskId, project.id, levelNumber)
   const snapshot: TaskLevelSnapshot = {
     levelNumber,
     editableFileIds,
@@ -38,21 +43,32 @@ async function writeTaskLevelSnapshot(
 
 async function saveCurrentTaskLevelSnapshot(
   taskId: string,
+  project: Project | undefined,
   levelNumber: number,
   editableFileIds: string[],
   contentByFileId: Record<string, string>,
 ) {
+  const resolvedProject = await resolveTaskProject(taskId, project)
   const snapshotContent = Object.fromEntries(
     getLevelEditableWorkbenchFiles(editableFileIds)
       .map((file) => [file.id, contentByFileId[file.id]])
       .filter((entry): entry is [string, string] => typeof entry[1] === "string"),
   )
 
-  await writeTaskLevelSnapshot(taskId, levelNumber, editableFileIds, snapshotContent)
+  await writeTaskLevelSnapshot(taskId, resolvedProject, levelNumber, editableFileIds, snapshotContent)
 }
 
-async function readTaskLevelSnapshot(taskId: string, levelNumber: number): Promise<TaskLevelSnapshot | null> {
-  const filePath = getTaskLevelSnapshotPath(taskId, levelNumber)
+async function readTaskLevelSnapshot(
+  taskId: string,
+  levelNumber: number,
+  project?: Project,
+): Promise<TaskLevelSnapshot | null> {
+  const resolvedProject = await resolveTaskProject(taskId, project)
+  const filePath = await resolveTaskRuntimeFilePath(
+    taskId,
+    resolvedProject.id,
+    `.level-reset/level-${levelNumber}.json`,
+  )
 
   try {
     const raw = await readFile(filePath, "utf-8")
@@ -86,16 +102,17 @@ async function restoreTaskLevelSnapshot(
   taskId: string,
   snapshot: TaskLevelSnapshot,
   editableFileIds: string[],
+  project?: Project,
 ) {
+  const resolvedProject = await resolveTaskProject(taskId, project)
   const files = getLevelEditableWorkbenchFiles(editableFileIds)
 
-  await ensureUserTaskDir(taskId)
-
   for (const file of files) {
-    const filePath = getUserTaskFilePath(taskId, file.fileName)
+    const filePath = getScopedTaskRuntimeFilePath(taskId, resolvedProject.id, file.fileName)
     const content = snapshot.contentByFileId[file.id]
 
     if (typeof content === "string") {
+      await ensureParentDir(filePath)
       await writeFile(filePath, content, "utf-8")
       continue
     }

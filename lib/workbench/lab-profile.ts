@@ -69,7 +69,7 @@ export const labWorkbenchTools: WorkbenchTool[] = [
 
 export const labWorkbenchDefinition: WorkbenchDefinition = {
   id: LAB_WORKBENCH_DEFINITION_ID,
-  title: "Лаборатория компонента",
+  title: "Рабочая поверхность компонента",
   profileId: LAB_WORKBENCH_PROFILE_ID,
   supportedTaskTypes: ["level-lab"],
   supportedWorkflowStepKinds: ["level-lab"],
@@ -125,6 +125,29 @@ function buildArtifactBindings(artifacts: Artifact[]) {
   return bindings
 }
 
+/**
+ * Собирает сериализуемый WorkbenchInstance для текущей project-aware задачи и шага workflow.
+ *
+ * @example
+ * ```ts
+ * const instance = createLabWorkbenchInstance({
+ *   projectId: "project-demo",
+ *   taskId: "task-button",
+ *   workflowStepId: "step-level-1",
+ *   artifacts: [
+ *     { id: "code-main", kind: "code-file", data: { fileId: "src/App.tsx" } },
+ *     { id: "check-1", kind: "check-result", data: { status: "passed" } },
+ *   ] as Artifact[],
+ *   activeFileId: "src/App.tsx",
+ * })
+ *
+ * instance.definitionId
+ * //=> "lab-component-workbench"
+ *
+ * instance.artifactBindings["code:src/App.tsx"]
+ * //=> "code-main"
+ * ```
+ */
 export function createLabWorkbenchInstance(args: {
   projectId: string
   taskId: string

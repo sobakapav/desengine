@@ -381,8 +381,14 @@
 
 #### Scenario: Пользователь переключает UI kit проекта без перезагрузки страницы
 - **WHEN** пользователь меняет `project.settings.uiKitId` в лаборатории
-- **THEN** страница лаборатории не перезагружается
+- **THEN** Workbench требует явного подтверждения project migration
+- **AND** страница лаборатории не перезагружается
 - **AND** Sandpack payload запрашивается повторно для текущего проекта
+
+#### Scenario: Лаборатория показывает итог project migration
+- **WHEN** migration project `UI kit` завершена
+- **THEN** Workbench и preview показывают явный migration status
+- **AND** пользователь видит, что текущий уровень нужно пройти заново, если migration сбросила его progress
 
 #### Scenario: Пользователь включает режим html-tags
 - **WHEN** пользователь выбирает режим без UI kit и `project.settings.uiMode` равен `html-tags`
@@ -413,6 +419,11 @@
 - **WHEN** preview builder вынужден переключиться в compatibility fallback или safe component mode
 - **THEN** structured diagnostics помечает этот путь как degraded
 - **AND** downstream tests могут отличить обычную сборку от degraded branch
+
+#### Scenario: Preview runtime guardrail помечает неподдерживаемый Server Action API
+- **WHEN** preview builder находит в пользовательских preview-файлах Next.js Server Actions или форму с function-action
+- **THEN** structured diagnostics помечает этот путь как degraded с причиной `unsupported_preview_api`
+- **AND** пользователь получает безопасный fallback вместо каскада Next runtime-ошибок внутри iframe
 
 #### Scenario: Preview budget exceed переводит runtime в safe degradation mode
 - **WHEN** preview payload превышает budget по входному объёму или числу Tailwind candidates

@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-10
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "fix"
+execution_mode: "code"
+parent_change: "dispatcher-test-system"
+strategy_root: "focus-quality"
+roadmap_ref: ""
+release_ref: ""
+producer_ref: ""
+verification_level: "unit"
+verification_command: "npm run test:unit"
+issue: ""
+short: "закрыть process-блокер traceability: честно оформить неполное покрытие capa"

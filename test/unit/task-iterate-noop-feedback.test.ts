@@ -12,6 +12,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
+  ensureParentDir: vi.fn(),
   appendPromptHistory: vi.fn(),
   clearTaskCheckResult: vi.fn(),
   cleanupForbiddenWorkbenchFiles: vi.fn(),
@@ -101,6 +102,7 @@ vi.mock("@/lib/task/server", () => ({
 }))
 
 vi.mock("@/lib/user/server", () => ({
+  ensureParentDir: mocks.ensureParentDir,
   ensureUserTaskDir: mocks.ensureUserTaskDir,
   getTaskCatalogFilePath: (taskId: string, fileName: string) => `/catalog/${taskId}/${fileName}`,
   getUserTaskFilePath: mocks.getUserTaskFilePath,
@@ -188,6 +190,7 @@ describe("iterate no-op feedback contract", () => {
     mocks.appendPromptHistory.mockResolvedValue(undefined)
     mocks.clearTaskCheckResult.mockResolvedValue(undefined)
     mocks.cleanupForbiddenWorkbenchFiles.mockResolvedValue({ deletedFileIds: [], deletedFilePaths: [] })
+    mocks.ensureParentDir.mockResolvedValue(undefined)
     mocks.filterWorkbenchPayloadByAllowlist.mockImplementation((payload: Record<string, string | null>) => ({
       allowedEntries: Object.entries(payload).map(([fileId, content]) => ({
         fileId,
@@ -239,7 +242,12 @@ describe("iterate no-op feedback contract", () => {
     expect(mocks.appendPromptHistory).not.toHaveBeenCalled()
     expect(mocks.registerPromptForCurrentLevel).not.toHaveBeenCalled()
     expect(mocks.clearTaskCheckResult).not.toHaveBeenCalled()
-    expect(mocks.writeFile).not.toHaveBeenCalled()
+    expect(mocks.writeFile).toHaveBeenCalledTimes(1)
+    expect(mocks.writeFile).toHaveBeenCalledWith(
+      "/user/tasks/task-a/.project-runtime.json",
+      expect.any(String),
+      "utf-8",
+    )
   })
 
   it("помечает ответ как allowlist-filtered no-op, если все изменения отфильтрованы", async () => {

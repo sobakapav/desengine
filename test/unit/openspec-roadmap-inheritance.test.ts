@@ -4,9 +4,12 @@
 // @openSpec  - "Dispatcher ссылается на унаследованный roadmap"
 // @openSpec  - "Dispatcher использует несколько roadmap"
 // @openSpec  - "Создаётся producer change"
-// @openSpec  - "Producer передаёт delivery downstream dispatcher"
+// @openSpec  - "Producer напрямую управляет исполнительским change"
+// @openSpec  - "Producer создаёт вспомогательный dispatcher без потери ownership"
+// @openSpec  - "Producer появляется раньше формализованных требований и сценариев"
 // @openSpec  - "Implement или fix помечается producer-контекстом"
-// @openSpec  - "Dispatcher не подчиняется producer напрямую"
+// @openSpec  - "Implement или fix напрямую подчиняется producer"
+// @openSpec  - "Dispatcher подчиняется producer напрямую"
 // @openSpec  - "Dispatcher не может хранить producer-контекст"
 // @openSpec  - "Non-executable change пытается войти в release composition"
 // @openSpec  - "Разработчик открывает implement/fix через `os:ctx`"
@@ -105,7 +108,7 @@ short: "диспетчер демо"
     expect(errors.join("\n")).toContain("roadmap reference должен иметь вид <change>/roadmaps/<file>.md")
   })
 
-  it("не допускает прямое parent_change dispatcher на producer", () => {
+  it("допускает прямое parent_change dispatcher на producer", () => {
     const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-roadmaps-producer-parent-"))
     tempDirs.push(fixtureRoot)
 
@@ -134,7 +137,7 @@ short: "диспетчер демо"
 
     const errors = validateChanges(fixtureRoot, path.join(fixtureRoot, "openspec", "changes"))
 
-    expect(errors.join("\n")).toContain("dispatcher change не может иметь parent_change на producer")
+    expect(errors).toEqual([])
   })
 
   it("не допускает producer_ref в metadata dispatcher", () => {
@@ -207,7 +210,7 @@ short: "диспетчер демо"
     expect(errors.join("\n")).toContain("release_ref разрешён только для change_kind=implement или change_kind=fix")
   })
 
-  it("os:ctx показывает inherited roadmap parent dispatcher", () => {
+  it("os:ctx показывает inherited roadmap и producer ownership", () => {
     const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-roadmaps-ctx-"))
     tempDirs.push(fixtureRoot)
 
@@ -271,5 +274,64 @@ short: "реализация демо"
     expect(output).toContain("producer_ref: producer-demo")
     expect(output).toContain("producer proposal")
     expect(output).toContain("local handoff: openspec/changes/implement-demo/handoff.md")
+  })
+
+  it("валидирует implement с прямым parent_change на producer", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-implement-parent-producer-"))
+    tempDirs.push(fixtureRoot)
+
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "focus-demo", ".openspec.yaml"),
+      'change_kind: "focus"\nexecution_mode: "no-code"\nparent_change: ""\nstrategy_root: ""\nshort: "фокус демо"\n',
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "producer-demo", ".openspec.yaml"),
+      'change_kind: "producer"\nexecution_mode: "no-code"\nparent_change: "focus-demo"\nstrategy_root: "focus-demo"\nshort: "producer demo"\n',
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "producer-demo", "roadmaps", "extra.md"),
+      "# extra\n",
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "implement-demo", ".openspec.yaml"),
+      `change_kind: "implement"
+execution_mode: "code"
+parent_change: "producer-demo"
+strategy_root: "producer-demo"
+verification_level: "unit"
+verification_command: "npm run test:unit"
+short: "реализация демо"
+`,
+    )
+
+    const errors = validateChanges(fixtureRoot, path.join(fixtureRoot, "openspec", "changes"))
+
+    expect(errors).toEqual([])
+  })
+
+  it("валидирует producer без заранее формализованных requirements и scenarios", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-producer-without-specs-"))
+    tempDirs.push(fixtureRoot)
+
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "focus-demo", ".openspec.yaml"),
+      'change_kind: "focus"\nexecution_mode: "no-code"\nparent_change: ""\nstrategy_root: ""\nshort: "фокус демо"\n',
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "focus-demo", "roadmaps", "demo.md"),
+      "# demo\n",
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "producer-demo", ".openspec.yaml"),
+      'change_kind: "producer"\nexecution_mode: "no-code"\nparent_change: "focus-demo"\nstrategy_root: "focus-demo"\nshort: "producer demo"\n',
+    )
+    writeFile(
+      path.join(fixtureRoot, "openspec", "changes", "producer-demo", "roadmaps", "transformation.md"),
+      "# transformation\n",
+    )
+
+    const errors = validateChanges(fixtureRoot, path.join(fixtureRoot, "openspec", "changes"))
+
+    expect(errors).toEqual([])
   })
 })

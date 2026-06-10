@@ -1,8 +1,8 @@
 ## Requirements
 
-### Requirement: Workbench имеет definition и instance
+### Requirement: Workbench имеет definition, instance и surface-проявление
 
-Система SHALL описывать рабочий стол через `WorkbenchDefinition` и `WorkbenchInstance`.
+Система SHALL описывать рабочую поверхность через `WorkbenchDefinition` и `WorkbenchInstance`.
 
 #### Scenario: Lab workbench регистрируется как definition
 - **WHEN** runtime открывает текущий lab workbench
@@ -14,7 +14,15 @@
 - **WHEN** runtime строит projection текущей lab task
 - **THEN** он создаёт `WorkbenchInstance`
 - **AND** instance содержит `projectId`, `taskId`, `workflowStepId` и `definitionId`
-- **AND** workflow step ссылается на этот instance через `workbenchInstanceId`
+- **AND** workbench input contract читает `ProjectWorkspace.settings` как часть project boundary текущего active project
+- **AND** workflow step может ссылаться на этот instance через `runtimeBindings.workbenchInstanceIds`
+- **AND** workbench contract не требует жёсткого `1:1` между workflow step и `WorkbenchInstance`
+
+#### Scenario: Runtime surface показывает definition и рабочую связку
+- **WHEN** пользователь открывает текущую рабочую поверхность
+- **THEN** surface может показать `WorkbenchDefinition.title`, `profileId` и `WorkbenchInstance.id`
+- **AND** surface явно читает связку `project -> task -> workflow step -> workbench`
+- **AND** проявление Workbench не остаётся только foundation-структурой без user-facing следа
 
 #### Scenario: Workbench state сериализуется
 - **WHEN** runtime сохраняет или передаёт состояние Workbench

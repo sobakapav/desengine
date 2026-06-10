@@ -1,14 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-import { sandpackUiKitsConfig } from "@/lib/lab/sandpack-ui-kits.config";
-import { normalizeProject, type Project } from "@/lib/project/runtime";
-import {
-    createBrowserProjectStorage,
-    readBrowserStoredActiveProjectId,
-    readBrowserStoredProject,
-} from "@/lib/project/storage";
+import { type Project } from "@/lib/project/runtime";
 
 import type { WorkbenchProps } from "./props";
 import {
@@ -21,81 +15,10 @@ import {
     useWorkbenchRefs,
 } from "./useWorkbenchPersistence";
 import { useResetAction, useWorkbenchActions } from "./useWorkbenchTaskActions";
+import { useProjectController, useWorkbenchProjectScope } from "./useWorkbenchProjectScope";
 import { usePromptController, usePromptInput } from "./useWorkbenchPrompt";
+import { buildWorkbenchSurfaceSnapshot } from "./workbenchSurface";
 import { changeLabTaskScreenEventInput, readLabTaskScreenEventActiveScreen } from "../LabScreen/screen-event";
-
-function useProjectController(taskId: string) {
-    function readInitialProject() {
-        const fallbackProject = normalizeProject({
-            id: `task-${taskId}`,
-            title: `Проект ${taskId}`,
-        });
-
-        if (typeof window === "undefined") {
-            return fallbackProject;
-        }
-
-        try {
-            const activeProjectId = readBrowserStoredActiveProjectId(window.localStorage, taskId) ?? `task-${taskId}`;
-            return readBrowserStoredProject(window.localStorage, activeProjectId, taskId) ?? fallbackProject;
-        } catch {
-            return fallbackProject;
-        }
-    }
-
-    const [previewVersion, setPreviewVersion] = useState(0);
-    const [project, setProject] = useState<Project>(() => readInitialProject());
-    const projectStorage = useMemo(() => {
-        if (typeof window === "undefined") return null;
-        return createBrowserProjectStorage({ storage: window.localStorage, taskId });
-    }, [taskId]);
-    const uiKitOptions = useMemo(() => Object.values(sandpackUiKitsConfig), []);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        async function loadProject() {
-            const fallbackProject = normalizeProject({
-                id: `task-${taskId}`,
-                title: `Проект ${taskId}`,
-            });
-
-            if (!projectStorage) {
-                setProject(fallbackProject);
-                return;
-            }
-
-            try {
-                const activeProjectId = await projectStorage.getActiveProjectId();
-                const taskProject = await projectStorage.getProject(activeProjectId ?? `task-${taskId}`);
-                const nextProject = taskProject ?? fallbackProject;
-
-                await projectStorage.saveProject(nextProject);
-                await projectStorage.setActiveProjectId(nextProject.id);
-                if (!cancelled) setProject(nextProject);
-            } catch {
-                if (!cancelled) setProject(fallbackProject);
-            }
-        }
-
-        void loadProject();
-        return () => { cancelled = true; };
-    }, [projectStorage, taskId]);
-
-    function updateProject(nextProject: Project) {
-        const normalized = normalizeProject(nextProject);
-        setProject(normalized);
-        setPreviewVersion((value) => value + 1);
-
-        void projectStorage?.saveProject(normalized)
-            .then(() => projectStorage.setActiveProjectId(normalized.id))
-            .catch(() => {
-                // localStorage может быть недоступен в приватном режиме; runtime продолжит работать в памяти страницы.
-            });
-    }
-
-    return { project, previewVersion, setPreviewVersion, uiKitOptions, updateProject };
-}
 
 function buildTaskHintUrl(taskId: string, project: Project) {
     const params = new URLSearchParams({
@@ -108,7 +31,7 @@ function buildTaskHintUrl(taskId: string, project: Project) {
     return `/api/tasks/${encodeURIComponent(taskId)}/hint?${params.toString()}`;
 }
 
-function useTaskHintController(taskId: string, initialTaskTip: string, project: Project) {
+function useTaskHintController(taskId: string, initialTaskTip: string, project: Project, projectReady: boolean) {
     const [taskTip, setTaskTip] = useState(initialTaskTip);
 
     useEffect(() => {
@@ -116,6 +39,11 @@ function useTaskHintController(taskId: string, initialTaskTip: string, project: 
     }, [initialTaskTip]);
 
     useEffect(() => {
+        if (!projectReady) {
+            setTaskTip(initialTaskTip);
+            return;
+        }
+
         let cancelled = false;
 
         async function refreshTaskTip() {
@@ -133,7 +61,7 @@ function useTaskHintController(taskId: string, initialTaskTip: string, project: 
 
         void refreshTaskTip();
         return () => { cancelled = true; };
-    }, [initialTaskTip, project.id, project.title, project.settings.uiKitId, project.settings.uiMode, taskId]);
+    }, [initialTaskTip, project.id, project.title, project.settings.uiKitId, project.settings.uiMode, projectReady, taskId]);
 
     return { taskTip };
 }
@@ -141,27 +69,43 @@ function useTaskHintController(taskId: string, initialTaskTip: string, project: 
 function useWorkbenchController(props: WorkbenchProps) {
     const editableFileIds = useEditableFileIds(props.taskData);
     const refs = useWorkbenchRefs(props.taskItem.id, props.taskData, editableFileIds);
-    const project = useProjectController(props.taskItem.id);
-    const hint = useTaskHintController(props.taskItem.id, props.taskData.labContext?.taskTip ?? "", project.project);
+    const projectState = useProjectController(props.taskItem.id);
     const dirty = useDirtyFiles(refs.savedContentByFileIdRef, refs.dirtyFileIdsRef);
     const [autosaveRevision, setAutosaveRevision] = useState(0);
-    const save = useSaveController({ refs, setDirtyFileIds: dirty.setDirtyFileIds, setPreviewVersion: project.setPreviewVersion });
+    const saveController = useSaveController({
+        refs,
+        setDirtyFileIds: dirty.setDirtyFileIds,
+        setPreviewVersion: projectState.setPreviewVersion,
+        project: projectState.project,
+    });
     const code = useCodeController({ markFileDirtyState: dirty.markFileDirtyState, onTaskDataChange: props.onTaskDataChange, refs, setAutosaveRevision, taskData: props.taskData });
-    const replaceTaskData = useTaskDataReplacement({ code, dirty, onTaskDataChange: props.onTaskDataChange, refs, save });
-    const actions = useWorkbenchActions(props, project.project, save.saveBeforeAction, replaceTaskData);
-    const reset = useResetAction(props, save.saveBeforeAction, replaceTaskData, actions);
-    const prompt = usePromptController(props, save.saveBeforeAction, replaceTaskData, project.setPreviewVersion);
+    const replaceTaskData = useTaskDataReplacement({ code, dirty, onTaskDataChange: props.onTaskDataChange, refs, save: saveController });
+    const project = useWorkbenchProjectScope({
+        projectState,
+        props,
+        replaceTaskData,
+        saveBeforeAction: saveController.saveBeforeAction,
+    });
+    const hint = useTaskHintController(props.taskItem.id, props.taskData.labContext?.taskTip ?? "", project.project, project.projectReady);
+    const actions = useWorkbenchActions(props, project.project, saveController.saveBeforeAction, replaceTaskData);
+    const reset = useResetAction(props, project.project, saveController.saveBeforeAction, replaceTaskData, actions);
+    const prompt = usePromptController(props, project.project, saveController.saveBeforeAction, replaceTaskData, project.setPreviewVersion);
     const promptInput = usePromptInput(prompt);
+    const surface = buildWorkbenchSurfaceSnapshot({
+        project: project.project,
+        taskData: props.taskData,
+        taskItem: props.taskItem,
+    });
 
-    useSaveEffects(save.saveDirtyFiles, dirty.dirtyFileIds, autosaveRevision);
+    useSaveEffects(saveController.saveDirtyFiles, dirty.dirtyFileIds, autosaveRevision);
 
     async function handleBackToLevelList() {
-        if (await save.saveBeforeAction()) props.onBackToLevelList();
+        if (await saveController.saveBeforeAction()) props.onBackToLevelList();
     }
 
     async function handleFileChange(nextFileId: string) {
         const activeScreen = readLabTaskScreenEventActiveScreen(props.screenEvent);
-        if (await save.saveBeforeAction(activeScreen ? [activeScreen] : undefined)) {
+        if (await saveController.saveBeforeAction(activeScreen ? [activeScreen] : undefined)) {
             props.onScreenEventChange(changeLabTaskScreenEventInput({
                 taskId: props.screenEvent.scope.taskId,
                 activeScreen,
@@ -169,7 +113,20 @@ function useWorkbenchController(props: WorkbenchProps) {
         }
     }
 
-    return { actions, code, dirty, handleBackToLevelList, handleFileChange, hint, project, prompt, promptInput, reset, save };
+    return {
+        actions,
+        code,
+        dirty,
+        handleBackToLevelList,
+        handleFileChange,
+        hint,
+        project,
+        prompt,
+        promptInput,
+        reset,
+        save: saveController,
+        surface,
+    };
 }
 
 export { useWorkbenchController };

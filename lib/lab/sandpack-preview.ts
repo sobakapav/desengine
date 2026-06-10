@@ -236,11 +236,86 @@ type ResolvedPreviewProject = {
   compatibility: ProjectCompatibility
 }
 type SandpackUiKitConfig = (typeof sandpackUiKitsConfig)[SandpackUiKitId]
+type PreviewUnsupportedApiMarker = "use-server-directive" | "dynamic-form-action" | "server-action-hook"
+type PreviewUnsupportedApiIssue = {
+  filePath: string
+  marker: PreviewUnsupportedApiMarker
+  message: string
+}
 
 function resolveUiKitDependencyVersions(uiKit: SandpackUiKitConfig) {
   return Object.fromEntries(
     Object.keys(uiKit.dependencies).map((packageName) => [packageName, getInstalledPackageVersion(packageName)]),
   )
+}
+
+function detectUnsupportedServerActionUsage(
+  filePath: string,
+  source: string | null | undefined,
+): PreviewUnsupportedApiIssue | null {
+  if (typeof source !== "string" || source.trim().length === 0) {
+    return null
+  }
+
+  if (/(^|\n)\s*["']use server["'];?/m.test(source)) {
+    return {
+      filePath,
+      marker: "use-server-directive",
+      message: `Sandpack preview не поддерживает Next.js Server Actions: в ${filePath} найдена директива "use server". Перенесите это действие в client-side обработчик или HTTP route.`,
+    }
+  }
+
+  if (/\b(?:formAction|action)\s*=\s*\{[^}]+\}/m.test(source)) {
+    return {
+      filePath,
+      marker: "dynamic-form-action",
+      message: `Sandpack preview не поддерживает Server Action props \`action={...}\` и \`formAction={...}\`: в ${filePath} найдена форма с function-action. Используйте \`onSubmit\`, \`onClick\` или явный HTTP route.`,
+    }
+  }
+
+  if (/\b(?:useActionState|useFormState)\s*\(/.test(source)) {
+    return {
+      filePath,
+      marker: "server-action-hook",
+      message: `Sandpack preview не поддерживает React/Next hooks для Server Actions: в ${filePath} найден \`useActionState\` или \`useFormState\`. Переключите форму на client-side submit flow.`,
+    }
+  }
+
+  return null
+}
+
+function collectUnsupportedPreviewRuntimeIssue(args: {
+  appTemplate: SandpackAppTemplateOptions | null
+  sourceFiles: SandpackPreviewSourceFiles
+}) {
+  const candidateSources: Array<[string, string | null | undefined]> = [
+    ["Component.tsx", args.sourceFiles.component],
+    ["Component.stories.ts", args.sourceFiles.stories],
+    ["styles.ts", args.sourceFiles.styles],
+    ["mock.ts", args.sourceFiles.mock],
+    ["props.ts", args.sourceFiles.props],
+    ["preview.css", args.sourceFiles.previewCss],
+    ["level/App.tsx", args.appTemplate?.appTsx],
+    ["level/preview.css", args.appTemplate?.previewCss],
+    ["level/level-template-runtime.ts", args.appTemplate?.levelTemplateRuntime],
+  ]
+
+  for (const [filePath, source] of Object.entries(args.sourceFiles.supportFiles ?? {}).sort(([left], [right]) => left.localeCompare(right))) {
+    candidateSources.push([filePath, source])
+  }
+
+  for (const [filePath, source] of Object.entries(args.sourceFiles.shadcnFiles ?? {}).sort(([left], [right]) => left.localeCompare(right))) {
+    candidateSources.push([filePath, source])
+  }
+
+  for (const [filePath, source] of candidateSources) {
+    const issue = detectUnsupportedServerActionUsage(filePath, source)
+    if (issue) {
+      return issue
+    }
+  }
+
+  return null
 }
 
 function buildMainTsx(indexTsxTemplate: string, indexTsxImports: string[] = []) {
@@ -1099,9 +1174,16 @@ async function buildSandpackPreviewPayload(
   validateSandpackUiKitsConfig()
 
   const templates = loadSandpackDefaultTemplates()
-  const { project, resolvedUiKitId, compatibility } = resolvePreviewProject(sourceFiles, options)
+  const { project, resolvedUiKitId, compatibility: projectCompatibility } = resolvePreviewProject(sourceFiles, options)
   const uiKit = sandpackUiKitsConfig[resolvedUiKitId] ?? sandpackUiKitsConfig[DEFAULT_SANDPACK_UI_KIT_ID]
   const appTemplate = options.appTemplate ?? null
+  const unsupportedPreviewApiIssue = collectUnsupportedPreviewRuntimeIssue({ appTemplate, sourceFiles })
+  const compatibility = unsupportedPreviewApiIssue
+    ? {
+        status: "incompatible" as const,
+        message: unsupportedPreviewApiIssue.message,
+      }
+    : projectCompatibility
   const previewSessionId = options.previewSessionId?.trim() || "preview-session-missing"
   const derivedArtifactsCacheKey = buildDerivedPreviewArtifactsCacheKey({
     appTemplate,
@@ -1311,12 +1393,21 @@ async function buildSandpackPreviewPayload(
                 }
               : undefined
           )
-        : {
-            reason: "project_compatibility_fallback",
-            details: {
-              compatibility,
+        : unsupportedPreviewApiIssue
+          ? {
+              reason: "unsupported_preview_api",
+              details: {
+                compatibility,
+                filePath: unsupportedPreviewApiIssue.filePath,
+                marker: unsupportedPreviewApiIssue.marker,
+              },
+            }
+          : {
+              reason: "project_compatibility_fallback",
+              details: {
+                compatibility,
+              },
             },
-          },
     })]
     emitRuntimeDiagnostics(runtimeDiagnostics[0])
     return {
@@ -1391,12 +1482,21 @@ async function buildSandpackPreviewPayload(
               }
             : undefined
         )
-      : {
-          reason: "project_compatibility_fallback",
-          details: {
-            compatibility,
+      : unsupportedPreviewApiIssue
+        ? {
+            reason: "unsupported_preview_api",
+            details: {
+              compatibility,
+              filePath: unsupportedPreviewApiIssue.filePath,
+              marker: unsupportedPreviewApiIssue.marker,
+            },
+          }
+        : {
+            reason: "project_compatibility_fallback",
+            details: {
+              compatibility,
+            },
           },
-        },
   })]
   emitRuntimeDiagnostics(runtimeDiagnostics[0])
 

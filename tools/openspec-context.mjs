@@ -75,6 +75,24 @@ function readMetadata(changeName) {
   }
 }
 
+function inheritedRoadmapsForParent(meta, readParent) {
+  if (meta.roadmapRefs.length > 0) {
+    return meta.roadmapRefs
+  }
+
+  let current = meta.parentChange
+
+  while (current) {
+    const parentMeta = readParent(current)
+    if (parentMeta.roadmapRefs.length > 0) {
+      return parentMeta.roadmapRefs
+    }
+    current = parentMeta.parentChange
+  }
+
+  return []
+}
+
 /**
  * @example
  * runOpenSpecContext(["implement-demo"])
@@ -95,33 +113,33 @@ export function runOpenSpecContext(argv = process.argv.slice(2)) {
 
   console.log(`Контекст исполнения: ${parsed.changeName}`)
   console.log("- код меняется только в implement/fix; этот change не пересматривает стратегию и тактику")
-  console.log(`- parent dispatcher: ${meta.parentChange || "(не задан)"}`)
+  console.log(`- parent change: ${meta.parentChange || "(не задан)"}`)
   console.log(`- strategy_root: ${meta.strategyRoot || "(не задан)"}`)
   console.log(`- release_ref: ${meta.releaseRef || "(не задан)"}`)
   console.log(`- producer_ref: ${meta.producerRef || "(не задан)"}`)
 
   if (meta.parentChange) {
-    const dispatcherMeta = readMetadata(meta.parentChange)
+    const parentMeta = readMetadata(meta.parentChange)
+    const parentLabel = parentMeta.kind === "dispatcher" ? "dispatcher" : "parent"
 
-    console.log(`- dispatcher metadata: openspec/changes/${meta.parentChange}/.openspec.yaml`)
-    console.log(`- dispatcher proposal: openspec/changes/${meta.parentChange}/proposal.md`)
-    console.log(`- dispatcher design: openspec/changes/${meta.parentChange}/design.md`)
-    console.log(`- dispatcher tasks: openspec/changes/${meta.parentChange}/tasks.md`)
-    console.log("- parent dispatcher отвечает за тактику, постановку implement/fix и приёмку результата")
+    console.log(`- ${parentLabel} metadata: openspec/changes/${meta.parentChange}/.openspec.yaml`)
+    console.log(`- ${parentLabel} proposal: openspec/changes/${meta.parentChange}/proposal.md`)
+    console.log(`- ${parentLabel} design: openspec/changes/${meta.parentChange}/design.md`)
+    console.log(`- ${parentLabel} tasks: openspec/changes/${meta.parentChange}/tasks.md`)
+    console.log("- parent change отвечает за постановку implement/fix и приёмку результата")
 
-    if (dispatcherMeta.roadmapRefs.length > 0) {
-      for (const ref of dispatcherMeta.roadmapRefs) {
-        console.log(`- inherited roadmap: openspec/changes/${ref}`)
-      }
+    for (const ref of inheritedRoadmapsForParent(parentMeta, readMetadata)) {
+      console.log(`- inherited roadmap: openspec/changes/${ref}`)
     }
   }
-  if (meta.producerRef) {
-    console.log(`- producer metadata: openspec/changes/${meta.producerRef}/.openspec.yaml`)
-    console.log(`- producer proposal: openspec/changes/${meta.producerRef}/proposal.md`)
-    console.log(`- producer design: openspec/changes/${meta.producerRef}/design.md`)
-    console.log(`- producer tasks: openspec/changes/${meta.producerRef}/tasks.md`)
-    console.log(`- producer roadmaps: openspec/changes/${meta.producerRef}/roadmaps`)
-    console.log("- producer задаёт ожидания и рамки, но не подменяет parent dispatcher")
+  const effectiveProducer = meta.producerRef || (meta.parentChange && readMetadata(meta.parentChange).kind === "producer" ? meta.parentChange : "")
+  if (effectiveProducer) {
+    console.log(`- producer metadata: openspec/changes/${effectiveProducer}/.openspec.yaml`)
+    console.log(`- producer proposal: openspec/changes/${effectiveProducer}/proposal.md`)
+    console.log(`- producer design: openspec/changes/${effectiveProducer}/design.md`)
+    console.log(`- producer tasks: openspec/changes/${effectiveProducer}/tasks.md`)
+    console.log(`- producer roadmaps: openspec/changes/${effectiveProducer}/roadmaps`)
+    console.log("- producer остаётся owner смысла и процесса линии")
   }
   console.log(`- local handoff: openspec/changes/${parsed.changeName}/${HANDOFF_FILE}`)
 }

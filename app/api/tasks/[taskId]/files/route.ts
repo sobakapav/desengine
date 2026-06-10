@@ -1,4 +1,5 @@
 import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
+import { normalizeProject } from "@/lib/project/runtime"
 import { saveTaskFiles } from "@/lib/task/actions"
 import {
   createTaskMutationOverloadHttpResult,
@@ -12,6 +13,23 @@ type Body = {
     fileId: string
     content: string
   }>
+  project?: unknown
+}
+
+function parseProjectPayload(project: unknown, taskId: string) {
+  if (typeof project !== "object" || project === null) {
+    return undefined
+  }
+
+  return normalizeProject({
+    ...project,
+    id: "id" in project && typeof project.id === "string"
+      ? project.id
+      : `task-${taskId}`,
+    title: "title" in project && typeof project.title === "string"
+      ? project.title
+      : `Проект ${taskId}`,
+  })
 }
 
 /**
@@ -33,10 +51,11 @@ export async function POST(
   const { taskId } = await params
   const body = (await request.json().catch(() => null)) as Body | null
   const updates = Array.isArray(body?.updates) ? body.updates : []
+  const project = parseProjectPayload(body?.project, taskId)
   let result: Awaited<ReturnType<typeof saveTaskFiles>>
 
   try {
-    result = await saveTaskFiles(taskId, updates)
+    result = await saveTaskFiles(taskId, updates, project)
   } catch (error) {
     if (!isTaskMutationOverloadError(error)) {
       throw error

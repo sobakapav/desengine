@@ -19,6 +19,10 @@ import {
   sumTextLengths,
 } from "@/lib/task/runtime-observability"
 import {
+  buildTaskMutationScopeKey,
+  resolveTaskProject,
+} from "@/lib/task/project-runtime-scope"
+import {
   clearTaskCheckResult,
   failCurrentTaskLevelCheck,
   getLevelForTaskItem,
@@ -59,14 +63,14 @@ type CheckContextLoadResult =
   }
   | { error: TaskActionHttpResult }
 
-async function validateCheckRequest(taskId: string) {
+async function validateCheckRequest(taskId: string, project: Project) {
   const taskItem = await getTaskListItemById(taskId)
 
   if (!taskItem) {
     return taskActionShared.jsonResult({ ok: false, error: "Задание не найдено" }, 404)
   }
 
-  const started = await isTaskStarted(taskId)
+  const started = await isTaskStarted(taskId, project)
   if (!started) {
     return taskActionShared.jsonResult({ ok: false, error: "Сначала запустите задачу" }, 409)
   }
@@ -218,7 +222,12 @@ function buildCheckResult(
   }
 }
 
-async function buildSuccessfulCheckResponse(taskId: string, context: CheckContext, response: CheckResponse) {
+async function buildSuccessfulCheckResponse(
+  taskId: string,
+  context: CheckContext,
+  response: CheckResponse,
+  project: Project,
+) {
   await clearTaskCheckResult(taskId)
   const progressUpdate = await passCurrentTaskLevelCheck(taskId)
   const result = buildCheckResult(context, progressUpdate, response, "passed")
@@ -233,7 +242,7 @@ async function buildSuccessfulCheckResponse(taskId: string, context: CheckContex
   const taskResponse = await taskActionShared.buildTaskResponse(taskId, {
     ...nextTaskItem,
     progress: progressUpdate.summary,
-  })
+  }, project)
 
   return taskActionShared.jsonResult({
     ok: true,
@@ -245,7 +254,12 @@ async function buildSuccessfulCheckResponse(taskId: string, context: CheckContex
   })
 }
 
-async function buildFailedCheckResponse(taskId: string, context: CheckContext, response: CheckResponse) {
+async function buildFailedCheckResponse(
+  taskId: string,
+  context: CheckContext,
+  response: CheckResponse,
+  project: Project,
+) {
   const failureUpdate = await failCurrentTaskLevelCheck(taskId)
   const result = buildCheckResult(
     context,
@@ -263,7 +277,7 @@ async function buildFailedCheckResponse(taskId: string, context: CheckContext, r
 
   const taskResponse = await taskActionShared.buildTaskResponse(taskId, failureUpdate.summary
     ? { ...nextTaskItem, progress: failureUpdate.summary }
-    : nextTaskItem)
+    : nextTaskItem, project)
 
   return taskActionShared.jsonResult({
     ok: true,
@@ -277,7 +291,12 @@ async function buildFailedCheckResponse(taskId: string, context: CheckContext, r
   })
 }
 
-async function buildTechnicalCheckResponse(taskId: string, context: CheckContext, error: unknown) {
+async function buildTechnicalCheckResponse(
+  taskId: string,
+  context: CheckContext,
+  error: unknown,
+  project: Project,
+) {
   const progress = await markCurrentTaskLevelCheckTechnicalError(taskId)
   const result: TaskCheckResult = {
     taskId,
@@ -302,7 +321,7 @@ async function buildTechnicalCheckResponse(taskId: string, context: CheckContext
   const taskResponse = await taskActionShared.buildTaskResponse(taskId, {
     ...nextTaskItem,
     progress,
-  })
+  }, project)
 
   return taskActionShared.jsonResult({
     ok: true,
@@ -316,10 +335,14 @@ async function buildTechnicalCheckResponse(taskId: string, context: CheckContext
 
 export const taskCheckAction = {
   async checkTaskLevel(taskId: string, project?: Project): Promise<TaskActionHttpResult> {
+    const resolvedProject = await resolveTaskProject(taskId, project)
+
     try {
-      return await runTaskMutation(taskId, async (): Promise<TaskActionHttpResult> => {
+      return await runTaskMutation(
+        buildTaskMutationScopeKey(taskId, resolvedProject.id),
+        async (): Promise<TaskActionHttpResult> => {
         const startedAt = Date.now()
-        const request = await validateCheckRequest(taskId)
+        const request = await validateCheckRequest(taskId, resolvedProject)
         if ("status" in request || !("taskItem" in request)) {
           return finalizeCheckResult(request as TaskActionHttpResult, {
             scope: "task",
@@ -350,7 +373,7 @@ export const taskCheckAction = {
         }
 
         const { context, promptImages } = loaded
-        const taskData = await readTaskData(context.taskItem, context.labContext)
+        const taskData = await readTaskData(context.taskItem, context.labContext, resolvedProject)
         const promptContext = buildTaskRuntimePromptContext({
           taskId,
           taskMaxLevel: context.taskItem.maxLevel,
@@ -358,7 +381,7 @@ export const taskCheckAction = {
           levelTaskTip: context.labContext.taskTip,
           levelTaskCheckContract: context.labContext.taskCheckContract,
           level: context.level,
-          project,
+          project: resolvedProject,
           taskData,
           taskItem: context.taskItem,
           workbenchFiles: context.editableFiles.map((file) => ({
@@ -473,7 +496,7 @@ export const taskCheckAction = {
             })
           }
 
-          const technicalResult = await buildTechnicalCheckResponse(taskId, context, error)
+          const technicalResult = await buildTechnicalCheckResponse(taskId, context, error, resolvedProject)
           return finalizeCheckResult(technicalResult, {
             scope: "task",
             path: "check",
@@ -500,7 +523,7 @@ export const taskCheckAction = {
         }
 
         if (checkResponse.passed) {
-          const successResult = await buildSuccessfulCheckResponse(taskId, context, checkResponse)
+          const successResult = await buildSuccessfulCheckResponse(taskId, context, checkResponse, resolvedProject)
           return finalizeCheckResult(successResult, {
             scope: "task",
             path: "check",
@@ -521,7 +544,7 @@ export const taskCheckAction = {
           })
         }
 
-        const failedResult = await buildFailedCheckResponse(taskId, context, checkResponse)
+        const failedResult = await buildFailedCheckResponse(taskId, context, checkResponse, resolvedProject)
         return finalizeCheckResult(failedResult, {
           scope: "task",
           path: "check",

@@ -283,10 +283,11 @@ describe("taskServerMutations.resetCurrentTaskLevel", () => {
       "task-a",
       expect.objectContaining({ levelNumber: 2 }),
       ["component"],
+      undefined,
     )
     expect(mocks.writePromptHistory).toHaveBeenCalledWith("task-a", [
       expect.objectContaining({ text: "Уточнение для уровня 1", levelNumber: 1 }),
-    ])
+    ], undefined)
     expect(mocks.writeUserProgressStore).toHaveBeenCalledWith(expect.objectContaining({
       tasks: {
         "task-a": expect.objectContaining({
@@ -337,7 +338,7 @@ describe("taskServerMutations.resetCurrentTaskLevel", () => {
     expect(mocks.removeTaskCheckResult).not.toHaveBeenCalled()
     expect(mocks.writePromptHistory).toHaveBeenCalledWith("task-a", [
       expect.objectContaining({ text: "Уточнение для уровня 1", levelNumber: 1 }),
-    ])
+    ], undefined)
   })
 })
 

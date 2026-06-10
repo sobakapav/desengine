@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-10
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "dispatcher-architecture"
+strategy_root: "focus-tech"
+roadmap_ref: ""
+release_ref: "release-2026-06-10-architecture"
+producer_ref: "producer-architecture-transform"
+verification_level: "static/contract"
+verification_command: "npm run test:traceability"
+issue: ""
+short: "привязать dispatcher-architecture к producer-architecture-transform и imple"

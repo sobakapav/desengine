@@ -2,8 +2,8 @@ import { spawnSync } from "node:child_process"
 
 function printUsage() {
   console.error("Использование:")
-  console.error("  npm run os:req -- <dispatcher-change> --request \"<текст хотелки>\" [--kind implement|fix]")
-  console.error("  npm run os:req -- <release-change> --dispatcher <dispatcher-change> --request \"<текст хотелки>\" [--kind implement|fix]")
+  console.error("  npm run os:req -- <producer-or-dispatcher-change> --request \"<текст хотелки>\" [--kind implement|fix]")
+  console.error("  npm run os:req -- <release-change> --dispatcher <producer-or-dispatcher-change> --request \"<текст хотелки>\" [--kind implement|fix]")
 }
 
 function parseArgs(argv) {

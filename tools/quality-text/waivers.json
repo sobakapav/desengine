@@ -14,11 +14,29 @@
       "reason": "Code-панель уже была orchestration-компонентом, а текущий рабочий diff затрагивает её вместе с preview/runtime boundary. Безопасное разбиение на presentation/controller части нужно делать отдельным UI refactor.",
       "targetStage": "architecture-followup-code-panel-split"
     },
-    "components/desengine/lab/Workbench/useWorkbenchController.ts": {
+    "components/desengine/lab/InOut/OutRender/OutRender.tsx": {
       "rules": ["file-length"],
       "owner": "team-desengine",
-      "reason": "Controller уже был крупным orchestration-модулем; ProjectWorkspace storage boundary добавил integration glue, а выделение project/workbench hooks нужно делать отдельным UI-safe refactor.",
-      "targetStage": "architecture-followup-workbench-controller-split"
+      "reason": "OutRender держит смешанный preview/output orchestration с несколькими режимами отображения. Безопасное разбиение на presentation и adapter-слои нужно делать отдельным UI refactor, чтобы не расшатать текущий render pipeline.",
+      "targetStage": "architecture-followup-out-render-split"
+    },
+    "components/desengine/lab/TaskRoute/TaskRoute.tsx": {
+      "rules": ["function-length"],
+      "owner": "team-desengine",
+      "reason": "TaskRoute пока удерживает и route gating, и hydration/runtime orchestration в одной функции. Декомпозиция требует отдельного route-shell refactor, чтобы не менять порядок инициализации лаборатории в релизной ветке.",
+      "targetStage": "architecture-followup-task-route-shell-split"
+    },
+    "lib/project/runtime.ts": {
+      "rules": ["file-length"],
+      "owner": "team-desengine",
+      "reason": "Project runtime сейчас держит canonical model, normalization и migration-adjacent helpers в одном файле. Выделение подмодулей нужно делать отдельным domain refactor после стабилизации project-wave контрактов.",
+      "targetStage": "architecture-followup-project-runtime-modularization"
+    },
+    "lib/project/storage.ts": {
+      "rules": ["function-length"],
+      "owner": "team-desengine",
+      "reason": "Storage boundary объединяет persistence schema, migration fallback и hydration glue. Разбиение на smaller readers/writers стоит делать отдельным storage refactor, чтобы не вносить риск в active project persistence прямо сейчас.",
+      "targetStage": "architecture-followup-project-storage-split"
     },
     "lib/task/actions/check.ts": {
       "rules": ["file-length", "function-length"],
@@ -50,11 +68,53 @@
       "reason": "Mutation boundary временно держит и lock-координацию, и observability/result wrapping. Разделение на smaller helpers требует отдельного refactor, чтобы не расшатать serialisation semantics.",
       "targetStage": "architecture-followup-task-mutation-boundary-split"
     },
+    "lib/task/projection.ts": {
+      "rules": ["function-length"],
+      "owner": "team-desengine",
+      "reason": "Task projection собирает workflow, artifacts и legacy-compatibility в одном builder. Безопасная декомпозиция требует отдельного projection refactor, чтобы не разъехать downstream workflow contract и текущий project-aware слой.",
+      "targetStage": "architecture-followup-task-projection-split"
+    },
+    "test/integration/task-routes.test.ts": {
+      "rules": ["file-length"],
+      "owner": "team-desengine",
+      "reason": "Integration-набор держит несколько route-сценариев на общем test harness. Переразбиение на smaller suites возможно, но это отдельная тестовая housekeeping-работа, не влияющая на смысл текущего quality gate fix.",
+      "targetStage": "architecture-followup-task-routes-test-split"
+    },
+    "test/unit/openspec-handoff.test.ts": {
+      "rules": ["file-length"],
+      "owner": "team-desengine",
+      "reason": "Unit-набор handoff CLI уже покрывает template, sync и readiness в одном контрактном файле. Разнос по suites безопасен, но это отдельный test-maintenance этап, не связанный с восстановлением working scope gate.",
+      "targetStage": "architecture-followup-openspec-handoff-test-split"
+    },
+    "test/unit/project-ui-kit-switching.test.ts": {
+      "rules": ["file-length"],
+      "owner": "team-desengine",
+      "reason": "Тест фиксирует несколько project-aware migration и preview сценариев в одном regression suite. Декомпозиция нужна отдельно, чтобы не потерять связность release-critical project UI-kit evidence.",
+      "targetStage": "architecture-followup-project-ui-kit-test-split"
+    },
+    "test/unit/sandpack-preview.test.ts": {
+      "rules": ["file-length"],
+      "owner": "team-desengine",
+      "reason": "Preview suite покрывает fallback, runtime sync и UI-kit branching единым набором. Разбивка на smaller tests безопасна, но это отдельный maintenance change после стабилизации preview boundary.",
+      "targetStage": "architecture-followup-sandpack-preview-test-split"
+    },
+    "test/unit/task-actions-boundary.test.ts": {
+      "rules": ["file-length"],
+      "owner": "team-desengine",
+      "reason": "Boundary suite проверяет несколько task action surfaces на общем scaffolding. Выделение отдельных файлов потребует перестройки test fixtures и должно идти отдельным refactor change, а не внутри текущего quality fix.",
+      "targetStage": "architecture-followup-task-actions-boundary-test-split"
+    },
     "tools/list-openspec-releases.mjs": {
       "rules": ["function-length"],
       "owner": "team-desengine",
       "reason": "CLI пока печатает release matrix одним проходом. Выделение formatter/build-tree helper-слоёв безопасно, но это отдельная housekeeping-задача, не связанная с текущим восстановлением test:full.",
       "targetStage": "architecture-followup-openspec-release-printer-split"
+    },
+    "tools/testing/run-browser-verification-runtime.mjs": {
+      "rules": ["file-length"],
+      "owner": "team-desengine",
+      "reason": "Browser verification wrapper совмещает CLI parsing, fixture setup и Playwright runtime orchestration. Его разнос на smaller modules нужно делать отдельно, чтобы не вносить риск в release smoke-процедуру при восстановлении quality gate.",
+      "targetStage": "architecture-followup-browser-verification-wrapper-split"
     },
     "tools/testing/traceability/changes.mjs": {
       "rules": ["function-length"],

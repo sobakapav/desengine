@@ -58,10 +58,33 @@ function ProjectCompatibilityNotice({ payload }: { payload: SandpackPreviewPaylo
   return (
     <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
       <p className="font-medium">
-        Project UI: {payload.project.settings.uiKitId}, режим {payload.project.settings.uiMode}
+        Настройки preview: {payload.project.settings.uiKitId}, режим {payload.project.settings.uiMode}
         {payload.project.effectiveUiKitId !== payload.project.settings.uiKitId ? `, runtime ${payload.project.effectiveUiKitId}` : ""}
       </p>
       <p className="mt-1">{compatibility.message}</p>
+    </div>
+  )
+}
+
+function ProjectMigrationNotice({ payload }: { payload: SandpackPreviewPayload }) {
+  const migration = payload.project.migration
+
+  if (migration.state === "idle" || !migration.message) {
+    return null
+  }
+
+  const className = migration.state === "failed"
+    ? "mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive"
+    : migration.state === "pending"
+      ? "mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+      : "mb-3 rounded-md border border-black/10 bg-stone-50 p-3 text-sm text-stone-950"
+
+  return (
+    <div className={className}>
+      <p className="font-medium">
+        Migration проекта: {migration.sourceUiKitId} {"->"} {migration.targetUiKitId}
+      </p>
+      <p className="mt-1 whitespace-pre-wrap break-words">{migration.message}</p>
     </div>
   )
 }
@@ -90,4 +113,5 @@ export {
   PreviewSecureContextNotice,
   PreviewStyleContractNotice,
   ProjectCompatibilityNotice,
+  ProjectMigrationNotice,
 }

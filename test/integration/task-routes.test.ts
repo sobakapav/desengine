@@ -138,6 +138,44 @@ describe("task route integration wave", () => {
       taskData,
       level,
     })
+    expect(mocks.buildCurrentTaskScreenData).toHaveBeenCalledWith({
+      taskId: "task-1",
+      taskItem,
+      labContext,
+      project: undefined,
+    })
+  })
+
+  it("прокидывает project query в task opening flow", async () => {
+    const taskItem = { id: "task-1", started: true }
+    const taskData = { taskId: "task-1", promptHistory: [] }
+    const level = { id: "level-1" }
+    const labContext = { levelId: "level-1" }
+
+    mocks.getTaskListItemById.mockResolvedValue(taskItem)
+    mocks.getTaskLabContext.mockResolvedValue(labContext)
+    mocks.buildCurrentTaskScreenData.mockResolvedValue({ started: true, taskData })
+    mocks.getLevelForTaskItem.mockResolvedValue(level)
+
+    await getTask(
+      new Request("http://localhost/api/tasks/task-1?projectId=project-42&projectTitle=Alpha&uiKitId=ant&uiMode=ui-kit"),
+      { params: Promise.resolve({ taskId: "task-1" }) },
+    )
+
+    expect(mocks.normalizeProject).toHaveBeenCalledWith({
+      id: "project-42",
+      title: "Alpha",
+      settings: {
+        uiKitId: "ant",
+        uiMode: "ui-kit",
+      },
+    })
+    expect(mocks.buildCurrentTaskScreenData).toHaveBeenCalledWith(expect.objectContaining({
+      project: expect.objectContaining({
+        id: "project-42",
+        title: "Alpha",
+      }),
+    }))
   })
 
   it("отдаёт 404 для отсутствующей задачи", async () => {
@@ -166,12 +204,33 @@ describe("task route integration wave", () => {
       { params: Promise.resolve({ taskId: "task-1" }) },
     )
 
-    expect(mocks.startTaskLevel).toHaveBeenCalledWith("task-1")
+    expect(mocks.startTaskLevel).toHaveBeenCalledWith("task-1", undefined)
     expect(response.status).toBe(202)
     await expect(readJsonResponse(response)).resolves.toEqual({
       ok: true,
       transition: "started",
     })
+  })
+
+  it("прокидывает project payload в start boundary", async () => {
+    mocks.startTaskLevel.mockResolvedValue({
+      status: 200,
+      body: { ok: true },
+    })
+
+    await postStart(
+      createJsonRequest({
+        body: { project: { id: "project-42", title: "Alpha", uiKitId: "ant", uiMode: "ui-kit" } },
+        method: "POST",
+        url: "http://localhost/api/tasks/task-1/start",
+      }),
+      { params: Promise.resolve({ taskId: "task-1" }) },
+    )
+
+    expect(mocks.startTaskLevel).toHaveBeenCalledWith("task-1", expect.objectContaining({
+      id: "project-42",
+      title: "Alpha",
+    }))
   })
 
   it("отклоняет пустой iterate prompt до вызова runtime", async () => {
@@ -207,12 +266,37 @@ describe("task route integration wave", () => {
       { params: Promise.resolve({ taskId: "task-1" }) },
     )
 
-    expect(mocks.iterateTaskLevel).toHaveBeenCalledWith("task-1", "Сделай кнопку заметнее")
+    expect(mocks.iterateTaskLevel).toHaveBeenCalledWith("task-1", "Сделай кнопку заметнее", undefined)
     expect(response.status).toBe(200)
     await expect(readJsonResponse(response)).resolves.toEqual({
       ok: true,
       resultKind: "applied",
     })
+  })
+
+  it("прокидывает project payload в iterate boundary", async () => {
+    mocks.iterateTaskLevel.mockResolvedValue({
+      status: 200,
+      body: { ok: true, resultKind: "applied" },
+    })
+
+    await postIterate(
+      createJsonRequest({
+        body: {
+          prompt: "Сделай кнопку заметнее",
+          project: { id: "project-42", title: "Alpha", uiKitId: "ant", uiMode: "ui-kit" },
+        },
+        method: "POST",
+        url: "http://localhost/api/tasks/task-1/iterate",
+      }),
+      { params: Promise.resolve({ taskId: "task-1" }) },
+    )
+
+    expect(mocks.iterateTaskLevel).toHaveBeenCalledWith(
+      "task-1",
+      "Сделай кнопку заметнее",
+      expect.objectContaining({ id: "project-42", title: "Alpha" }),
+    )
   })
 
   it("нормализует project payload перед hidden check", async () => {
@@ -223,7 +307,7 @@ describe("task route integration wave", () => {
 
     const response = await postCheck(
       createJsonRequest({
-        body: { project: { uiKitId: "mui", uiMode: "ui-kit" } },
+        body: { project: { id: "project-42", title: "Alpha", uiKitId: "mui", uiMode: "ui-kit" } },
         method: "POST",
         url: "http://localhost/api/tasks/task-1/check",
       }),
@@ -231,16 +315,16 @@ describe("task route integration wave", () => {
     )
 
     expect(mocks.normalizeProject).toHaveBeenCalledWith({
+      id: "project-42",
+      title: "Alpha",
       uiKitId: "mui",
       uiMode: "ui-kit",
-      id: "task-task-1",
-      title: "Проект task-1",
     })
     expect(mocks.checkTaskLevel).toHaveBeenCalledWith("task-1", {
+      id: "project-42",
+      title: "Alpha",
       uiKitId: "mui",
       uiMode: "ui-kit",
-      id: "task-task-1",
-      title: "Проект task-1",
     })
     expect(response.status).toBe(200)
   })
@@ -274,7 +358,7 @@ describe("task route integration wave", () => {
       { params: Promise.resolve({ taskId: "task-1" }) },
     )
 
-    expect(mocks.resetCurrentTaskLevelRuntime).toHaveBeenCalledWith("task-1")
+    expect(mocks.resetCurrentTaskLevelRuntime).toHaveBeenCalledWith("task-1", undefined)
     expect(mocks.resetTaskRuntime).not.toHaveBeenCalled()
     expect(response.status).toBe(409)
     await expect(readJsonResponse(response)).resolves.toEqual({
@@ -309,7 +393,7 @@ describe("task route integration wave", () => {
       { params: Promise.resolve({ taskId: "task-1" }) },
     )
 
-    expect(mocks.resetCurrentTaskLevelRuntime).toHaveBeenCalledWith("task-1")
+    expect(mocks.resetCurrentTaskLevelRuntime).toHaveBeenCalledWith("task-1", undefined)
     expect(mocks.resetTaskRuntime).not.toHaveBeenCalled()
     expect(response.status).toBe(200)
     await expect(readJsonResponse(response)).resolves.toEqual({
@@ -318,6 +402,41 @@ describe("task route integration wave", () => {
       taskData,
       started: true,
     })
+  })
+
+  it("прокидывает project payload в reset и reset-level boundaries", async () => {
+    mocks.resetTaskRuntime.mockResolvedValue({
+      kind: "reset",
+      taskItem: null,
+      taskData: null,
+      started: false,
+    })
+    mocks.resetCurrentTaskLevelRuntime.mockResolvedValue({
+      kind: "level_reset",
+      taskItem: null,
+      taskData: null,
+      started: false,
+    })
+
+    await postReset(
+      createJsonRequest({
+        body: { project: { id: "project-42", title: "Alpha", uiKitId: "ant", uiMode: "ui-kit" } },
+        method: "POST",
+        url: "http://localhost/api/tasks/task-1/reset",
+      }),
+      { params: Promise.resolve({ taskId: "task-1" }) },
+    )
+    await postResetLevel(
+      createJsonRequest({
+        body: { project: { id: "project-42", title: "Alpha", uiKitId: "ant", uiMode: "ui-kit" } },
+        method: "POST",
+        url: "http://localhost/api/tasks/task-1/reset-level",
+      }),
+      { params: Promise.resolve({ taskId: "task-1" }) },
+    )
+
+    expect(mocks.resetTaskRuntime).toHaveBeenCalledWith("task-1", expect.objectContaining({ id: "project-42" }))
+    expect(mocks.resetCurrentTaskLevelRuntime).toHaveBeenCalledWith("task-1", expect.objectContaining({ id: "project-42" }))
   })
 
   it("маппит save files write_failed в 500 с деталями записи", async () => {
@@ -338,13 +457,38 @@ describe("task route integration wave", () => {
 
     expect(mocks.saveTaskFiles).toHaveBeenCalledWith("task-1", [
       { fileId: "styles", content: "export {}" },
-    ])
+    ], undefined)
     expect(response.status).toBe(500)
     await expect(readJsonResponse(response)).resolves.toEqual({
       ok: false,
       written: 1,
       errors: [{ fileId: "styles", error: "disk full" }],
     })
+  })
+
+  it("прокидывает project payload в save files boundary", async () => {
+    mocks.saveTaskFiles.mockResolvedValue({
+      kind: "saved",
+      written: 1,
+    })
+
+    await postFiles(
+      createJsonRequest({
+        body: {
+          updates: [{ fileId: "styles", content: "export {}" }],
+          project: { id: "project-42", title: "Alpha", uiKitId: "ant", uiMode: "ui-kit" },
+        },
+        method: "POST",
+        url: "http://localhost/api/tasks/task-1/files",
+      }),
+      { params: Promise.resolve({ taskId: "task-1" }) },
+    )
+
+    expect(mocks.saveTaskFiles).toHaveBeenCalledWith(
+      "task-1",
+      [{ fileId: "styles", content: "export {}" }],
+      expect.objectContaining({ id: "project-42", title: "Alpha" }),
+    )
   })
 
   it("маппит save files overload в retriable 503 без partial write contract", async () => {

@@ -2,6 +2,7 @@
 
 import { type KeyboardEvent as ReactKeyboardEvent, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
+import type { Project } from "@/lib/project/runtime";
 import type { IterateTaskSuccessBody } from "@/lib/task/actions/types";
 
 import type { WorkbenchProps } from "./props";
@@ -24,7 +25,7 @@ type PromptRunOutcome = {
     error: string;
 };
 
-async function postPrompt(taskId: string, prompt: string) {
+async function postPrompt(taskId: string, prompt: string, project: Project) {
     return fetchWorkbenchActionJson<IterateTaskSuccessBody>({
         url: `/api/tasks/${taskId}/iterate`,
         actionLabel: "Уточнение",
@@ -32,7 +33,7 @@ async function postPrompt(taskId: string, prompt: string) {
         init: {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ prompt }),
+            body: JSON.stringify({ prompt, project }),
         },
     });
 }
@@ -40,6 +41,7 @@ async function postPrompt(taskId: string, prompt: string) {
 async function runPromptSubmission(args: {
     saveBeforeAction: () => Promise<boolean>;
     taskId: string;
+    project: Project;
     promptText: string;
     currentLevelStarted: boolean;
     setPromptPending: (pending: boolean) => void;
@@ -66,7 +68,7 @@ async function runPromptSubmission(args: {
 
     try {
         const postPromptImpl = args.postPromptImpl ?? postPrompt;
-        const data = await postPromptImpl(args.taskId, args.promptText);
+        const data = await postPromptImpl(args.taskId, args.promptText, args.project);
 
         if (!data?.ok) {
             args.setPromptError(data?.error || "Ошибка запуска итерации");
@@ -89,6 +91,7 @@ async function runPromptSubmission(args: {
 
 function usePromptController(
     props: WorkbenchProps,
+    project: Project,
     saveBeforeAction: () => Promise<boolean>,
     replaceTaskData: (taskData: WorkbenchProps["taskData"]) => void,
     setPreviewVersion: Dispatch<SetStateAction<number>>,
@@ -102,6 +105,7 @@ function usePromptController(
         const outcome = await runPromptSubmission({
             saveBeforeAction,
             taskId: props.taskItem.id,
+            project,
             promptText,
             currentLevelStarted: props.taskItem.progress.currentLevelStarted,
             setPromptPending,

@@ -105,7 +105,7 @@ describe("buildCurrentTaskScreenData", () => {
       taskData: { source: "saved-task-data" },
     })
 
-    expect(mocks.readTaskData).toHaveBeenCalledWith(startedTaskItem, labContext)
+    expect(mocks.readTaskData).toHaveBeenCalledWith(startedTaskItem, labContext, undefined)
     expect(mocks.createEmptyTaskData).not.toHaveBeenCalled()
   })
 

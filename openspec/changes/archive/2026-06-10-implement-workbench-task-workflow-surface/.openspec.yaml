@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-10
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "producer-workbench"
+strategy_root: "producer-workbench"
+roadmap_ref: ""
+release_ref: "release-2026-06-10-architecture"
+producer_ref: "producer-workbench"
+verification_level: "unit"
+verification_command: "npm run test:unit -- test/unit/workbench-platform-registry.test.ts test/unit/task-workflow-artifact-projection.test.ts test/unit/project-ui-kit-switching.test.ts test/unit/p1-source-contracts.test.ts"
+issue: ""
+short: "проявить Workbench как новую рабочую поверхность"

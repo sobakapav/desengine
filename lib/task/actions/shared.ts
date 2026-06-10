@@ -2,6 +2,7 @@ import "server-only"
 
 import { readTaskImageBuffer } from "../image-source"
 import { getTaskLabContext } from "../server"
+import type { Project } from "@/lib/project/runtime"
 import type { TaskData, TaskLabContext, TaskListItem } from "../types"
 import { buildCurrentTaskScreenData } from "../task-screen-data"
 import type {
@@ -106,9 +107,9 @@ export const taskActionShared = {
       }),
     )
   },
-  async buildTaskResponse(taskId: string, taskItem: TaskListItem) {
+  async buildTaskResponse(taskId: string, taskItem: TaskListItem, project?: Project) {
     const labContext = await getTaskLabContext(taskItem)
-    return buildCurrentTaskScreenData({ taskId, taskItem, labContext })
+    return buildCurrentTaskScreenData({ taskId, taskItem, labContext, project })
   },
 }
 

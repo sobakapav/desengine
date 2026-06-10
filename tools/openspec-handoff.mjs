@@ -95,7 +95,7 @@ ${requiredSources}
 
 - Что входит в этот change: ${HANDOFF_PLACEHOLDER}
 - Что сознательно не входит в этот change: ${HANDOFF_PLACEHOLDER}
-- Какие решения уже принадлежат parent dispatcher / strategy_root и не должны переоткрываться: ${HANDOFF_PLACEHOLDER}
+- Какие решения уже принадлежат parent change / strategy_root и не должны переоткрываться: ${HANDOFF_PLACEHOLDER}
 
 ## Проверка результата
 
@@ -152,6 +152,15 @@ function replaceRequiredLine(source, label, value) {
   return source.replace(pattern, line)
 }
 
+/**
+ * @example
+ * ```js
+ * syncHandoffInheritedContext("openspec/changes/fix-foo", {
+ *   parentChange: "dispatcher-bugfix",
+ *   verificationCommand: "npm run quality:text",
+ * })
+ * ```
+ */
 export function syncHandoffInheritedContext(changeDir, {
   parentChange = "",
   strategyRoot = "",
@@ -178,6 +187,15 @@ export function syncHandoffInheritedContext(changeDir, {
   return handoffPath
 }
 
+/**
+ * @example
+ * ```js
+ * syncHandoffInheritedContext("openspec/changes/fix-foo", {
+ *   parentChange: "dispatcher-bugfix",
+ *   verificationCommand: "npm run quality:text",
+ * })
+ * ```
+ */
 export function assertHandoffInheritedContext(changeDir, {
   parentChange = "",
   strategyRoot = "",

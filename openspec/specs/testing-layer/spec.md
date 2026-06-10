@@ -192,6 +192,11 @@
 
 Система SHALL держать канонический runtime diagnostics contract для task actions и preview payload, чтобы verdict layer не собирал ad-hoc speed/load сигналы из разноформатных логов.
 
+#### Scenario: Unit-проверка читает project-aware task client boundary
+- **WHEN** unit-слой проверяет client boundary project-aware task/opening flow
+- **THEN** проверка читает явные `fetch` contract'ы для `open`, `start`, `iterate`, `check`, `save files`, `reset task` или `reset current level`
+- **AND** подтверждает, что active project передаётся через client boundary без browser e2e или live credentials
+
 #### Scenario: Unit-проверка читает runtime diagnostics task action
 - **WHEN** unit-слой проверяет `start`, `iterate` или `check`
 - **THEN** он читает structured diagnostics из action result

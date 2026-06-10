@@ -174,6 +174,16 @@ function buildImageArtifacts(args: {
   }))
 }
 
+/**
+ * @example
+ * ```ts
+ * const projection = buildTaskWorkflowArtifactProjection({
+ *   taskData,
+ *   projectId: "project-1",
+ *   taskItem,
+ * })
+ * ```
+ */
 export function buildTaskWorkflowArtifactProjection(args: TaskProjectionArgs): TaskWorkflowArtifactProjection {
   const scope = requireProjectScope({
     projectId: args.projectId,
@@ -244,11 +254,15 @@ export function buildTaskWorkflowArtifactProjection(args: TaskProjectionArgs): T
       stepInstances: [
         {
           id: currentStepId,
+          projectId: scope.projectId,
           kind: "level-lab",
           status: normalizeStepStatus(args.taskItem, args.checkResult),
           inputArtifactIds,
           outputArtifactIds,
-          workbenchInstanceId,
+          runtimeBindings: {
+            workbenchInstanceIds: [workbenchInstanceId],
+            primaryWorkbenchInstanceId: workbenchInstanceId,
+          },
         },
       ],
     },

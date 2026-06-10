@@ -207,11 +207,6 @@ function validateProducerContextRules(changeName, changeKind, parentChange, meta
   }
 
   if (changeKind === "dispatcher") {
-    const parentKind = context.changeKindsByName.get(parentChange) || ""
-
-    if (parentKind === "producer") {
-      errors.push(`${changeName}: dispatcher change не может иметь parent_change на producer`)
-    }
     if (producerRef) {
       errors.push(`${changeName}: dispatcher change не может иметь producer_ref`)
     }
@@ -219,8 +214,9 @@ function validateProducerContextRules(changeName, changeKind, parentChange, meta
     return
   }
 
-  if (parentChange && context.changeKindsByName.get(parentChange) !== "dispatcher") {
-    return
+  const parentKind = context.changeKindsByName.get(parentChange) || ""
+  if (parentKind === "producer" && producerRef && producerRef !== parentChange) {
+    errors.push(`${changeName}: producer_ref должен совпадать с parent_change, если parent_change указывает на producer`)
   }
 }
 
@@ -257,8 +253,12 @@ export function validateChangeKindRules(changeName, metadata, context) {
   if (["implement", "fix"].includes(changeKind) && executionMode !== "code") {
     errors.push(`${changeName}: ${changeKind} change должен иметь execution_mode=code`)
   }
-  if (["implement", "fix"].includes(changeKind) && parentChange && context.changeKindsByName.get(parentChange) !== "dispatcher") {
-    errors.push(`${changeName}: ${changeKind} change должен иметь parent_change на dispatcher`)
+  if (
+    ["implement", "fix"].includes(changeKind) &&
+    parentChange &&
+    !["dispatcher", "producer"].includes(context.changeKindsByName.get(parentChange))
+  ) {
+    errors.push(`${changeName}: ${changeKind} change должен иметь parent_change на dispatcher или producer`)
   }
   if (["implement", "fix"].includes(changeKind) && !strategyRoot) {
     errors.push(`${changeName}: ${changeKind} change должен иметь strategy_root`)

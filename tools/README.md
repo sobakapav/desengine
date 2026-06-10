@@ -31,7 +31,7 @@ Root-карта документации:
 | Старт выполнения change с preflight-правилами | `tools/openspec-begin-change.mjs` | `npm run os:begin -- <change>` |
 | Диспетчеризация хотелки в implement/fix | `tools/openspec-dispatch-change.mjs` | `npm run os:dispatch -- <dispatcher> --kind fix --name <name> --description "..."` |
 | Переименование change с обновлением metadata-ссылок | `tools/rename-openspec-change.mjs` | `npm run os:rename -- <old-name> <new-name>` |
-| Контекст implement/fix через parent dispatcher | `tools/openspec-context.mjs` | `npm run os:ctx -- <implement-or-fix-change>` |
+| Контекст implement/fix через parent change | `tools/openspec-context.mjs` | `npm run os:ctx -- <implement-or-fix-change>` |
 | Превращение текстовой хотелки в implement/fix | `tools/openspec-request-to-exec.mjs` | `npm run os:req -- <dispatcher> --request "..." --kind fix` |
 | Закрытие implement/fix change | `tools/openspec-close-change.mjs` | `npm run os:close -- <change>` |
 | Создание нового OpenSpec change с `short` в metadata | `tools/create-openspec-change.mjs` | `npm run openspec:new -- <name>` |
@@ -144,36 +144,40 @@ Release закрывается только после того, как `npm run
 - Прямое изменение кода разрешено только для `implement` и `fix`.
 - `focus`, `idea`, `producer`, `dispatcher` и `release` код напрямую не меняют: они управляют downstream changes своего уровня и принимают их результат.
 - Если `change_kind=dispatcher`, команда блокирует прямую реализацию, напоминает обязанность создать `implement-*` или `fix-*`, передать inherited roadmap и принять итог работы.
-- Для dispatcher команда дополнительно показывает inherited roadmap стратегических владельцев, которыми нужно руководствоваться дальше.
-- Для dispatcher можно сразу создать исполнительский change:
+- Если `change_kind=producer`, команда блокирует прямую реализацию, но признаёт producer полным owner линии и разрешает породить `implement-*`/`fix-*` напрямую или завести вспомогательный dispatcher.
+- Для `producer` и `dispatcher` команда показывает roadmap, которыми нужно руководствоваться дальше.
+- Для `producer` и `dispatcher` можно сразу создать исполнительский change:
   При таком создании команда автоматически гарантирует базовые apply-артефакты (`proposal.md`, `design.md`, `tasks.md`), чтобы старт реализации не блокировался из-за пустого scaffolding.
   Дополнительно создаётся `handoff.md`, который нужно заполнить по существу до старта исполнения.
 
 ```bash
+npm run os:begin -- producer-... --spawn-implement implement-... --description "..."
 npm run os:begin -- dispatcher-... --spawn-implement implement-... --description "..."
 ```
 
 - Если `change_kind=implement|fix`, команда печатает readiness-поля (`parent_change`, `strategy_root`, `verification_level`, `verification_command`) и напоминает, что стратегия и тактика уже заданы предками.
 - Если `handoff.md` отсутствует или в нём остались плейсхолдеры, preflight завершится отказом и потребует завершить handoff.
-- Если `change_kind=release`, команда показывает матрицу релиза (`parent dispatcher -> implement/fix`) и подсказывает команду релизной диспетчеризации вместо прямого вмешательства в код.
+- Если `change_kind=release`, команда показывает матрицу релиза (`parent change -> implement/fix`) и подсказывает команду релизной диспетчеризации вместо прямого вмешательства в код.
 
-### `npm run os:dispatch -- <dispatcher> --kind <implement|fix> --name <name>`
+### `npm run os:dispatch -- <producer-or-dispatcher-change> --kind <implement|fix> --name <name>`
 
-Создаёт исполнительский change из dispatcher-контекста и сразу привязывает его к dispatcher.
+Создаёт исполнительский change из producer- или dispatcher-контекста и сразу привязывает его к parent owner.
 
 Пример:
 
 ```bash
+npm run os:dispatch -- producer-help --kind fix --name ai-policy-typo --description "исправить неточности в AI-политике"
 npm run os:dispatch -- dispatcher-help --kind fix --name ai-policy-typo --description "исправить неточности в AI-политике"
 ```
 
 Для релизного диспетчерского режима:
 
 ```bash
+npm run os:dispatch -- release-... --dispatcher producer-... --kind fix --name <name> --description "..."
 npm run os:dispatch -- release-... --dispatcher dispatcher-... --kind fix --name <name> --description "..."
 ```
 
-В этом режиме исполнительский change тактически подчиняется `dispatcher` (через `parent_change`), одновременно входит в релиз (через `release_ref`) и при необходимости отдельно помечается `producer_ref`.
+В этом режиме исполнительский change подчиняется своему `parent_change` (`producer` или `dispatcher`), одновременно входит в релиз (через `release_ref`) и при необходимости отдельно помечается `producer_ref`.
 Release-dispatch path не допускает partial update: если `release_ref` не удалось одинаково записать в metadata и handoff, команда должна упасть.
 
 Итоговое имя change проходит ту же проверку схемы, что и `openspec:new`: голый суффикс даты вида `-YYYY-MM-DD` на конце запрещён.
@@ -190,14 +194,14 @@ Release-dispatch path не допускает partial update: если `release_
 ### `npm run os:ctx -- <implement-or-fix-change>`
 
 Печатает контекст исполнения для implement/fix:
-- какой `parent dispatcher` отвечает за тактику;
+- какой `parent change` отвечает за тактику и приёмку;
 - какой `strategy_root` задаёт стратегию;
 - к какому `release_ref` относится change;
 - в каком `producer_ref` он находится, если producer-контекст задан;
-- что код меняется только на уровне implement/fix, а parent dispatcher отвечает за постановку и приёмку результата;
-- быстрые пути к `proposal/design/tasks` родительского dispatcher;
+- что код меняется только на уровне implement/fix, а parent change отвечает за постановку и приёмку результата;
+- быстрые пути к `proposal/design/tasks` родительского change;
 - быстрые пути к `proposal/design/tasks` producer, если он задан;
-- inherited roadmap стратегических владельцев dispatcher;
+- inherited roadmap стратегических владельцев parent change;
 - путь к локальному `handoff.md`.
 
 ### `npm run os:close -- <implement-or-fix-change>`
@@ -231,7 +235,7 @@ Wrapper сам:
 
 ### `npm run os:req -- <dispatcher> --request "..."`
 
-Стандартизирует обработку новой хотелки в dispatcher-контексте:
+Стандартизирует обработку новой хотелки в producer- или dispatcher-контексте:
 
 1. берёт текст хотелки;
 2. создаёт `implement` или `fix` change (по `--kind`, по умолчанию `fix`);
@@ -267,8 +271,9 @@ short: "краткое описание change"
 Для dispatcher `roadmap_ref` хранит одиночную ссылку на roadmap стратегического владельца в формате `<change>/roadmaps/<file>.md`.
 Если нужен не один roadmap, используется `roadmap_refs` как YAML-список с тем же форматом ссылок.
 `release_ref` разрешён только для `implement` и `fix`: release собирает только исполнительский состав поставки и не может включать `focus`, `idea`, `producer`, `dispatcher` или другой `release`.
-Если исполнительская ветка работает в контексте конкретного producer, для `implement` и `fix` используется отдельная метка `producer_ref`.
-Прямое родительство `dispatcher -> producer` запрещено, и сам `dispatcher` не может хранить `producer_ref`.
+Если исполнительская ветка работает в контексте конкретного producer через dispatcher, для `implement` и `fix` используется отдельная метка `producer_ref`.
+Если producer сам является `parent_change` исполнительского change, это считается нормальным прямым выражением producer ownership.
+`dispatcher` не хранит `producer_ref`: producer ownership для него выражается через `parent_change`, если dispatcher подчинён producer.
 
 Для непустого `short` в changes с `short_policy: strict-v1` действует строгий контракт кастомной схемы:
 - начинается с маленькой буквы;

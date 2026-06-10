@@ -4,8 +4,9 @@ import { taskCheckAction } from "@/lib/task/actions/check"
 import { taskFilesAction } from "@/lib/task/actions/files"
 import { taskIterateAction } from "@/lib/task/actions/iterate"
 import { taskStartAction } from "@/lib/task/actions/start"
-import type { Project } from "@/lib/project/runtime"
+import type { Project, ProjectMigrationTarget } from "@/lib/project/runtime"
 import type {
+  ProjectUiKitMigrationRuntimeResult,
   ResetCurrentTaskLevelRuntimeResult,
   ResetTaskRuntimeResult,
   SaveTaskFilesResult,
@@ -52,8 +53,8 @@ import type {
  * const body = await response.json()
  * ```
  */
-export async function startTaskLevel(taskId: string): Promise<TaskActionHttpResult> {
-  return taskStartAction.startTaskLevel(taskId)
+export async function startTaskLevel(taskId: string, project?: Project): Promise<TaskActionHttpResult> {
+  return taskStartAction.startTaskLevel(taskId, project)
 }
 
 /**
@@ -65,8 +66,9 @@ export async function startTaskLevel(taskId: string): Promise<TaskActionHttpResu
 export async function iterateTaskLevel(
   taskId: string,
   promptText: string,
+  project?: Project,
 ): Promise<TaskActionHttpResult> {
-  return taskIterateAction.iterateTaskLevel(taskId, promptText)
+  return taskIterateAction.iterateTaskLevel(taskId, promptText, project)
 }
 
 /**
@@ -88,18 +90,50 @@ export async function checkTaskLevel(taskId: string, project?: Project): Promise
 export async function saveTaskFiles(
   taskId: string,
   updates: TaskFileUpdate[],
+  project?: Project,
 ): Promise<SaveTaskFilesResult> {
-  return taskFilesAction.saveTaskFiles(taskId, updates)
+  return taskFilesAction.saveTaskFiles(taskId, updates, project)
 }
 
+/**
+ * @example
+ * ```ts
+ * const result = await resetTaskRuntime("task-1", { id: "project-1", title: "Проект 1" })
+ * ```
+ */
 export async function resetTaskRuntime(
   taskId: string,
+  project?: Project,
 ): Promise<ResetTaskRuntimeResult> {
-  return taskFilesAction.resetTaskRuntime(taskId)
+  return taskFilesAction.resetTaskRuntime(taskId, project)
 }
 
+/**
+ * @example
+ * ```ts
+ * const result = await resetCurrentTaskLevelRuntime("task-1", { id: "project-1", title: "Проект 1" })
+ * ```
+ */
 export async function resetCurrentTaskLevelRuntime(
   taskId: string,
+  project?: Project,
 ): Promise<ResetCurrentTaskLevelRuntimeResult> {
-  return taskFilesAction.resetCurrentTaskLevelRuntime(taskId)
+  return taskFilesAction.resetCurrentTaskLevelRuntime(taskId, project)
+}
+
+/**
+ * @example
+ * ```ts
+ * const result = await migrateProjectUiKitRuntime("task-1", project, {
+ *   uiKitId: "shadcn",
+ *   uiMode: "light",
+ * })
+ * ```
+ */
+export async function migrateProjectUiKitRuntime(
+  taskId: string,
+  project: Project,
+  target: ProjectMigrationTarget,
+): Promise<ProjectUiKitMigrationRuntimeResult> {
+  return taskFilesAction.migrateProjectUiKitRuntime(taskId, project, target)
 }

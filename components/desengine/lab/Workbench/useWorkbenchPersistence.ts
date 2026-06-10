@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { Project } from "@/lib/project/runtime";
 
 import { taskWorkbenchFiles } from "@/lib/system/config/client";
 import { applyFileContentChange } from "@/lib/lab/editor";
@@ -24,11 +25,11 @@ function getDirtyUpdates(contentByFileId: Record<string, string>, editableIds: S
     .map(([fileId, content]) => ({ fileId, content }));
 }
 
-async function postFileUpdates(taskId: string, updates: FileUpdate[]) {
+async function postFileUpdates(taskId: string, updates: FileUpdate[], project: Project) {
   const res = await fetch(`/api/tasks/${taskId}/files`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ updates }),
+    body: JSON.stringify({ updates, project }),
   });
   const data = await res.json().catch(() => null);
 
@@ -51,11 +52,19 @@ export function useEditableFileIds(taskData: WorkbenchProps["taskData"]) {
   }, [taskData.labContext?.editableFileIds]);
 }
 
+/**
+ * @example
+ * ```ts
+ * const refs = useWorkbenchRefs(taskId, taskData, editableFileIds)
+ * refs.currentContentByFileIdRef.current["component"] = "<Button />"
+ * ```
+ */
 export function useWorkbenchRefs(taskId: string, taskData: WorkbenchProps["taskData"], editableFileIds: Set<string>) {
   const savedContentByFileIdRef = useRef<Record<string, string>>({ ...taskData.contentByFileId });
   const currentContentByFileIdRef = useRef<Record<string, string>>(taskData.contentByFileId);
   const dirtyFileIdsRef = useRef<string[]>([]);
   const editableFileIdsRef = useRef<Set<string>>(new Set());
+  const projectRef = useRef<Project | null>(null);
   const taskIdRef = useRef(taskId);
 
   useEffect(() => {
@@ -68,9 +77,23 @@ export function useWorkbenchRefs(taskId: string, taskData: WorkbenchProps["taskD
     taskIdRef.current = taskId;
   }, [taskId]);
 
-  return { currentContentByFileIdRef, dirtyFileIdsRef, editableFileIdsRef, savedContentByFileIdRef, taskIdRef };
+  return {
+    currentContentByFileIdRef,
+    dirtyFileIdsRef,
+    editableFileIdsRef,
+    projectRef,
+    savedContentByFileIdRef,
+    taskIdRef,
+  };
 }
 
+/**
+ * @example
+ * ```ts
+ * const dirty = useDirtyFiles(savedContentByFileIdRef, dirtyFileIdsRef)
+ * dirty.markFileDirtyState("component", "<Button />")
+ * ```
+ */
 export function useDirtyFiles(savedContentByFileIdRef: MutableRefObject<Record<string, string>>, dirtyFileIdsRef: MutableRefObject<string[]>) {
   const [dirtyFileIds, setDirtyFileIds] = useState<string[]>([]);
 
@@ -113,7 +136,10 @@ async function saveUpdates({
   try {
     setSaveStatus("saving");
     setSaveError("");
-    await postFileUpdates(refs.taskIdRef.current, updates);
+    if (!refs.projectRef.current) {
+      throw new Error("Активный проект не определён")
+    }
+    await postFileUpdates(refs.taskIdRef.current, updates, refs.projectRef.current);
     updates.forEach((update) => {
       refs.savedContentByFileIdRef.current[update.fileId] = update.content;
     });
@@ -128,18 +154,36 @@ async function saveUpdates({
   }
 }
 
+/**
+ * @example
+ * ```ts
+ * const save = useSaveController({
+ *   refs,
+ *   setDirtyFileIds,
+ *   setPreviewVersion,
+ *   project,
+ * })
+ * await save.saveDirtyFiles()
+ * ```
+ */
 export function useSaveController({
   refs,
   setDirtyFileIds,
   setPreviewVersion,
+  project,
 }: {
   refs: ReturnType<typeof useWorkbenchRefs>;
   setDirtyFileIds: Dispatch<SetStateAction<string[]>>;
   setPreviewVersion: Dispatch<SetStateAction<number>>;
+  project: Project;
 }) {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState("");
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
+
+  useEffect(() => {
+    refs.projectRef.current = project;
+  }, [project, refs.projectRef]);
 
   async function saveDirtyFiles(targetFileIds?: string[]) {
     while (true) {
@@ -162,6 +206,18 @@ export function useSaveController({
   return { saveBeforeAction: saveDirtyFiles, saveDirtyFiles, saveError, saveStatus, setSaveError, setSaveStatus };
 }
 
+/**
+ * @example
+ * ```ts
+ * const code = useCodeController({
+ *   refs,
+ *   taskData,
+ *   onTaskDataChange,
+ *   markFileDirtyState,
+ *   setAutosaveRevision,
+ * })
+ * ```
+ */
 export function useCodeController({
   markFileDirtyState,
   onTaskDataChange,
@@ -188,6 +244,12 @@ export function useCodeController({
   return { codeContentByFileId, setCodeContentByFileId, handleCodeChange };
 }
 
+/**
+ * @example
+ * ```ts
+ * useSaveEffects(save.saveDirtyFiles, dirty.dirtyFileIds, autosaveRevision)
+ * ```
+ */
 export function useSaveEffects(saveDirtyFiles: () => Promise<boolean>, dirtyFileIds: string[], autosaveRevision: number) {
   useEffect(() => {
     if (dirtyFileIds.length === 0) return;
@@ -213,6 +275,20 @@ export function useSaveEffects(saveDirtyFiles: () => Promise<boolean>, dirtyFile
   }, []);
 }
 
+export { postFileUpdates };
+
+/**
+ * @example
+ * ```ts
+ * const replaceTaskData = useTaskDataReplacement({
+ *   refs,
+ *   code,
+ *   dirty,
+ *   save,
+ *   onTaskDataChange,
+ * })
+ * ```
+ */
 export function useTaskDataReplacement({
   code,
   dirty,

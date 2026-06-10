@@ -217,11 +217,14 @@ describe("P1 source contracts", () => {
   })
 
   it("workbench и check-result показывают единый путь до состояния «Проверка пройдена»", () => {
-    const workbenchView = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchView.tsx")
+    const workbenchHeader = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchHeader.tsx")
+    const workbenchSurfaceSummary = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchSurfaceSummary.tsx")
     const checkResult = readProjectFile("components", "desengine", "task", "TaskCheckResult.tsx")
 
-    expect(workbenchView).toContain("До состояния «Проверка пройдена»")
-    expect(workbenchView).toContain("Отправить решение на проверку")
+    expect(workbenchHeader).toContain("До состояния «Проверка пройдена»")
+    expect(workbenchHeader).toContain("Отправить решение на проверку")
+    expect(workbenchHeader).toContain("Шаг workflow: уровень")
+    expect(workbenchSurfaceSummary).toContain("project -&gt; task -&gt; workflow step -&gt; workbench")
     expect(checkResult).toContain("Главный outcome уровня достигнут")
   })
 
@@ -262,10 +265,11 @@ describe("P1 source contracts", () => {
       "PromptComposer.tsx",
     )
     const editor = readProjectFile("components", "desengine", "lab", "Code", "MonacoCodeEditor.tsx")
+    const workbenchContent = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchContent.tsx")
 
     expect(workbench).toContain("WorkbenchView")
     expect(workbenchPrompt).toContain("handlePromptKeyDown")
-    expect(workbenchView).toContain("Сохранить")
+    expect(workbenchContent).toContain("Сохранить")
     expect(promptComposer).toContain("onKeyDown")
     expect(promptComposer).toContain("Shift+Enter")
     expect(editor).toContain("FallbackCodeEditor")

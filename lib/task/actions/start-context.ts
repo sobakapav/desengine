@@ -3,6 +3,7 @@ import "server-only"
 import {
   cleanupForbiddenWorkbenchFiles,
 } from "@/lib/lab/workbench"
+import type { Project } from "@/lib/project/runtime"
 import { isTaskStarted, readTaskData } from "@/lib/onboarding/repository"
 import {
   clearTaskCheckResult,
@@ -16,6 +17,7 @@ import { taskActionShared } from "./shared"
 import type { TaskActionHttpResult } from "./types"
 
 type StartRuntimeContext = {
+  project: Project
   taskItem: NonNullable<Awaited<ReturnType<typeof getTaskListItemById>>>
   level: Awaited<ReturnType<typeof getLevelForTaskItem>>
   labContext: Awaited<ReturnType<typeof getTaskLabContext>>
@@ -27,6 +29,7 @@ type StartRuntimeContext = {
 async function resumeStartedLevel(
   taskId: string,
   taskItem: StartRuntimeContext["taskItem"],
+  project: Project,
 ): Promise<TaskActionHttpResult> {
   await clearTaskCheckResult(taskId)
   const labContext = await getTaskLabContext(taskItem)
@@ -42,11 +45,11 @@ async function resumeStartedLevel(
 
   const level = await getLevelForTaskItem(taskItem)
   const progress = await markTaskLevelInProgress(taskId)
-  const taskData = await readTaskData(taskItem, labContext)
+  const taskData = await readTaskData(taskItem, labContext, project)
   return taskActionShared.jsonResult({ ok: true, taskData, taskItem: { ...taskItem, progress }, level })
 }
 
-async function loadStartRuntimeContext(taskId: string): Promise<
+async function loadStartRuntimeContext(taskId: string, project: Project): Promise<
   | { context: StartRuntimeContext }
   | { response: TaskActionHttpResult }
 > {
@@ -58,7 +61,7 @@ async function loadStartRuntimeContext(taskId: string): Promise<
 
   const level = await getLevelForTaskItem(taskItem)
   const labContext = await getTaskLabContext(taskItem)
-  const already = await isTaskStarted(taskId)
+  const already = await isTaskStarted(taskId, project)
   const promptImages = labContext.images.filter((image) => image.show)
   if (promptImages.length === 0) {
     console.error("[desengine][task-start] missing_prompt_images", { taskId })
@@ -67,7 +70,7 @@ async function loadStartRuntimeContext(taskId: string): Promise<
 
   try {
     const imageBase64List = await taskActionShared.readPromptImages(taskId, promptImages)
-    return { context: { taskItem, level, labContext, already, promptImages, imageBase64List } }
+    return { context: { project, taskItem, level, labContext, already, promptImages, imageBase64List } }
   } catch {
     console.error("[desengine][task-start] missing_required_images", {
       taskId,

@@ -4,7 +4,7 @@
 // @openSpec capability: workflow
 // @openSpec scenarios:
 // @openSpec  - "Lab level является workflow step"
-// @openSpec  - "Workflow step ссылается на WorkbenchInstance"
+// @openSpec  - "Workflow step хранит project-aware runtime bindings без жёсткого 1:1 с Workbench"
 // @openSpec capability: artifacts
 // @openSpec scenarios:
 // @openSpec  - "Рабочий файл становится code artifact"
@@ -32,6 +32,18 @@ const project: ProjectWorkspace = {
   settings: {
     uiKitId: "shadcn",
     uiMode: "ui-kit",
+  },
+  migration: {
+    state: "idle",
+    sourceUiKitId: "shadcn",
+    sourceUiMode: "ui-kit",
+    targetUiKitId: "shadcn",
+    targetUiMode: "ui-kit",
+    invalidationScope: "none",
+    requiresReplay: false,
+    message: "",
+    startedAt: null,
+    finishedAt: null,
   },
 }
 
@@ -181,6 +193,7 @@ describe("task workflow artifact projection", () => {
     expect(projection.workflow.stepInstances).toEqual([
       {
         id: "workflow-step:intro-card:level-lab:2",
+        projectId: "project-42",
         kind: "level-lab",
         status: "failed",
         inputArtifactIds: ["artifact:intro-card:image:base"],
@@ -190,7 +203,10 @@ describe("task workflow artifact projection", () => {
           "artifact:intro-card:prompt:1",
           "artifact:intro-card:check-result:2",
         ],
-        workbenchInstanceId: "workbench:intro-card",
+        runtimeBindings: {
+          workbenchInstanceIds: ["workbench:intro-card"],
+          primaryWorkbenchInstanceId: "workbench:intro-card",
+        },
       },
     ])
     expect(projection.workbenchInstances).toEqual([
@@ -270,10 +286,13 @@ describe("task workflow artifact projection", () => {
     expect(modelSource).toContain("export type TaskInstance")
     expect(modelSource).toContain("export type WorkflowInstance")
     expect(modelSource).toContain("export type WorkflowStepInstance")
+    expect(modelSource).toContain("projectId: string")
+    expect(modelSource).toContain("runtimeBindings")
     expect(modelSource).toContain("export type Artifact")
     expect(projectionSource).toContain("buildTaskWorkflowArtifactProjection")
     expect(projectionSource).toContain("allowLegacyProjectIdFallback")
     expect(projectionSource).toContain("contentByFileId")
+    expect(projectionSource).toContain("workbenchInstanceIds")
     expect(projectionSource).not.toContain("save")
     expect(projectionSource).not.toContain("write")
     expect(legacyTypesSource).not.toContain("type TaskInstance")

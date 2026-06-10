@@ -353,6 +353,7 @@
       "requiredScenarios": [
         "Лаборатория создаёт локальный проект для preview",
         "Пользователь переключает UI kit проекта без перезагрузки страницы",
+        "Лаборатория показывает итог project migration",
         "Пользователь включает режим html-tags",
         "Лаборатория показывает диагностику несовместимости UI kit",
         "Лаборатория показывает runtime-диагностику Sandpack preview",
@@ -473,6 +474,8 @@
       "requiredScenarios": [
         "Пользователь открывает lab в активном проекте",
         "Настройки preview сохраняются в project settings",
+        "Смена project UI kit запускает явную migration-операцию",
+        "Project migration не оставляет скрытое промежуточное состояние",
         "Runtime записывает product event через единую project boundary"
       ]
     },
@@ -519,6 +522,7 @@
         "Пользователь запускает уровень через service boundary",
         "Пользователь уточняет задачу через service boundary",
         "Пользователь проверяет результат через service boundary",
+        "Пользователь запускает project migration через service boundary",
         "Task action runtime возвращает retriable overload-отказ",
         "Runtime отклоняет oversized write-set до записи пользовательских файлов",
         "Route handlers используют переиспользуемые lab action services",
@@ -673,6 +677,7 @@
         "Следующий уровень уже стал текущим, но ещё не начат",
         "У задачи более высокий уровень",
         "Пользователь сбрасывает задачу",
+        "Project UI kit migration переинициализирует только текущий уровень",
         "Пользователь удалил каталог `user/`"
       ]
     },

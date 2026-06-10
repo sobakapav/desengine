@@ -2,6 +2,9 @@
 // @openSpec scenarios:
 // @openSpec  - "Пользователь редактирует один файл и переключается на другой"
 // @openSpec  - "Лаборатория получает retriable overload-отказ task action runtime"
+// @openSpec capability: user-progress
+// @openSpec scenarios:
+// @openSpec  - "Project UI kit migration переинициализирует только текущий уровень"
 // @openSpec capability: iteration
 // @openSpec scenarios:
 // @openSpec  - "Пользователь сбрасывает задачу"
@@ -49,13 +52,16 @@ const mocks = vi.hoisted(() => ({
   failCurrentTaskLevelCheck: vi.fn(),
   filterWorkbenchPayloadByAllowlist: vi.fn(),
   formatPromptHistoryTimestamp: vi.fn(),
+  buildTaskMutationScopeKey: vi.fn(),
   getLevelEditableWorkbenchFileMap: vi.fn(),
   getLevelEditableWorkbenchFiles: vi.fn(),
   getLevelForTaskItem: vi.fn(),
+  getScopedTaskRuntimeFilePath: vi.fn(),
   saveCurrentTaskLevelSnapshot: vi.fn(),
   getTaskLabContext: vi.fn(),
   getTaskListItemById: vi.fn(),
   getUserTaskFilePath: vi.fn(),
+  invalidateCurrentTaskLevelForProjectMigration: vi.fn(),
   isTaskStarted: vi.fn(),
   markCurrentTaskLevelCheckTechnicalError: vi.fn(),
   markCurrentTaskLevelInitialized: vi.fn(),
@@ -71,9 +77,11 @@ const mocks = vi.hoisted(() => ({
   registerPromptForCurrentLevel: vi.fn(),
   resetTask: vi.fn(),
   runStructuredLlmRequest: vi.fn(),
+  resolveTaskProject: vi.fn(),
   saveTaskCheckResult: vi.fn(),
   validateGeneratedFilesPayload: vi.fn(),
   writeFile: vi.fn(),
+  ensureParentDir: vi.fn(),
   ensureUserTaskDir: vi.fn(),
 }))
 
@@ -158,6 +166,7 @@ vi.mock("@/lib/task/server", () => ({
   getLevelForTaskItem: mocks.getLevelForTaskItem,
   getTaskLabContext: mocks.getTaskLabContext,
   getTaskListItemById: mocks.getTaskListItemById,
+  invalidateCurrentTaskLevelForProjectMigration: mocks.invalidateCurrentTaskLevelForProjectMigration,
   markCurrentTaskLevelCheckTechnicalError: mocks.markCurrentTaskLevelCheckTechnicalError,
   markCurrentTaskLevelInitialized: mocks.markCurrentTaskLevelInitialized,
   markTaskLevelInProgress: mocks.markTaskLevelInProgress,
@@ -172,7 +181,14 @@ vi.mock("@/lib/task/level-reset-storage", () => ({
   saveCurrentTaskLevelSnapshot: mocks.saveCurrentTaskLevelSnapshot,
 }))
 
+vi.mock("@/lib/task/project-runtime-scope", () => ({
+  buildTaskMutationScopeKey: mocks.buildTaskMutationScopeKey,
+  getScopedTaskRuntimeFilePath: mocks.getScopedTaskRuntimeFilePath,
+  resolveTaskProject: mocks.resolveTaskProject,
+}))
+
 vi.mock("@/lib/user/server", () => ({
+  ensureParentDir: mocks.ensureParentDir,
   ensureUserTaskDir: mocks.ensureUserTaskDir,
   getTaskCatalogFilePath: (taskId: string, fileName: string) => `/catalog/${taskId}/${fileName}`,
   getUserTaskFilePath: mocks.getUserTaskFilePath,
@@ -290,6 +306,7 @@ describe("task action service boundary", () => {
       ignoredFileIds: [],
     }))
     mocks.formatPromptHistoryTimestamp.mockReturnValue("19.05.2026 21:00")
+    mocks.buildTaskMutationScopeKey.mockImplementation((taskId: string, projectId: string) => `${taskId}::${projectId}`)
     mocks.getLevelEditableWorkbenchFileMap.mockReturnValue(new Map([
       ["component", "Component.tsx"],
       ["reference", "reference.png"],
@@ -298,9 +315,13 @@ describe("task action service boundary", () => {
     mocks.getLevelForTaskItem.mockResolvedValue(level)
     mocks.getTaskLabContext.mockResolvedValue(labContext)
     mocks.getTaskListItemById.mockResolvedValue(taskItem)
+    mocks.getScopedTaskRuntimeFilePath.mockImplementation((taskId: string, projectId: string, fileName: string) => (
+      `/user/tasks/${taskId}/.projects/${projectId}/${fileName}`
+    ))
     mocks.getUserTaskFilePath.mockImplementation((taskId: string, fileName: string) => (
       `/user/tasks/${taskId}/${fileName}`
     ))
+    mocks.invalidateCurrentTaskLevelForProjectMigration.mockResolvedValue(progress)
     mocks.isTaskStarted.mockResolvedValue(true)
     mocks.markCurrentTaskLevelCheckTechnicalError.mockResolvedValue(progress)
     mocks.markCurrentTaskLevelInitialized.mockResolvedValue(progress)
@@ -319,6 +340,25 @@ describe("task action service boundary", () => {
     mocks.readTaskData.mockResolvedValue(taskData)
     mocks.resetCurrentTaskLevel.mockResolvedValue(progress)
     mocks.registerPromptForCurrentLevel.mockResolvedValue({ summary: progress, transition: null })
+    mocks.resolveTaskProject.mockImplementation(async (taskId: string, project?: { id?: string }) => ({
+      id: project?.id ?? `task-${taskId}`,
+      title: "Проект",
+      settings: { uiKitId: "shadcn", uiMode: "ui-kit" },
+      migration: {
+        state: "pending",
+        sourceUiKitId: "shadcn",
+        sourceUiMode: "ui-kit",
+        targetUiKitId: "ant",
+        targetUiMode: "ui-kit",
+        invalidationScope: "none",
+        requiresReplay: false,
+        message: "",
+        startedAt: "2026-06-10T10:00:00.000Z",
+        finishedAt: null,
+      },
+      createdAt: "2026-06-10T10:00:00.000Z",
+      updatedAt: "2026-06-10T10:00:00.000Z",
+    }))
     mocks.resetTask.mockResolvedValue(undefined)
     mocks.saveCurrentTaskLevelSnapshot.mockResolvedValue(undefined)
     mocks.runStructuredLlmRequest.mockResolvedValue(createLlmCall(JSON.stringify({
@@ -327,6 +367,7 @@ describe("task action service boundary", () => {
     })))
     mocks.saveTaskCheckResult.mockResolvedValue(undefined)
     mocks.validateGeneratedFilesPayload.mockReturnValue(undefined)
+    mocks.ensureParentDir.mockResolvedValue(undefined)
     mocks.ensureUserTaskDir.mockResolvedValue(undefined)
     mocks.writeFile.mockResolvedValue(undefined)
   })
@@ -340,10 +381,10 @@ describe("task action service boundary", () => {
       { fileId: "reference", content: "ignored image" },
     ])).resolves.toEqual({ kind: "saved", written: 1 })
 
-    expect(mocks.ensureUserTaskDir).toHaveBeenCalledWith("task-a")
+    expect(mocks.buildTaskMutationScopeKey).toHaveBeenCalledWith("task-a", "task-task-a")
     expect(mocks.writeFile).toHaveBeenCalledTimes(1)
     expect(mocks.writeFile).toHaveBeenCalledWith(
-      "/user/tasks/task-a/Component.tsx",
+      "/user/tasks/task-a/.projects/task-task-a/Component.tsx",
       "export default function Component() {}",
       "utf-8",
     )
@@ -373,7 +414,9 @@ describe("task action service boundary", () => {
       started: false,
     })
 
-    expect(mocks.resetTask).toHaveBeenCalledWith("task-a")
+    expect(mocks.resetTask).toHaveBeenCalledWith("task-a", expect.objectContaining({
+      project: expect.objectContaining({ id: "task-task-a" }),
+    }))
     expect(mocks.clearTaskCheckResult).toHaveBeenCalledWith("task-a")
   })
 
@@ -401,9 +444,52 @@ describe("task action service boundary", () => {
       started: true,
     })
 
-    expect(mocks.resetCurrentTaskLevel).toHaveBeenCalledWith("task-a")
+    expect(mocks.resetCurrentTaskLevel).toHaveBeenCalledWith("task-a", expect.objectContaining({
+      id: "task-task-a",
+    }))
     expect(mocks.resetTask).not.toHaveBeenCalled()
     expect(mocks.clearTaskCheckResult).not.toHaveBeenCalled()
+  })
+
+  it("migrateProjectUiKitRuntime использует подтверждённый project scope и target", async () => {
+    const { migrateProjectUiKitRuntime } = await import("@/lib/task/actions")
+    const project = {
+      id: "project-b",
+      title: "Проект B",
+      settings: { uiKitId: "shadcn", uiMode: "ui-kit" as const },
+      migration: {
+        state: "pending" as const,
+        sourceUiKitId: "shadcn" as const,
+        sourceUiMode: "ui-kit" as const,
+        targetUiKitId: "ant" as const,
+        targetUiMode: "ui-kit" as const,
+        invalidationScope: "none" as const,
+        requiresReplay: false,
+        message: "",
+        startedAt: "2026-06-10T10:00:00.000Z",
+        finishedAt: null,
+      },
+      createdAt: "2026-06-10T10:00:00.000Z",
+      updatedAt: "2026-06-10T10:00:00.000Z",
+    }
+    const target = { uiKitId: "ant" as const, uiMode: "ui-kit" as const }
+
+    await expect(migrateProjectUiKitRuntime("task-a", project, target)).resolves.toMatchObject({
+      kind: "project_migration",
+      taskItem: { id: "task-a", progress },
+      taskData,
+      started: true,
+      invalidationScope: "current-level",
+    })
+
+    expect(mocks.resolveTaskProject).toHaveBeenCalledWith("task-a", project)
+    expect(mocks.buildTaskMutationScopeKey).toHaveBeenCalledWith("task-a", "project-b")
+    expect(mocks.invalidateCurrentTaskLevelForProjectMigration).toHaveBeenCalledWith("task-a", expect.objectContaining({
+      id: "project-b",
+      migration: expect.objectContaining({
+        targetUiKitId: "ant",
+      }),
+    }))
   })
 
   it("startTaskLevel выполняет LLM-flow и возвращает прежний HTTP body через service boundary", async () => {
@@ -420,6 +506,9 @@ describe("task action service boundary", () => {
       imageBase64List: [Buffer.from("image-bytes").toString("base64")],
     }))
     expect(mocks.markCurrentTaskLevelInitialized).toHaveBeenCalledWith("task-a")
+    expect(mocks.readTaskData).toHaveBeenCalledWith(taskItem, labContext, expect.objectContaining({
+      id: "task-task-a",
+    }))
     expect(result.body).toMatchObject({
       runtimeDiagnostics: expect.arrayContaining([
         expect.objectContaining({
@@ -431,7 +520,7 @@ describe("task action service boundary", () => {
         expect.objectContaining({
           path: "mutation_boundary",
           stage: "task_mutation",
-          taskId: "task-a",
+          taskId: "task-a::task-task-a",
         }),
       ]),
     })
@@ -485,7 +574,7 @@ describe("task action service boundary", () => {
       changedFileIds: ["component"],
       teachingCostCents: 50,
       llmCall: expect.objectContaining({ provider: "openai", model: "mock-model" }),
-    }))
+    }), expect.objectContaining({ id: "task-task-a" }))
     expect(mocks.registerPromptForCurrentLevel).toHaveBeenCalledWith("task-a")
     expect(result.body).toMatchObject({
       runtimeDiagnostics: expect.arrayContaining([
@@ -502,7 +591,7 @@ describe("task action service boundary", () => {
         expect.objectContaining({
           path: "mutation_boundary",
           stage: "task_mutation",
-          taskId: "task-a",
+          taskId: "task-a::task-task-a",
         }),
       ]),
     })
@@ -565,6 +654,9 @@ describe("task action service boundary", () => {
       transition: null,
     })
     expect(mocks.passCurrentTaskLevelCheck).toHaveBeenCalledWith("task-a")
+    expect(mocks.readTaskData).toHaveBeenCalledWith(taskItem, labContext, expect.objectContaining({
+      id: "task-task-a",
+    }))
     expect(mocks.saveTaskCheckResult).toHaveBeenCalledWith(expect.objectContaining({
       taskId: "task-a",
       kind: "passed",
@@ -585,7 +677,7 @@ describe("task action service boundary", () => {
         expect.objectContaining({
           path: "mutation_boundary",
           stage: "task_mutation",
-          taskId: "task-a",
+          taskId: "task-a::task-task-a",
         }),
       ]),
     })

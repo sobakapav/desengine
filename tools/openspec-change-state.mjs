@@ -172,7 +172,7 @@ export function ensureApplyArtifacts(changeName, description) {
       path.join(changeDir, "proposal.md"),
       `## Why
 
-Нужен исполнительский change для реализации задачи диспетчера.
+Нужен исполнительский change для реализации задачи parent owner.
 
 ## What Changes
 
@@ -180,7 +180,7 @@ export function ensureApplyArtifacts(changeName, description) {
 
 ## Impact
 
-- Изменение закрывает конкретный исполнительский срез в рамках текущего dispatcher.
+- Изменение закрывает конкретный исполнительский срез в рамках текущего parent owner.
 `,
     )
   ) {
@@ -192,7 +192,7 @@ export function ensureApplyArtifacts(changeName, description) {
       path.join(changeDir, "design.md"),
       `## Контекст
 
-- Родительский dispatcher управляет приоритетом и порядком реализации.
+- Родительский change управляет приоритетом и порядком реализации.
 
 ## Решение
 

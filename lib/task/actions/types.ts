@@ -73,3 +73,24 @@ export type ResetCurrentTaskLevelRuntimeResult =
       kind: "snapshot_missing"
       error: string
     }
+
+export type ProjectUiKitMigrationRuntimeResult =
+  | {
+      kind: "project_migration"
+      taskItem: TaskListItem | null
+      taskData: TaskData | null
+      started: boolean
+      invalidationScope: "current-level"
+    }
+  | {
+      kind: "not_found"
+      error: string
+    }
+  | {
+      kind: "snapshot_missing"
+      error: string
+    }
+  | {
+      kind: "invalid_request"
+      error: string
+    }

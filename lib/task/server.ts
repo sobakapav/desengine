@@ -92,6 +92,12 @@ export async function getTaskLabContext(taskItem: TaskListItem): Promise<TaskLab
   return taskServerTransitions.getTaskLabContext(taskItem)
 }
 
+/**
+ * @example
+ * ```ts
+ * const hint = await getTaskLevelHint(taskItem, { id: "project-1", title: "Проект 1" })
+ * ```
+ */
 export async function getTaskLevelHint(taskItem: TaskListItem, project?: Parameters<typeof taskServerTransitions.getTaskLevelHint>[1]) {
   return taskServerTransitions.getTaskLevelHint(taskItem, project)
 }
@@ -162,10 +168,32 @@ export async function clearTaskCheckResult(taskId: string) {
  * await resetTask("task-1", { preserveCheckResult: true })
  * ```
  */
-export async function resetTask(taskId: string, options?: { preserveCheckResult?: boolean }) {
+export async function resetTask(
+  taskId: string,
+  options?: Parameters<typeof taskServerMutations.resetTask>[1],
+) {
   await taskServerMutations.resetTask(taskId, options)
 }
 
-export async function resetCurrentTaskLevel(taskId: string) {
-  return taskServerMutations.resetCurrentTaskLevel(taskId)
+/**
+ * @example
+ * ```ts
+ * const result = await resetCurrentTaskLevel("task-1", { id: "project-1", title: "Проект 1" })
+ * ```
+ */
+export async function resetCurrentTaskLevel(taskId: string, project?: Parameters<typeof taskServerMutations.resetCurrentTaskLevel>[1]) {
+  return taskServerMutations.resetCurrentTaskLevel(taskId, project)
+}
+
+/**
+ * @example
+ * ```ts
+ * const result = await invalidateCurrentTaskLevelForProjectMigration("task-1", {
+ *   id: "project-1",
+ *   title: "Проект 1",
+ * })
+ * ```
+ */
+export async function invalidateCurrentTaskLevelForProjectMigration(taskId: string, project?: Parameters<typeof taskServerMutations.invalidateCurrentTaskLevelForProjectMigration>[1]) {
+  return taskServerMutations.invalidateCurrentTaskLevelForProjectMigration(taskId, project)
 }

@@ -2,6 +2,7 @@
 // @openSpec scenarios:
 // @openSpec  - "Lab workbench регистрируется как definition"
 // @openSpec  - "WorkbenchInstance связан с project/task/workflow step"
+// @openSpec  - "Runtime surface показывает definition и рабочую связку"
 // @openSpec  - "Workbench state сериализуется"
 // @openSpec capability: component-sourcing
 // @openSpec scenarios:
@@ -17,7 +18,8 @@
 // @openSpec  - "Lab workbench использует platform registry"
 // @openSpec capability: workflow
 // @openSpec scenarios:
-// @openSpec  - "Workflow step ссылается на WorkbenchInstance"
+// @openSpec  - "Workflow step хранит project-aware runtime bindings без жёсткого 1:1 с Workbench"
+// @openSpec  - "Runtime surface может показать текущий workflow step через Workbench"
 
 import fs from "node:fs"
 import path from "node:path"
@@ -70,6 +72,7 @@ describe("workbench platform registry", () => {
   it("регистрирует текущий lab workbench как definition/profile с tool registry", () => {
     expect(labWorkbenchDefinition).toMatchObject({
       id: LAB_WORKBENCH_DEFINITION_ID,
+      title: "Рабочая поверхность компонента",
       profileId: LAB_WORKBENCH_PROFILE_ID,
       supportedTaskTypes: ["level-lab"],
       supportedWorkflowStepKinds: ["level-lab"],
@@ -207,13 +210,21 @@ describe("workbench platform registry", () => {
     const workbenchIndex = readProjectFile("lib", "workbench", "index.ts")
     const labProfile = readProjectFile("lib", "workbench", "lab-profile.ts")
     const promptRuntime = readProjectFile("lib", "task", "prompt-context.ts")
+    const workbenchSurface = readProjectFile("components", "desengine", "lab", "Workbench", "workbenchSurface.ts")
+    const workbenchSurfaceSummary = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchSurfaceSummary.tsx")
 
     expect(workbenchIndex).toContain("labWorkbenchRegistry")
     expect(labProfile).toContain("LAB_WORKBENCH_DEFINITION_ID")
+    expect(labProfile).toContain('title: "Рабочая поверхность компонента"')
     expect(labProfile).toContain("sandpack-preview")
     expect(labProfile).toContain("monaco-code-editor")
     expect(labProfile).not.toContain("PromptContext")
     expect(promptRuntime).toContain("WorkbenchInstance")
     expect(promptRuntime).toContain("workbenchInstances.find")
+    expect(workbenchSurface).toContain("buildTaskWorkflowArtifactProjection")
+    expect(workbenchSurface).toContain("getWorkbenchDefinition")
+    expect(workbenchSurface).toContain("labWorkbenchRegistry")
+    expect(workbenchSurfaceSummary).toContain("project -&gt; task -&gt; workflow step -&gt; workbench")
+    expect(workbenchSurfaceSummary).toContain("Workbench")
   })
 })

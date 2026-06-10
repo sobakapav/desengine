@@ -41,7 +41,7 @@ async function buildStartLlmInput(context: StartRuntimeContext): Promise<StartLl
     readPrompt("didactic", "default"),
     readLevelIteratePrompt(context.level.id),
     readLevelStartPrompt(context.level.id),
-    readTaskData(context.taskItem, context.labContext),
+    readTaskData(context.taskItem, context.labContext, context.project),
   ])
 
   const outputFiles = getLevelEditableWorkbenchFiles(context.labContext.editableFileIds)
@@ -51,6 +51,7 @@ async function buildStartLlmInput(context: StartRuntimeContext): Promise<StartLl
     taskMaxLevel: context.taskItem.maxLevel,
     taskImages: context.labContext.images,
     level: context.level,
+    project: context.project,
     taskData,
     taskItem: context.taskItem,
     workbenchFiles: outputFiles.map((file) => ({

@@ -3,6 +3,7 @@ import fs from "node:fs"
 import { createRequire } from "node:module"
 import net from "node:net"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
 
 const DEFAULT_CHANNEL = "chromium"
 const DEFAULT_SPEC = "test/e2e/browser-verification-runtime.spec.ts"
@@ -10,6 +11,7 @@ const READINESS_TIMEOUT_MS = 180_000
 const READINESS_INTERVAL_MS = 1_000
 const DEFAULT_FIXTURE_ACCESS_SALT = "desengine-e2e-salt"
 const NEXT_DEV_LOCK_PATH = path.join(process.cwd(), ".next", "dev", "lock")
+const SCRIPT_PATH = fileURLToPath(import.meta.url)
 
 const require = createRequire(import.meta.url)
 const localConfig = require("../../lib/system/config/local.cjs")
@@ -54,9 +56,13 @@ async function resolvePort() {
   })
 }
 
-function readSpec() {
-  const arg = process.argv.slice(2).find((value) => value.endsWith(".spec.ts"))
-  return arg || DEFAULT_SPEC
+function readSpecs(argv = process.argv.slice(2)) {
+  const specPaths = argv.filter((value) => value.endsWith(".spec.ts"))
+  return specPaths.length > 0 ? specPaths : [DEFAULT_SPEC]
+}
+
+function buildPlaywrightCommandArgs(specPaths) {
+  return ["run", "test:e2e", "--", ...specPaths]
 }
 
 function resolveFixtureAccessSalt() {
@@ -299,7 +305,7 @@ async function waitForReadiness(url, serverProcess) {
 }
 
 async function main() {
-  const specPath = readSpec()
+  const specPaths = readSpecs()
   const fixtureAccessSalt = process.env.DESENGINE_E2E_FIXTURE_ACCESS === "1"
     ? resolveFixtureAccessSalt()
     : ""
@@ -371,9 +377,9 @@ async function main() {
       externalEnv,
     )
     runCommand(
-      "Проверка browser verification runtime spec",
+      "Проверка browser verification runtime specs",
       "npm",
-      ["run", "test:e2e", "--", specPath],
+      buildPlaywrightCommandArgs(specPaths),
       externalEnv,
     )
   } finally {
@@ -381,4 +387,11 @@ async function main() {
   }
 }
 
-await main()
+if (process.argv[1] && path.resolve(process.argv[1]) === SCRIPT_PATH) {
+  await main()
+}
+
+export {
+  buildPlaywrightCommandArgs,
+  readSpecs,
+}

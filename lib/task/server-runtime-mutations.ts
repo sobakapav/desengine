@@ -1,10 +1,16 @@
 import "server-only"
 
+import type { Project } from "@/lib/project/runtime"
 import { readPromptHistory, writePromptHistory } from "@/lib/onboarding/repository"
 import {
   removeTaskCheckResult,
   removeUserTaskDir,
 } from "@/lib/user/server"
+import {
+  getScopedTaskRuntimeFilePath,
+  isLegacyTaskRuntimeProject,
+} from "@/lib/task/project-runtime-scope"
+import { rm } from "node:fs/promises"
 
 import {
   readTaskLevelSnapshot,
@@ -60,6 +66,14 @@ async function clearTaskCheckResultForResetScope(taskId: string, currentLevelNum
   if (!checkResult || checkResult.levelNumber !== currentLevelNumber) return
 
   await removeTaskCheckResult(taskId)
+}
+
+function buildMigrationLevelProgress() {
+  return {
+    ...buildResetLevelProgress(),
+    status: "in_progress" as const,
+    initializedAt: new Date().toISOString(),
+  }
 }
 
 export const taskServerMutations = {
@@ -196,10 +210,16 @@ export const taskServerMutations = {
       reset: false,
     }
   },
-  async resetTask(taskId: string, options?: { preserveCheckResult?: boolean }) {
+  async resetTask(taskId: string, options?: { preserveCheckResult?: boolean; project?: Project }) {
     const store = await taskServerStorage.readUserProgressStore()
+    const projectId = options?.project?.id
 
-    await removeUserTaskDir(taskId)
+    if (!projectId || isLegacyTaskRuntimeProject(taskId, projectId)) {
+      await removeUserTaskDir(taskId)
+    } else {
+      const projectRuntimeDir = getScopedTaskRuntimeFilePath(taskId, projectId, ".")
+      await rm(projectRuntimeDir, { recursive: true, force: true })
+    }
 
     if (store.tasks[taskId]) {
       delete store.tasks[taskId]
@@ -210,26 +230,49 @@ export const taskServerMutations = {
       await clearTaskCheckResultForResetScope(taskId)
     }
   },
-  async resetCurrentTaskLevel(taskId: string) {
+  async resetCurrentTaskLevel(taskId: string, project?: Project) {
     const context = await loadMutationContext(taskId)
     const currentLevelNumber = context.taskProgress.currentLevel
     const currentLevel = taskServerModel.requireLevel(context.levels, currentLevelNumber)
-    const snapshot = await readTaskLevelSnapshot(taskId, currentLevelNumber)
+    const snapshot = await readTaskLevelSnapshot(taskId, currentLevelNumber, project)
 
     if (!snapshot) {
       throw new Error("Для этого уровня ещё нет сохранённой стартовой точки. Откройте уровень заново после следующего перехода.")
     }
 
-    const promptHistory = (await readPromptHistory(taskId))
+    const promptHistory = (await readPromptHistory(taskId, project))
       .filter((entry) => (entry.levelNumber ?? 1) !== currentLevelNumber)
-    await restoreTaskLevelSnapshot(taskId, snapshot, currentLevel.editableFileIds)
+    await restoreTaskLevelSnapshot(taskId, snapshot, currentLevel.editableFileIds, project)
 
     context.taskProgress.levels[String(currentLevelNumber)] = buildResetLevelProgress()
     context.taskProgress.updatedAt = new Date().toISOString()
 
     await taskServerStorage.writeUserProgressStore(context.store)
     await clearTaskCheckResultForResetScope(taskId, currentLevelNumber)
-    await writePromptHistory(taskId, promptHistory)
+    await writePromptHistory(taskId, promptHistory, project)
+
+    return summarizeTaskProgress(context.levels, context.taskConfig, context.taskProgress)
+  },
+  async invalidateCurrentTaskLevelForProjectMigration(taskId: string, project?: Project) {
+    const context = await loadMutationContext(taskId)
+    const currentLevelNumber = context.taskProgress.currentLevel
+    const currentLevel = taskServerModel.requireLevel(context.levels, currentLevelNumber)
+    const snapshot = await readTaskLevelSnapshot(taskId, currentLevelNumber, project)
+
+    if (!snapshot) {
+      throw new Error("Для текущего уровня не найден baseline-снимок. Повторно откройте уровень перед сменой UI kit.")
+    }
+
+    const promptHistory = (await readPromptHistory(taskId, project))
+      .filter((entry) => (entry.levelNumber ?? 1) !== currentLevelNumber)
+    await restoreTaskLevelSnapshot(taskId, snapshot, currentLevel.editableFileIds, project)
+
+    context.taskProgress.levels[String(currentLevelNumber)] = buildMigrationLevelProgress()
+    context.taskProgress.updatedAt = new Date().toISOString()
+
+    await taskServerStorage.writeUserProgressStore(context.store)
+    await clearTaskCheckResultForResetScope(taskId, currentLevelNumber)
+    await writePromptHistory(taskId, promptHistory, project)
 
     return summarizeTaskProgress(context.levels, context.taskConfig, context.taskProgress)
   },

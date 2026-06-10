@@ -37,13 +37,19 @@ export type WorkflowInstance = {
   stepInstances: WorkflowStepInstance[]
 }
 
+export type WorkflowStepRuntimeBindings = {
+  workbenchInstanceIds: string[]
+  primaryWorkbenchInstanceId?: string
+}
+
 export type WorkflowStepInstance = {
   id: string
+  projectId: string
   kind: string
   status: WorkflowStepInstanceStatus
   inputArtifactIds: string[]
   outputArtifactIds: string[]
-  workbenchInstanceId?: string
+  runtimeBindings?: WorkflowStepRuntimeBindings
 }
 
 export type Artifact = {

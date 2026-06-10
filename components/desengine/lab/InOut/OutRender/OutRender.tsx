@@ -27,6 +27,7 @@ import {
     PreviewSecureContextNotice,
     PreviewStyleContractNotice,
     ProjectCompatibilityNotice,
+    ProjectMigrationNotice,
 } from "./preview-runtime-notices";
 const SANDBOX_RUNTIME_VERSION = "2026-05-20-ant-shim-v3";
 const PREVIEW_RUNTIME_CONTRACT_TIMEOUT_MS = 12_000;
@@ -561,6 +562,7 @@ function SandpackPreviewFrame({ moduleUrl, previewPayload, previewSessionId }: {
     if (compatibility.status === "incompatible") {
         return (
             <div className="w-full">
+                <ProjectMigrationNotice payload={previewPayload} />
                 <ProjectCompatibilityNotice payload={previewPayload} />
             </div>
         );

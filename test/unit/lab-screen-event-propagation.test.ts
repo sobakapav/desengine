@@ -78,7 +78,7 @@ describe("lab screen event propagation", () => {
     const labScreenSource = readProjectFile("components", "desengine", "lab", "LabScreen", "LabScreen.tsx")
     const screenSectionsSource = readProjectFile("components", "desengine", "lab", "LabScreen", "ScreenSections.tsx")
     const workbenchPropsSource = readProjectFile("components", "desengine", "lab", "Workbench", "props.ts")
-    const workbenchViewSource = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchView.tsx")
+    const workbenchContentSource = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchContent.tsx")
     const codeSource = readProjectFile("components", "desengine", "lab", "Code", "Code.tsx")
 
     expect(pageSource).toContain("initTaskScreenEventInput={createLabTaskScreenEventInput(taskId, screen)}")
@@ -87,7 +87,7 @@ describe("lab screen event propagation", () => {
     expect(screenSectionsSource).toContain("screenEvent={screenEvent}")
     expect(workbenchPropsSource).toContain("screenEvent: LabTaskScreenEvent;")
     expect(workbenchPropsSource).toContain("onScreenEventChange: (next: LabTaskScreenEventInput) => void;")
-    expect(workbenchViewSource).toContain("screenEvent={props.screenEvent}")
+    expect(workbenchContentSource).toContain("screenEvent={props.screenEvent}")
     expect(codeSource).toContain("readLabTaskScreenEventActiveScreen(screenEvent)")
     expect(codeSource).toContain("data-screen-event-id={screenEvent.eventId}")
   })

@@ -8,6 +8,7 @@ import {
   getLevelEditableWorkbenchFiles,
 } from "@/lib/lab/workbench"
 import { runStructuredLlmRequest, toLlmErrorResponse } from "@/lib/llm/server"
+import type { Project } from "@/lib/project/runtime"
 import { appendPromptHistory, isTaskStarted, readTaskData } from "@/lib/onboarding/repository"
 import { formatPromptHistoryTimestamp, TEACHING_COST_PER_ITERATION_CENTS } from "@/lib/prompt/history"
 import { readLevelIteratePrompt, readPrompt } from "@/lib/prompt/server"
@@ -24,6 +25,11 @@ import {
   sumTextLengths,
 } from "@/lib/task/runtime-observability"
 import {
+  buildTaskMutationScopeKey,
+  getScopedTaskRuntimeFilePath,
+  resolveTaskProject,
+} from "@/lib/task/project-runtime-scope"
+import {
   clearTaskCheckResult,
   getLevelForTaskItem,
   getTaskLabContext,
@@ -31,8 +37,7 @@ import {
   registerPromptForCurrentLevel,
 } from "@/lib/task/server"
 import {
-  ensureUserTaskDir,
-  getUserTaskFilePath,
+  ensureParentDir,
 } from "@/lib/user/server"
 
 import {
@@ -61,6 +66,7 @@ function finalizeIterationResult(
 }
 
 type IterationContext = {
+  project: Project
   taskItem: NonNullable<Awaited<ReturnType<typeof getTaskListItemById>>>
   labContext: Awaited<ReturnType<typeof getTaskLabContext>>
   editableFiles: OutputFile[]
@@ -92,12 +98,12 @@ type IterationParseStageResult =
   | { payload: NullableFilesPayload }
   | { response: TaskActionHttpResult }
 
-async function validateIterationRequest(taskId: string, promptText: string) {
+async function validateIterationRequest(taskId: string, promptText: string, project: Project) {
   if (!promptText) {
     return taskActionShared.jsonResult({ ok: false, error: "Введите уточняющий промпт" }, 400)
   }
 
-  const started = await isTaskStarted(taskId)
+  const started = await isTaskStarted(taskId, project)
   if (!started) {
     return taskActionShared.jsonResult({ ok: false, error: "Сначала запустите задачу" }, 400)
   }
@@ -125,6 +131,7 @@ async function validateIterationRequest(taskId: string, promptText: string) {
 async function loadIterationContext(
   taskId: string,
   taskItem: IterationContext["taskItem"],
+  project: Project,
 ): Promise<IterationContextLoadResult> {
   const labContext = await getTaskLabContext(taskItem)
   const cleanupBeforeIteration = await cleanupForbiddenWorkbenchFiles(taskId, labContext.editableFileIds)
@@ -140,7 +147,7 @@ async function loadIterationContext(
   }
 
   return {
-    context: { taskItem, labContext, editableFiles },
+    context: { project, taskItem, labContext, editableFiles },
     cleanupBeforeIteration,
     promptImages,
   }
@@ -148,6 +155,7 @@ async function loadIterationContext(
 
 async function writeIterationFiles(args: {
   taskId: string
+  projectId: string
   payload: NullableFilesPayload
   editableFileIds: string[]
   contentByFileId: Record<string, string>
@@ -181,10 +189,9 @@ async function writeIterationFiles(args: {
     entries: pendingWrites,
   })
 
-  await ensureUserTaskDir(args.taskId)
-
   for (const entry of pendingWrites) {
-    const filePath = getUserTaskFilePath(args.taskId, entry.fileName)
+    const filePath = getScopedTaskRuntimeFilePath(args.taskId, args.projectId, entry.fileName)
+    await ensureParentDir(filePath)
     await writeFile(filePath, entry.content, "utf-8")
     changedFileIds.push(entry.fileId)
     changedFileNames.push(entry.fileName)
@@ -206,7 +213,7 @@ async function buildIterationLlmInput(args: {
   promptImages: Awaited<ReturnType<typeof getTaskLabContext>>["images"]
 }) {
   const level = await getLevelForTaskItem(args.context.taskItem)
-  const taskData = await readTaskData(args.context.taskItem, args.context.labContext)
+  const taskData = await readTaskData(args.context.taskItem, args.context.labContext, args.context.project)
   const prompts = await Promise.all([
     readPrompt("production", "default"),
     readPrompt("production", "iterate-component"),
@@ -223,6 +230,7 @@ async function buildIterationLlmInput(args: {
     taskMaxLevel: args.context.taskItem.maxLevel,
     taskImages: args.context.labContext.images,
     level,
+    project: args.context.project,
     taskData,
     taskItem: args.context.taskItem,
     workbenchFiles: args.context.editableFiles.map((file) => ({
@@ -300,7 +308,7 @@ async function appendIterationEntry(args: {
       model: args.llmCall.model,
       metrics: args.llmCall.metrics,
     },
-  })
+  }, args.context.project)
 }
 
 function logIterationAllowlist(args: {
@@ -353,12 +361,12 @@ function getIterationNoopMessage(reason: IterateNoopReason) {
   }
 }
 
-async function completeIterationTaskLevel(taskId: string): Promise<TaskActionHttpResult> {
+async function completeIterationTaskLevel(taskId: string, project: Project): Promise<TaskActionHttpResult> {
   await clearTaskCheckResult(taskId)
   const progressUpdate = await registerPromptForCurrentLevel(taskId)
   const nextTaskItem = await getTaskListItemById(taskId)
   const nextLabContext = nextTaskItem ? await getTaskLabContext(nextTaskItem) : null
-  const nextTaskData = await readTaskData({ id: taskId }, nextLabContext)
+  const nextTaskData = await readTaskData({ id: taskId }, nextLabContext, project)
   const body: IterateTaskSuccessBody = {
     ok: true,
     resultKind: "applied",
@@ -392,9 +400,13 @@ function buildNoopIterationResponse(args: {
   return taskActionShared.jsonResult(body)
 }
 
-async function runIterateTaskLevelMutation(taskId: string, promptText: string): Promise<TaskActionHttpResult> {
+async function runIterateTaskLevelMutation(
+  taskId: string,
+  promptText: string,
+  project: Project,
+): Promise<TaskActionHttpResult> {
   const startedAt = Date.now()
-  const request = await validateIterationRequest(taskId, promptText)
+  const request = await validateIterationRequest(taskId, promptText, project)
   if ("status" in request || !("taskItem" in request)) {
     return finalizeIterationResult(request as TaskActionHttpResult, {
       scope: "task",
@@ -412,7 +424,7 @@ async function runIterateTaskLevelMutation(taskId: string, promptText: string): 
     })
   }
 
-  const loaded = await loadIterationContext(taskId, request.taskItem)
+  const loaded = await loadIterationContext(taskId, request.taskItem, project)
   if ("error" in loaded) {
     return finalizeIterationResult(loaded.error, {
       scope: "task",
@@ -574,6 +586,7 @@ async function runIterateTaskLevelMutation(taskId: string, promptText: string): 
   try {
     written = await writeIterationFiles({
       taskId,
+      projectId: context.project.id,
       payload: parseStage.payload,
       editableFileIds: context.labContext.editableFileIds,
       contentByFileId: llmInput.taskData.contentByFileId,
@@ -647,7 +660,7 @@ async function runIterateTaskLevelMutation(taskId: string, promptText: string): 
   }
 
   await appendIterationEntry({ taskId, promptText, context, taskData: llmInput.taskData, written, llmCall: llmStage.llmCall })
-  const completed = await completeIterationTaskLevel(taskId)
+  const completed = await completeIterationTaskLevel(taskId, context.project)
   const wasDegraded = (
     written.ignoredFileIds.length > 0
     || cleanupBeforeIteration.deletedFileIds.length > 0
@@ -686,9 +699,14 @@ async function runIterateTaskLevelMutation(taskId: string, promptText: string): 
 }
 
 export const taskIterateAction = {
-  async iterateTaskLevel(taskId: string, promptText: string): Promise<TaskActionHttpResult> {
+  async iterateTaskLevel(taskId: string, promptText: string, project?: Project): Promise<TaskActionHttpResult> {
+    const resolvedProject = await resolveTaskProject(taskId, project)
+
     try {
-      return await runTaskMutation(taskId, () => runIterateTaskLevelMutation(taskId, promptText))
+      return await runTaskMutation(
+        buildTaskMutationScopeKey(taskId, resolvedProject.id),
+        () => runIterateTaskLevelMutation(taskId, promptText, resolvedProject),
+      )
     } catch (error) {
       if (!isTaskMutationOverloadError(error)) {
         throw error

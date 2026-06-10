@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { normalizeProject, type Project } from "@/lib/project/runtime";
+import { createBrowserProjectStorage } from "@/lib/project/storage";
 import type { LevelOverview as LevelOverviewData } from "@/lib/level/types"
 import type { TaskCheckResult as TaskCheckResultData, TaskData, TaskListItem, TaskTransition } from "@/lib/task/types";
 import { createTaskDonePath, } from "@/lib/task/navigation";
@@ -24,9 +26,26 @@ import {
     TaskScreenSection,
     TransitionScreenSection,
 } from "./ScreenSections"
+import { buildTaskOpenUrl, postTaskStart } from "../task-client-boundary"
 
 function createDoneHref(taskId: string) {
     return createTaskDonePath(taskId);
+}
+
+async function readStoredProject(taskId: string): Promise<Project> {
+    const fallbackProject = normalizeProject({
+        id: `task-${taskId}`,
+        title: `Проект ${taskId}`,
+    });
+
+    try {
+        const storage = createBrowserProjectStorage({ storage: window.localStorage, taskId });
+        const activeProjectId = await storage.getActiveProjectId();
+        const project = await storage.getProject(activeProjectId ?? `task-${taskId}`);
+        return project ?? fallbackProject;
+    } catch {
+        return fallbackProject;
+    }
 }
 
 function replaceTaskUrl(taskId: string, screen?: string | null) {
@@ -91,7 +110,8 @@ function useLevelStarter({
         setStartStatus("starting");
         setStartError("");
 
-        const res = await fetch(`/api/tasks/${taskItem.id}/start`, { method: "POST" });
+        const project = await readStoredProject(taskItem.id);
+        const res = await postTaskStart(taskItem.id, project);
         const data = await res.json().catch(() => null);
 
         if (!res.ok || !data?.ok) {
@@ -155,7 +175,8 @@ function useTaskLoader({
         setStatus("Загрузка задания…");
         router.push(getLabUrl(taskId));
 
-        const res = await fetch(`/api/tasks/${taskId}`, { method: "GET" });
+        const project = await readStoredProject(taskId);
+        const res = await fetch(buildTaskOpenUrl(taskId, project), { method: "GET" });
         const data = await res.json();
 
         if (!data?.ok) {
@@ -262,4 +283,4 @@ function Lab({initLevelOverview, initScreen, initTaskItem, initTaskData, initTas
     );
 }
 
-export { Lab }
+export { Lab, readStoredProject }

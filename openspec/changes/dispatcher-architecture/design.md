@@ -9,6 +9,8 @@ Producer фиксирует архитектурную трансформаци�
 - именование не всегда помогает быстро понять, к какой архитектурной части относится код;
 - ADR и живая карта архитектуры пока не имеют тактического владельца.
 
+Содержательный пробел текущей версии dispatcher в том, что он уже описан как tactical owner producer-линии, но metadata всё ещё ставят его как обычный дочерний change `focus-tech`. Из-за этого ownership читается неявно: implementation plan producer'а упомянут словами, но не закреплён в lineage и roadmap-ссылках.
+
 ## Goals
 
 - Дать архитектурной карте и ADR tactical owner.
@@ -29,10 +31,16 @@ Producer фиксирует архитектурную трансформаци�
    - как связывать карту с кодом;
    - как маршрутизировать изменения, которые меняют архитектурные границы.
 
-2. Dispatcher не заменяет предметные линии.
+2. Producer ownership выражается структурно, а не только текстом:
+   - `parent_change=producer-architecture-transform` фиксирует, что dispatcher тактически подчинён producer-линии;
+   - `strategy_root=focus-tech` сохраняет принадлежность общей technical strategy;
+   - `roadmap_ref=focus-tech/roadmaps/architecture-transformation.md` оставляет стратегический roadmap корня;
+   - `roadmap_refs` дополняется ссылкой на `producer-architecture-transform/roadmaps/architecture-implementation.md`, чтобы operational backlog был виден прямо из metadata.
+
+3. Dispatcher не заменяет предметные линии.
    Если downstream change явно относится к runtime, dataflow или log-system, dispatcher-architecture не становится его универсальным заменителем. Он нужен для тех changes, где главная тема — сама архитектурная граница.
 
-3. Критерий успеха architecture-line:
+4. Критерий успеха architecture-line:
    - по важной сущности можно показать её место в коде;
    - по важному модулю можно понять его роль из именования;
    - по важной границе можно показать ADR или другой живой архитектурный артефакт.
@@ -45,7 +53,8 @@ Dispatcher обязан удерживать:
 - ADR как живую историю решений;
 - словарь архитектурных сущностей;
 - naming discipline для крупных частей системы;
-- downstream backlog по модульным границам и контрактам взаимодействия.
+- downstream backlog по модульным границам и контрактам взаимодействия;
+- синхронизацию между producer implementation plan и конкретными downstream architecture changes.
 
 ## Risks / Trade-offs
 
@@ -53,10 +62,9 @@ Dispatcher обязан удерживать:
   -> Mitigation: держать в нём только вопросы карты, ADR, именования, модульных границ и architecture-facing changes.
 
 - [Риск] Producer и dispatcher начнут расходиться в трактовке архитектуры.
-  -> Mitigation: считать producer стратегическим owner, а dispatcher tactical owner одной и той же картины.
+  -> Mitigation: считать producer стратегическим owner, а dispatcher tactical owner одной и той же картины и выражать это через прямой `parent_change`, а не только через текстовые договорённости.
 
 ## Open Questions
 
 - Нужен ли позже отдельный dispatcher для кодового архитектурного контура.
 - Нужен ли позже отдельный dispatcher для LLM-архитектурного контура.
-
