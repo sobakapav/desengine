@@ -5,6 +5,8 @@ import { useEffect, useState } from "react"
 import type { ProjectComponent } from "@/lib/project/component-runtime"
 import { createBrowserProjectComponentStorage } from "@/lib/project/component-storage"
 import { createBrowserProjectStorage } from "@/lib/project/storage"
+import { readProjectFromTaskUrl } from "@/components/desengine/lab/task-client-boundary"
+import { parseProjectComponentRuntimeId } from "@/lib/task/project-runtime-scope-id"
 
 type TaskProjectComponentState = {
   status: "loading" | "ready" | "error"
@@ -44,7 +46,10 @@ function useTaskProjectComponent(taskId: string, preferredProjectId?: string | n
 
     async function loadComponent() {
       const projectStorage = createBrowserProjectStorage({ storage: window.localStorage })
-      const projectId = preferredProjectId?.trim() || await projectStorage.getActiveProjectId()
+      const urlProject = readProjectFromTaskUrl(taskId)
+      const urlRuntimeScope = urlProject ? parseProjectComponentRuntimeId(urlProject.id) : null
+      const projectId = preferredProjectId?.trim() || urlRuntimeScope?.projectId || await projectStorage.getActiveProjectId()
+      const componentId = preferredComponentId?.trim() || urlRuntimeScope?.componentId || null
 
       if (!projectId) {
         if (!cancelled) {
@@ -59,7 +64,7 @@ function useTaskProjectComponent(taskId: string, preferredProjectId?: string | n
 
       const componentStorage = createBrowserProjectComponentStorage(window.localStorage)
       const components = await componentStorage.listComponents(projectId)
-      const component = findProjectComponentByTaskId(components, taskId, preferredComponentId)
+      const component = findProjectComponentByTaskId(components, taskId, componentId)
 
       if (!cancelled) {
         setState({

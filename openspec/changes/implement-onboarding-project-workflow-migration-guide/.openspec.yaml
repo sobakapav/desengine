@@ -3,7 +3,7 @@ created: 2026-06-25
 short_policy: "none"
 review_sync_state: "none"
 change_kind: "implement"
-execution_mode: "no-code"
+execution_mode: "code"
 parent_change: "dispatcher-tasks"
 strategy_root: "focus-onboarding"
 roadmap_ref: ""

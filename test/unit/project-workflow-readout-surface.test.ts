@@ -99,6 +99,7 @@ describe("project workflow readout surface", () => {
     const projectPage = readProjectFile("app", "projects", "[projectId]", "page.tsx")
     const projectOverview = readProjectFile("components", "desengine", "project", "ProjectOverviewScreen.tsx")
     const workflowPanel = readProjectFile("components", "desengine", "project", "ProjectWorkflowReadoutPanel.tsx")
+    const workflowPanelContent = readProjectFile("components", "desengine", "project", "ProjectWorkflowReadoutContent.tsx")
     const workflowAdapter = readProjectFile("lib", "project", "workflow-readout.ts")
     const projectSpec = readProjectFile("openspec", "specs", "projects", "spec.md")
     const workflowSpec = readProjectFile("openspec", "specs", "workflow", "spec.md")
@@ -110,10 +111,11 @@ describe("project workflow readout surface", () => {
     expect(projectOverview).toContain("workflowReadout={workflowReadout}")
 
     expect(workflowPanel).toContain("Как идёт работа по компонентам")
-    expect(workflowPanel).toContain("Работы")
-    expect(workflowPanel).toContain("Шаги работы")
-    expect(workflowPanel).toContain("Последняя активность")
-    expect(workflowPanel).toContain("Где идёт работа")
+    expect(workflowPanel).toContain("WorkflowReadoutContent")
+    expect(workflowPanelContent).toContain("Работы")
+    expect(workflowPanelContent).toContain("Шаги работы")
+    expect(workflowPanelContent).toContain("Последняя активность")
+    expect(workflowPanelContent).toContain("Где идёт работа")
 
     expect(workflowAdapter).toContain("buildTaskWorkflowArtifactProjection")
     expect(workflowAdapter).toContain("resolveWorkflowStepTitle")

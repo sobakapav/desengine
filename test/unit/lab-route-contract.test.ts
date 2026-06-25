@@ -46,6 +46,25 @@ describe("lab route contract", () => {
     expect(getLabUrl(taskId)).toBe(`/lab/${encodedTaskId}`)
     expect(getLabUrl(taskId, null)).toBe(`/lab/${encodedTaskId}`)
     expect(getLabUrl(taskId, defaultScreen)).toBe(`/lab/${encodedTaskId}`)
+    expect(getLabUrl(taskId, null, {
+      id: "project-a",
+      title: "Alpha",
+      createdAt: "2026-06-25T10:00:00.000Z",
+      updatedAt: "2026-06-25T10:00:00.000Z",
+      settings: {
+        uiKitId: "ant",
+      },
+      migration: {
+        state: "idle",
+        sourceUiKitId: "ant",
+        targetUiKitId: "ant",
+        invalidationScope: "none",
+        requiresReplay: false,
+        message: "",
+        startedAt: null,
+        finishedAt: null,
+      },
+    })).toBe(`/lab/${encodedTaskId}?projectId=project-a&projectTitle=Alpha&uiKitId=ant`)
     expect(createLabUrl(taskId)).toBe(`/lab/${encodedTaskId}`)
   })
 

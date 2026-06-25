@@ -28,6 +28,7 @@ const project = {
 describe("task project client boundary", () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it("postPrompt отправляет iterate вместе с active project", async () => {
@@ -115,6 +116,7 @@ describe("task project client boundary", () => {
     const {
       buildTaskOpenUrl,
       postTaskStart,
+      readProjectFromTaskUrl,
     } = await import("@/components/desengine/lab/task-client-boundary")
 
     expect(buildTaskOpenUrl("task-a", project)).toBe(
@@ -123,6 +125,20 @@ describe("task project client boundary", () => {
 
     await postTaskStart("task-a", project, "stories")
     await postTaskStart("task-a", project)
+
+    vi.stubGlobal("window", {
+      location: {
+        search: "?projectId=project-42&projectTitle=Alpha&uiKitId=ant",
+      },
+    })
+
+    expect(readProjectFromTaskUrl("task-a")).toMatchObject({
+      id: "project-42",
+      title: "Alpha",
+      settings: {
+        uiKitId: "ant",
+      },
+    })
 
     expect(fetchSpy).toHaveBeenNthCalledWith(
       1,
@@ -152,9 +168,11 @@ describe("task project client boundary", () => {
     expect(screenSections).not.toContain("storage.getProject(`task-${taskId}`)")
 
     expect(taskRoute).toContain("postTaskStart")
+    expect(taskRoute).toContain("readProjectFromTaskUrl")
     expect(taskRoute).toContain("storage.getActiveProjectId()")
 
     expect(labScreen).toContain("buildTaskOpenUrl")
+    expect(labScreen).toContain("readProjectFromTaskUrl")
     expect(labScreen).toContain("storage.getActiveProjectId()")
     expect(clientBoundary).toContain("body: JSON.stringify({ project, activeScreen })")
   })

@@ -106,7 +106,7 @@ describe("project component registry surface", () => {
     })
   })
 
-  it("назначает backing task компоненту без конфликта с уже занятыми слотами", () => {
+  it("назначает компоненту типовой workflow template без поиска свободного слота", () => {
     const components = [
       normalizeProjectComponent({
         id: "component-a",
@@ -126,11 +126,10 @@ describe("project component registry surface", () => {
       components,
       occupiedTaskIds: ["task-occupied-globally"],
       workflowTaskCatalog: [
-        { taskId: "task-occupied-globally", taskTitle: "Task 1" },
-        { taskId: "task-occupied-locally", taskTitle: "Task 2" },
-        { taskId: "task-free", taskTitle: "Task 3" },
+        { taskId: "task-template", taskTitle: "Task 1" },
+        { taskId: "task-secondary", taskTitle: "Task 2" },
       ],
-    })).toBe("task-free")
+    })).toBe("task-template")
   })
 
   it("переиспользует уже назначенный backing task для повторного входа в workflow", () => {
@@ -178,6 +177,8 @@ describe("project component registry surface", () => {
     const registryHook = readProjectFile("components", "desengine", "project", "useProjectRegistry.ts")
     const componentsHook = readProjectFile("components", "desengine", "project", "useProjectComponents.ts")
     const componentsPanel = readProjectFile("components", "desengine", "project", "ProjectComponentsPanel.tsx")
+    const componentsPanelContent = readProjectFile("components", "desengine", "project", "ProjectComponentsPanelContent.tsx")
+    const componentsPanelController = readProjectFile("components", "desengine", "project", "useProjectComponentsPanelController.ts")
 
     expect(projectsScreen).toContain("Создать проект")
     expect(projectsScreen).toContain("Это первая точка входа в работу через проекты")
@@ -185,20 +186,23 @@ describe("project component registry surface", () => {
     expect(registryHook).toContain("async function createProject")
     expect(registryHook).toContain("await storage.setActiveProjectId(project.id)")
     expect(componentsHook).toContain("createBrowserProjectComponentStorage")
+    expect(componentsPanel).toContain("ComponentCreatePanel")
+    expect(componentsPanel).toContain("ComponentRegistryState")
+    expect(componentsPanel).toContain("useProjectComponentsPanelController")
     expect(componentsPanel).toContain("Создать компонент")
-    expect(componentsPanel).toContain("image-to-component-workflow")
     expect(componentsPanel).toContain("Компоненты проекта")
-    expect(componentsPanel).toContain("Всего компонентов")
+    expect(componentsPanel).toContain("ComponentCounters")
     expect(componentsPanel).toContain("Компоненты помогают разложить проект на отдельные рабочие части")
-    expect(componentsPanel).toContain("Работать над компонентом")
+    expect(componentsPanel).toContain("Всего компонентов")
     expect(componentsPanel).toContain("Работать над новым компонентом")
-    expect(componentsPanel).toContain("Продолжить работу")
-    expect(componentsPanel).toContain("Последняя активность")
-    expect(componentsPanel).toContain("workflowReadout")
-    expect(componentsPanel).toContain("postTaskStart")
-    expect(componentsPanel).toContain("getLabUrl")
-    expect(componentsPanel).toContain("Открыть задачу")
-    expect(componentsPanel).toContain("свободной рабочей задачи")
+    expect(componentsPanelContent).toContain("Работать над компонентом")
+    expect(componentsPanelContent).toContain("Продолжить работу")
+    expect(componentsPanelContent).toContain("Последняя активность")
+    expect(componentsPanelContent).toContain("Открыть задачу")
+    expect(componentsPanelController).toContain("image-to-component-workflow")
+    expect(componentsPanelController).toContain("postTaskStart")
+    expect(componentsPanelController).toContain("getLabUrl")
+    expect(componentsPanelController).toContain("базовый runtime-шаблон")
   })
 
   it("сохраняет совместимость overview project model с новым component layer", () => {

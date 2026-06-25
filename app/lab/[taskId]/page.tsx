@@ -41,15 +41,6 @@ export default async function LabTaskPage({
   const labContext = await getTaskLabContext(taskItem)
   const allowedScreens = labContext?.editableFileIds ?? []
   const defaultScreen = getDefaultCodeScreen()
-
-  if (allowedScreens.length === 0) {
-    notFound()
-  }
-
-  if (!isAccessibleCodeScreen(defaultScreen, allowedScreens)) {
-    redirect(getLabUrl(taskId, allowedScreens[0]))
-  }
-
   const hasProjectContext = ["projectId", "projectTitle", "uiKitId"]
     .some((key) => {
       const value = resolvedSearchParams[key]
@@ -64,6 +55,14 @@ export default async function LabTaskPage({
       },
     })
     : undefined
+
+  if (allowedScreens.length === 0) {
+    notFound()
+  }
+
+  if (!isAccessibleCodeScreen(defaultScreen, allowedScreens)) {
+    redirect(getLabUrl(taskId, allowedScreens[0], project))
+  }
 
   const { taskData } = await buildCurrentTaskScreenData({ taskId, taskItem, labContext, project })
   const levelOverview = await getLevelOverview(taskItem.progress.currentLevelId)

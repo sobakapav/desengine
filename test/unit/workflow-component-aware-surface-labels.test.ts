@@ -19,7 +19,7 @@ function readProjectFile(...segments: string[]) {
 }
 
 describe("workflow component-aware surface labels", () => {
-  it("находит project component по backing taskId", () => {
+  it("находит project component по backing taskId и componentId", () => {
     const components = [
       normalizeProjectComponent({
         id: "component-a",
@@ -35,7 +35,7 @@ describe("workflow component-aware surface labels", () => {
       }),
     ]
 
-    expect(findProjectComponentByTaskId(components, "task-banner")?.title).toBe("Promo banner")
+    expect(findProjectComponentByTaskId(components, "task-banner", "component-b")?.title).toBe("Promo banner")
     expect(findProjectComponentByTaskId(components, "task-missing")).toBeNull()
   })
 

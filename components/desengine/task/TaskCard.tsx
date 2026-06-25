@@ -42,7 +42,7 @@ function TaskCard({
                 {binding.projectTitle}
               </Link>
             </p>
-            <TaskProjectComponentContext projectId={binding.projectId} taskId={task.id} />
+            <TaskProjectComponentContext componentId={binding.componentId} projectId={binding.projectId} taskId={task.id} />
           </>
         ) : (
           <p className="text-sm text-black/50">

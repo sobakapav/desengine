@@ -5,6 +5,7 @@ export type TaskProjectBinding = {
   taskTitle: string
   projectId: string
   projectTitle: string
+  componentId?: string | null
   source: TaskProjectBindingSource
 }
 
