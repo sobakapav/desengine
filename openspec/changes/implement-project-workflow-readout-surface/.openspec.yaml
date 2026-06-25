@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-11
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "dispatcher-project"
+strategy_root: "focus-domain"
+roadmap_ref: ""
+release_ref: ""
+producer_ref: "producer-project"
+verification_level: "static/contract"
+verification_command: "npm run test:traceability"
+issue: ""
+short: "вывести в пользовательский мир read-only workflow/artifact surface проекта"

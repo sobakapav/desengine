@@ -16,6 +16,7 @@
 Dispatcher фиксирует:
 
 - продуктовые границы линии: task catalog, task metadata, task/workbench flows, уровни, task hints и другие user-facing task surfaces;
+- migration task-системы в проектный и workflow режимы, если это меняет саму структуру onboarding-задач и их user-facing path;
 - место runtime-контрактов: основное наблюдаемое поведение живёт в capability `task`, а смежные контракты фиксируются в связанных capability, например `prompt-context`, когда task system реально использует общий template context;
 - downstream changes этой линии: concrete runtime-изменения оформляются отдельными `implement`/`fix` changes с собственными `release_ref` и verification strategy;
 - тестовую политику: каждый behavior-change по task-системе обязан явно указывать capability/scenarios, уровень проверки, команды запуска, fixtures и traceability.

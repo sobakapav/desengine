@@ -1,14 +1,14 @@
 ## Tasks
 
-- [ ] 1. Создать active release `release-2026-06-10-architecture`.
-- [ ] 2. Зафиксировать архитектурный стратегический и tactical контекст релиза без включения этих changes в физический состав поставки.
-- [ ] 3. Добавить в релиз первую domain-wave `Project` как исполнительский состав:
-  - [ ] 3.1 `implement-project-workspace-mvp`;
-  - [ ] 3.2 `implement-project-task-onboarding-binding`;
-  - [ ] 3.3 `implement-project-workflow-binding`;
-  - [ ] 3.4 `implement-project-workbench-preview-binding`;
-  - [ ] 3.5 `fix-project-ui-kit-migration-invalidation`.
-- [ ] 4. Описать release lineage и лейтмотив волны в proposal/README/release-notes/handoff.
+- [x] 1. Создать active release `release-2026-06-10-architecture`.
+- [x] 2. Зафиксировать архитектурный стратегический и tactical контекст релиза без включения этих changes в физический состав поставки.
+- [x] 3. Добавить в релиз первую domain-wave `Project` как исполнительский состав:
+  - [x] 3.1 `implement-project-workspace-mvp`;
+  - [x] 3.2 `implement-project-task-onboarding-binding`;
+  - [x] 3.3 `implement-project-workflow-binding`;
+  - [x] 3.4 `implement-project-workbench-preview-binding`;
+  - [x] 3.5 `fix-project-ui-kit-migration-invalidation`.
+- [x] 4. Описать release lineage и лейтмотив волны в proposal/README/release-notes/handoff.
 - [ ] 5. Выполнить внешнюю static/contract-проверку release-lineage.
 
 ## Тестовая часть change

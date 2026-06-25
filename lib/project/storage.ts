@@ -13,7 +13,7 @@ type ProjectStorage = {
   getProject(projectId: string): Promise<ProjectWorkspace | null>
   getActiveProject(): Promise<ProjectWorkspace | null>
   createProject(input: CreateProjectWorkspaceInput): Promise<ProjectWorkspace>
-  saveProject(project: ProjectWorkspace): Promise<void>
+  saveProject(project: ProjectWorkspace, previousProjectId?: string | null): Promise<void>
   getActiveProjectId(): Promise<string | null>
   setActiveProjectId(projectId: string): Promise<void>
 }
@@ -52,6 +52,14 @@ function mergeProject(projects: ProjectWorkspace[], project: ProjectWorkspace) {
   }
 
   return [...projects, normalized]
+}
+
+function removeProject(projects: ProjectWorkspace[], projectId: string | null | undefined) {
+  if (!projectId?.trim()) {
+    return projects
+  }
+
+  return projects.filter((project) => project.id !== projectId)
 }
 
 function hasProject(projects: ProjectWorkspace[], projectId: string | null | undefined) {
@@ -167,13 +175,21 @@ function createBrowserProjectStorage({ storage, taskId }: BrowserProjectStorageO
 
       return project
     },
-    async saveProject(project: ProjectWorkspace) {
+    async saveProject(project: ProjectWorkspace, previousProjectId?: string | null) {
       const normalized = serializeProjectWorkspace({
         ...project,
         updatedAt: new Date().toISOString(),
       })
       const projects = await listProjects()
-      writeProjects(mergeProject(projects, normalized))
+      const nextProjects = mergeProject(
+        removeProject(projects, previousProjectId && previousProjectId !== normalized.id ? previousProjectId : null),
+        normalized,
+      )
+      writeProjects(nextProjects)
+
+      if (previousProjectId && storage.getItem(ACTIVE_PROJECT_ID_STORAGE_KEY) === previousProjectId) {
+        writeActiveProjectId(normalized.id)
+      }
     },
     async getActiveProjectId() {
       const projects = await listProjects()
@@ -215,10 +231,19 @@ function createMemoryProjectStorage(initialProjects: ProjectWorkspace[] = []): P
 
       return project
     },
-    async saveProject(project: ProjectWorkspace) {
-      projects = mergeProject(projects, serializeProjectWorkspace(project))
+    async saveProject(project: ProjectWorkspace, previousProjectId?: string | null) {
+      const normalized = serializeProjectWorkspace(project)
+      projects = mergeProject(
+        removeProject(projects, previousProjectId && previousProjectId !== normalized.id ? previousProjectId : null),
+        normalized,
+      )
+
+      if (previousProjectId && activeProjectId === previousProjectId) {
+        activeProjectId = normalized.id
+      }
+
       if (!activeProjectId) {
-        activeProjectId = project.id
+        activeProjectId = normalized.id
       }
     },
     async getActiveProjectId() {

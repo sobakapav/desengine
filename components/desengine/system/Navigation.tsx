@@ -4,6 +4,7 @@ import Link from "next/link"
 
 import { getLevelsRootUrl } from "@/lib/level/navigation"
 import { getLabRootUrl } from "@/lib/lab/navigation"
+import { getProjectsRootUrl } from "@/lib/project/navigation"
 import { getTasksRootUrl } from "@/lib/task/navigation"
 import { getSystemUrl } from "@/lib/system/navigation"
 import { getHelpRootUrl } from "@/lib/help/navigation"
@@ -12,6 +13,7 @@ const navigationLinks = [
   { href: "/", label: "desengine" },
   { href: getLabRootUrl(), label: "лаборатория" },
   { href: getLevelsRootUrl(), label: "уровни" },
+  { href: getProjectsRootUrl(), label: "Проекты" },
   { href: getTasksRootUrl(), label: "задачи" },
   { href: getSystemUrl(), label: "система" },
   { href: getHelpRootUrl(), label: "справка" },

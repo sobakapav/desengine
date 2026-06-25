@@ -5,11 +5,11 @@
 // @openSpec  - "Dispatcher использует несколько roadmap"
 // @openSpec  - "Создаётся producer change"
 // @openSpec  - "Producer напрямую управляет исполнительским change"
-// @openSpec  - "Producer создаёт вспомогательный dispatcher без потери ownership"
+// @openSpec  - "Producer работает рядом с dispatcher без иерархического подчинения"
 // @openSpec  - "Producer появляется раньше формализованных требований и сценариев"
 // @openSpec  - "Implement или fix помечается producer-контекстом"
 // @openSpec  - "Implement или fix напрямую подчиняется producer"
-// @openSpec  - "Dispatcher подчиняется producer напрямую"
+// @openSpec  - "Dispatcher подчиняется focus напрямую"
 // @openSpec  - "Dispatcher не может хранить producer-контекст"
 // @openSpec  - "Non-executable change пытается войти в release composition"
 // @openSpec  - "Разработчик открывает implement/fix через `os:ctx`"
@@ -42,7 +42,7 @@ describe("openspec roadmap inheritance", () => {
     }
   })
 
-  it("валидирует dispatcher с одним и несколькими roadmap стратегических владельцев", () => {
+  it("валидирует dispatcher под focus с roadmap focus и producer из той же орбиты", () => {
     const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-roadmaps-"))
     tempDirs.push(fixtureRoot)
 
@@ -67,7 +67,7 @@ describe("openspec roadmap inheritance", () => {
       `change_kind: "dispatcher"
 execution_mode: "no-code"
 parent_change: "focus-demo"
-strategy_root: "producer-demo"
+strategy_root: "focus-demo"
 roadmap_ref: "focus-demo/roadmaps/demo.md"
 roadmap_refs:
   - "producer-demo/roadmaps/extra.md"
@@ -108,8 +108,8 @@ short: "диспетчер демо"
     expect(errors.join("\n")).toContain("roadmap reference должен иметь вид <change>/roadmaps/<file>.md")
   })
 
-  it("допускает прямое parent_change dispatcher на producer", () => {
-    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-roadmaps-producer-parent-"))
+  it("не допускает прямое parent_change dispatcher на producer", () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-roadmaps-producer-parent-reject-"))
     tempDirs.push(fixtureRoot)
 
     writeFile(
@@ -137,7 +137,7 @@ short: "диспетчер демо"
 
     const errors = validateChanges(fixtureRoot, path.join(fixtureRoot, "openspec", "changes"))
 
-    expect(errors).toEqual([])
+    expect(errors.join("\n")).toContain("dispatcher change может иметь parent_change только на focus")
   })
 
   it("не допускает producer_ref в metadata dispatcher", () => {

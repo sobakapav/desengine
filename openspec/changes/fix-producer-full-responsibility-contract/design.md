@@ -3,7 +3,7 @@
 Текущая OpenSpec-модель в репозитории частично уже движется к producer ownership, но несколько канонических слоёв всё ещё спорят с этим:
 
 - `admin-tools` spec описывает producer как слишком узкий стратегический слой;
-- `traceability` запрещает `dispatcher -> producer` и `implement/fix -> producer`;
+- `traceability` частично держит старые ожидания вокруг `dispatcher -> producer`;
 - `os:begin`, `os:ctx`, `os:dispatch`, `os:req` и handoff-тексты продолжают навязывать картину мира, где реальный owner исполнения обязательно называется dispatcher;
 - agent-facing инструкции не фиксируют явно, что producer может быть одновременно owner смысла и owner процесса.
 
@@ -15,7 +15,7 @@
 
 - Зафиксировать producer как полный owner линии на уровне системного контракта.
 - Разрешить прямое parent ownership от producer к downstream changes.
-- Сохранить `dispatcher` как допустимый, но не обязательный helper-слой.
+- Сохранить `dispatcher` как допустимый, но не обязательный tactical слой внутри того же `focus`.
 - Явно записать, что формальные requirements/scenarios для producer могут быть результатом roadmap, а не обязательной стартовой вводной.
 
 **Non-Goals:**
@@ -30,13 +30,13 @@
 
 Producer не ограничивается только roadmap и vision. Он владеет смыслом линии, управляет её развитием, принимает downstream-решения и остаётся источником истины для подчинённых changes.
 
-### 2. Dispatcher становится опциональным помощником, а не обязательным владельцем тактики
+### 2. Dispatcher становится отдельным tactical sibling в focus-линии, а не обязательным владельцем тактики
 
-Если producer-линии нужен отдельный operational helper, dispatcher можно создать. Но система больше не должна считать, что именно dispatcher обязан быть единственным допустимым `parent_change` для implement/fix или единственным носителем тактики.
+Если producer-линии нужен отдельный operational pressure, dispatcher можно создать как child соответствующего `focus`. Но система больше не должна считать, что dispatcher обязан подчиняться producer или быть единственным носителем тактики.
 
-### 3. Producer может быть прямым родителем downstream changes
+### 3. Producer может быть прямым родителем downstream implementation changes
 
-`implement/fix -> producer` и `dispatcher -> producer` допустимы как прямое выражение ownership. Это лучше согласуется с моделью project-manager change и убирает искусственное дробление ответственности.
+`implement/fix -> producer` допустимы как прямое выражение ownership. Но `dispatcher -> producer` не нужен: producer и dispatcher должны пересекаться через общий focus и roadmap-конкуренцию, а не через parentage.
 
 ### 4. Producer-level формализация requirements/scenarios не обязательна на старте
 
@@ -52,7 +52,7 @@ Producer не ограничивается только roadmap и vision. Он 
 
 1. Обновить системный spec `admin-tools`.
 2. Обновить AGENTS и user-facing тексты tooling.
-3. Ослабить traceability-валидацию, разрешив producer как `parent_change`.
+3. Ослабить traceability-валидацию для `implement/fix -> producer`, но отдельно закрепить `dispatcher -> focus`.
 4. Актуализировать unit-тесты и обзоры producer-линий.
 5. Existing changes не мигрировать автоматически; новая модель должна сразу поддерживаться для будущих changes.
 
@@ -67,6 +67,6 @@ Producer не ограничивается только roadmap и vision. Он 
 - `unit`: покрытия вокруг `change-rules`, `os:begin`, `os:ctx`, producer listing и handoff.
 - Mock/fixture-данные:
   - producer как прямой родитель implement/fix;
-  - producer как прямой родитель dispatcher;
-  - dispatcher под producer без `producer_ref`.
+  - dispatcher под focus без `producer_ref`;
+  - dispatcher с roadmap producer-а в той же focus-орбите.
 - Live credentials: не требуются.

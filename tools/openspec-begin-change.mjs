@@ -45,7 +45,7 @@ function printNonExecutableGuidance(changeName, current) {
 
   if (current.kind === "producer") {
     console.log("Producer несёт полную ответственность за смысл, roadmap и процесс линии, но не меняет код напрямую.")
-    console.log("Producer может породить implement/fix напрямую или завести вспомогательный dispatcher, не теряя ownership.")
+    console.log("Producer может породить implement/fix напрямую или инициировать competing dispatcher в той же focus-линии, не становясь его parent.")
     printRoadmapRefs(current.roadmapRefs)
     console.log("")
     console.log("Следующий шаг:")

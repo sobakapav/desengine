@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-25
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "implement"
+execution_mode: "no-code"
+parent_change: "dispatcher-tasks"
+strategy_root: "focus-onboarding"
+roadmap_ref: ""
+release_ref: ""
+producer_ref: ""
+verification_level: "static/contract"
+verification_command: "npm run test:traceability"
+issue: ""
+short: "инструкция для контент-менеджера по миграции onboarding-задач и metadata"

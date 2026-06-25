@@ -1,18 +1,23 @@
 ## Tasks
 
+## Текущий фокус реализации
+
+- Dispatcher-workbench пока держит только те workbench-решения, которые помогают пройти цепочку `проект -> workflow -> проверка/чеклист -> результат`.
+- Отдельные tool families, layout/space и image-inspector остаются отложенными ветками.
+
 - [ ] 1. Инвентаризировать текущий «зародыш» верстака: какие сущности/компоненты уже есть и что в них «общего» vs «частного».
 - [ ] 2. Зафиксировать сценарии использования верстаков (по типам задач и этапам workflow).
 - [ ] 3. Спроектировать контракт `WorkbenchDefinition/Instance` и связь с Task/Workflow.
 - [ ] 4. Спроектировать контракт инструментов и реестр подключений.
 - [ ] 5. Спроектировать навигацию и сохранение состояния.
-- [ ] 5.1 Встроить layout/space направление как частный случай общей workbench-линии, без отдельного параллельного dispatcher.
-- [ ] 5.2 Встроить image-inspector как частный набор workbench-инструментов, без отдельных producer/dispatcher changes.
+- [ ] 5.1 Отложено: layout/space направление как частный случай общей workbench-линии после стабилизации основной цепочки.
+- [ ] 5.2 Отложено: image-inspector как частный набор workbench-инструментов после стабилизации основной цепочки.
 - [ ] 6. Сформировать roadmap на отдельные changes:
   - [ ] 6.1 инфраструктура workbench registry
   - [ ] 6.2 миграция текущего верстака в новую сущность (как частный случай)
-  - [ ] 6.3 первые 1–2 новых верстака/инструмента (узко и проверяемо)
-  - [ ] 6.4 layout templates / responsive preview / spacing inspector как downstream часть общего workbench-плана
-  - [ ] 6.5 image-inspector tools как downstream часть общего workbench-плана
+  - [ ] 6.3 Отложено: первые 1–2 новых верстака/инструмента вне основной цепочки
+  - [ ] 6.4 Отложено: layout templates / responsive preview / spacing inspector как downstream часть общего workbench-плана
+  - [ ] 6.5 Отложено: image-inspector tools как downstream часть общего workbench-плана
 - [ ] 7. Сформировать тестовый план и traceability для будущих behavior-change changes:
   - [ ] 7.1 уровни проверок
   - [ ] 7.2 команды запуска (`npm run test:unit`, `npm run test:traceability`, при необходимости `npm run test:e2e`)

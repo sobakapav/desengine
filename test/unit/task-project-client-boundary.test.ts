@@ -22,7 +22,6 @@ const project = {
   updatedAt: "2026-06-10T10:00:00.000Z",
   settings: {
     uiKitId: "ant",
-    uiMode: "ui-kit",
   },
 } as const
 
@@ -40,13 +39,13 @@ describe("task project client boundary", () => {
     )
 
     const { postPrompt } = await import("@/components/desengine/lab/Workbench/useWorkbenchPrompt")
-    await postPrompt("task-a", "Сделай кнопку заметнее", project)
+    await postPrompt("task-a", "Сделай кнопку заметнее", project, "styles")
 
     expect(fetchSpy).toHaveBeenCalledWith(
       "/api/tasks/task-a/iterate",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ prompt: "Сделай кнопку заметнее", project }),
+        body: JSON.stringify({ prompt: "Сделай кнопку заметнее", project, activeScreen: "styles" }),
       }),
     )
   })
@@ -119,10 +118,10 @@ describe("task project client boundary", () => {
     } = await import("@/components/desengine/lab/task-client-boundary")
 
     expect(buildTaskOpenUrl("task-a", project)).toBe(
-      "/api/tasks/task-a?projectId=project-42&projectTitle=Alpha&uiKitId=ant&uiMode=ui-kit",
+      "/api/tasks/task-a?projectId=project-42&projectTitle=Alpha&uiKitId=ant",
     )
 
-    await postTaskStart("task-a", project)
+    await postTaskStart("task-a", project, "stories")
     await postTaskStart("task-a", project)
 
     expect(fetchSpy).toHaveBeenNthCalledWith(
@@ -130,7 +129,7 @@ describe("task project client boundary", () => {
       "/api/tasks/task-a/start",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ project }),
+        body: JSON.stringify({ project, activeScreen: "stories" }),
       }),
     )
     expect(fetchSpy).toHaveBeenNthCalledWith(
@@ -138,7 +137,7 @@ describe("task project client boundary", () => {
       "/api/tasks/task-a/start",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ project }),
+        body: JSON.stringify({ project, activeScreen: undefined }),
       }),
     )
   })
@@ -157,6 +156,6 @@ describe("task project client boundary", () => {
 
     expect(labScreen).toContain("buildTaskOpenUrl")
     expect(labScreen).toContain("storage.getActiveProjectId()")
-    expect(clientBoundary).toContain("body: JSON.stringify({ project })")
+    expect(clientBoundary).toContain("body: JSON.stringify({ project, activeScreen })")
   })
 })

@@ -22,10 +22,20 @@
       "reason": "Сейчас runnable evidence закрывает только routing/evidence часть capability: scenarios про маршрутизацию через `dispatcher-architecture`, сохранение ownership у предметного dispatcher и обязательный evidence-пакет для boundary change. Остальные roadmap/lifecycle scenarios описывают порядок архитектурных waves, cleanup lane, governance baseline и platform-sourcing decisions; для них ещё нет отдельного runnable harness и они сознательно отложены, чтобы не подменять архитектурный контракт случайными unit-проверками без реального operational evidence.",
       "targetStage": "architecture-roadmap-lifecycle-harness"
     },
+    "level-labs": {
+      "priority": "P1",
+      "reason": "Большая часть level-labs уже покрыта runnable unit/browser/integration evidence, но canonical scenario про маппинг текущего lab level в workflow step profile пока не закреплён отдельным traceability harness. До появления этого harness capability остаётся в coverage-plan, чтобы не смешивать runtime projection контракт со случайными косвенными проверками.",
+      "targetStage": "level-lab-workflow-step-profile-harness"
+    },
     "projects": {
       "priority": "P1",
       "reason": "Foundation create/select flow для ProjectWorkspace закрыт через unit и source-contract слой, но browser/e2e-сценарий на выбор active project и создание нового проекта из Workbench UI ещё не добавлен.",
       "targetStage": "project-workspace-browser-flow"
+    },
+    "workflow": {
+      "priority": "P1",
+      "reason": "Unit-слой уже покрывает coordinator step, workflow points, component-aware surfaces и project-facing continue flow, но полный пользовательский проход нескольких workflow-run внутри проекта пока не закреплён отдельным browser/e2e harness.",
+      "targetStage": "project-workflow-browser-flow"
     }
   }
 }

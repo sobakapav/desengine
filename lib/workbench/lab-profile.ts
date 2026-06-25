@@ -71,8 +71,8 @@ export const labWorkbenchDefinition: WorkbenchDefinition = {
   id: LAB_WORKBENCH_DEFINITION_ID,
   title: "Рабочая поверхность компонента",
   profileId: LAB_WORKBENCH_PROFILE_ID,
-  supportedTaskTypes: ["level-lab"],
-  supportedWorkflowStepKinds: ["level-lab"],
+  supportedTaskTypes: ["level-lab", "image-to-component-workflow"],
+  supportedWorkflowStepKinds: ["level-lab", "image-to-component-workflow"],
   toolIds: labWorkbenchTools.map((tool) => tool.id),
   artifactSlots: [
     {

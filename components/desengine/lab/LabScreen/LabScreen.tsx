@@ -26,13 +26,18 @@ import {
     TaskScreenSection,
     TransitionScreenSection,
 } from "./ScreenSections"
-import { buildTaskOpenUrl, postTaskStart } from "../task-client-boundary"
+import { buildTaskOpenUrl, postTaskStart, readProjectFromTaskUrl } from "../task-client-boundary"
 
 function createDoneHref(taskId: string) {
     return createTaskDonePath(taskId);
 }
 
 async function readStoredProject(taskId: string): Promise<Project> {
+    const urlProject = readProjectFromTaskUrl(taskId);
+    if (urlProject) {
+        return urlProject;
+    }
+
     const fallbackProject = normalizeProject({
         id: `task-${taskId}`,
         title: `Проект ${taskId}`,
@@ -53,7 +58,7 @@ function replaceTaskUrl(taskId: string, screen?: string | null) {
         return;
     }
 
-    const nextHref = getLabUrl(taskId, screen);
+    const nextHref = getLabUrl(taskId, screen, readProjectFromTaskUrl(taskId) ?? undefined);
     const currentHref = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
     if (currentHref !== nextHref) {

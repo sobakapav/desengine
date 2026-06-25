@@ -51,9 +51,9 @@ function getPreviewCheckGuardMessage(value: PreviewRuntimeContractDiagnostic): s
 
   const detail = typeof value.message === "string" ? value.message.trim() : ""
   const baseMessage =
-    "Проверка результата временно недоступна: preview сломан и не может подтвердить рендер компонента."
+    "Проверка результата временно недоступна: предпросмотр сломан и не может подтвердить рендер компонента."
 
-  return detail ? `${baseMessage} Сначала исправьте ошибку preview: ${detail}` : baseMessage
+  return detail ? `${baseMessage} Сначала исправьте ошибку предпросмотра: ${detail}` : baseMessage
 }
 
 export {

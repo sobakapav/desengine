@@ -30,7 +30,7 @@ async function parseProjectFromRequest(request: Request, taskId: string) {
  * ```ts
  * await POST(new Request("http://localhost/api/tasks/task-1/check"), {
  *   method: "POST",
- *   body: JSON.stringify({ project: { uiKitId: "ant", uiMode: "ui-kit" } }),
+ *   body: JSON.stringify({ project: { uiKitId: "ant" } }),
  *   params: Promise.resolve({ taskId: "task-1" }),
  * })
  * ```

@@ -3,6 +3,7 @@
 // @openSpec  - "Система читает статичную task-specific подсказку уровня"
 // @openSpec  - "Система рендерит шаблонную task-specific подсказку уровня"
 // @openSpec  - "Шаблонная task-specific подсказка учитывает выбранный UI kit проекта"
+// @openSpec  - "Шаблонная task-specific подсказка учитывает выбранный workflow-пункт"
 // @openSpec  - "Шаблонная подсказка имеет приоритет над статичной"
 // @openSpec  - "Шаблон подсказки содержит ошибку"
 // @openSpec  - "Подсказка уровня отсутствует"
@@ -85,7 +86,6 @@ describe("task hints", () => {
       id: "task-1-project",
       title: "Проект задачи",
       uiKitId: "ant",
-      uiMode: "ui-kit",
     })
     await writeFile(
       path.join(hintRoot, "tip.njk"),
@@ -96,6 +96,23 @@ describe("task hints", () => {
     await expect(renderTestHint(taskCatalogRoot, project)).resolves.toBe(
       "Выбран UI kit: Ant Design / Ant Design.",
     )
+  })
+
+  it("передаёт выбранный workflow-пункт в template context", async () => {
+    const { taskCatalogRoot, hintRoot } = await createHintRoot()
+    await writeFile(
+      path.join(hintRoot, "tip.njk"),
+      "Фокус: {{ workflow.focusPointTitle }} / {{ workflow.primaryFileId }}.",
+      "utf-8",
+    )
+
+    await expect(renderTaskHint({
+      taskCatalogRoot,
+      taskId: "task-1",
+      level,
+      taskConfig,
+      activeFileId: "stories",
+    })).resolves.toBe("Фокус: Storybook-сценарии / stories.")
   })
 
   it("использует tip.njk перед tip.md", async () => {

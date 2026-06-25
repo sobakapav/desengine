@@ -87,6 +87,7 @@ export const taskServerTransitions = {
   async getTaskLevelHint(
     taskItem: NonNullable<Awaited<ReturnType<typeof taskServerOverview.getTaskListItemById>>>,
     project?: Project,
+    activeFileId?: string | null,
   ) {
     const [levels, taskConfig] = await Promise.all([
       taskServerOverview.getLevelsCatalog(),
@@ -94,6 +95,6 @@ export const taskServerTransitions = {
     ])
 
     const level = taskServerModel.requireLevel(levels, taskItem.progress.currentLevel)
-    return taskServerStorage.readTaskLevelTip(taskItem.id, level, taskConfig, project)
+    return taskServerStorage.readTaskLevelTip(taskItem.id, level, taskConfig, project, activeFileId)
   },
 }

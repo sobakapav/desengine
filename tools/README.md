@@ -144,7 +144,7 @@ Release закрывается только после того, как `npm run
 - Прямое изменение кода разрешено только для `implement` и `fix`.
 - `focus`, `idea`, `producer`, `dispatcher` и `release` код напрямую не меняют: они управляют downstream changes своего уровня и принимают их результат.
 - Если `change_kind=dispatcher`, команда блокирует прямую реализацию, напоминает обязанность создать `implement-*` или `fix-*`, передать inherited roadmap и принять итог работы.
-- Если `change_kind=producer`, команда блокирует прямую реализацию, но признаёт producer полным owner линии и разрешает породить `implement-*`/`fix-*` напрямую или завести вспомогательный dispatcher.
+- Если `change_kind=producer`, команда блокирует прямую реализацию, но признаёт producer полным owner линии и разрешает породить `implement-*`/`fix-*` напрямую или инициировать competing dispatcher в той же focus-линии.
 - Для `producer` и `dispatcher` команда показывает roadmap, которыми нужно руководствоваться дальше.
 - Для `producer` и `dispatcher` можно сразу создать исполнительский change:
   При таком создании команда автоматически гарантирует базовые apply-артефакты (`proposal.md`, `design.md`, `tasks.md`), чтобы старт реализации не блокировался из-за пустого scaffolding.
@@ -273,7 +273,7 @@ short: "краткое описание change"
 `release_ref` разрешён только для `implement` и `fix`: release собирает только исполнительский состав поставки и не может включать `focus`, `idea`, `producer`, `dispatcher` или другой `release`.
 Если исполнительская ветка работает в контексте конкретного producer через dispatcher, для `implement` и `fix` используется отдельная метка `producer_ref`.
 Если producer сам является `parent_change` исполнительского change, это считается нормальным прямым выражением producer ownership.
-`dispatcher` не хранит `producer_ref`: producer ownership для него выражается через `parent_change`, если dispatcher подчинён producer.
+`dispatcher` не хранит `producer_ref` и не подчиняется producer по `parent_change`: producer-контекст для dispatcher выражается через roadmap и общую focus-орбиту.
 
 Для непустого `short` в changes с `short_policy: strict-v1` действует строгий контракт кастомной схемы:
 - начинается с маленькой буквы;

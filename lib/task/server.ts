@@ -98,8 +98,12 @@ export async function getTaskLabContext(taskItem: TaskListItem): Promise<TaskLab
  * const hint = await getTaskLevelHint(taskItem, { id: "project-1", title: "Проект 1" })
  * ```
  */
-export async function getTaskLevelHint(taskItem: TaskListItem, project?: Parameters<typeof taskServerTransitions.getTaskLevelHint>[1]) {
-  return taskServerTransitions.getTaskLevelHint(taskItem, project)
+export async function getTaskLevelHint(
+  taskItem: TaskListItem,
+  project?: Parameters<typeof taskServerTransitions.getTaskLevelHint>[1],
+  activeFileId?: Parameters<typeof taskServerTransitions.getTaskLevelHint>[2],
+) {
+  return taskServerTransitions.getTaskLevelHint(taskItem, project, activeFileId)
 }
 
 export async function markTaskLevelInProgress(taskId: string) {

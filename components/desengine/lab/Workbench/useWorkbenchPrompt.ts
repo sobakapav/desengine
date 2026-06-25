@@ -25,7 +25,7 @@ type PromptRunOutcome = {
     error: string;
 };
 
-async function postPrompt(taskId: string, prompt: string, project: Project) {
+async function postPrompt(taskId: string, prompt: string, project: Project, activeScreen?: string | null) {
     return fetchWorkbenchActionJson<IterateTaskSuccessBody>({
         url: `/api/tasks/${taskId}/iterate`,
         actionLabel: "Уточнение",
@@ -33,7 +33,7 @@ async function postPrompt(taskId: string, prompt: string, project: Project) {
         init: {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ prompt, project }),
+            body: JSON.stringify({ prompt, project, activeScreen }),
         },
     });
 }
@@ -44,6 +44,7 @@ async function runPromptSubmission(args: {
     project: Project;
     promptText: string;
     currentLevelStarted: boolean;
+    activeScreen?: string | null;
     setPromptPending: (pending: boolean) => void;
     setPromptStatus: (status: string) => void;
     setPromptError: (error: string) => void;
@@ -55,7 +56,7 @@ async function runPromptSubmission(args: {
     args.setPromptError("");
 
     if (!args.currentLevelStarted) {
-        args.setPromptError("Сначала начните текущий уровень");
+        args.setPromptError("Сначала начните workflow-сессию");
         return null;
     }
 
@@ -68,7 +69,7 @@ async function runPromptSubmission(args: {
 
     try {
         const postPromptImpl = args.postPromptImpl ?? postPrompt;
-        const data = await postPromptImpl(args.taskId, args.promptText, args.project);
+        const data = await postPromptImpl(args.taskId, args.promptText, args.project, args.activeScreen);
 
         if (!data?.ok) {
             args.setPromptError(data?.error || "Ошибка запуска итерации");
@@ -108,6 +109,7 @@ function usePromptController(
             project,
             promptText,
             currentLevelStarted: props.taskItem.progress.currentLevelStarted,
+            activeScreen: props.screenEvent.payload.activeScreen,
             setPromptPending,
             setPromptStatus,
             setPromptError,

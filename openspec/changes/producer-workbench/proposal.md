@@ -47,7 +47,7 @@
 ## Impact
 
 - `focus-domain` получает producer-линию для следующей workbench-модели.
-- `dispatcher-workbench` получает явного producer owner и перестаёт быть только исследовательским backlog вокруг lab-экрана.
+- `dispatcher-workbench` получает явный producer-контекст в той же focus-линии и перестаёт быть только исследовательским backlog вокруг lab-экрана.
 - Downstream changes смогут разделять:
   - foundation-изменения Workbench;
   - переход away from `level-labs`;

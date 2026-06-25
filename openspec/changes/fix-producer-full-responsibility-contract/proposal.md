@@ -10,12 +10,12 @@
   - активно управляет downstream changes;
   - работает источником истины для подчинённых changes.
 - Убирается системное предположение, что producer обязан передавать ownership в отдельный `dispatcher`.
-- `dispatcher` становится опциональным downstream helper change:
-  - он может помогать тактике;
+- `dispatcher` становится отдельным tactical child соответствующего `focus`, а не producer:
+  - он может помогать тактике и спорить с producer по delivery;
   - но не обязан существовать для каждой producer-линии;
   - и не снимает полную ответственность с producer.
 - Допускается прямое `parent_change` от `implement/fix` к `producer`.
-- Допускается `parent_change` от `dispatcher` к `producer`, если нужен вспомогательный тактический слой.
+- Producer и dispatcher одной focus-линии работают в конструктивной конкуренции и не выражают связь через `parent_change`.
 - Для producer отдельно фиксируется, что формализованные requirements/scenarios не обязательны на старте и могут рождаться из roadmap.
 
 ## Capabilities
@@ -32,6 +32,7 @@
 
 - Затрагиваются `openspec/specs/admin-tools/spec.md`, agent-facing инструкции, OpenSpec tooling и unit-тесты governance-слоя.
 - Новые чаты и инструменты `os:*` получают согласованную модель producer ownership.
+- Финальная topology dispatcher уточняется follow-up change `fix-dispatcher-focus-topology-contract`: dispatcher остаётся child `focus`, а producer-конкуренция выражается через roadmap и delivery pressure.
 - Install-critical инфраструктура не меняется.
 
 ## Acceptance Criteria
@@ -40,6 +41,7 @@
 - `traceability` и `os:*` допускают прямой `parent_change` на producer для downstream changes там, где это соответствует ownership-модели.
 - AGENTS-инструкции явно запрещают сомневаться в нормальности producer с полной ответственностью за несколько направлений сразу.
 - Зафиксировано, что формализованные requirements/scenarios для producer не обязательны на старте.
+- Явно снята двусмысленность между producer ownership и dispatcher topology через follow-up правило `dispatcher -> focus`.
 
 ## Тестовая часть change
 
@@ -47,7 +49,7 @@
   - capability: `admin-tools`
   - scenario: producer ведёт собственный roadmap и управляет линией как полный owner
   - scenario: implement/fix напрямую подчиняется producer
-  - scenario: dispatcher подчиняется producer напрямую
+  - scenario: dispatcher подчиняется focus напрямую
 - Уровень проверки: `static/contract` + `unit`.
 - Команды запуска:
   - `npm run test:traceability`

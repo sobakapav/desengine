@@ -108,7 +108,7 @@ function SandpackRuntimeDiagnosticsNotice({ payload }: { payload: SandpackPrevie
     return (
         <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
             <p className="font-medium">
-                Sandpack runtime: {payload.project.settings.uiKitId}, режим {payload.project.settings.uiMode}
+                Sandpack runtime: {payload.project.settings.uiKitId}
             </p>
             <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
             {payload.debug ? (
@@ -613,8 +613,8 @@ function PreviewContent({ error, loading, moduleUrl, previewPayload, previewSess
 function OutRender({ task, started, reloadKey, startStatus, project }: OutRenderProps) {
     const previewProject = project ?? createDefaultProject(`task-${task}`);
     const previewSessionId = useMemo(
-        () => `task:${task}:reload:${reloadKey}:project:${previewProject.id}:ui:${previewProject.settings.uiKitId}:${previewProject.settings.uiMode}`,
-        [previewProject.id, previewProject.settings.uiKitId, previewProject.settings.uiMode, reloadKey, task],
+        () => `task:${task}:reload:${reloadKey}:project:${previewProject.id}:ui:${previewProject.settings.uiKitId}`,
+        [previewProject.id, previewProject.settings.uiKitId, reloadKey, task],
     );
     const moduleUrl = useMemo(
         () => {
@@ -624,12 +624,11 @@ function OutRender({ task, started, reloadKey, startStatus, project }: OutRender
                 projectId: previewProject.id,
                 projectTitle: previewProject.title,
                 uiKitId: previewProject.settings.uiKitId,
-                uiMode: previewProject.settings.uiMode,
                 previewSessionId,
             });
             return `/api/tasks/${task}/sandpack?${params.toString()}`;
         },
-        [previewProject.id, previewProject.title, previewProject.settings.uiKitId, previewProject.settings.uiMode, previewSessionId, task, reloadKey],
+        [previewProject.id, previewProject.title, previewProject.settings.uiKitId, previewSessionId, task, reloadKey],
     );
     const { error, loading, previewPayload } = usePreviewPayload({ moduleUrl, started });
 

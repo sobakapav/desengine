@@ -43,9 +43,9 @@ export function WorkbenchProjectLoadingState() {
     return (
         <div className="rounded-md border bg-muted/30 p-3">
             <div className="space-y-2 rounded-xl border border-black/10 bg-white/80 p-3">
-                <p className="text-sm font-medium">Project workspace</p>
+                <p className="text-sm font-medium">Проект работы</p>
                 <p className="text-sm text-muted-foreground">
-                    Загружаем active project из локального registry. До завершения загрузки preview и project-dependent actions временно недоступны.
+                    Загружаем активный проект из локального списка. До завершения загрузки предпросмотр и действия проекта временно недоступны.
                 </p>
             </div>
         </div>
@@ -128,9 +128,9 @@ export function WorkbenchProjectSettings({
         <div className="rounded-md border bg-muted/30 p-3">
             <div className="space-y-3">
                 <div className="space-y-1">
-                    <p className="text-sm font-medium">Project workspace</p>
+                    <p className="text-sm font-medium">Проект работы</p>
                     <p className="text-xs text-muted-foreground">
-                        Active project выбирается из registry и управляет preview-контрактом лаборатории. Смена `uiKitId` запускает project migration и переинициализирует текущий уровень под новый contract.
+                        Активный проект задаёт рабочий контекст предпросмотра. Если сменить `UI kit`, текущую работу нужно будет заново пройти уже в новом проектном контексте.
                     </p>
                 </div>
 
@@ -138,7 +138,7 @@ export function WorkbenchProjectSettings({
                     <div className="space-y-3 rounded-xl border border-black/10 bg-white/80 p-3">
                         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
                             <label className="flex flex-col gap-1 text-sm">
-                                <span className="text-xs text-muted-foreground">Active project</span>
+                                <span className="text-xs text-muted-foreground">Активный проект</span>
                                 <select
                                     className="h-9 rounded-md border bg-background px-3 text-sm"
                                     value={project.id}
@@ -199,7 +199,7 @@ export function WorkbenchProjectSettings({
                             </select>
                         </label>
                         <div className="rounded-md border border-black/10 bg-background/70 px-3 py-2 text-xs text-muted-foreground">
-                            Preview меняет настройки через canonical `ProjectWorkspace.settings`, а migration status сохраняется в самом проекте.
+                            Настройки предпросмотра берутся из настроек проекта, а состояние переключения сохраняется в самом проекте.
                         </div>
                     </div>
                 </div>
@@ -212,9 +212,9 @@ export function WorkbenchProjectSettings({
                 <AlertDialog open={uiKitDialogOpen} onOpenChange={setUiKitDialogOpen}>
                     <AlertDialogContent size="sm">
                         <AlertDialogHeader>
-                            <AlertDialogTitle>Запустить project migration?</AlertDialogTitle>
+                            <AlertDialogTitle>Переключить проект на другой UI kit?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                UI kit переключится на {pendingUiKitTitle}, а текущий уровень будет сброшен к стартовому состоянию и потребует повторного прохождения.
+                                UI kit переключится на {pendingUiKitTitle}, а текущая работа вернётся к стартовому состоянию и потребует повторного прохождения.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -231,7 +231,7 @@ export function WorkbenchProjectSettings({
                                     void handleMigrationConfirm();
                                 }}
                             >
-                                {projectActionPending ? "Выполняем migration…" : "Подтвердить migration"}
+                                {projectActionPending ? "Переключаем UI kit…" : "Подтвердить переключение"}
                             </AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
@@ -261,7 +261,7 @@ export function WorkbenchProjectMigrationStatus({ project }: { project: Project 
     return (
         <div className={`rounded-2xl border p-3 text-sm ${toneClassName}`}>
             <p className="font-medium">
-                Migration проекта: {project.migration.sourceUiKitId} → {project.migration.targetUiKitId}
+                Переключение UI kit проекта: {project.migration.sourceUiKitId} → {project.migration.targetUiKitId}
             </p>
             <p className="mt-1 whitespace-pre-wrap">{project.migration.message}</p>
         </div>

@@ -18,11 +18,10 @@ import { snapshotUserState, type UserStateSnapshotEntry } from "./fixtures/smoke
 const fixtureAccessEnabled = process.env.DESENGINE_E2E_FIXTURE_ACCESS === "1"
 const fixtureAccessSalt = resolveFixtureAccessSalt()
 const taskId = "dipole-checkbox"
-const previewSessionId = "task:dipole-checkbox:reload:0:project:task-dipole-checkbox:ui:shadcn:ui-kit"
+const previewSessionId = "task:dipole-checkbox:reload:0:project:task-dipole-checkbox:ui:shadcn"
 
 function buildProjectStorageValue(overrides: {
   uiKitId: "shadcn" | "none" | "ant"
-  uiMode: "ui-kit" | "html-tags"
 }) {
   const now = "2026-06-01T00:00:00.000Z"
 
@@ -117,7 +116,6 @@ async function authorizeFixtureTask(context: BrowserContext, baseURL: string | u
 
 async function seedProjectStorage(page: Page, overrides: {
   uiKitId: "shadcn" | "none" | "ant"
-  uiMode: "ui-kit" | "html-tags"
 }) {
   const projectId = `task-${taskId}`
   const storageKey = `desengine:project:${taskId}`
@@ -188,7 +186,7 @@ test.describe("preview check parity", () => {
 }
 `)
     await authorizeFixtureTask(context, baseURL)
-    await seedProjectStorage(page, { uiKitId: "shadcn", uiMode: "ui-kit" })
+    await seedProjectStorage(page, { uiKitId: "shadcn" })
 
     await page.goto(`/lab/${taskId}`)
     const checkButton = page.getByRole("button", { name: "Проверить результат" })

@@ -52,10 +52,11 @@ async function runStartTaskLevelMutation(
   taskId: string,
   startedAt: number,
   project: Project,
+  activeFileId?: string | null,
 ): Promise<TaskActionHttpResult> {
   console.log("[desengine][task-start] start", { taskId })
 
-  const loaded = await loadStartRuntimeContext(taskId, project)
+  const loaded = await loadStartRuntimeContext(taskId, project, activeFileId)
   if ("response" in loaded) {
     return finalizeStartResult(loaded.response, {
       scope: "task",
@@ -269,12 +270,19 @@ async function runStartTaskLevelMutation(
 }
 
 export const taskStartAction = {
-  async startTaskLevel(taskId: string, project?: Project): Promise<TaskActionHttpResult> {
+  async startTaskLevel(
+    taskId: string,
+    project?: Project,
+    activeFileId?: string | null,
+  ): Promise<TaskActionHttpResult> {
     const resolvedProject = await resolveTaskProject(taskId, project)
     const mutationScopeKey = buildTaskMutationScopeKey(taskId, resolvedProject.id)
 
     try {
-      return await runTaskMutation(mutationScopeKey, () => runStartTaskLevelMutation(taskId, Date.now(), resolvedProject))
+      return await runTaskMutation(
+        mutationScopeKey,
+        () => runStartTaskLevelMutation(taskId, Date.now(), resolvedProject, activeFileId),
+      )
     } catch (error) {
       if (!isTaskMutationOverloadError(error)) {
         throw error

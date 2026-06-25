@@ -17,6 +17,9 @@ type StartInstructionInput = {
   levelStartPrompt: string
   levelNumber: number
   imagesText: string
+  workflowPointText: string
+  targetFilesText: string
+  supportingFilesText: string
   allowedFilesText: string
   relevantCurrentFilesText: string
 }
@@ -38,16 +41,22 @@ export const taskStartLlm = {
       input.levelIteratePrompt,
       input.levelStartPrompt,
       taskText,
+      input.workflowPointText,
       `КАРТИНКИ ТЕКУЩЕГО УРОВНЯ:
 ${input.imagesText}`,
-      `## Разрешённые файлы результата
-${input.allowedFilesText}
+      `## Целевые файлы этой генерации
+${input.targetFilesText}
 
 Верни полный набор файлов строго по этим ключам:
-${input.allowedFilesText}
+${input.targetFilesText}
 
 Значение каждого ключа должно быть полным текстовым содержимым соответствующего файла.
 Нельзя возвращать имя файла, fileId, короткую заглушку или пояснение вместо кода.`,
+      input.supportingFilesText
+        ? `## Поддерживающий контекст
+Эти файлы уже существуют в рабочем наборе и могут влиять на связность результата, но не являются обязательной целью этой генерации:
+${input.supportingFilesText}`
+        : "",
       input.already && input.relevantCurrentFilesText
         ? `ТЕКУЩИЙ ПОЛЕЗНЫЙ КОНТЕКСТ ИЗ УЖЕ СУЩЕСТВУЮЩИХ ФАЙЛОВ:
 ${input.relevantCurrentFilesText}`
@@ -59,13 +68,17 @@ ${input.relevantCurrentFilesText}`
   },
   buildFileContext(
     outputFiles: OutputFile[],
+    supportingFiles: OutputFile[],
     contentByFileId: Record<string, string>,
   ) {
     const allowedFilesText = taskActionShared.formatAllowedFilesText(outputFiles)
     const relevantCurrentFiles = taskActionShared.getRelevantCurrentFiles(outputFiles, contentByFileId)
+    const supportingFilesText = taskActionShared.formatAllowedFilesText(supportingFiles)
 
     return {
       allowedFilesText,
+      targetFilesText: allowedFilesText,
+      supportingFilesText,
       relevantCurrentFilesText: taskActionShared.formatFilesContextText(relevantCurrentFiles),
     }
   },

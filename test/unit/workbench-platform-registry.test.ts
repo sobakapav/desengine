@@ -74,8 +74,8 @@ describe("workbench platform registry", () => {
       id: LAB_WORKBENCH_DEFINITION_ID,
       title: "Рабочая поверхность компонента",
       profileId: LAB_WORKBENCH_PROFILE_ID,
-      supportedTaskTypes: ["level-lab"],
-      supportedWorkflowStepKinds: ["level-lab"],
+      supportedTaskTypes: ["level-lab", "image-to-component-workflow"],
+      supportedWorkflowStepKinds: ["level-lab", "image-to-component-workflow"],
       stateVersion: "1",
     })
     expect(labWorkbenchDefinition.toolIds).toEqual(labWorkbenchTools.map((tool) => tool.id))
@@ -159,7 +159,7 @@ describe("workbench platform registry", () => {
     const instance = createLabWorkbenchInstance({
       projectId: "project-42",
       taskId: "intro",
-      workflowStepId: "workflow-step:intro:level-lab:1",
+      workflowStepId: "workflow-step:intro:image-to-component:run",
       artifacts,
       activeFileId: "component",
     })
@@ -169,7 +169,7 @@ describe("workbench platform registry", () => {
       definitionId: LAB_WORKBENCH_DEFINITION_ID,
       projectId: "project-42",
       taskId: "intro",
-      workflowStepId: "workflow-step:intro:level-lab:1",
+      workflowStepId: "workflow-step:intro:image-to-component:run",
       artifactBindings: {
         "code:component": "artifact:intro:file:component",
         "source-image:artifact:intro:image:base": "artifact:intro:image:base",
@@ -189,7 +189,7 @@ describe("workbench platform registry", () => {
     const instance = createLabWorkbenchInstance({
       projectId: "project-42",
       taskId: "intro",
-      workflowStepId: "workflow-step:intro:level-lab:1",
+      workflowStepId: "workflow-step:intro:image-to-component:run",
       artifacts,
     })
     const serialized = stringifyWorkbenchInstance(instance)
@@ -222,9 +222,14 @@ describe("workbench platform registry", () => {
     expect(promptRuntime).toContain("WorkbenchInstance")
     expect(promptRuntime).toContain("workbenchInstances.find")
     expect(workbenchSurface).toContain("buildTaskWorkflowArtifactProjection")
+    expect(workbenchSurface).toContain("workflowPoints")
+    expect(workbenchSurface).toContain("selectedWorkflowPointId")
+    expect(workbenchSurface).toContain("primaryFileId")
     expect(workbenchSurface).toContain("getWorkbenchDefinition")
     expect(workbenchSurface).toContain("labWorkbenchRegistry")
     expect(workbenchSurfaceSummary).toContain("project -&gt; task -&gt; workflow step -&gt; workbench")
+    expect(workbenchSurfaceSummary).toContain("Пункты workflow")
+    expect(workbenchSurfaceSummary).toContain("onSelectWorkflowPoint")
     expect(workbenchSurfaceSummary).toContain("Workbench")
   })
 })

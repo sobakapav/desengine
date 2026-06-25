@@ -200,26 +200,27 @@ Budget write-set SHALL измеряться по количеству файло
 
 ### Requirement: Sandpack preview использует настройки проекта
 
-Система SHALL собирать Sandpack preview с учётом `project.settings.uiKitId` и `project.settings.uiMode`, чтобы preview можно было переключать на уровне проекта без смены глобального стека.
+Система SHALL собирать Sandpack preview с учётом `project.settings.uiKitId`, чтобы preview можно было переключать на уровне проекта без смены глобального стека.
 
 #### Scenario: Sandpack preview использует project.uiKitId
-- **WHEN** клиент запрашивает Sandpack payload с `project.settings.uiKitId` и `project.settings.uiMode=ui-kit`
+- **WHEN** клиент запрашивает Sandpack payload с `project.settings.uiKitId`
 - **THEN** preview builder подключает UI kit из project settings
 - **AND** список kit'ов берётся из единого Sandpack UI kit config
-- **AND** существующие shadcn/ui-импорты не заменяются html-tags fallback'ом
+- **AND** preview не вводит отдельный runtime-режим поверх выбранного UI kit
+
+#### Scenario: Prompt context использует project-level UI kit contract
+- **WHEN** для проекта выбран `uiKitId`
+- **THEN** prompt/render context использует тот же project-level contract
+- **AND** выбранный UI kit остаётся частью одного project source of truth
+- **AND** страница проекта может объяснить связь между project settings, prompt templates и preview runtime
 
 #### Scenario: Preview фиксирует exact installed версии runtime-зависимостей
 - **WHEN** preview builder собирает dependency graph для Sandpack payload
 - **THEN** прямые runtime-зависимости берутся по фактически установленным версиям пакетов, а не по плавающим semver-диапазонам из корневого `package.json`
 - **AND** payload не должен дрейфовать на несовместимый набор UI runtime-пакетов при повторной установке preview-зависимостей
 
-#### Scenario: Режим html-tags работает без UI kit
-- **WHEN** `project.settings.uiMode=html-tags` и `project.settings.uiKitId=none`
-- **THEN** Sandpack payload содержит только базовые React-зависимости
-- **AND** HTML JSX-теги рендерятся без дополнительных UI kit-пакетов
-
 #### Scenario: Preview показывает безопасный fallback при несовместимости проекта
-- **WHEN** компонент использует UI kit-импорты или абстрактные JSX-компоненты в режиме `html-tags`
+- **WHEN** компонент использует импорты, несовместимые с выбранным UI kit проекта
 - **THEN** preview builder возвращает безопасный fallback-компонент и статус несовместимости
 - **AND** лаборатория продолжает работать
 
@@ -258,6 +259,20 @@ Budget write-set SHALL измеряться по количеству файло
 #### Scenario: Система рендерит шаблонную task-specific подсказку уровня
 - **WHEN** в каталоге задачи есть `levels/<levelId>/tip.njk`
 - **THEN** runtime рендерит подсказку через общий Nunjucks template runtime
+
+### Requirement: Задача показывает свой project binding
+
+Система SHALL показывать пользователю, к какому проекту относится задача, и давать явный переход в этот проект.
+
+#### Scenario: Пользователь видит проект задачи
+- **WHEN** пользователь открывает список задач или страницу конкретной задачи
+- **THEN** система показывает связанный проект для этой задачи
+- **AND** project binding не скрыт как внутренняя runtime-деталь
+
+#### Scenario: Пользователь возвращается из задачи в проект
+- **WHEN** пользователь нажимает на project binding задачи
+- **THEN** система открывает страницу соответствующего проекта
+- **AND** не теряет project-aware контекст в пользовательском flow
 - **AND** template context содержит данные задачи и уровня
 
 #### Scenario: Шаблонная task-specific подсказка учитывает выбранный UI kit проекта
@@ -265,6 +280,12 @@ Budget write-set SHALL измеряться по количеству файло
 - **AND** подсказка уровня описана как `tip.njk`
 - **THEN** Workbench запрашивает подсказку с текущими настройками проекта
 - **AND** template context содержит название выбранного UI kit
+
+#### Scenario: Шаблонная task-specific подсказка учитывает выбранный workflow-пункт
+- **WHEN** подсказка уровня описана как `tip.njk`
+- **AND** пользователь работает с конкретным workflow-пунктом или active file
+- **THEN** template context содержит `workflow.focusPointTitle`
+- **AND** template context содержит `workflow.primaryFileId`
 
 #### Scenario: Шаблонная подсказка имеет приоритет над статичной
 - **WHEN** в каталоге задачи есть и `tip.njk`, и `tip.md`

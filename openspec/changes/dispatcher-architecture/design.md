@@ -9,7 +9,7 @@ Producer фиксирует архитектурную трансформаци�
 - именование не всегда помогает быстро понять, к какой архитектурной части относится код;
 - ADR и живая карта архитектуры пока не имеют тактического владельца.
 
-Содержательный пробел текущей версии dispatcher в том, что он уже описан как tactical owner producer-линии, но metadata всё ещё ставят его как обычный дочерний change `focus-tech`. Из-за этого ownership читается неявно: implementation plan producer'а упомянут словами, но не закреплён в lineage и roadmap-ссылках.
+Содержательный пробел текущей версии dispatcher в том, что часть артефактов пытается подчинить его producer-линии, хотя в рабочей topology dispatcher должен оставаться обычным дочерним change `focus-tech`. Иначе исчезает полезная управленческая конкуренция между producer и dispatcher, а ownership начинает читаться как ложная иерархия.
 
 ## Goals
 
@@ -31,11 +31,11 @@ Producer фиксирует архитектурную трансформаци�
    - как связывать карту с кодом;
    - как маршрутизировать изменения, которые меняют архитектурные границы.
 
-2. Producer ownership выражается структурно, а не только текстом:
-   - `parent_change=producer-architecture-transform` фиксирует, что dispatcher тактически подчинён producer-линии;
+2. Producer и dispatcher выражаются как соседние управляющие силы одной focus-линии:
+   - `parent_change=focus-tech` фиксирует, что dispatcher остаётся обычным tactical child focus-линии;
    - `strategy_root=focus-tech` сохраняет принадлежность общей technical strategy;
    - `roadmap_ref=focus-tech/roadmaps/architecture-transformation.md` оставляет стратегический roadmap корня;
-   - `roadmap_refs` дополняется ссылкой на `producer-architecture-transform/roadmaps/architecture-implementation.md`, чтобы operational backlog был виден прямо из metadata.
+   - `roadmap_refs` дополняется ссылкой на `producer-architecture-transform/roadmaps/architecture-implementation.md`, чтобы producer pressure и operational backlog были видны прямо из metadata без ложного parentage.
 
 3. Dispatcher не заменяет предметные линии.
    Если downstream change явно относится к runtime, dataflow или log-system, dispatcher-architecture не становится его универсальным заменителем. Он нужен для тех changes, где главная тема — сама архитектурная граница.
@@ -62,7 +62,7 @@ Dispatcher обязан удерживать:
   -> Mitigation: держать в нём только вопросы карты, ADR, именования, модульных границ и architecture-facing changes.
 
 - [Риск] Producer и dispatcher начнут расходиться в трактовке архитектуры.
-  -> Mitigation: считать producer стратегическим owner, а dispatcher tactical owner одной и той же картины и выражать это через прямой `parent_change`, а не только через текстовые договорённости.
+  -> Mitigation: считать такое расхождение допустимым управленческим сигналом внутри одной focus-линии, фиксировать его через roadmap и downstream decisions, а не прятать под ложным `parent_change`.
 
 ## Open Questions
 

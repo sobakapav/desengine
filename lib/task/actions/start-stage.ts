@@ -44,7 +44,12 @@ async function buildStartLlmInput(context: StartRuntimeContext): Promise<StartLl
     readTaskData(context.taskItem, context.labContext, context.project),
   ])
 
-  const outputFiles = getLevelEditableWorkbenchFiles(context.labContext.editableFileIds)
+  const editableFiles = getLevelEditableWorkbenchFiles(context.labContext.editableFileIds)
+  const generationScope = taskActionShared.resolveWorkflowPointGenerationScope({
+    activeFileId: context.activeFileId,
+    editableFiles,
+  })
+  const outputFiles = generationScope.targetFiles
   const fileList = outputFiles.map((file) => ({ id: file.id, fileName: file.fileName }))
   const promptContext = buildTaskRuntimePromptContext({
     taskId: context.taskItem.id,
@@ -54,18 +59,33 @@ async function buildStartLlmInput(context: StartRuntimeContext): Promise<StartLl
     project: context.project,
     taskData,
     taskItem: context.taskItem,
-    workbenchFiles: outputFiles.map((file) => ({
+    workbenchFiles: editableFiles.map((file) => ({
       ...file,
       title: file.fileName,
       edit: true,
     })),
+    activeFileId: context.activeFileId,
     constraints: ["structured-json-files", "allowed-workbench-files-only"],
     providerCapabilities: ["vision", "structured-output"],
   })
-  const fileContext = taskStartLlm.buildFileContext(fileList, taskData.contentByFileId)
   const imagesText = context.promptImages
     .map((image) => `- ${image.id}.png — ${image.width}x${image.height}`)
     .join("\n")
+  const workflowPointText = promptContext.workflowPoint
+    ? [
+      `Фокус текущей workflow-сессии: ${promptContext.workflowPoint.title}.`,
+      `Связанные файлы: ${promptContext.workflowPoint.fileIds.join(", ")}.`,
+      promptContext.workflowPoint.primaryFileId
+        ? `Главный файл для этой итерации: ${promptContext.workflowPoint.primaryFileId}.`
+        : "",
+      "Сначала доведи этот артефакт до рабочего состояния, затем синхронизируй остальные файлы настолько, насколько это нужно для целостного рендера.",
+    ].filter(Boolean).join("\n")
+    : ""
+  const fileContext = taskStartLlm.buildFileContext(
+    fileList,
+    generationScope.supportingFiles.map((file) => ({ id: file.id, fileName: file.fileName })),
+    taskData.contentByFileId,
+  )
 
   return {
     taskData,
@@ -78,6 +98,7 @@ async function buildStartLlmInput(context: StartRuntimeContext): Promise<StartLl
       levelStartPrompt: levelInitPrompt,
       levelNumber: promptContext.renderContext.level?.number ?? context.level.number,
       imagesText,
+      workflowPointText,
       ...fileContext,
     }),
   }

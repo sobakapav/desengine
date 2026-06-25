@@ -34,11 +34,24 @@
    - отдельный `workbench` / preview binding;
    - тяжёлая migration-операция при смене project `UI kit`.
 
-3. Dispatcher обязан сверяться с `producer-architecture-transform`.
+3. После foundation/runtime-волн project-линия должна быть проявлена в пользовательском мире отдельными project-facing slices, а не оставаться скрытой внутри Workbench:
+   - navigation/page foundation для раздела `Проекты`;
+   - project/task assignment visibility;
+   - project config и `UI kit` contract surface;
+   - project history/diagnostics surface;
+   - read-only workflow/artifact readout.
+
+   Пока текущим приоритетом считаются только navigation/page foundation, project/task assignment visibility и read-only workflow/artifact readout, потому что именно они помогают удержать основную цепочку `проект -> workflow -> проверка/чеклист -> результат`. Project config и history/diagnostics остаются следующей волной.
+
+4. Dispatcher обязан сверяться с `producer-architecture-transform`.
    Это значит:
    - `Project` трактуется как явная product/architecture boundary;
    - project shape не должен плодиться в нескольких несовместимых формах;
    - downstream changes должны оставлять после себя читаемый contract и test traceability.
+
+5. До отдельного producer-level решения dispatcher держит жёсткий текущий приоритет:
+   - `проект -> workflow -> проверка/чеклист -> результат`;
+   - всё, что не помогает выровнять эту цепочку прямо сейчас, считается отложенным.
 
 ## Risks / Trade-offs
 
@@ -51,4 +64,4 @@
 ## Open Questions
 
 - Когда project-линия созреет для отдельного dispatcher под project-level integrations (`LLM`, `Figma`, `Git/GitHub`).
-- Нужно ли после первой волны выделять project selection/navigation в отдельный downstream change или оставить его частью workspace boundary.
+- После появления раздела `Проекты` нужно ли выделять отдельный tactical owner для project-level content surfaces или current `dispatcher-project` остаётся достаточным центром координации.

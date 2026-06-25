@@ -6,6 +6,7 @@ import { requireAccessOrRedirect } from "@/lib/auth/server"
 import { getLabUrl } from "@/lib/lab/navigation"
 import { getLevelOverview, getTaskLabContext, getTaskListItemById } from "@/lib/system/server"
 import { getDefaultCodeScreen, isAccessibleCodeScreen } from "@/lib/lab/editor"
+import { normalizeProject } from "@/lib/project/runtime"
 import { buildCurrentTaskScreenData } from "@/lib/task/task-screen-data"
 
 type Params = {
@@ -20,11 +21,14 @@ type Params = {
  */
 export default async function LabTaskPage({
   params,
+  searchParams,
 }: {
   params: Promise<Params>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const { taskId } = await params
   const canonicalPath = getLabUrl(taskId)
+  const resolvedSearchParams = await searchParams
 
   await requireAccessOrRedirect(canonicalPath)
 
@@ -46,7 +50,22 @@ export default async function LabTaskPage({
     redirect(getLabUrl(taskId, allowedScreens[0]))
   }
 
-  const { taskData } = await buildCurrentTaskScreenData({ taskId, taskItem, labContext })
+  const hasProjectContext = ["projectId", "projectTitle", "uiKitId"]
+    .some((key) => {
+      const value = resolvedSearchParams[key]
+      return typeof value === "string" ? value.trim().length > 0 : Array.isArray(value) && value[0]?.trim().length > 0
+    })
+  const project = hasProjectContext
+    ? normalizeProject({
+      id: typeof resolvedSearchParams.projectId === "string" ? resolvedSearchParams.projectId : `task-${taskId}`,
+      title: typeof resolvedSearchParams.projectTitle === "string" ? resolvedSearchParams.projectTitle : `Проект ${taskId}`,
+      settings: {
+        uiKitId: typeof resolvedSearchParams.uiKitId === "string" ? resolvedSearchParams.uiKitId : undefined,
+      },
+    })
+    : undefined
+
+  const { taskData } = await buildCurrentTaskScreenData({ taskId, taskItem, labContext, project })
   const levelOverview = await getLevelOverview(taskItem.progress.currentLevelId)
 
   return (

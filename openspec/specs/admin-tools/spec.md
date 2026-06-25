@@ -159,7 +159,7 @@
 - **AND** сам change обновляет собственные текстовые упоминания старого имени
 - **AND** metadata-ссылки `parent_change`, `strategy_root`, `roadmap_ref`, `roadmap_refs`, `release_ref`, `producer_ref` в других changes указывают на новое имя
 
-### Requirement: Стратегические changes владеют roadmap, а dispatcher только потребляет их
+### Requirement: Стратегические changes владеют roadmap, а dispatcher потребляет их в орбите своего focus
 
 Система SHALL хранить roadmap-документы в стратегических changes (`focus`, `idea`, `producer`) и запрещать локальные roadmap как источник истины для dispatcher.
 
@@ -171,13 +171,13 @@
 #### Scenario: Dispatcher ссылается на унаследованный roadmap
 - **WHEN** metadata dispatcher содержит `roadmap_ref`
 - **THEN** значение имеет вид `<strategic-change>/roadmaps/<file>.md`
-- **AND** `<strategic-change>` является стратегическим предком dispatcher или его `strategy_root`
+- **AND** `<strategic-change>` принадлежит той же focus-орбите, что и dispatcher
 - **AND** файл roadmap существует у указанного владельца
 
 #### Scenario: Dispatcher использует несколько roadmap
 - **WHEN** одному dispatcher нужны несколько стратегических контекстов
 - **THEN** metadata change использует `roadmap_refs` как список ссылок вида `<strategic-change>/roadmaps/<file>.md`
-- **AND** каждая ссылка проходит ту же проверку наследования и существования файла
+- **AND** каждая ссылка проходит ту же проверку focus-орбиты и существования файла
 
 ### Requirement: Producer ведёт собственный roadmap и работает как полный owner линии
 
@@ -193,10 +193,11 @@
 - **THEN** система считает producer полным owner этой исполнительской линии
 - **AND** не требует обязательного промежуточного dispatcher только ради разделения ответственности
 
-#### Scenario: Producer создаёт вспомогательный dispatcher без потери ownership
-- **WHEN** producer-change инициирует follow-up работу
-- **THEN** он MAY создать downstream dispatcher как тактический helper change
-- **AND** такой dispatcher не отменяет, что producer остаётся владельцем смысла, roadmap и управленческого контура линии
+#### Scenario: Producer работает рядом с dispatcher без иерархического подчинения
+- **WHEN** в одной focus-линии одновременно существуют producer и dispatcher
+- **THEN** producer остаётся owner смысла, roadmap и управленческого контура линии
+- **AND** dispatcher остаётся отдельным tactical child этого же `focus`
+- **AND** расхождение producer и dispatcher по тактике трактуется как допустимый управленческий сигнал, а не как ошибка topology
 
 #### Scenario: Producer появляется раньше формализованных требований и сценариев
 - **WHEN** создаётся producer-change для большой линии трансформации
@@ -233,15 +234,15 @@
 - **THEN** статическая проверка считает это допустимым способом выразить полный producer ownership
 - **AND** `producer_ref` может отсутствовать, если producer уже выражен через `parent_change`
 
-#### Scenario: Dispatcher подчиняется producer напрямую
-- **WHEN** metadata dispatcher содержит `parent_change` на producer
-- **THEN** статическая проверка OpenSpec metadata считает такую связь допустимой
-- **AND** producer остаётся owner линии, даже если часть тактики ведёт этот dispatcher
+#### Scenario: Dispatcher подчиняется focus напрямую
+- **WHEN** metadata dispatcher содержит `parent_change`
+- **THEN** `parent_change` указывает на change с `change_kind=focus`
+- **AND** producer этой же линии, если он существует, выражается отдельным strategic roadmap-контекстом, а не иерархическим parent
 
 #### Scenario: Dispatcher не может хранить producer-контекст
 - **WHEN** metadata dispatcher содержит `producer_ref`
 - **THEN** статическая проверка OpenSpec metadata завершается ошибкой
-- **AND** producer ownership для dispatcher должен выражаться через `parent_change`, а не через отдельную контекстную метку
+- **AND** producer-контекст для dispatcher должен выражаться через roadmap и общую focus-орбиту, а не через отдельную metadata-метку
 
 ### Requirement: Контекст исполнения показывает parent change и producer ownership
 

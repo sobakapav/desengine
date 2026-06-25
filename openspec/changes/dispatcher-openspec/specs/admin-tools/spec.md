@@ -156,10 +156,10 @@
 - **THEN** `producer_ref` указывает на change с `change_kind=producer`
 - **AND** этот producer-контекст не заменяет `parent_change`
 
-#### Scenario: Dispatcher не подчиняется producer напрямую
+#### Scenario: Dispatcher подчиняется focus напрямую
 - **WHEN** metadata change содержит `change_kind=dispatcher`
-- **AND** `parent_change` указывает на producer
-- **THEN** статическая проверка завершается ошибкой
+- **AND** указан `parent_change`
+- **THEN** `parent_change` указывает на change с `change_kind=focus`
 - **AND** producer-контекст не должен быть выражен через `parent_change`
 
 #### Scenario: Fix получает producer-контекст

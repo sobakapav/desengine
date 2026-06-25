@@ -11,7 +11,7 @@ import { getLevelUrl } from "@/lib/level/navigation";
 import { normalizeProject, type Project } from "@/lib/project/runtime";
 import { createBrowserProjectStorage } from "@/lib/project/storage";
 import type { TaskCheckResult, TaskData, TaskListItem, TaskTransition } from "@/lib/task/types";
-import { postTaskStart } from "../task-client-boundary";
+import { postTaskStart, readProjectFromTaskUrl } from "../task-client-boundary";
 import {
     buildLabTaskScreenEvent,
     changeLabTaskScreenEventInput,
@@ -26,6 +26,11 @@ type TaskRouteProps = {
 };
 
 async function readStoredProject(taskId: string): Promise<Project> {
+    const urlProject = readProjectFromTaskUrl(taskId);
+    if (urlProject) {
+        return urlProject;
+    }
+
     const fallbackProject = normalizeProject({
         id: `task-${taskId}`,
         title: `Проект ${taskId}`,
@@ -66,7 +71,7 @@ function TaskRoute({ initTaskItem, initTaskData }: TaskRouteProps) {
         setStartError("");
 
         const project = await readStoredProject(taskItem.id);
-        const res = await postTaskStart(taskItem.id, project);
+        const res = await postTaskStart(taskItem.id, project, screenInput.activeScreen);
         const data = await res.json().catch(() => null);
 
         if (!res.ok || !data?.ok) {

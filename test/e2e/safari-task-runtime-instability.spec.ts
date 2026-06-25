@@ -21,7 +21,6 @@ const fixtureAccessSalt = resolveFixtureAccessSalt()
 
 function buildProjectStorageValue(taskId: string, overrides: {
   uiKitId: "shadcn" | "none" | "ant"
-  uiMode: "ui-kit" | "html-tags"
 }) {
   const now = "2026-06-01T00:00:00.000Z"
 
@@ -107,7 +106,6 @@ async function authorizeFixtureTask(context: BrowserContext, baseURL: string | u
 
 async function seedProjectStorage(page: Page, taskId: string, overrides: {
   uiKitId: "shadcn" | "none" | "ant"
-  uiMode: "ui-kit" | "html-tags"
 }) {
   const projectId = `task-${taskId}`
   const storageKey = `desengine:project:${taskId}`
@@ -168,7 +166,7 @@ test.describe("safari task runtime instability", () => {
 }
 `)
     await authorizeFixtureTask(context, baseURL)
-    await seedProjectStorage(page, "dipole-checkbox", { uiKitId: "shadcn", uiMode: "ui-kit" })
+    await seedProjectStorage(page, "dipole-checkbox", { uiKitId: "shadcn" })
 
     await page.goto("/lab/dipole-checkbox")
     await expect(page.locator(".sp-preview-iframe")).toBeVisible({ timeout: 20_000 })

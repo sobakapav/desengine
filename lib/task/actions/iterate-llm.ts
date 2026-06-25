@@ -15,10 +15,13 @@ type IterateInstructionInput = {
   defaultDidacticPrompt: string
   levelSpecifyPrompt: string
   commonExplanation: string
-  allowedFilesText: string
+  targetFilesText: string
+  supportingFilesText: string
   promptText: string
+  workflowPointText: string
   imagesText: string
-  selectedFilesText: string
+  targetFilesStateText: string
+  supportingFilesStateText: string
 }
 
 export const taskIterateLlm = {
@@ -35,11 +38,11 @@ ${args.levelSpecifyPrompt}
 ОБЩЕЕ ПОЯСНЕНИЕ УРОВНЯ:
 ${args.commonExplanation}
 
-## Разрешённые файлы
-${args.allowedFilesText}
+## Целевые файлы этой итерации
+${args.targetFilesText}
 
 Верни JSON только с ключами из этого списка:
-${args.allowedFilesText}
+${args.targetFilesText}
 
 Для каждого ключа верни одно из двух:
 - полный текст файла, если его нужно изменить;
@@ -50,11 +53,23 @@ ${args.allowedFilesText}
 ТЕКУЩИЙ УТОЧНЯЮЩИЙ ПРОМПТ ПОЛЬЗОВАТЕЛЯ:
 ${args.promptText}
 
+${args.workflowPointText}
+
+${args.supportingFilesText
+  ? `Поддерживающие файлы, которые уже существуют рядом и могут влиять на результат:
+${args.supportingFilesText}`
+  : ""}
+
 КАРТИНКИ ТЕКУЩЕГО УРОВНЯ:
 ${args.imagesText}
 
-В КОНТЕКСТ ЭТОЙ ИТЕРАЦИИ ВКЛЮЧЕНЫ ВСЕ РАЗРЕШЁННЫЕ РАБОЧИЕ ФАЙЛЫ:
-${args.selectedFilesText}
+ТЕКУЩЕЕ СОСТОЯНИЕ ЦЕЛЕВЫХ ФАЙЛОВ:
+${args.targetFilesStateText}
+
+${args.supportingFilesStateText
+  ? `ПОДДЕРЖИВАЮЩИЙ КОНТЕКСТ СОСЕДНИХ ФАЙЛОВ:
+${args.supportingFilesStateText}`
+  : ""}
 `.trim()
   },
   call(args: {

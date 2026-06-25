@@ -95,29 +95,22 @@ function roadmapRefsFromMetadata(metadata) {
   return refs
 }
 
-function strategicLineageForDispatcher(changeName, parentChange, strategyRoot, context) {
-  const lineage = new Set()
-  let current = parentChange
+function resolveFocusOrbit(changeName, context) {
+  const visited = new Set()
+  let current = changeName
 
-  while (current && context.allChangeNames.has(current)) {
+  while (current && context.allChangeNames.has(current) && !visited.has(current)) {
+    visited.add(current)
     const currentKind = context.changeKindsByName.get(current)
 
-    if (["focus", "idea", "producer"].includes(currentKind)) {
-      lineage.add(current)
+    if (currentKind === "focus") {
+      return current
     }
 
     current = context.parentByChangeName.get(current) || ""
   }
 
-  if (strategyRoot && context.allChangeNames.has(strategyRoot)) {
-    const strategyKind = context.changeKindsByName.get(strategyRoot)
-
-    if (["focus", "idea", "producer"].includes(strategyKind)) {
-      lineage.add(strategyRoot)
-    }
-  }
-
-  return lineage
+  return ""
 }
 
 function validateRoadmapInheritanceRules(changeName, parentChange, strategyRoot, roadmapRefs, context, errors) {
@@ -126,7 +119,7 @@ function validateRoadmapInheritanceRules(changeName, parentChange, strategyRoot,
     return
   }
 
-  const allowedOwners = strategicLineageForDispatcher(changeName, parentChange, strategyRoot, context)
+  const dispatcherFocus = resolveFocusOrbit(changeName, context) || resolveFocusOrbit(parentChange, context) || resolveFocusOrbit(strategyRoot, context)
 
   for (const ref of roadmapRefs) {
     const match = ref.match(/^([^/]+)\/(roadmaps\/.+\.md)$/)
@@ -150,8 +143,9 @@ function validateRoadmapInheritanceRules(changeName, parentChange, strategyRoot,
       errors.push(`${changeName}: roadmap owner должен быть стратегическим change: ${ownerChange}`)
     }
 
-    if (!allowedOwners.has(ownerChange)) {
-      errors.push(`${changeName}: roadmap owner ${ownerChange} должен быть стратегическим предком или strategy_root`)
+    const ownerFocus = resolveFocusOrbit(ownerChange, context)
+    if (!dispatcherFocus || !ownerFocus || ownerFocus !== dispatcherFocus) {
+      errors.push(`${changeName}: roadmap owner ${ownerChange} должен принадлежать той же focus-орбите, что и dispatcher`)
     }
 
     const absolutePath = context.changeDirByName.get(ownerChange)
@@ -179,6 +173,8 @@ function validateStrategicKindRules(changeName, changeKind, executionMode, paren
   }
   if (changeKind === "dispatcher" && !parentChange) {
     errors.push(`${changeName}: dispatcher change должен иметь parent_change`)
+  } else if (changeKind === "dispatcher" && context.changeKindsByName.get(parentChange) !== "focus") {
+    errors.push(`${changeName}: dispatcher change может иметь parent_change только на focus`)
   }
 }
 

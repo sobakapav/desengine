@@ -23,6 +23,13 @@ type PromptRenderContext = {
     labId?: string
     editableFileIds?: string[]
   }
+  workflow?: {
+    focusPointId?: string
+    focusPointKind?: string
+    focusPointTitle?: string
+    focusFileIds?: string[]
+    primaryFileId?: string | null
+  }
   project?: Record<string, unknown>
 }
 
@@ -32,6 +39,15 @@ type PromptContext = {
   workflowStep: WorkflowStepInstance
   artifacts: Artifact[]
   workbench?: WorkbenchInstance
+  workflowPoint?: {
+    id: string
+    stepId: string
+    kind: string
+    title: string
+    fileIds: string[]
+    primaryFileId: string | null
+    status: WorkflowStepInstance["status"]
+  }
   userText?: string
   constraints: string[]
   providerCapabilities: string[]

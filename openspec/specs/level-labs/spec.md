@@ -58,6 +58,11 @@
 - **AND** следующий active screen наблюдается потомком без второго параллельного пути состояния
 - **AND** MVP-реализация не расширяется на `check`, `done` и `transition`
 
+#### Scenario: Текущий lab level используется как legacy-bridge для workflow points
+- **WHEN** runtime ещё опирается на текущий `levelId`, `levelNumber` и active screen лаборатории
+- **THEN** эта level-модель может использоваться как legacy-bridge для workflow points
+- **AND** переход к workflow surface не требует немедленной миграции storage уровня
+
 ### Requirement: Уровень 1 имеет собственную лабораторию
 
 Система SHALL предоставлять отдельную лабораторию для уровня 1.
@@ -371,11 +376,11 @@
 #### Scenario: Лаборатория создаёт локальный проект для preview
 - **WHEN** пользователь открывает рабочую лабораторию задачи
 - **THEN** система создаёт локальный `ProjectWorkspace` с `id`, `title`, `createdAt`, `updatedAt` и `settings`
-- **AND** `uiKitId` и `uiMode` сохраняются внутри `ProjectWorkspace.settings`
+- **AND** `uiKitId` сохраняется внутри `ProjectWorkspace.settings`
 
 #### Scenario: Лаборатория сохраняет локальные project settings при rehydration
 - **WHEN** лаборатория читает локальный `ProjectWorkspace` из browser storage
-- **THEN** система сохраняет прочитанные `project.settings.uiKitId` и `project.settings.uiMode`, если они валидны
+- **THEN** система сохраняет прочитанный `project.settings.uiKitId`, если он валиден
 - **AND** preview наследует текущие project settings без принудительного перевода в `shadcn/ui-kit`
 - **AND** не создаёт новый несовместимый project shape поверх сохранённого `ProjectWorkspace`
 
@@ -389,11 +394,6 @@
 - **WHEN** migration project `UI kit` завершена
 - **THEN** Workbench и preview показывают явный migration status
 - **AND** пользователь видит, что текущий уровень нужно пройти заново, если migration сбросила его progress
-
-#### Scenario: Пользователь включает режим html-tags
-- **WHEN** пользователь выбирает режим без UI kit и `project.settings.uiMode` равен `html-tags`
-- **THEN** лаборатория проверяет компонент на совместимость с HTML JSX-тегами
-- **AND** пользователь остаётся в текущем рабочем контексте
 
 #### Scenario: Лаборатория показывает диагностику несовместимости UI kit
 - **WHEN** текущий проект и компонент несовместимы

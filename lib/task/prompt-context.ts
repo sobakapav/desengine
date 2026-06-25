@@ -3,14 +3,20 @@ import "server-only"
 import { sandpackUiKitsConfig } from "@/lib/lab/sandpack-ui-kits.config"
 import {
   createDefaultProject,
-  resolveProjectPreviewConfig,
   type Project,
   type ProjectWorkspace,
 } from "@/lib/project/runtime"
 
 import type { LevelConfig } from "../level/types"
 import type { PromptContext, PromptRenderContext } from "../prompt/types"
-import { buildTaskWorkflowArtifactProjection, type TaskProjectionWorkbenchFile } from "./projection"
+import {
+  buildTaskWorkflowArtifactProjection,
+  resolveImageComponentWorkflowPointByFileId,
+  resolveImageComponentWorkflowPointByLevel,
+  resolveTaskWorkflowPointFocus,
+  type TaskProjectionWorkbenchFile,
+  type TaskWorkflowPointFocus,
+} from "./projection"
 import type {
   Artifact,
   TaskInstance,
@@ -28,10 +34,12 @@ type BuildTaskPromptContextInput = {
   levelTaskCheckContract?: string
   level: Pick<LevelConfig, "id" | "number" | "title" | "labId" | "editableFileIds">
   project?: Project
+  activeFileId?: string | null
 }
 
 type BuildPromptRenderContextInput = BuildTaskPromptContextInput & {
   project: ProjectWorkspace
+  workflowPoint?: TaskWorkflowPointFocus | null
 }
 
 type BuildPromptContextInput = {
@@ -40,6 +48,7 @@ type BuildPromptContextInput = {
   workflowStep: WorkflowStepInstance
   artifacts: Artifact[]
   workbench?: WorkbenchInstance
+  workflowPoint?: TaskWorkflowPointFocus | null
   userText?: string
   constraints?: string[]
   providerCapabilities?: string[]
@@ -55,18 +64,17 @@ type BuildTaskRuntimePromptContextInput = BuildTaskPromptContextInput & {
   providerCapabilities?: string[]
   checkResult?: TaskCheckResult | null
   createdAt?: string
+  activeFileId?: string | null
 }
 
 function buildPromptRenderContext(input: BuildPromptRenderContextInput): PromptRenderContext {
   const project = input.project
-  const previewProject = resolveProjectPreviewConfig(project)
   const selectedUiKit = sandpackUiKitsConfig[project.settings.uiKitId]
-  const effectiveUiKit = sandpackUiKitsConfig[previewProject.effectiveUiKitId]
 
   return {
     user: {
-      designSystemId: effectiveUiKit.id,
-      designSystemName: effectiveUiKit.title,
+      designSystemId: selectedUiKit.id,
+      designSystemName: selectedUiKit.title,
     },
     task: {
       id: input.taskId,
@@ -82,14 +90,20 @@ function buildPromptRenderContext(input: BuildPromptRenderContextInput): PromptR
       labId: input.level.labId,
       editableFileIds: input.level.editableFileIds,
     },
+    workflow: input.workflowPoint
+      ? {
+        focusPointId: input.workflowPoint.id,
+        focusPointKind: input.workflowPoint.kind,
+        focusPointTitle: input.workflowPoint.title,
+        focusFileIds: input.workflowPoint.fileIds,
+        primaryFileId: input.workflowPoint.primaryFileId,
+      }
+      : undefined,
     project: {
       id: project.id,
       title: project.title,
       uiKitId: project.settings.uiKitId,
       uiKitTitle: selectedUiKit.title,
-      uiMode: project.settings.uiMode,
-      effectiveUiKitId: effectiveUiKit.id,
-      effectiveUiKitTitle: effectiveUiKit.title,
     },
   }
 }
@@ -101,6 +115,7 @@ function buildPromptContext(input: BuildPromptContextInput): PromptContext {
     workflowStep: input.workflowStep,
     artifacts: input.artifacts,
     workbench: input.workbench,
+    workflowPoint: input.workflowPoint ?? undefined,
     userText: input.userText,
     constraints: input.constraints ?? [],
     providerCapabilities: input.providerCapabilities ?? [],
@@ -112,6 +127,7 @@ function buildPromptContextFromProjection(args: {
   projection: TaskWorkflowArtifactProjection
   project?: ProjectWorkspace
   renderContext: PromptRenderContext
+  workflowPoint?: TaskWorkflowPointFocus | null
   userText?: string
   constraints?: string[]
   providerCapabilities?: string[]
@@ -139,6 +155,7 @@ function buildPromptContextFromProjection(args: {
     workbench: args.projection.workbenchInstances.find(
       (workbench) => workbench.id === workbenchInstanceId,
     ),
+    workflowPoint: args.workflowPoint,
     userText: args.userText,
     constraints: args.constraints,
     providerCapabilities: args.providerCapabilities,
@@ -148,7 +165,6 @@ function buildPromptContextFromProjection(args: {
 
 function buildTaskRuntimePromptContext(input: BuildTaskRuntimePromptContextInput): PromptContext {
   const project = input.project ?? createDefaultProject(`task-${input.taskId}`)
-  const renderContext = buildPromptRenderContext({ ...input, project })
   const projection = buildTaskWorkflowArtifactProjection({
     taskData: input.taskData,
     project,
@@ -159,11 +175,21 @@ function buildTaskRuntimePromptContext(input: BuildTaskRuntimePromptContextInput
     createdAt: input.createdAt,
     allowLegacyProjectIdFallback: true,
   })
+  const workflowPoint = resolveTaskWorkflowPointFocus({
+    projection,
+    activeFileId: input.activeFileId ?? null,
+  })
+  const renderContext = buildPromptRenderContext({
+    ...input,
+    project,
+    workflowPoint,
+  })
 
   return buildPromptContextFromProjection({
     projection,
     project,
     renderContext,
+    workflowPoint,
     userText: input.userText,
     constraints: input.constraints,
     providerCapabilities: input.providerCapabilities,
@@ -171,9 +197,26 @@ function buildTaskRuntimePromptContext(input: BuildTaskRuntimePromptContextInput
 }
 
 function buildTaskPromptContext(input: BuildTaskPromptContextInput): PromptRenderContext {
+  const resolvedWorkflowPoint = resolveImageComponentWorkflowPointByFileId(input.activeFileId)
+    ?? resolveImageComponentWorkflowPointByLevel(input.level.number)
+  const workflowPoint = resolvedWorkflowPoint
+    ? {
+      id: resolvedWorkflowPoint.id,
+      stepId: `workflow-step:${input.taskId}:image-to-component:${resolvedWorkflowPoint.id}`,
+      kind: resolvedWorkflowPoint.kind,
+      title: resolvedWorkflowPoint.title,
+      fileIds: resolvedWorkflowPoint.fileIds,
+      primaryFileId: input.activeFileId && resolvedWorkflowPoint.fileIds.includes(input.activeFileId)
+        ? input.activeFileId
+        : resolvedWorkflowPoint.fileIds[0] ?? null,
+      status: "not_started" as const,
+    }
+    : null
+
   return buildPromptRenderContext({
     ...input,
     project: input.project ?? createDefaultProject(`task-${input.taskId}`),
+    workflowPoint,
   })
 }
 

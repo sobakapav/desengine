@@ -7,6 +7,7 @@ type Params = { taskId: string }
 type Body = {
   prompt?: string
   project?: unknown
+  activeScreen?: unknown
 }
 
 function parseProjectPayload(project: unknown, taskId: string) {
@@ -45,11 +46,14 @@ export async function POST(
   const body = (await request.json().catch(() => null)) as Body | null
   const promptText = String(body?.prompt || "").trim()
   const project = parseProjectPayload(body?.project, taskId)
+  const activeScreen = typeof body?.activeScreen === "string" && body.activeScreen.trim()
+    ? body.activeScreen.trim()
+    : undefined
 
   if (!promptText) {
     return Response.json({ ok: false, error: "Введите уточняющий промпт" }, { status: 400 })
   }
 
-  const result = await iterateTaskLevel(taskId, promptText, project)
+  const result = await iterateTaskLevel(taskId, promptText, project, activeScreen)
   return Response.json(result.body, { status: result.status ?? 200 })
 }

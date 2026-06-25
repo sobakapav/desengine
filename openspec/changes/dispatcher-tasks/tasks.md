@@ -11,6 +11,24 @@
   - [x] 4.3 child behavior-changes обязаны фиксировать fixtures/credentials и traceability
 - [x] 5. Сохранять release-трассировку на уровне child changes, а не dispatcher.
 
+## Текущий фокус реализации
+
+- Для onboarding-линии в ближайшем приоритете удерживается переход task-системы в путь `проект -> workflow -> проверка/чеклист -> результат`.
+- Побочные UX-эксперименты вне этого пути считаются отложенными.
+
+## 6. Подготовить content-migration onboarding-задач
+
+- [ ] 6.1 Поставить child change `implement-onboarding-project-workflow-migration-guide` под `dispatcher-tasks`.
+- [ ] 6.2 Зафиксировать, что этот change должен дать контент-менеджеру практическую инструкцию по migration onboarding-задач и metadata.
+- [ ] 6.3 Зафиксировать, что без этой content-wave UI-переход onboarding на новый режим не считается подготовленным.
+
+## 7. Поставить UI-волны для нового режима
+
+- [ ] 7.1 Поставить downstream wave на перевод onboarding task surfaces к проектному входу.
+- [ ] 7.2 Поставить downstream wave на перевод onboarding task/task-list экранов на workflow-язык вместо level-центричного языка.
+- [ ] 7.3 Поставить downstream wave на связку onboarding-задач с шагами проверки, повторной проверки и результата.
+- [ ] 7.4 Поставить downstream wave на user-facing показ onboarding metadata только в нужной для нового режима форме.
+
 ## Тестовая часть change
 
 Затронутые OpenSpec capability/scenarios:

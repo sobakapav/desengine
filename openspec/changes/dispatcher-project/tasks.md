@@ -1,7 +1,12 @@
 ## Tasks
 
+## Текущий фокус реализации
+
+- Dispatcher сейчас удерживает только цепочку `ProjectWorkspace -> task/workflow binding -> workbench/check/result path`.
+- Интеграции и расширения за пределами этой цепочки пока не маршрутизируются как активный приоритет.
+
 - [ ] 1. Зафиксировать `dispatcher-project` как tactical owner первой project-wave под `focus-domain`.
-- [ ] 2. Привязать dispatcher к `producer-project` и явно сверить его с `producer-architecture-transform`.
+- [ ] 2. Явно сверить dispatcher с `producer-project` и `producer-architecture-transform` без иерархического parentage.
 - [ ] 3. Зафиксировать tactical ownership для:
   - [ ] 3.1 canonical `ProjectWorkspace`;
   - [ ] 3.2 project registry и active project context;

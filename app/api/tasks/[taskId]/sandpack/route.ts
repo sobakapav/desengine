@@ -138,7 +138,6 @@ function parseProjectFromRequest(request: Request, taskId: string) {
     title: searchParams.get("projectTitle") ?? "Локальный проект",
     settings: {
       uiKitId: searchParams.get("uiKitId") ?? defaultSandpackUiKitId,
-      uiMode: searchParams.get("uiMode"),
     },
   })
 }

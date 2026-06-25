@@ -153,7 +153,6 @@ export const taskFilesAction = {
 
       const matchesPendingTarget = (
         resolvedProject.migration.targetUiKitId === target.uiKitId
-        && resolvedProject.migration.targetUiMode === target.uiMode
       )
       if (!matchesPendingTarget) {
         return {

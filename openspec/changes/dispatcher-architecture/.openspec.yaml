@@ -6,7 +6,7 @@ issue: ""
 short: "диспетчер архитектурной карты, ADR и модульных границ"
 change_kind: "dispatcher"
 execution_mode: "no-code"
-parent_change: "producer-architecture-transform"
+parent_change: "focus-tech"
 strategy_root: "focus-tech"
 roadmap_ref: "focus-tech/roadmaps/architecture-transformation.md"
 roadmap_refs:

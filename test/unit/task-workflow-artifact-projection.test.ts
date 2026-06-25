@@ -3,8 +3,9 @@
 // @openSpec  - "Текущая lab task проецируется в TaskInstance"
 // @openSpec capability: workflow
 // @openSpec scenarios:
-// @openSpec  - "Lab level является workflow step"
-// @openSpec  - "Workflow step хранит project-aware runtime bindings без жёсткого 1:1 с Workbench"
+// @openSpec  - "Runtime строит coordinator step для работы над workflow целиком"
+// @openSpec  - "Runtime публикует catalog of workflow points для image-to-component задачи"
+// @openSpec  - "Legacy level progress мапится в статусы workflow points без миграции storage"
 // @openSpec capability: artifacts
 // @openSpec scenarios:
 // @openSpec  - "Рабочий файл становится code artifact"
@@ -13,7 +14,7 @@
 // @openSpec  - "Текущий runtime совместим с task-model projection"
 // @openSpec capability: level-labs
 // @openSpec scenarios:
-// @openSpec  - "Текущий lab level мапится в workflow step"
+// @openSpec  - "Текущий lab level используется как legacy-bridge для workflow points"
 
 import fs from "node:fs"
 import path from "node:path"
@@ -21,7 +22,7 @@ import path from "node:path"
 import { describe, expect, it } from "vitest"
 
 import type { ProjectWorkspace } from "../../lib/project/runtime"
-import { buildTaskWorkflowArtifactProjection } from "../../lib/task/projection"
+import { buildTaskWorkflowArtifactProjection, listImageComponentWorkflowPoints } from "../../lib/task/projection"
 import type { TaskCheckResult, TaskData, TaskListItem } from "../../lib/task/types"
 
 const project: ProjectWorkspace = {
@@ -31,14 +32,11 @@ const project: ProjectWorkspace = {
   updatedAt: "2026-05-20T10:05:00.000Z",
   settings: {
     uiKitId: "shadcn",
-    uiMode: "ui-kit",
   },
   migration: {
     state: "idle",
     sourceUiKitId: "shadcn",
-    sourceUiMode: "ui-kit",
     targetUiKitId: "shadcn",
-    targetUiMode: "ui-kit",
     invalidationScope: "none",
     requiresReplay: false,
     message: "",
@@ -164,16 +162,16 @@ describe("task workflow artifact projection", () => {
     expect(projection.task).toMatchObject({
       id: "intro-card",
       projectId: "project-42",
-      taskType: "level-lab",
+      taskType: "image-to-component-workflow",
       title: "Intro card",
-      workflowInstanceId: "workflow:intro-card:lab",
+      workflowInstanceId: "workflow:intro-card:image-to-component",
       status: "in_progress",
     })
     expect(projection.task.artifactIds).toEqual(projection.artifacts.map((artifact) => artifact.id))
     expect(projection.compatibility.legacyProjectIdFallback).toBe(false)
   })
 
-  it("мапит текущий lab level в workflow step с artifact inputs и outputs", () => {
+  it("строит coordinator step и catalog of workflow points с artifact inputs и outputs", () => {
     const projection = buildTaskWorkflowArtifactProjection({
       taskData,
       projectId: project.id,
@@ -184,30 +182,60 @@ describe("task workflow artifact projection", () => {
     })
 
     expect(projection.workflow).toMatchObject({
-      id: "workflow:intro-card:lab",
+      id: "workflow:intro-card:image-to-component",
       projectId: "project-42",
       taskId: "intro-card",
-      definitionId: "workflow-definition:level-lab",
-      currentStepId: "workflow-step:intro-card:level-lab:2",
+      definitionId: "workflow-definition:image-to-component",
+      currentStepId: "workflow-step:intro-card:image-to-component:run",
     })
-    expect(projection.workflow.stepInstances).toEqual([
-      {
-        id: "workflow-step:intro-card:level-lab:2",
-        projectId: "project-42",
-        kind: "level-lab",
-        status: "failed",
-        inputArtifactIds: ["artifact:intro-card:image:base"],
-        outputArtifactIds: [
-          "artifact:intro-card:file:component",
-          "artifact:intro-card:file:styles",
-          "artifact:intro-card:prompt:1",
-          "artifact:intro-card:check-result:2",
-        ],
-        runtimeBindings: {
-          workbenchInstanceIds: ["workbench:intro-card"],
-          primaryWorkbenchInstanceId: "workbench:intro-card",
-        },
+    expect(projection.workflow.stepInstances[0]).toEqual({
+      id: "workflow-step:intro-card:image-to-component:run",
+      projectId: "project-42",
+      kind: "image-to-component-workflow",
+      status: "failed",
+      inputArtifactIds: ["artifact:intro-card:image:base"],
+      outputArtifactIds: [
+        "artifact:intro-card:file:component",
+        "artifact:intro-card:file:styles",
+        "artifact:intro-card:prompt:1",
+        "artifact:intro-card:check-result:2",
+      ],
+      runtimeBindings: {
+        workbenchInstanceIds: ["workbench:intro-card"],
+        primaryWorkbenchInstanceId: "workbench:intro-card",
       },
+    })
+    expect(projection.workflow.stepInstances.slice(1)).toEqual([
+      expect.objectContaining({
+        id: "workflow-step:intro-card:image-to-component:ui-kit-component",
+        kind: "ui-kit-component",
+        status: "completed",
+        outputArtifactIds: ["artifact:intro-card:file:component"],
+      }),
+      expect.objectContaining({
+        id: "workflow-step:intro-card:image-to-component:styles",
+        kind: "styles",
+        status: "in_progress",
+        outputArtifactIds: ["artifact:intro-card:file:styles"],
+      }),
+      expect.objectContaining({
+        id: "workflow-step:intro-card:image-to-component:mock-data",
+        kind: "mock-data",
+        status: "not_started",
+        outputArtifactIds: [],
+      }),
+      expect.objectContaining({
+        id: "workflow-step:intro-card:image-to-component:props-contract",
+        kind: "props-contract",
+        status: "not_started",
+        outputArtifactIds: [],
+      }),
+      expect.objectContaining({
+        id: "workflow-step:intro-card:image-to-component:storybook",
+        kind: "storybook",
+        status: "completed",
+        outputArtifactIds: [],
+      }),
     ])
     expect(projection.workbenchInstances).toEqual([
       expect.objectContaining({
@@ -215,13 +243,53 @@ describe("task workflow artifact projection", () => {
         definitionId: "lab-component-workbench",
         projectId: "project-42",
         taskId: "intro-card",
-        workflowStepId: "workflow-step:intro-card:level-lab:2",
+        workflowStepId: "workflow-step:intro-card:image-to-component:run",
         artifactBindings: expect.objectContaining({
           "code:component": "artifact:intro-card:file:component",
           "code:styles": "artifact:intro-card:file:styles",
           "source-image:artifact:intro-card:image:base": "artifact:intro-card:image:base",
         }),
       }),
+    ])
+  })
+
+  it("публикует канонический каталог workflow points для image-to-component foundation", () => {
+    expect(listImageComponentWorkflowPoints()).toEqual([
+      {
+        id: "ui-kit-component",
+        kind: "ui-kit-component",
+        title: "Базовый компонент из UI kit",
+        legacyLevelHint: 1,
+        fileIds: ["markup", "component"],
+      },
+      {
+        id: "styles",
+        kind: "styles",
+        title: "Стилизация компонента",
+        legacyLevelHint: 2,
+        fileIds: ["styles"],
+      },
+      {
+        id: "mock-data",
+        kind: "mock-data",
+        title: "Примеры доменных данных",
+        legacyLevelHint: 3,
+        fileIds: ["mock"],
+      },
+      {
+        id: "props-contract",
+        kind: "props-contract",
+        title: "Props-контракт компонента",
+        legacyLevelHint: 3,
+        fileIds: ["props"],
+      },
+      {
+        id: "storybook",
+        kind: "storybook",
+        title: "Storybook-сценарии",
+        legacyLevelHint: 1,
+        fileIds: ["stories"],
+      },
     ])
   })
 

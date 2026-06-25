@@ -353,7 +353,7 @@ strategy_root: "focus-demo"
 
     expect(output).toContain("Прямое изменение кода здесь запрещено. Код меняют только implement/fix.")
     expect(output).toContain("Producer несёт полную ответственность за смысл, roadmap и процесс линии, но не меняет код напрямую.")
-    expect(output).toContain("Producer может породить implement/fix напрямую или завести вспомогательный dispatcher")
+    expect(output).toContain("Producer может породить implement/fix напрямую или инициировать competing dispatcher в той же focus-линии")
   })
 
   it("os:begin для release явно запрещает прямой код и отправляет в os:dispatch", () => {

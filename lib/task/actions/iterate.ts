@@ -211,6 +211,7 @@ async function buildIterationLlmInput(args: {
   promptText: string
   context: IterationContext
   promptImages: Awaited<ReturnType<typeof getTaskLabContext>>["images"]
+  activeFileId?: string | null
 }) {
   const level = await getLevelForTaskItem(args.context.taskItem)
   const taskData = await readTaskData(args.context.taskItem, args.context.labContext, args.context.project)
@@ -221,7 +222,17 @@ async function buildIterationLlmInput(args: {
     readLevelIteratePrompt(level.id),
   ])
 
-  const selectedFiles = args.context.editableFiles.map((file) => ({
+  const generationScope = taskActionShared.resolveWorkflowPointGenerationScope({
+    activeFileId: args.activeFileId,
+    editableFiles: args.context.editableFiles,
+  })
+  const targetFiles = generationScope.targetFiles
+  const supportingFiles = generationScope.supportingFiles
+  const targetFileState = targetFiles.map((file) => ({
+    ...file,
+    content: taskData.contentByFileId[file.id] ?? "",
+  }))
+  const supportingFileState = supportingFiles.map((file) => ({
     ...file,
     content: taskData.contentByFileId[file.id] ?? "",
   }))
@@ -238,23 +249,37 @@ async function buildIterationLlmInput(args: {
       title: file.fileName,
       edit: true,
     })),
+    activeFileId: args.activeFileId,
     userText: args.promptText,
     constraints: ["structured-json-file-patch", "allowed-workbench-files-only"],
     providerCapabilities: ["vision", "structured-output"],
   })
+  const workflowPointText = promptContext.workflowPoint
+    ? [
+      `Текущий фокус workflow: ${promptContext.workflowPoint.title}.`,
+      `В первую очередь прорабатывай артефакт, связанный с файлами: ${promptContext.workflowPoint.fileIds.join(", ")}.`,
+      promptContext.workflowPoint.primaryFileId
+        ? `Главный файл этой итерации: ${promptContext.workflowPoint.primaryFileId}.`
+        : "",
+      "Если для качественного рендера нужно затронуть соседние файлы, меняй их, но не теряй главный фокус текущего workflow-пункта.",
+    ].filter(Boolean).join("\n")
+    : ""
   const instruction = taskIterateLlm.buildInstruction({
     defaultProductionPrompt: prompts[0],
     iterateProductionPrompt: prompts[1],
     defaultDidacticPrompt: prompts[2],
     levelSpecifyPrompt: prompts[3],
     commonExplanation: args.context.labContext.commonExplanation,
-    allowedFilesText: taskActionShared.formatAllowedFilesText(args.context.editableFiles),
+    targetFilesText: taskActionShared.formatAllowedFilesText(targetFiles),
+    supportingFilesText: taskActionShared.formatAllowedFilesText(supportingFiles),
     promptText: promptContext.userText ?? args.promptText,
+    workflowPointText,
     imagesText: args.promptImages.map((image) => `- ${image.id}.png — ${image.width}x${image.height}`).join("\n"),
-    selectedFilesText: taskActionShared.formatFilesContextText(selectedFiles),
+    targetFilesStateText: taskActionShared.formatFilesContextText(targetFileState),
+    supportingFilesStateText: taskActionShared.formatFilesContextText(supportingFileState),
   })
 
-  return { taskData, instruction }
+  return { taskData, instruction, targetFiles }
 }
 
 async function runIterationLlmStage(
@@ -289,6 +314,7 @@ async function appendIterationEntry(args: {
   promptText: string
   context: IterationContext
   taskData: Awaited<ReturnType<typeof readTaskData>>
+  selectedFiles: OutputFile[]
   written: IterationWriteResult
   llmCall: Awaited<ReturnType<typeof runStructuredLlmRequest>>
 }) {
@@ -299,7 +325,7 @@ async function appendIterationEntry(args: {
     displayCreatedAt: formatPromptHistoryTimestamp(createdAt),
     iterationNumber: args.taskData.promptHistory.length + 1,
     levelNumber: args.context.taskItem.progress.currentLevel,
-    selectedFileNames: args.context.editableFiles.map((file) => file.fileName),
+    selectedFileNames: args.selectedFiles.map((file) => file.fileName),
     changedFileIds: args.written.changedFileIds,
     changedFileNames: args.written.changedFileNames,
     teachingCostCents: TEACHING_COST_PER_ITERATION_CENTS,
@@ -404,6 +430,7 @@ async function runIterateTaskLevelMutation(
   taskId: string,
   promptText: string,
   project: Project,
+  activeFileId?: string | null,
 ): Promise<TaskActionHttpResult> {
   const startedAt = Date.now()
   const request = await validateIterationRequest(taskId, promptText, project)
@@ -466,7 +493,13 @@ async function runIterateTaskLevelMutation(
     )
   }
 
-  const llmInput = await buildIterationLlmInput({ taskId, promptText, context, promptImages })
+  const llmInput = await buildIterationLlmInput({
+    taskId,
+    promptText,
+    context,
+    promptImages,
+    activeFileId,
+  })
   try {
     validateTaskActionInputBudget({
       path: "iterate",
@@ -501,7 +534,7 @@ async function runIterateTaskLevelMutation(
   const llmStage = await runIterationLlmStage(
     llmInput.instruction,
     imageBase64List,
-    context.editableFiles,
+    llmInput.targetFiles,
   )
   if ("response" in llmStage) {
     return finalizeIterationResult(llmStage.response, {
@@ -557,7 +590,7 @@ async function runIterateTaskLevelMutation(
     })
   }
 
-  const parseStage = parseIterationStage(llmStage.outputText, context.editableFiles)
+  const parseStage = parseIterationStage(llmStage.outputText, llmInput.targetFiles)
   if ("response" in parseStage) {
     return finalizeIterationResult(parseStage.response, {
       scope: "task",
@@ -659,7 +692,15 @@ async function runIterateTaskLevelMutation(
     })
   }
 
-  await appendIterationEntry({ taskId, promptText, context, taskData: llmInput.taskData, written, llmCall: llmStage.llmCall })
+  await appendIterationEntry({
+    taskId,
+    promptText,
+    context,
+    taskData: llmInput.taskData,
+    selectedFiles: llmInput.targetFiles,
+    written,
+    llmCall: llmStage.llmCall,
+  })
   const completed = await completeIterationTaskLevel(taskId, context.project)
   const wasDegraded = (
     written.ignoredFileIds.length > 0
@@ -699,13 +740,18 @@ async function runIterateTaskLevelMutation(
 }
 
 export const taskIterateAction = {
-  async iterateTaskLevel(taskId: string, promptText: string, project?: Project): Promise<TaskActionHttpResult> {
+  async iterateTaskLevel(
+    taskId: string,
+    promptText: string,
+    project?: Project,
+    activeFileId?: string | null,
+  ): Promise<TaskActionHttpResult> {
     const resolvedProject = await resolveTaskProject(taskId, project)
 
     try {
       return await runTaskMutation(
         buildTaskMutationScopeKey(taskId, resolvedProject.id),
-        () => runIterateTaskLevelMutation(taskId, promptText, resolvedProject),
+        () => runIterateTaskLevelMutation(taskId, promptText, resolvedProject, activeFileId),
       )
     } catch (error) {
       if (!isTaskMutationOverloadError(error)) {

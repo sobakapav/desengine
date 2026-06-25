@@ -14,10 +14,14 @@
 - **THEN** система считает producer полным owner этой исполнительской линии
 - **AND** не требует обязательного промежуточного dispatcher только ради разделения ответственности
 
-#### Scenario: Producer создаёт вспомогательный dispatcher без потери ownership
-- **WHEN** producer-change инициирует follow-up работу
-- **THEN** он MAY создать downstream dispatcher как тактический helper change
-- **AND** такой dispatcher не отменяет, что producer остаётся владельцем смысла, roadmap и управленческого контура линии
+#### Scenario: Producer работает рядом с dispatcher без иерархического подчинения
+- **WHEN** в одной focus-линии одновременно существуют producer и dispatcher
+- **THEN** producer остаётся владельцем смысла, roadmap и управленческого контура линии
+- **AND** dispatcher остаётся отдельным tactical child этого же `focus`
+- **AND** расхождение между ними считается допустимым управленческим сигналом
+
+Примечание:
+- Финальная active topology dispatcher дополнительно уточняется follow-up change `fix-dispatcher-focus-topology-contract`.
 
 #### Scenario: Producer появляется раньше формализованных требований и сценариев
 - **WHEN** создаётся producer-change для большой линии трансформации
@@ -38,12 +42,12 @@
 - **THEN** статическая проверка считает это допустимым способом выразить полный producer ownership
 - **AND** `producer_ref` может отсутствовать, если producer уже выражен через `parent_change`
 
-#### Scenario: Dispatcher подчиняется producer напрямую
-- **WHEN** metadata dispatcher содержит `parent_change` на producer
-- **THEN** статическая проверка OpenSpec metadata считает такую связь допустимой
-- **AND** producer остаётся owner линии, даже если часть тактики ведёт этот dispatcher
+#### Scenario: Dispatcher подчиняется focus напрямую
+- **WHEN** metadata dispatcher содержит `parent_change`
+- **THEN** `parent_change` указывает на change с `change_kind=focus`
+- **AND** producer-контекст этой же линии выражается через roadmap и содержательную конкуренцию, а не через parentage
 
 #### Scenario: Dispatcher не может хранить producer-контекст
 - **WHEN** metadata dispatcher содержит `producer_ref`
 - **THEN** статическая проверка OpenSpec metadata завершается ошибкой
-- **AND** producer ownership для dispatcher должен выражаться через `parent_change`, а не через отдельную контекстную метку
+- **AND** producer-контекст для dispatcher должен выражаться через roadmap и общую focus-орбиту, а не через отдельную контекстную метку

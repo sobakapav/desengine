@@ -26,6 +26,14 @@
 
 ## Следующие волны
 
+- user-facing manifestation проекта:
+  - отдельный раздел `Проекты` в глобальной навигации;
+  - отдельная страница списка проектов;
+  - отдельная страница конкретного проекта;
+  - явная project/task привязка в обе стороны;
+  - project-level config surface и `UI kit` contract в пользовательском мире;
+- project-scoped история и диагностика;
+- read-only workflow/artifact surface проекта;
 - project-level `LLM` binding;
 - project-level `Figma` binding;
 - project-level `Git` / `GitHub` binding.

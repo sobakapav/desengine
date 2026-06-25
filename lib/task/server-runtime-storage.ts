@@ -181,6 +181,7 @@ async function readTaskLevelTip(
   level: LevelConfig,
   taskConfig: TaskConfig,
   project?: Project,
+  activeFileId?: string | null,
 ) {
   return renderTaskHint({
     taskCatalogRoot: appConfig.taskCatalogRoot,
@@ -188,6 +189,7 @@ async function readTaskLevelTip(
     level,
     taskConfig,
     project,
+    activeFileId,
   })
 }
 

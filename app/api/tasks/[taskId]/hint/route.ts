@@ -20,9 +20,14 @@ function parseProjectFromRequest(request: Request, taskId: string) {
     title: searchParams.get("projectTitle") ?? "Локальный проект",
     settings: {
       uiKitId: searchParams.get("uiKitId") ?? defaultSandpackUiKitId,
-      uiMode: searchParams.get("uiMode"),
     },
   })
+}
+
+function parseActiveScreenFromRequest(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const activeScreen = searchParams.get("activeScreen")
+  return activeScreen?.trim() ? activeScreen : null
 }
 
 /**
@@ -62,7 +67,8 @@ export async function GET(
   }
 
   const project = parseProjectFromRequest(request, taskId)
-  const taskTip = await getTaskLevelHint(taskItem, project)
+  const activeScreen = parseActiveScreenFromRequest(request)
+  const taskTip = await getTaskLevelHint(taskItem, project, activeScreen)
 
   return Response.json({ ok: true, taskTip })
 }

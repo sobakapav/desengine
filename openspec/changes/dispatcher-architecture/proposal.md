@@ -12,7 +12,7 @@
 
 ## What Changes
 
-- Вводится `dispatcher-architecture` как tactical owner архитектурной линии в `focus-tech`, но уже не как абстрактный sibling под focus, а как прямой downstream dispatcher у `producer-architecture-transform`.
+- Вводится `dispatcher-architecture` как tactical owner архитектурной линии в `focus-tech`.
 - Dispatcher фиксирует свою зону ответственности:
   - архитектурная карта;
   - ADR;
@@ -20,10 +20,10 @@
   - правила именования;
   - модульные границы;
   - контракты взаимодействия между крупными частями системы.
-- Dispatcher получает два явных lineage-якоря:
-  - `parent_change=producer-architecture-transform` как tactical подчинение producer-линии;
-  - ссылку на `producer-architecture-transform/roadmaps/architecture-implementation.md` как operational источник downstream waves.
-- Dispatcher становится первым operational получателем implementation plan от `producer-architecture-transform` и не переоткрывает решения producer по составу архитектурной карты.
+- Dispatcher получает два явных контекстных якоря:
+  - `parent_change=focus-tech` как тактическое место в active topology;
+  - ссылку на `producer-architecture-transform/roadmaps/architecture-implementation.md` как producer-конкурентный operational источник downstream waves.
+- Dispatcher работает рядом с `producer-architecture-transform`: не переоткрывает его смысловые решения, но и не подчиняется ему иерархически.
 
 ## Non-goals
 
@@ -47,7 +47,7 @@
 ## Acceptance Criteria
 
 - `dispatcher-architecture` отображается в дереве OpenSpec как активный dispatcher в `focus-tech`.
-- Его parent/ownership lineage явно задан так, что tactical dispatcher подчинён `producer-architecture-transform`, а не висит отдельной веткой напрямую под `focus-tech`.
+- Его lineage явно задан так, что tactical dispatcher является child `focus-tech`, а producer-контекст приходит через roadmap и содержательную конкуренцию, а не через `parent_change`.
 - У dispatcher есть явная ссылка на implementation plan producer'а как на operational backlog source.
 - У dispatcher есть понятная tactical зона ответственности: карта, ADR, именование, модульные границы, контракты взаимодействия.
 - Dispatcher достаточно описан, чтобы быть родителем для downstream architecture implementation/fix waves.

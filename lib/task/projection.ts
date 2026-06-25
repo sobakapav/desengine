@@ -6,6 +6,7 @@ import type {
   TaskInstanceStatus,
   TaskProjectionProjectScope,
   TaskWorkflowArtifactProjection,
+  WorkflowStepInstance,
   WorkflowStepInstanceStatus,
 } from "./model"
 import type { TaskCheckResult, TaskData, TaskListItem } from "./types"
@@ -16,6 +17,67 @@ export type TaskProjectionWorkbenchFile = {
   title: string
   edit: boolean
 }
+
+export type ImageComponentWorkflowPointDefinition = {
+  id: string
+  kind: string
+  title: string
+  legacyLevelHint: number
+  fileIds: string[]
+}
+
+export type TaskWorkflowPointFocus = {
+  id: string
+  stepId: string
+  kind: string
+  title: string
+  fileIds: string[]
+  primaryFileId: string | null
+  status: WorkflowStepInstanceStatus
+}
+
+const IMAGE_COMPONENT_WORKFLOW_TASK_TYPE = "image-to-component-workflow"
+const IMAGE_COMPONENT_WORKFLOW_DEFINITION_ID = "workflow-definition:image-to-component"
+const IMAGE_COMPONENT_WORKFLOW_COORDINATOR_KIND = "image-to-component-workflow"
+const IMAGE_COMPONENT_WORKFLOW_COORDINATOR_TITLE = "Работаем над workflow"
+
+const imageComponentWorkflowPoints: ImageComponentWorkflowPointDefinition[] = [
+  {
+    id: "ui-kit-component",
+    kind: "ui-kit-component",
+    title: "Базовый компонент из UI kit",
+    legacyLevelHint: 1,
+    fileIds: ["markup", "component"],
+  },
+  {
+    id: "styles",
+    kind: "styles",
+    title: "Стилизация компонента",
+    legacyLevelHint: 2,
+    fileIds: ["styles"],
+  },
+  {
+    id: "mock-data",
+    kind: "mock-data",
+    title: "Примеры доменных данных",
+    legacyLevelHint: 3,
+    fileIds: ["mock"],
+  },
+  {
+    id: "props-contract",
+    kind: "props-contract",
+    title: "Props-контракт компонента",
+    legacyLevelHint: 3,
+    fileIds: ["props"],
+  },
+  {
+    id: "storybook",
+    kind: "storybook",
+    title: "Storybook-сценарии",
+    legacyLevelHint: 1,
+    fileIds: ["stories"],
+  },
+]
 
 type TaskProjectionArgs = {
   taskData: TaskData
@@ -82,6 +144,18 @@ function normalizeStepStatus(taskItem?: TaskListItem, checkResult?: TaskCheckRes
 
 function createdAtOrFallback(value?: string) {
   return value ?? "1970-01-01T00:00:00.000Z"
+}
+
+function buildCoordinatorStepId(taskId: string) {
+  return `workflow-step:${taskId}:image-to-component:run`
+}
+
+function buildWorkflowPointStepId(taskId: string, pointId: string) {
+  return `workflow-step:${taskId}:image-to-component:${pointId}`
+}
+
+function resolveCurrentLevel(taskData: TaskData, taskItem?: TaskListItem) {
+  return taskItem?.progress.currentLevel ?? taskData.labContext?.levelNumber ?? 1
 }
 
 function buildFileArtifacts(args: {
@@ -174,6 +248,220 @@ function buildImageArtifacts(args: {
   }))
 }
 
+function buildFileArtifactIdsByFileId(artifacts: Artifact[]) {
+  const fileArtifactIdsByFileId = new Map<string, string[]>()
+
+  for (const artifact of artifacts) {
+    if (artifact.kind !== "code-file" || !artifact.data || typeof artifact.data !== "object") {
+      continue
+    }
+
+    const fileId = "fileId" in artifact.data ? String(artifact.data.fileId) : null
+
+    if (!fileId) {
+      continue
+    }
+
+    const currentIds = fileArtifactIdsByFileId.get(fileId) ?? []
+    currentIds.push(artifact.id)
+    fileArtifactIdsByFileId.set(fileId, currentIds)
+  }
+
+  return fileArtifactIdsByFileId
+}
+
+function resolveWorkflowPointStatus(args: {
+  point: ImageComponentWorkflowPointDefinition
+  currentLevel: number
+  taskItem?: TaskListItem
+  relatedArtifactIds: string[]
+}): WorkflowStepInstanceStatus {
+  if (args.taskItem?.progress.isCompleted) {
+    return "completed"
+  }
+
+  const levelDelta = args.currentLevel - args.point.legacyLevelHint
+  const hasArtifacts = args.relatedArtifactIds.length > 0
+  const taskStarted = Boolean(args.taskItem?.progress.currentLevelStarted || args.taskItem?.started)
+
+  if (levelDelta > 0) {
+    return "completed"
+  }
+
+  if (levelDelta === 0) {
+    if (hasArtifacts || taskStarted) {
+      return "in_progress"
+    }
+
+    return "not_started"
+  }
+
+  if (hasArtifacts) {
+    return "in_progress"
+  }
+
+  return "not_started"
+}
+
+function buildWorkflowStepTitleMap(taskId: string) {
+  const titles = new Map<string, string>([
+    [buildCoordinatorStepId(taskId), IMAGE_COMPONENT_WORKFLOW_COORDINATOR_TITLE],
+  ])
+
+  for (const point of imageComponentWorkflowPoints) {
+    titles.set(buildWorkflowPointStepId(taskId, point.id), point.title)
+  }
+
+  return titles
+}
+
+export function resolveImageComponentWorkflowPointByKind(kind: string) {
+  return imageComponentWorkflowPoints.find((point) => point.kind === kind) ?? null
+}
+
+export function resolveImageComponentWorkflowPointByFileId(fileId?: string | null) {
+  if (!fileId) {
+    return null
+  }
+
+  return imageComponentWorkflowPoints.find((point) => point.fileIds.includes(fileId)) ?? null
+}
+
+export function resolveImageComponentWorkflowPointByLevel(levelNumber: number) {
+  return imageComponentWorkflowPoints.find((point) => point.legacyLevelHint === levelNumber)
+    ?? imageComponentWorkflowPoints[0]
+    ?? null
+}
+
+function buildWorkflowSteps(args: {
+  taskData: TaskData
+  taskItem?: TaskListItem
+  checkResult?: TaskCheckResult | null
+  artifacts: Artifact[]
+  projectId: string
+  workbenchInstanceId: string
+}): WorkflowStepInstance[] {
+  const currentLevel = resolveCurrentLevel(args.taskData, args.taskItem)
+  const inputArtifactIds = args.artifacts
+    .filter((artifact) => artifact.kind === "source-image")
+    .map((artifact) => artifact.id)
+  const outputArtifactIds = args.artifacts
+    .filter((artifact) => artifact.kind !== "source-image")
+    .map((artifact) => artifact.id)
+  const fileArtifactIdsByFileId = buildFileArtifactIdsByFileId(args.artifacts)
+  const coordinatorStepId = buildCoordinatorStepId(args.taskData.taskId)
+
+  const workflowPoints = imageComponentWorkflowPoints.map((point) => {
+    const relatedArtifactIds = point.fileIds.flatMap((fileId) => fileArtifactIdsByFileId.get(fileId) ?? [])
+
+    return {
+      id: buildWorkflowPointStepId(args.taskData.taskId, point.id),
+      projectId: args.projectId,
+      kind: point.kind,
+      status: resolveWorkflowPointStatus({
+        point,
+        currentLevel,
+        taskItem: args.taskItem,
+        relatedArtifactIds,
+      }),
+      inputArtifactIds,
+      outputArtifactIds: relatedArtifactIds,
+    } satisfies WorkflowStepInstance
+  })
+
+  return [
+    {
+      id: coordinatorStepId,
+      projectId: args.projectId,
+      kind: IMAGE_COMPONENT_WORKFLOW_COORDINATOR_KIND,
+      status: normalizeStepStatus(args.taskItem, args.checkResult),
+      inputArtifactIds,
+      outputArtifactIds,
+      runtimeBindings: {
+        workbenchInstanceIds: [args.workbenchInstanceId],
+        primaryWorkbenchInstanceId: args.workbenchInstanceId,
+      },
+    },
+    ...workflowPoints,
+  ]
+}
+
+/**
+ * @example
+ * ```ts
+ * const title = resolveWorkflowStepTitle({
+ *   taskId: "intro-card",
+ *   stepId: "workflow-step:intro-card:image-to-component:storybook",
+ *   stepKind: "storybook",
+ * })
+ * ```
+ */
+export function resolveWorkflowStepTitle(args: {
+  taskId: string
+  stepId: string
+  stepKind: string
+  taskData?: TaskData
+  taskItem?: TaskListItem
+}) {
+  const titleMap = buildWorkflowStepTitleMap(args.taskId)
+  const explicitTitle = titleMap.get(args.stepId)
+
+  if (explicitTitle) {
+    return explicitTitle
+  }
+
+  if (args.stepKind === "level-lab") {
+    const levelNumber = args.taskItem?.progress.currentLevel ?? args.taskData?.labContext?.levelNumber
+
+    if (levelNumber) {
+      return `Шаг workflow: уровень ${levelNumber}`
+    }
+  }
+
+  return `Шаг workflow: ${args.stepKind}`
+}
+
+export function listImageComponentWorkflowPoints() {
+  return imageComponentWorkflowPoints
+}
+
+export function resolveTaskWorkflowPointFocus(args: {
+  projection: TaskWorkflowArtifactProjection
+  activeFileId?: string | null
+}): TaskWorkflowPointFocus | null {
+  const activePoint = resolveImageComponentWorkflowPointByFileId(args.activeFileId)
+  const workflowPointSteps = args.projection.workflow.stepInstances.filter(
+    (step) => step.id !== args.projection.workflow.currentStepId,
+  )
+
+  const focusedStep = activePoint
+    ? workflowPointSteps.find((step) => step.kind === activePoint.kind)
+    : workflowPointSteps.find((step) => step.status === "in_progress")
+      ?? workflowPointSteps[0]
+
+  if (!focusedStep) {
+    return null
+  }
+
+  const point = resolveImageComponentWorkflowPointByKind(focusedStep.kind)
+
+  if (!point) {
+    return null
+  }
+
+  return {
+    id: point.id,
+    stepId: focusedStep.id,
+    kind: point.kind,
+    title: point.title,
+    fileIds: [...point.fileIds],
+    primaryFileId: args.activeFileId && point.fileIds.includes(args.activeFileId)
+      ? args.activeFileId
+      : point.fileIds[0] ?? null,
+    status: focusedStep.status,
+  }
+}
+
 /**
  * @example
  * ```ts
@@ -218,15 +506,8 @@ export function buildTaskWorkflowArtifactProjection(args: TaskProjectionArgs): T
       createdAt,
     }),
   ]
-  const currentLevel = args.taskItem?.progress.currentLevel ?? args.taskData.labContext?.levelNumber ?? 1
-  const currentStepId = `workflow-step:${args.taskData.taskId}:level-lab:${currentLevel}`
-  const inputArtifactIds = artifacts
-    .filter((artifact) => artifact.kind === "source-image")
-    .map((artifact) => artifact.id)
-  const outputArtifactIds = artifacts
-    .filter((artifact) => artifact.kind !== "source-image")
-    .map((artifact) => artifact.id)
-  const workflowInstanceId = `workflow:${args.taskData.taskId}:lab`
+  const currentStepId = buildCoordinatorStepId(args.taskData.taskId)
+  const workflowInstanceId = `workflow:${args.taskData.taskId}:image-to-component`
   const workbenchInstanceId = `workbench:${args.taskData.taskId}`
   const workbenchInstance = createLabWorkbenchInstance({
     projectId: scope.projectId,
@@ -234,12 +515,20 @@ export function buildTaskWorkflowArtifactProjection(args: TaskProjectionArgs): T
     workflowStepId: currentStepId,
     artifacts,
   })
+  const stepInstances = buildWorkflowSteps({
+    taskData: args.taskData,
+    taskItem: args.taskItem,
+    checkResult: args.checkResult,
+    artifacts,
+    projectId: scope.projectId,
+    workbenchInstanceId,
+  })
 
   return {
     task: {
       id: args.taskData.taskId,
       projectId: scope.projectId,
-      taskType: args.taskType ?? "level-lab",
+      taskType: args.taskType ?? IMAGE_COMPONENT_WORKFLOW_TASK_TYPE,
       title: args.title ?? args.taskItem?.id ?? args.taskData.taskId,
       workflowInstanceId,
       artifactIds: artifacts.map((artifact) => artifact.id),
@@ -249,22 +538,9 @@ export function buildTaskWorkflowArtifactProjection(args: TaskProjectionArgs): T
       id: workflowInstanceId,
       projectId: scope.projectId,
       taskId: args.taskData.taskId,
-      definitionId: "workflow-definition:level-lab",
+      definitionId: IMAGE_COMPONENT_WORKFLOW_DEFINITION_ID,
       currentStepId,
-      stepInstances: [
-        {
-          id: currentStepId,
-          projectId: scope.projectId,
-          kind: "level-lab",
-          status: normalizeStepStatus(args.taskItem, args.checkResult),
-          inputArtifactIds,
-          outputArtifactIds,
-          runtimeBindings: {
-            workbenchInstanceIds: [workbenchInstanceId],
-            primaryWorkbenchInstanceId: workbenchInstanceId,
-          },
-        },
-      ],
+      stepInstances,
     },
     artifacts,
     workbenchInstances: [workbenchInstance],

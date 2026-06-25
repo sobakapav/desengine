@@ -354,7 +354,7 @@
         "Лаборатория создаёт локальный проект для preview",
         "Пользователь переключает UI kit проекта без перезагрузки страницы",
         "Лаборатория показывает итог project migration",
-        "Пользователь включает режим html-tags",
+        "Лаборатория сохраняет локальные project settings при rehydration",
         "Лаборатория показывает диагностику несовместимости UI kit",
         "Лаборатория показывает runtime-диагностику Sandpack preview",
         "Preview budget exceed переводит runtime в safe degradation mode"
@@ -527,7 +527,7 @@
         "Runtime отклоняет oversized write-set до записи пользовательских файлов",
         "Route handlers используют переиспользуемые lab action services",
         "Sandpack preview использует project.uiKitId",
-        "Режим html-tags работает без UI kit",
+        "По умолчанию включён shadcn/ui",
         "Preview показывает безопасный fallback при несовместимости проекта",
         "Preview поднимает runtime-ошибку Sandpack в host UI",
         "Система читает статичную task-specific подсказку уровня",

@@ -16,6 +16,7 @@ import {
     WorkbenchProjectLoadingState,
     WorkbenchProjectSettings,
 } from "./WorkbenchProjectShell";
+import type { WorkbenchSurfaceSnapshot } from "./workbenchSurface";
 
 const CodeList = dynamic(
     () => import("../Code").then((module) => module.CodeList),
@@ -65,6 +66,7 @@ function ContextStatusItem({ label, value }: { label: string; value: string }) {
 }
 
 function TaskTip({
+    surface,
     currentLevel,
     currentLevelDisplayStatus,
     maxLevel,
@@ -75,6 +77,7 @@ function TaskTip({
     promptsLimit,
     promptsUsed,
 }: {
+    surface: WorkbenchSurfaceSnapshot | null;
     currentLevel: number;
     currentLevelDisplayStatus: WorkbenchProps["taskItem"]["progress"]["currentLevelDisplayStatus"];
     maxLevel: number;
@@ -93,25 +96,25 @@ function TaskTip({
             className="space-y-3 rounded-2xl border border-black/10 bg-[#f8f4eb] p-3 shadow-sm"
         >
             <div className="space-y-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/45">Контекст рабочей поверхности</p>
-                <p className="text-base font-semibold text-black">Что важно для текущей задачи</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/45">Контекст workflow-сессии</p>
+                <p className="text-base font-semibold text-black">Что сейчас формирует итоговый рендер</p>
             </div>
 
-            <MarkdownContent className="text-sm leading-6" content={content || "Для этого уровня пока нет отдельного пояснения задачи."} />
+            <MarkdownContent className="text-sm leading-6" content={content || "Для этой задачи пока нет отдельного пояснения."} />
 
             <div data-testid="workbench-context-status" className="grid gap-2 sm:grid-cols-3">
-                <ContextStatusItem label="Уровень" value={`${currentLevel} из ${maxLevel}`} />
+                <ContextStatusItem label="Workflow" value={surface?.workflowStepTitle ?? `Шаг ${currentLevel} из ${maxLevel}`} />
                 <ContextStatusItem label="Промпты" value={`${promptsUsed} / ${promptsLimit}`} />
                 <ContextStatusItem label="Файлы" value={`${visibleFiles.length} шт.`} />
             </div>
 
             <div className="rounded-xl border border-black/10 bg-white/80 p-3">
                 <p className="text-sm text-black/70">
-                    Главный outcome этого экрана: довести решение до состояния «Проверка пройдена».
+                    {surface?.renderCenterDescription ?? "Главный outcome этого экрана: довести решение до состояния «Проверка пройдена»."}
                 </p>
                 <div className="flex items-center gap-2 text-sm font-medium text-black">
                     <Files className="size-4 text-black/60" aria-hidden="true" />
-                    Рабочие файлы поверхности: {visibleFiles.length}
+                    {surface?.renderCenterTitle ?? "Рабочие файлы поверхности"}: {visibleFiles.length}
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                     {visibleFiles.map((file) => (
@@ -124,7 +127,7 @@ function TaskTip({
                     ))}
                 </div>
                 {currentLevelDisplayStatus === "awaiting_check_retry" ? (
-                    <p className="mt-3 text-sm text-black/70">Следующий шаг: повторить проверку, не начиная отдельный новый этап.</p>
+                    <p className="mt-3 text-sm text-black/70">Следующий шаг: повторить проверку, не начиная отдельный новый workflow-этап.</p>
                 ) : null}
             </div>
 
@@ -133,13 +136,13 @@ function TaskTip({
                 className="group rounded-xl border border-black/10 bg-white/80 p-3"
             >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-black">
-                    Полное пояснение уровня
+                    Полное пояснение исходной задачи
                     <ChevronDown className="size-4 text-black/50 transition-transform group-open:rotate-180" aria-hidden="true" />
                 </summary>
                 <MarkdownContent
                     className="mt-3 text-sm leading-6 text-black/80"
                     assetBasePath={levelAssetBasePath}
-                    content={commonExplanation || "Общее пояснение уровня пока не заполнено."}
+                    content={commonExplanation || "Общее пояснение задачи пока не заполнено."}
                 />
             </details>
         </div>
@@ -160,6 +163,14 @@ export function WorkbenchOverview({ controller, props }: { controller: Workbench
     return (
         <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.9fr)]">
             <div data-testid="workbench-preview-block" className="rounded-2xl border border-black/10 bg-[#f6f2ea] p-2.5 shadow-sm">
+                <div className="mb-2 rounded-xl border border-black/10 bg-white/80 px-4 py-3 text-sm text-black/70">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/45">
+                        {controller.surface?.renderCenterTitle ?? "Главный рендер результата"}
+                    </p>
+                    <p className="mt-1">
+                        {controller.surface?.renderCenterDescription ?? "Предпросмотр показывает текущее состояние компонента."}
+                    </p>
+                </div>
                 {controller.project.projectReady ? (
                     <InOut
                         task={props.taskItem.id}
@@ -171,11 +182,12 @@ export function WorkbenchOverview({ controller, props }: { controller: Workbench
                     />
                 ) : (
                     <div className="rounded-xl border border-dashed border-black/10 bg-white/80 p-4 text-sm text-muted-foreground">
-                        Загружаем preview для active project…
+                        Загружаем предпросмотр для активного проекта…
                     </div>
                 )}
             </div>
             <TaskTip
+                surface={controller.surface}
                 currentLevel={props.taskItem.progress.currentLevel}
                 currentLevelDisplayStatus={props.taskItem.progress.currentLevelDisplayStatus}
                 maxLevel={props.taskItem.maxLevel}

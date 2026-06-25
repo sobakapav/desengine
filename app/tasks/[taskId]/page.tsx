@@ -1,5 +1,6 @@
 import { requireAccessOrRedirect } from "@/lib/auth/server"
 import { getTaskListItemById as getTaskItemById } from "@/lib/system/server"
+import { getTaskProjectBinding } from "@/lib/task/assignment-server"
 import { getTaskUrl } from "@/lib/task/navigation"
 import { getTasksRootUrl } from "@/lib/task/navigation"
 
@@ -23,11 +24,14 @@ export default async function Page({
 
   await requireAccessOrRedirect(canonicalPath)
 
-  const taskItem = await getTaskItemById(taskId)
+  const [taskItem, binding] = await Promise.all([
+    getTaskItemById(taskId),
+    getTaskProjectBinding(taskId),
+  ])
 
   if (!taskItem) {
     notFound()
   }
 
-  return (<TaskScreen taskId={taskId} />)
+  return (<TaskScreen taskId={taskId} taskItem={taskItem} binding={binding} />)
 }

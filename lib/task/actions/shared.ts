@@ -5,6 +5,9 @@ import { getTaskLabContext } from "../server"
 import type { Project } from "@/lib/project/runtime"
 import type { TaskData, TaskLabContext, TaskListItem } from "../types"
 import { buildCurrentTaskScreenData } from "../task-screen-data"
+import {
+  resolveImageComponentWorkflowPointByFileId,
+} from "../projection"
 import type {
   FilesPayload,
   OutputFile,
@@ -87,6 +90,28 @@ export const taskActionShared = {
     return files
       .map((file) => `FILE ${file.id} (${file.fileName})\n\`\`\`tsx\n${file.content}\n\`\`\``)
       .join("\n\n")
+  },
+  resolveWorkflowPointGenerationScope(args: {
+    activeFileId?: string | null
+    editableFiles: OutputFile[]
+  }) {
+    const point = resolveImageComponentWorkflowPointByFileId(args.activeFileId)
+    const editableFilesById = new Map(args.editableFiles.map((file) => [file.id, file] as const))
+    const targetFiles = point
+      ? point.fileIds
+        .map((fileId) => editableFilesById.get(fileId))
+        .filter((file): file is NonNullable<typeof file> => Boolean(file))
+      : []
+    const resolvedTargetFiles = targetFiles.length > 0 ? targetFiles : args.editableFiles
+    const targetFileIds = new Set(resolvedTargetFiles.map((file) => file.id))
+    const supportingFiles = args.editableFiles.filter((file) => !targetFileIds.has(file.id))
+
+    return {
+      workflowPointId: point?.id ?? null,
+      workflowPointTitle: point?.title ?? null,
+      targetFiles: resolvedTargetFiles,
+      supportingFiles,
+    }
   },
   buildTechnicalErrorMessage(error: unknown) {
     if (error instanceof Error && error.message.trim()) {

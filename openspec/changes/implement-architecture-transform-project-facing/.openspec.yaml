@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-16
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "producer-architecture-transform"
+strategy_root: "producer-architecture-transform"
+roadmap_ref: ""
+release_ref: ""
+producer_ref: "producer-architecture-transform"
+verification_level: "static/contract + unit"
+verification_command: "npm run test:traceability && npm run test:unit -- project-user-surface-foundation architecture-transform-project-facing"
+issue: ""
+short: "реализовать первый пользовательский слой architecture-transform на странице"

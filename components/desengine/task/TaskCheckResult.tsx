@@ -15,12 +15,12 @@ type TaskCheckResultProps = {
 function getTitle(result: TaskCheckResult, transition: TaskTransition | null) {
   if (result.kind === "passed") {
     return transition?.toLevel
-      ? `Проверка пройдена. Уровень ${transition.toLevel.title} уже доступен`
-      : `Проверка пройдена. Задача решена целиком`
+      ? `Проверка пройдена. Следующий шаг уже доступен`
+      : `Проверка пройдена. Работа по задаче завершена`
   }
 
   if (result.kind === "failed_and_reset") {
-    return "Проверка не пройдена. Цикл уровня начнётся заново"
+    return "Проверка не пройдена. Текущий шаг начнётся заново"
   }
 
   if (result.kind === "technical_error") {
@@ -36,16 +36,16 @@ function getMeta(result: TaskCheckResult) {
   }
 
   if (result.kind === "passed") {
-    return `Главный outcome уровня достигнут: проверка уровня ${result.levelNumber} пройдена на попытке ${result.attemptNumber} из ${result.maxCheckAttempts}.`
+    return `Главный результат для текущего шага достигнут: проверка пройдена на попытке ${result.attemptNumber} из ${result.maxCheckAttempts}.`
   }
 
   const remainingAttempts = Math.max(result.maxCheckAttempts - result.attemptNumber, 0)
 
   if (result.kind === "failed_and_reset") {
-    return `Попытка ${result.attemptNumber} из ${result.maxCheckAttempts} оказалась последней для этого уровня.`
+    return `Попытка ${result.attemptNumber} из ${result.maxCheckAttempts} оказалась последней для текущего шага.`
   }
 
-  return `Проверка уровня ${result.levelNumber}, попытка ${result.attemptNumber} из ${result.maxCheckAttempts}. До «Проверка пройдена» осталась доработка и новая проверка. Доступно ещё попыток: ${remainingAttempts}.`
+  return `Попытка ${result.attemptNumber} из ${result.maxCheckAttempts}. До состояния «Проверка пройдена» остались доработка и новая проверка. Доступно ещё попыток: ${remainingAttempts}.`
 }
 
 /**
@@ -88,12 +88,12 @@ export function TaskCheckResult({
       <div className="flex flex-wrap gap-3">
         {canContinue ? (
           <Button disabled={pending} onClick={onContinue}>
-            {transition?.toLevel ? "Вернуться к задачам уровня" : "Открыть итог задачи"}
+            {transition?.toLevel ? "Перейти к следующему шагу" : "Открыть итог задачи"}
           </Button>
         ) : null}
         {canReturnToLab ? (
           <Button variant="outline" disabled={pending} onClick={onBackToLab}>
-            {result.kind === "failed_and_reset" ? "Начать уровень заново" : "Вернуться к доработке"}
+            {result.kind === "failed_and_reset" ? "Начать шаг заново" : "Вернуться к работе"}
           </Button>
         ) : null}
         {canRetry ? (

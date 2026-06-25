@@ -53,8 +53,12 @@ import type {
  * const body = await response.json()
  * ```
  */
-export async function startTaskLevel(taskId: string, project?: Project): Promise<TaskActionHttpResult> {
-  return taskStartAction.startTaskLevel(taskId, project)
+export async function startTaskLevel(
+  taskId: string,
+  project?: Project,
+  activeFileId?: string | null,
+): Promise<TaskActionHttpResult> {
+  return taskStartAction.startTaskLevel(taskId, project, activeFileId)
 }
 
 /**
@@ -67,8 +71,9 @@ export async function iterateTaskLevel(
   taskId: string,
   promptText: string,
   project?: Project,
+  activeFileId?: string | null,
 ): Promise<TaskActionHttpResult> {
-  return taskIterateAction.iterateTaskLevel(taskId, promptText, project)
+  return taskIterateAction.iterateTaskLevel(taskId, promptText, project, activeFileId)
 }
 
 /**
@@ -126,7 +131,6 @@ export async function resetCurrentTaskLevelRuntime(
  * ```ts
  * const result = await migrateProjectUiKitRuntime("task-1", project, {
  *   uiKitId: "shadcn",
- *   uiMode: "light",
  * })
  * ```
  */

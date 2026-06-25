@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-16
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "fix"
+execution_mode: "code"
+parent_change: "dispatcher-openspec"
+strategy_root: "focus-governance"
+roadmap_ref: "focus-governance/roadmaps/openspec.md"
+release_ref: ""
+producer_ref: ""
+verification_level: "unit"
+verification_command: "npm run test:unit"
+issue: ""
+short: "dispatchers живут под focus и спорят с producer конструктивно"

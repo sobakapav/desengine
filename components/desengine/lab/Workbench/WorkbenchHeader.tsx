@@ -18,6 +18,7 @@ import {
 import type { WorkbenchProps } from "./props";
 import { WorkbenchSurfaceSummary } from "./WorkbenchSurfaceSummary";
 import type { WorkbenchSurfaceSnapshot } from "./workbenchSurface";
+import { useTaskProjectComponent } from "@/components/desengine/project/useTaskProjectComponent";
 
 function getRemainingOutcomeText(taskItem: WorkbenchProps["taskItem"]) {
     const remainingChecks = Math.max(taskItem.progress.checkAttemptsLimit - taskItem.progress.checkAttemptsUsed, 0);
@@ -31,7 +32,7 @@ function getRemainingOutcomeText(taskItem: WorkbenchProps["taskItem"]) {
     }
 
     if (taskItem.progress.currentLevelNotStarted) {
-        return "До состояния «Проверка пройдена» осталось начать уровень, сделать решение и отправить его на проверку.";
+        return "До состояния «Проверка пройдена» осталось начать workflow-сессию, собрать решение и отправить его на проверку.";
     }
 
     return `До состояния «Проверка пройдена» осталось закончить решение и отправить его на проверку. Попыток проверки осталось ${remainingChecks} из ${taskItem.progress.checkAttemptsLimit}.`;
@@ -73,14 +74,14 @@ function LevelResetDialog({
         <AlertDialog open={open} onOpenChange={setOpen}>
             <AlertDialogTrigger asChild>
                 <Button variant="outline" disabled={interactionDisabled || completePending || resetPending || !canCompleteCurrentLevel}>
-                    {resetPending ? "Сброс…" : "Сбросить уровень"}
+                    {resetPending ? "Сброс…" : "Сбросить текущую итерацию"}
                 </Button>
             </AlertDialogTrigger>
             <AlertDialogContent size="sm">
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Сбросить текущий уровень?</AlertDialogTitle>
+                    <AlertDialogTitle>Сбросить текущую итерацию workflow?</AlertDialogTitle>
                     <AlertDialogDescription>
-                        Будут удалены рабочие файлы, история уточнений и проверки только у текущего уровня. Уже пройденные уровни сохранятся.
+                        Будут удалены рабочие файлы, история уточнений и проверки только у текущего рабочего среза. Уже пройденный прогресс сохранится.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 {open && resetError ? <ResetErrorNotice message={resetError} /> : null}
@@ -94,7 +95,7 @@ function LevelResetDialog({
                             void handleConfirm();
                         }}
                     >
-                        {resetPending ? "Сбрасываем уровень…" : "Подтвердить сброс уровня"}
+                        {resetPending ? "Сбрасываем итерацию…" : "Подтвердить сброс итерации"}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
@@ -176,7 +177,7 @@ function WorkbenchHeaderActions({
 }) {
     return (
         <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={onBackToLevelList}>К списку задач уровня</Button>
+            <Button variant="outline" onClick={onBackToLevelList}>Назад к задачам</Button>
             <LevelResetDialog
                 canCompleteCurrentLevel={canCompleteCurrentLevel}
                 completePending={completePending}
@@ -221,6 +222,7 @@ export function WorkbenchHeader({
     onCheck,
     onResetLevel,
     onResetTask,
+    onSelectWorkflowPoint,
     resetError,
     resetPending,
     surface,
@@ -232,19 +234,33 @@ export function WorkbenchHeader({
     onCheck: () => void;
     onResetLevel: () => Promise<boolean>;
     onResetTask: () => Promise<boolean>;
+    onSelectWorkflowPoint: (pointId: string) => void;
     resetError: string;
     resetPending: boolean;
     surface: WorkbenchSurfaceSnapshot | null;
 }) {
+    const projectComponentState = useTaskProjectComponent(taskItem.id, surface?.projectId ?? null);
+
     return (
         <div className="space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-1">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/45">Рабочая поверхность</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/45">Рабочая сессия</p>
+                    {projectComponentState.component ? (
+                        <p className="text-sm font-medium text-black/75">
+                            Компонент проекта: {projectComponentState.component.title}
+                        </p>
+                    ) : null}
                     <p className="text-muted-foreground">Задача: <code>{taskItem.id}</code></p>
-                    <h1 className="text-2xl font-semibold text-black">Шаг workflow: уровень {taskItem.progress.currentLevel}</h1>
+                    <h1 className="text-2xl font-semibold text-black">{surface?.headline ?? "Работаем над workflow"}</h1>
+                    <p className="text-sm font-medium text-black/70">
+                        {surface ? `${surface.workflowStepTitle} • ${surface.sessionStatusLabel}` : "Текущий этап уже открыт"}
+                    </p>
+                    {surface?.selectedWorkflowPointTitle ? (
+                        <p className="text-sm text-black/60">Текущий шаг: {surface.selectedWorkflowPointTitle}</p>
+                    ) : null}
                     <p className="max-w-2xl text-sm text-muted-foreground">
-                        {getRemainingOutcomeText(taskItem)}
+                        {surface?.outcomeLabel ?? getRemainingOutcomeText(taskItem)}
                     </p>
                 </div>
                 <WorkbenchHeaderActions
@@ -259,7 +275,7 @@ export function WorkbenchHeader({
                     resetPending={resetPending}
                 />
             </div>
-            {surface ? <WorkbenchSurfaceSummary surface={surface} /> : null}
+            {surface ? <WorkbenchSurfaceSummary onSelectWorkflowPoint={onSelectWorkflowPoint} surface={surface} /> : null}
         </div>
     );
 }

@@ -21,6 +21,7 @@
 // @openSpec  - "Пользователь запускает уровень через service boundary"
 // @openSpec  - "Пользователь уточняет задачу через service boundary"
 // @openSpec  - "Пользователь проверяет результат через service boundary"
+// @openSpec  - "Пользователь запускает project migration через service boundary"
 // @openSpec  - "Task action runtime возвращает retriable overload-отказ"
 // @openSpec  - "Runtime start/iterate/check возвращает structured diagnostics для speed/load путей"
 // @openSpec  - "Runtime отклоняет oversized write-set до записи пользовательских файлов"
@@ -343,13 +344,11 @@ describe("task action service boundary", () => {
     mocks.resolveTaskProject.mockImplementation(async (taskId: string, project?: { id?: string }) => ({
       id: project?.id ?? `task-${taskId}`,
       title: "Проект",
-      settings: { uiKitId: "shadcn", uiMode: "ui-kit" },
+      settings: { uiKitId: "shadcn" },
       migration: {
         state: "pending",
         sourceUiKitId: "shadcn",
-        sourceUiMode: "ui-kit",
         targetUiKitId: "ant",
-        targetUiMode: "ui-kit",
         invalidationScope: "none",
         requiresReplay: false,
         message: "",
@@ -456,13 +455,11 @@ describe("task action service boundary", () => {
     const project = {
       id: "project-b",
       title: "Проект B",
-      settings: { uiKitId: "shadcn", uiMode: "ui-kit" as const },
+      settings: { uiKitId: "shadcn" as const },
       migration: {
         state: "pending" as const,
         sourceUiKitId: "shadcn" as const,
-        sourceUiMode: "ui-kit" as const,
         targetUiKitId: "ant" as const,
-        targetUiMode: "ui-kit" as const,
         invalidationScope: "none" as const,
         requiresReplay: false,
         message: "",
@@ -472,7 +469,7 @@ describe("task action service boundary", () => {
       createdAt: "2026-06-10T10:00:00.000Z",
       updatedAt: "2026-06-10T10:00:00.000Z",
     }
-    const target = { uiKitId: "ant" as const, uiMode: "ui-kit" as const }
+    const target = { uiKitId: "ant" as const as const }
 
     await expect(migrateProjectUiKitRuntime("task-a", project, target)).resolves.toMatchObject({
       kind: "project_migration",
@@ -595,6 +592,42 @@ describe("task action service boundary", () => {
         }),
       ]),
     })
+  })
+
+  it("iterateTaskLevel ограничивает primary file set выбранным workflow-пунктом", async () => {
+    const { iterateTaskLevel } = await import("@/lib/task/actions")
+
+    await iterateTaskLevel("task-a", "Доведи стили", undefined, "styles")
+
+    expect(mocks.runStructuredLlmRequest).toHaveBeenCalledWith(expect.objectContaining({
+      target: "iterate",
+      schema: expect.objectContaining({
+        required: ["styles"],
+        properties: {
+          styles: { type: ["string", "null"] },
+        },
+      }),
+    }))
+    expect(mocks.appendPromptHistory).toHaveBeenCalledWith("task-a", expect.objectContaining({
+      selectedFileNames: ["styles.ts"],
+    }), expect.anything())
+  })
+
+  it("startTaskLevel ограничивает initiator generation выбранным workflow-пунктом", async () => {
+    mocks.isTaskStarted.mockResolvedValue(false)
+    const { startTaskLevel } = await import("@/lib/task/actions")
+
+    await startTaskLevel("task-a", undefined, "styles")
+
+    expect(mocks.runStructuredLlmRequest).toHaveBeenCalledWith(expect.objectContaining({
+      target: "init",
+      schema: expect.objectContaining({
+        required: ["styles"],
+        properties: {
+          styles: { type: "string" },
+        },
+      }),
+    }))
   })
 
   it("iterateTaskLevel отклоняет oversized write-set до записи файлов и prompt history", async () => {

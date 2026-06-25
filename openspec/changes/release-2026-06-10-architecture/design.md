@@ -43,9 +43,22 @@
    - `implement-project-task-onboarding-binding`;
    - `implement-project-workflow-binding`;
    - `implement-project-workbench-preview-binding`;
-   - `fix-project-ui-kit-migration-invalidation`.
+   - `fix-project-ui-kit-migration-invalidation`;
+   - `implement-project-user-surface-foundation`;
+   - `implement-project-task-assignment-surface`;
+   - `implement-project-config-and-ui-kit-contract`;
+   - `implement-project-history-diagnostics-surface`;
+   - `implement-project-workflow-readout-surface`.
 
 5. Release в этой волне фиксирует именно старт архитектурной трансформации, а не полноту всех будущих implementation waves.
+
+6. Следующая project-wave внутри того же релиза должна не только строить внутренний runtime contract, но и проявлять проект как пользовательскую сущность:
+   - отдельный раздел `Проекты`;
+   - отдельную страницу проекта;
+   - видимую связь проекта и задач;
+   - project-level config и `UI kit` contract;
+   - project-scoped историю и диагностику;
+   - read-only workflow/artifact surface проекта.
 
 ## Risks / Trade-offs
 

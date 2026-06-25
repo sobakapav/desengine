@@ -95,7 +95,6 @@ describe("task route integration wave", () => {
     mocks.requireAccessOrUnauthorizedResponse.mockResolvedValue(null)
     mocks.normalizeProject.mockImplementation((project: Record<string, unknown>) => ({
       uiKitId: "ant",
-      uiMode: "ui-kit",
       ...project,
     }))
   })
@@ -158,7 +157,7 @@ describe("task route integration wave", () => {
     mocks.getLevelForTaskItem.mockResolvedValue(level)
 
     await getTask(
-      new Request("http://localhost/api/tasks/task-1?projectId=project-42&projectTitle=Alpha&uiKitId=ant&uiMode=ui-kit"),
+      new Request("http://localhost/api/tasks/task-1?projectId=project-42&projectTitle=Alpha&uiKitId=ant"),
       { params: Promise.resolve({ taskId: "task-1" }) },
     )
 
@@ -167,7 +166,6 @@ describe("task route integration wave", () => {
       title: "Alpha",
       settings: {
         uiKitId: "ant",
-        uiMode: "ui-kit",
       },
     })
     expect(mocks.buildCurrentTaskScreenData).toHaveBeenCalledWith(expect.objectContaining({
@@ -204,7 +202,7 @@ describe("task route integration wave", () => {
       { params: Promise.resolve({ taskId: "task-1" }) },
     )
 
-    expect(mocks.startTaskLevel).toHaveBeenCalledWith("task-1", undefined)
+    expect(mocks.startTaskLevel).toHaveBeenCalledWith("task-1", undefined, undefined)
     expect(response.status).toBe(202)
     await expect(readJsonResponse(response)).resolves.toEqual({
       ok: true,
@@ -220,17 +218,24 @@ describe("task route integration wave", () => {
 
     await postStart(
       createJsonRequest({
-        body: { project: { id: "project-42", title: "Alpha", uiKitId: "ant", uiMode: "ui-kit" } },
+        body: {
+          project: { id: "project-42", title: "Alpha", uiKitId: "ant" },
+          activeScreen: "stories",
+        },
         method: "POST",
         url: "http://localhost/api/tasks/task-1/start",
       }),
       { params: Promise.resolve({ taskId: "task-1" }) },
     )
 
-    expect(mocks.startTaskLevel).toHaveBeenCalledWith("task-1", expect.objectContaining({
-      id: "project-42",
-      title: "Alpha",
-    }))
+    expect(mocks.startTaskLevel).toHaveBeenCalledWith(
+      "task-1",
+      expect.objectContaining({
+        id: "project-42",
+        title: "Alpha",
+      }),
+      "stories",
+    )
   })
 
   it("отклоняет пустой iterate prompt до вызова runtime", async () => {
@@ -266,7 +271,7 @@ describe("task route integration wave", () => {
       { params: Promise.resolve({ taskId: "task-1" }) },
     )
 
-    expect(mocks.iterateTaskLevel).toHaveBeenCalledWith("task-1", "Сделай кнопку заметнее", undefined)
+    expect(mocks.iterateTaskLevel).toHaveBeenCalledWith("task-1", "Сделай кнопку заметнее", undefined, undefined)
     expect(response.status).toBe(200)
     await expect(readJsonResponse(response)).resolves.toEqual({
       ok: true,
@@ -284,7 +289,8 @@ describe("task route integration wave", () => {
       createJsonRequest({
         body: {
           prompt: "Сделай кнопку заметнее",
-          project: { id: "project-42", title: "Alpha", uiKitId: "ant", uiMode: "ui-kit" },
+          project: { id: "project-42", title: "Alpha", uiKitId: "ant" },
+          activeScreen: "props",
         },
         method: "POST",
         url: "http://localhost/api/tasks/task-1/iterate",
@@ -296,6 +302,7 @@ describe("task route integration wave", () => {
       "task-1",
       "Сделай кнопку заметнее",
       expect.objectContaining({ id: "project-42", title: "Alpha" }),
+      "props",
     )
   })
 
@@ -307,7 +314,7 @@ describe("task route integration wave", () => {
 
     const response = await postCheck(
       createJsonRequest({
-        body: { project: { id: "project-42", title: "Alpha", uiKitId: "mui", uiMode: "ui-kit" } },
+        body: { project: { id: "project-42", title: "Alpha", uiKitId: "mui" } },
         method: "POST",
         url: "http://localhost/api/tasks/task-1/check",
       }),
@@ -318,13 +325,11 @@ describe("task route integration wave", () => {
       id: "project-42",
       title: "Alpha",
       uiKitId: "mui",
-      uiMode: "ui-kit",
     })
     expect(mocks.checkTaskLevel).toHaveBeenCalledWith("task-1", {
       id: "project-42",
       title: "Alpha",
       uiKitId: "mui",
-      uiMode: "ui-kit",
     })
     expect(response.status).toBe(200)
   })
@@ -420,7 +425,7 @@ describe("task route integration wave", () => {
 
     await postReset(
       createJsonRequest({
-        body: { project: { id: "project-42", title: "Alpha", uiKitId: "ant", uiMode: "ui-kit" } },
+        body: { project: { id: "project-42", title: "Alpha", uiKitId: "ant" } },
         method: "POST",
         url: "http://localhost/api/tasks/task-1/reset",
       }),
@@ -428,7 +433,7 @@ describe("task route integration wave", () => {
     )
     await postResetLevel(
       createJsonRequest({
-        body: { project: { id: "project-42", title: "Alpha", uiKitId: "ant", uiMode: "ui-kit" } },
+        body: { project: { id: "project-42", title: "Alpha", uiKitId: "ant" } },
         method: "POST",
         url: "http://localhost/api/tasks/task-1/reset-level",
       }),
@@ -476,7 +481,7 @@ describe("task route integration wave", () => {
       createJsonRequest({
         body: {
           updates: [{ fileId: "styles", content: "export {}" }],
-          project: { id: "project-42", title: "Alpha", uiKitId: "ant", uiMode: "ui-kit" },
+          project: { id: "project-42", title: "Alpha", uiKitId: "ant" },
         },
         method: "POST",
         url: "http://localhost/api/tasks/task-1/files",

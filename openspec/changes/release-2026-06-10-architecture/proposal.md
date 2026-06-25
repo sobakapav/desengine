@@ -20,13 +20,20 @@
   - `implement-project-workflow-binding`
   - `implement-project-workbench-preview-binding`
   - `fix-project-ui-kit-migration-invalidation`
+  - `implement-project-user-surface-foundation`
+  - `implement-project-task-assignment-surface`
+  - `implement-project-config-and-ui-kit-contract`
+  - `implement-project-history-diagnostics-surface`
+  - `implement-project-workflow-readout-surface`
 - Release фиксирует общий смысл стартовой волны:
   - архитектура признаётся пользовательски значимой линией продукта;
   - у линии есть стратегический owner и первые tactical owners;
   - foundation-направления начинают оформляться как отдельные управляемые lanes;
   - `Project` начинает оформляться как новый верхний контекст продукта через отдельную domain-wave, а не как частный preview-state;
   - workflow внутри project-wave оформляется как самостоятельный process-layer, а не как придаток task или workbench.
+  - после foundation-wave проект начинает проявляться в пользовательском мире как отдельный раздел, а не только как скрытый runtime context.
 - Release фиксирует состав поставки, но не меняет `parent_change`, `strategy_root` и tactical ownership downstream changes.
+- Release остаётся живым контейнером текущей архитектурной волны: новые user-facing project changes этой же линии могут входить в него через `release_ref`, пока не открыт следующий архитектурный срез.
 
 ## Impact
 

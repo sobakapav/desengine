@@ -6,7 +6,7 @@ import { installPreviewDigestFallback } from "./preview-runtime-webcrypto"
 function PreviewErrorNotice({ message }: { message: string }) {
   return (
     <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
-      <p className="font-medium text-destructive">Не удалось показать превью компонента.</p>
+      <p className="font-medium text-destructive">Не удалось показать предпросмотр компонента.</p>
       <pre className="text-destructive whitespace-pre-wrap break-words">{message}</pre>
     </div>
   )
@@ -15,7 +15,7 @@ function PreviewErrorNotice({ message }: { message: string }) {
 function PreviewStyleContractNotice({ message }: { message: string }) {
   return (
     <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-      <p className="font-medium">Preview отрисовал DOM без подтверждённого style contract.</p>
+      <p className="font-medium">Предпросмотр открылся, но стили ещё не подтвердились.</p>
       <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
     </div>
   )
@@ -24,7 +24,7 @@ function PreviewStyleContractNotice({ message }: { message: string }) {
 function PreviewRuntimeContractErrorNotice({ message }: { message: string }) {
   return (
     <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-      <p className="font-medium">Компонент не удалось отрендерить в preview.</p>
+      <p className="font-medium">Компонент не удалось отрендерить в предпросмотре.</p>
       <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
     </div>
   )
@@ -42,7 +42,7 @@ function PreviewCheckGuardNotice({ message }: { message: string }) {
 function PreviewSecureContextNotice({ message }: { message: string }) {
   return (
     <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-      <p className="font-medium">Превью сейчас не запускается в этом браузерном окружении.</p>
+      <p className="font-medium">Предпросмотр сейчас не запускается в этом браузере.</p>
       <p className="mt-1 whitespace-pre-wrap break-words">{message}</p>
     </div>
   )
@@ -58,7 +58,7 @@ function ProjectCompatibilityNotice({ payload }: { payload: SandpackPreviewPaylo
   return (
     <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
       <p className="font-medium">
-        Настройки preview: {payload.project.settings.uiKitId}, режим {payload.project.settings.uiMode}
+        Настройки предпросмотра: {payload.project.settings.uiKitId}
         {payload.project.effectiveUiKitId !== payload.project.settings.uiKitId ? `, runtime ${payload.project.effectiveUiKitId}` : ""}
       </p>
       <p className="mt-1">{compatibility.message}</p>
@@ -82,7 +82,7 @@ function ProjectMigrationNotice({ payload }: { payload: SandpackPreviewPayload }
   return (
     <div className={className}>
       <p className="font-medium">
-        Migration проекта: {migration.sourceUiKitId} {"->"} {migration.targetUiKitId}
+        Переключение UI kit проекта: {migration.sourceUiKitId} {"->"} {migration.targetUiKitId}
       </p>
       <p className="mt-1 whitespace-pre-wrap break-words">{migration.message}</p>
     </div>
@@ -101,7 +101,7 @@ function getPreviewRuntimeSupport() {
   return {
     supported: false,
     message:
-      "Превью нельзя запустить в текущем окружении: браузерный runtime не предоставляет Web Crypto и не позволил установить локальный fallback для Sandpack. Откройте desengine по HTTPS или используйте совместимый браузер.",
+      "Предпросмотр нельзя запустить в текущем окружении: браузер не дал доступ к нужным возможностям защиты и не позволил включить локальный запасной режим для Sandpack. Откройте desengine по HTTPS или используйте совместимый браузер.",
   }
 }
 

@@ -1,35 +1,42 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { useState } from "react"
-
+import type { TaskProjectBinding } from "@/lib/task/assignment"
 import type { TaskListItem } from "@/lib/task/types"
 
 import { TaskItemList } from "./TaskCard"
+import { indexTaskProjectBindings } from "@/lib/task/assignment"
 
 type TasksScreenProps = {
   tasks: TaskListItem[]
+  bindings: TaskProjectBinding[]
 }
 
-type PendingAction = { taskId: string; type: "reset" }
-
-export function TasksScreen({ tasks }: TasksScreenProps) {
-  const router = useRouter()
-  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
-  const [error, setError] = useState<string>("")
+/**
+ * @example
+ * ```tsx
+ * <TasksScreen tasks={tasks} bindings={bindings} />
+ * ```
+ */
+export function TasksScreen({ tasks, bindings }: TasksScreenProps) {
+  const bindingsByTaskId = indexTaskProjectBindings(bindings)
+  const assignedCount = bindings.length
 
   return (
     <main className="px-5 py-5">
       <h1 className="text-8xl py-2">Задачи</h1>
       <h2 className="text-6xl py-2">Всего задач: {tasks.length}</h2>
- 
-      {error ? (
-        <p className="tool-notice-error mt-5">{error}</p>
-      ) : null}
+      <p className="max-w-4xl py-2 text-xl text-black/70">
+        Здесь видны все рабочие задачи. Если задача уже живёт внутри проекта, карточка сразу
+        показывает эту связь. Если ещё нет, это тоже видно без перехода вглубь.
+      </p>
+      <p className="text-lg text-black/70">
+        С проектом уже связаны: <strong>{assignedCount}</strong> из <strong>{tasks.length}</strong>.
+      </p>
 
       <TaskItemList
-        tasks={tasks} 
-        className="grid grid-cols-3 py-2 px-1"
+        tasks={tasks}
+        bindingsByTaskId={bindingsByTaskId}
+        className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2 xl:grid-cols-3"
       />
     </main>
   )

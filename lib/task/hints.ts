@@ -16,6 +16,7 @@ type TaskHintRenderInput = {
   level: LevelConfig
   taskConfig: TaskConfig
   project?: Project
+  activeFileId?: string | null
 }
 
 async function pathExists(filePath: string) {
@@ -41,6 +42,7 @@ export async function renderTaskHint(input: TaskHintRenderInput) {
         taskImages: input.taskConfig.images,
         level: input.level,
         project: input.project,
+        activeFileId: input.activeFileId,
       }),
       { onErrorFallbackToRaw: true },
     )

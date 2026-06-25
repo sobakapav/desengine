@@ -66,6 +66,17 @@ Producer не ведёт operational backlog сам. Для этого созд�
 - downstream change может явно показать, что он меняет: definition, step manifestation, переходы или vertical workflow slice;
 - `dispatcher-workflow` не спорит по ownership с `dispatcher-workbench` и `producer-kill-levels`.
 
+### 6. Временное сужение фокуса
+
+До стабилизации основной product-цепочки producer считает приоритетными только такие workflow-изменения:
+
+- переход из проекта в работу;
+- понятный текущий шаг;
+- проверка/чеклист как часть workflow;
+- читаемый результат работы и проверки.
+
+Другие vertical workflow slices считаются отложенными.
+
 ## Риски и компромиссы
 
 - Если workflow останется только технической проекцией lab-уровней, новая модель не проявится в продукте.

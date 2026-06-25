@@ -4,6 +4,7 @@
 // @openSpec  - "Builder включает project/task/workflow/artifacts/workbench"
 // @openSpec  - "Builder включает constraints и provider capabilities"
 // @openSpec  - "Legacy prompt templates получают совместимый renderContext"
+// @openSpec  - "PromptContext включает фокус выбранного workflow-пункта"
 // @openSpec  - "Task hints templating использует PromptContext-compatible context"
 // @openSpec  - "Prompt builder получает canonical input"
 // @openSpec capability: llm
@@ -37,14 +38,11 @@ const project: ProjectWorkspace = {
   updatedAt: "2026-05-20T10:05:00.000Z",
   settings: {
     uiKitId: "ant",
-    uiMode: "ui-kit",
   },
   migration: {
     state: "idle",
     sourceUiKitId: "ant",
-    sourceUiMode: "ui-kit",
     targetUiKitId: "ant",
-    targetUiMode: "ui-kit",
     invalidationScope: "none",
     requiresReplay: false,
     message: "",
@@ -152,6 +150,7 @@ describe("PromptContext runtime boundary", () => {
         { id: "component", fileName: "Component.tsx", title: "Component", edit: true },
         { id: "styles", fileName: "styles.ts", title: "Styles", edit: true },
       ],
+      activeFileId: "styles",
       userText: "Сделай кнопку крупнее",
       constraints: ["allowed-workbench-files-only"],
       providerCapabilities: ["vision", "structured-output"],
@@ -161,12 +160,12 @@ describe("PromptContext runtime boundary", () => {
     expect(context.task).toMatchObject({
       id: "intro-card",
       projectId: "project-runtime",
-      taskType: "level-lab",
+      taskType: "image-to-component-workflow",
     })
     expect(context.workflowStep).toMatchObject({
-      id: "workflow-step:intro-card:level-lab:2",
+      id: "workflow-step:intro-card:image-to-component:run",
       projectId: "project-runtime",
-      kind: "level-lab",
+      kind: "image-to-component-workflow",
       status: "in_progress",
       runtimeBindings: {
         workbenchInstanceIds: ["workbench:intro-card"],
@@ -184,10 +183,21 @@ describe("PromptContext runtime boundary", () => {
       projectId: "project-runtime",
       taskId: "intro-card",
     })
+    expect(context.workflowPoint).toMatchObject({
+      id: "styles",
+      kind: "styles",
+      title: "Стилизация компонента",
+      primaryFileId: "styles",
+    })
     expect(context.userText).toBe("Сделай кнопку крупнее")
     expect(context.constraints).toContain("allowed-workbench-files-only")
     expect(context.providerCapabilities).toEqual(["vision", "structured-output"])
     expect(context.renderContext.user?.designSystemName).toBe("Ant Design")
+    expect(context.renderContext.workflow).toMatchObject({
+      focusPointId: "styles",
+      focusPointTitle: "Стилизация компонента",
+      primaryFileId: "styles",
+    })
     expect(context.renderContext.task).toMatchObject({
       tip: "Подсказка",
       checkContract: "Контракт проверки",

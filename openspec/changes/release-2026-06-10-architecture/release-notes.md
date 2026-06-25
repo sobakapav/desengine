@@ -15,6 +15,11 @@
 - `implement-project-workflow-binding`
 - `implement-project-workbench-preview-binding`
 - `fix-project-ui-kit-migration-invalidation`
+- `implement-project-user-surface-foundation`
+- `implement-project-task-assignment-surface`
+- `implement-project-config-and-ui-kit-contract`
+- `implement-project-history-diagnostics-surface`
+- `implement-project-workflow-readout-surface`
 
 ## Смысл волны
 
@@ -29,6 +34,18 @@
 - domain-wave вокруг `Project` идёт в том же релизном срезе, что и общая архитектурная трансформация.
 
 ## Готовые changes
+
+### `implement-project-user-surface-foundation`
+
+- Что меняется для пользователя: в верхнем меню появляется отдельная вкладка `Проекты`, а в продукте открываются страницы `/projects` и `/projects/<projectId>` с базовым обзором project workspace.
+- Как это влияет на пользователя: проект впервые существует как самостоятельный пользовательский раздел, а не только как скрытый runtime-контекст внутри Workbench конкретной задачи.
+- Как проверить: открыть раздел `Проекты`, убедиться, что список читает локальный project registry и отдельно помечает active project; затем открыть карточку конкретного проекта и проверить, что она показывает canonical metadata, `UI kit`, migration status и переходы назад к общему реестру и задачам. Для точечной автоматической проверки доступна команда `npm run test:unit -- test/unit/project-user-surface-foundation.test.ts`.
+
+### `implement-project-config-and-ui-kit-contract`
+
+- Что меняется для пользователя: на странице проекта появляется рабочий config surface, где можно читать и править `ProjectWorkspace.settings` через JSON, переключать `uiKitId` из canonical списка и видеть selected/effective `UI kit` вместе со статусом migration.
+- Как это влияет на пользователя: проект перестаёт быть только контейнером навигации и задач, а начинает управляться как самостоятельная сущность с явным контрактом `project settings -> prompt templates -> preview runtime`.
+- Как проверить: открыть страницу проекта и убедиться, что там есть JSON-конфиг project settings, selector `UI kit`, блок с effective kit и migration status, а также пояснение, как эти настройки влияют на prompt/preview. Для точечной автоматической проверки доступна команда `npm run test:unit -- test/unit/project-config-and-ui-kit-contract.test.ts`.
 
 ### `implement-project-workspace-mvp`
 

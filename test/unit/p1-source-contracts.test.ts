@@ -218,14 +218,20 @@ describe("P1 source contracts", () => {
 
   it("workbench и check-result показывают единый путь до состояния «Проверка пройдена»", () => {
     const workbenchHeader = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchHeader.tsx")
+    const workbenchContent = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchContent.tsx")
     const workbenchSurfaceSummary = readProjectFile("components", "desengine", "lab", "Workbench", "WorkbenchSurfaceSummary.tsx")
     const checkResult = readProjectFile("components", "desengine", "task", "TaskCheckResult.tsx")
 
     expect(workbenchHeader).toContain("До состояния «Проверка пройдена»")
     expect(workbenchHeader).toContain("Отправить решение на проверку")
-    expect(workbenchHeader).toContain("Шаг workflow: уровень")
+    expect(workbenchHeader).toContain("Работаем над workflow")
+    expect(workbenchHeader).toContain("Текущий шаг")
+    expect(workbenchContent).toContain("Контекст workflow-сессии")
+    expect(workbenchContent).toContain("Главный рендер результата")
     expect(workbenchSurfaceSummary).toContain("project -&gt; task -&gt; workflow step -&gt; workbench")
-    expect(checkResult).toContain("Главный outcome уровня достигнут")
+    expect(workbenchSurfaceSummary).toContain("Пункты workflow")
+    expect(workbenchSurfaceSummary).toContain("onSelectWorkflowPoint")
+    expect(checkResult).toContain("Главный результат для текущего шага достигнут")
   })
 
   it("start и iterate routes собирают prompt context, enforcing limits and prompt history", () => {

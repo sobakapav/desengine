@@ -25,7 +25,6 @@ const fixtureAccessSalt = resolveFixtureAccessSalt()
 
 function buildProjectStorageValue(taskId: string, overrides: {
   uiKitId: "shadcn" | "none" | "ant"
-  uiMode: "ui-kit" | "html-tags"
 }) {
   const now = "2026-05-28T00:00:00.000Z"
 
@@ -149,7 +148,6 @@ async function authorizeFixtureTask(context: BrowserContext, baseURL: string | u
 
 async function seedProjectStorage(page: Page, taskId: string, overrides: {
   uiKitId: "shadcn" | "none" | "ant"
-  uiMode: "ui-kit" | "html-tags"
 }) {
   const projectId = `task-${taskId}`
   const storageKey = `desengine:project:${taskId}`
@@ -228,7 +226,7 @@ export default function Component() {
 `,
     })
     await authorizeFixtureTask(context, baseURL)
-    await seedProjectStorage(page, "dipole-checkbox", { uiKitId: "shadcn", uiMode: "ui-kit" })
+    await seedProjectStorage(page, "dipole-checkbox", { uiKitId: "shadcn" })
 
     await page.goto("/lab/dipole-checkbox")
 
@@ -279,11 +277,11 @@ export default function Component() {
 `,
     })
     await authorizeFixtureTask(context, baseURL)
-    await seedProjectStorage(page, "mp-inspector-progress-container", { uiKitId: "none", uiMode: "html-tags" })
+    await seedProjectStorage(page, "mp-inspector-progress-container", { uiKitId: "none" })
 
     await page.goto("/lab/mp-inspector-progress-container")
 
-    await expect(page.getByText("Режим html-tags не подключает UI kit")).toBeVisible({ timeout: 20_000 })
+    await expect(page.getByText("Проект с UI kit none не подключает imports из components/ui")).toBeVisible({ timeout: 20_000 })
     await expect(page.locator(".sp-preview-iframe")).toBeHidden()
   })
 
@@ -296,7 +294,7 @@ export default function Component() {
 `,
     })
     await authorizeFixtureTask(context, baseURL)
-    await seedProjectStorage(page, "dipole-checkbox", { uiKitId: "shadcn", uiMode: "ui-kit" })
+    await seedProjectStorage(page, "dipole-checkbox", { uiKitId: "shadcn" })
 
     await page.goto("/lab/dipole-checkbox")
     await expect(page.getByText("Компонент не удалось отрендерить в preview.")).toBeVisible({ timeout: 20_000 })
@@ -340,7 +338,7 @@ export default function Component() {
 `,
     })
     await authorizeFixtureTask(context, baseURL)
-    await seedProjectStorage(page, "dipole-checkbox", { uiKitId: "shadcn", uiMode: "ui-kit" })
+    await seedProjectStorage(page, "dipole-checkbox", { uiKitId: "shadcn" })
 
     await page.goto("/lab/dipole-checkbox")
 

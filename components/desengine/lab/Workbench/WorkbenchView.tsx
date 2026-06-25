@@ -50,6 +50,7 @@ function WorkbenchBody({ controller, props }: { controller: WorkbenchController;
                 onCheck={() => void controller.actions.handleCheck()}
                 onResetLevel={() => controller.reset.handleLevelReset()}
                 onResetTask={() => controller.reset.handleTaskReset()}
+                onSelectWorkflowPoint={(pointId) => void controller.handleWorkflowPointSelect(pointId)}
                 resetError={controller.actions.resetError}
                 surface={controller.surface}
             />

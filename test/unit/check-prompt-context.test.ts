@@ -35,7 +35,6 @@ describe("check prompt context", () => {
         id: "task-1",
         title: "Проект задачи",
         uiKitId: "ant",
-        uiMode: "ui-kit",
       }),
     })
 
@@ -59,7 +58,6 @@ describe("check prompt context", () => {
         id: "task-1",
         title: "Проект задачи",
         uiKitId: "ant",
-        uiMode: "ui-kit",
       }),
     })
     await writeFile(path.join(root, "check.njk"), "UI kit: {{ user.designSystemName }} / {{ project.uiKitTitle }}", "utf-8")
@@ -69,7 +67,7 @@ describe("check prompt context", () => {
     )
   })
 
-  it("использует effective UI kit для html-tags режима", () => {
+  it("использует выбранный UI kit проекта как единый project contract", () => {
     const context = buildTaskPromptContext({
       taskId: "task-1",
       taskMaxLevel: 3,
@@ -79,13 +77,28 @@ describe("check prompt context", () => {
         id: "task-1",
         title: "Проект задачи",
         uiKitId: "mui",
-        uiMode: "html-tags",
       }),
     })
 
-    expect(context.user?.designSystemId).toBe("none")
-    expect(context.user?.designSystemName).toBe("Только React")
-    expect((context.project as { effectiveUiKitId?: string }).effectiveUiKitId).toBe("none")
+    expect(context.user?.designSystemId).toBe("mui")
+    expect(context.user?.designSystemName).toBe("Material UI")
+    expect((context.project as { uiKitId?: string }).uiKitId).toBe("mui")
+  })
+
+  it("добавляет workflow-фокус в template context", () => {
+    const context = buildTaskPromptContext({
+      taskId: "task-1",
+      taskMaxLevel: 3,
+      taskImages: null,
+      level,
+      activeFileId: "component",
+    })
+
+    expect(context.workflow).toMatchObject({
+      focusPointId: "ui-kit-component",
+      focusPointTitle: "Базовый компонент из UI kit",
+      primaryFileId: "component",
+    })
   })
 
   it("стабильно строит fallback context без явного project", () => {

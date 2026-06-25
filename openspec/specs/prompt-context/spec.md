@@ -34,6 +34,11 @@ PromptContext SHALL содержать:
 - **WHEN** LLM flow строит PromptContext для runtime-запроса
 - **THEN** context содержит constraints и providerCapabilities текущего запроса
 
+#### Scenario: PromptContext включает фокус выбранного workflow-пункта
+- **WHEN** runtime строит PromptContext для active file или выбранного workflow-пункта
+- **THEN** context содержит явный `workflowPoint`
+- **AND** template-compatible `renderContext.workflow` сохраняет `focusPointId`, `focusPointTitle` и `primaryFileId`
+
 #### Scenario: Legacy prompt templates получают совместимый renderContext
 - **WHEN** downstream consumer рендерит Nunjucks prompt template
 - **THEN** он использует `PromptContext.renderContext`

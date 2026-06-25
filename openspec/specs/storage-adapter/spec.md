@@ -13,3 +13,4 @@
 - **WHEN** MVP использует локальное хранилище
 - **THEN** adapter скрывает физический формат хранения
 - **AND** future cloud/electron storage не требует переписывать Workbench/Sandpack callers
+- **AND** project-facing слой может явно сообщать пользователю, что файловый path пока не используется

@@ -32,8 +32,8 @@ type ProjectMigrationSuccessBody = {
 async function postTaskCheck(taskId: string, project: Project) {
   return fetchWorkbenchActionJson<CheckSuccessBody>({
     url: `/api/tasks/${taskId}/check`,
-    actionLabel: "Проверка уровня",
-    fallbackError: "Не удалось проверить уровень",
+    actionLabel: "Проверка результата",
+    fallbackError: "Не удалось запустить проверку результата",
     init: {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -45,8 +45,8 @@ async function postTaskCheck(taskId: string, project: Project) {
 async function postProjectMigration(taskId: string, project: Project, target: ProjectMigrationTarget) {
   return fetchWorkbenchActionJson<ProjectMigrationSuccessBody>({
     url: `/api/tasks/${taskId}/project-migration`,
-    actionLabel: "Migration проекта",
-    fallbackError: "Не удалось выполнить migration проекта",
+    actionLabel: "Переключение UI kit проекта",
+    fallbackError: "Не удалось переключить UI kit проекта",
     init: {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -93,7 +93,7 @@ async function runCheckSubmission(args: {
     const data = await postTaskCheckImpl(args.taskId, args.project);
 
     if (!data?.ok || !data?.checkResult || !data?.taskData) {
-      const error = !data?.ok ? data.error : "Не удалось проверить уровень";
+      const error = !data?.ok ? data.error : "Не удалось запустить проверку результата";
       args.setCompleteError(error);
       return { kind: "error", error };
     }
@@ -103,7 +103,7 @@ async function runCheckSubmission(args: {
       data,
     };
   } catch {
-    const error = buildWorkbenchActionNetworkMessage("Не удалось проверить уровень");
+    const error = buildWorkbenchActionNetworkMessage("Не удалось запустить проверку результата");
     args.setCompleteError(error);
     return { kind: "error", error };
   } finally {

@@ -1,5 +1,10 @@
 ## Tasks
 
+## Текущий фокус реализации
+
+- Producer-workflow сейчас работает только на выравнивание цепочки `проект -> workflow -> проверка/чеклист -> результат`.
+- Любые вертикальные расширения workflow вне этой цепочки считаются отложенными.
+
 - [ ] 1. Зафиксировать `producer-workflow` под `focus-domain`.
 - [ ] 2. Закрепить workflow как видимый и управляемый процесс продукта.
 - [ ] 3. Описать схему `project -> task -> workflow -> workbench`.
@@ -8,7 +13,7 @@
 - [ ] 6. Зафиксировать критерии readiness для следующих waves:
   - [ ] 6.1 foundation workflow model;
   - [ ] 6.2 user-facing manifestation step/fase;
-  - [ ] 6.3 vertical workflow slices.
+  - [ ] 6.3 Отложено: vertical workflow slices после стабилизации основной цепочки.
 - [ ] 7. Подготовить тестовую и traceability-рамку для downstream behavior-change changes.
 - [ ] 8. Выполнить проверку по `verification_command` из metadata.
 

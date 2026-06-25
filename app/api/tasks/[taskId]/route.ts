@@ -11,7 +11,7 @@ type Params = { taskId: string }
 
 function parseProjectFromRequest(request: Request, taskId: string) {
   const { searchParams } = new URL(request.url)
-  const hasProjectContext = ["projectId", "projectTitle", "uiKitId", "uiMode"]
+  const hasProjectContext = ["projectId", "projectTitle", "uiKitId"]
     .some((key) => searchParams.get(key)?.trim())
 
   if (!hasProjectContext) {
@@ -23,10 +23,11 @@ function parseProjectFromRequest(request: Request, taskId: string) {
     title: searchParams.get("projectTitle") ?? `Проект ${taskId}`,
     settings: {
       uiKitId: searchParams.get("uiKitId"),
-      uiMode: searchParams.get("uiMode"),
     },
   })
 }
+
+export { parseProjectFromRequest }
 
 /**
  * @example

@@ -4,6 +4,7 @@
 // @openSpec  - "Пользователь открывает рабочий экран на desktop"
 // @openSpec  - "Preview payload build возвращает cache и size diagnostics"
 // @openSpec  - "Preview compatibility fallback помечается как degradation signal"
+// @openSpec  - "Лаборатория показывает runtime-диагностику Sandpack preview"
 // @openSpec  - "Preview budget exceed переводит runtime в safe degradation mode"
 // @openSpec  - "Preview runtime guardrail помечает неподдерживаемый Server Action API"
 // @openSpec capability: task
@@ -244,7 +245,7 @@ export default function Component() {
         uiBadge: badgeSource,
         systemUtils: utilsSource,
       },
-      { uiKitId: "ant", uiMode: "ui-kit" },
+      { uiKitId: "ant" },
     )
 
     expect(payload.project.compatibility).toEqual({

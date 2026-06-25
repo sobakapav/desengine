@@ -1,94 +1,99 @@
-"use client";
+"use client"
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react"
 
-import { sandpackUiKitsConfig } from "@/lib/lab/sandpack-ui-kits.config";
+import type { Project } from "@/lib/project/runtime"
+import { readProjectFromTaskUrl } from "../task-client-boundary"
+
+import type { WorkbenchProps } from "./props"
 import {
-    completeProjectUiKitMigration,
-    createProjectWorkspace,
-    failProjectUiKitMigration,
-    getProjectMigrationTarget,
-    normalizeProject,
-    projectNeedsUiKitMigration,
-    startProjectUiKitMigration,
-    type Project,
-} from "@/lib/project/runtime";
-import { createBrowserProjectStorage } from "@/lib/project/storage";
+  createFallbackProject,
+  createProjectInScope,
+  createProjectStorage,
+  createRuntimeProject,
+  listProjectUiKitOptions,
+  persistProjectState,
+  refreshProjectControllerState,
+  selectProjectInScope,
+} from "./projectScopeShared"
+import {
+  handleProjectCreation,
+  handleProjectSelection,
+  migrateProjectUiKitInScope,
+} from "./projectScopeRuntime"
 
-import type { WorkbenchProps } from "./props";
-import { postProjectMigration } from "./useWorkbenchTaskActions";
-import { changeLabTaskScreenEventInput, readLabTaskScreenEventActiveScreen } from "../LabScreen/screen-event";
+function useProjectBootstrap(args: {
+  projectStorage: ReturnType<typeof createProjectStorage>
+  setProject: Dispatch<SetStateAction<Project>>
+  setProjectActionError: Dispatch<SetStateAction<string>>
+  setProjectActionPending: Dispatch<SetStateAction<boolean>>
+  setProjects: Dispatch<SetStateAction<Project[]>>
+  setPreviewVersion: Dispatch<SetStateAction<number>>
+  setProjectReady: Dispatch<SetStateAction<boolean>>
+  taskId: string
+}) {
+  useEffect(() => {
+    let cancelled = false
 
-function createProjectPlaceholder(taskId: string) {
-    return normalizeProject({
-        id: `task-${taskId}`,
-        title: `Проект ${taskId}`,
-        createdAt: "1970-01-01T00:00:00.000Z",
-        updatedAt: "1970-01-01T00:00:00.000Z",
-        settings: {
-            uiKitId: "none",
-            uiMode: "html-tags",
-        },
-    });
-}
+    async function loadProject() {
+      const urlProject = readProjectFromTaskUrl(args.taskId)
+      const nextFallbackProject = createFallbackProject(args.taskId)
 
-function createLabProjectDraft(taskId: string, title = `Проект ${taskId}`) {
-    return {
-        id: `task-${taskId}`,
-        title,
-    };
-}
+      args.setProjectReady(false)
+      args.setProject(nextFallbackProject)
+      args.setProjects([nextFallbackProject])
 
-function createFallbackProject(taskId: string, title?: string) {
-    if (!title) {
-        return createProjectPlaceholder(taskId);
+      if (urlProject) {
+        args.setProject(urlProject)
+        args.setProjects([urlProject])
+        args.setProjectReady(true)
+        return
+      }
+
+      if (!args.projectStorage) {
+        const runtimeProject = createRuntimeProject(args.taskId)
+        args.setProject(runtimeProject)
+        args.setProjects([runtimeProject])
+        args.setProjectReady(true)
+        return
+      }
+
+      try {
+        const nextProject = await refreshProjectControllerState({
+          commit: false,
+          projectStorage: args.projectStorage,
+          setProject: args.setProject,
+          setProjectActionError: args.setProjectActionError,
+          setProjectActionPending: args.setProjectActionPending,
+          setProjects: args.setProjects,
+          setPreviewVersion: args.setPreviewVersion,
+          taskId: args.taskId,
+        })
+        if (cancelled) return
+        args.setProject(nextProject)
+        args.setProjects(await args.projectStorage.listProjects())
+        args.setProjectReady(true)
+      } catch {
+        if (cancelled) return
+        const runtimeProject = createRuntimeProject(args.taskId)
+        args.setProject(runtimeProject)
+        args.setProjects([runtimeProject])
+        args.setProjectReady(true)
+      }
     }
 
-    return normalizeProject({
-        ...createProjectWorkspace(createLabProjectDraft(taskId, title)),
-        createdAt: "1970-01-01T00:00:00.000Z",
-        updatedAt: "1970-01-01T00:00:00.000Z",
-        settings: {
-            uiKitId: "none",
-            uiMode: "html-tags",
-        },
-    });
-}
-
-function mergeProjects(currentProjects: Project[], nextProject: Project) {
-    const existingIndex = currentProjects.findIndex((project) => project.id === nextProject.id);
-
-    if (existingIndex < 0) {
-        return [...currentProjects, nextProject];
-    }
-
-    return currentProjects.map((project, index) => index === existingIndex ? nextProject : project);
-}
-
-function buildTaskScopeUrl(taskId: string, project: Project) {
-    const params = new URLSearchParams({
-        projectId: project.id,
-        projectTitle: project.title,
-        uiKitId: project.settings.uiKitId,
-        uiMode: project.settings.uiMode,
-    });
-
-    return `/api/tasks/${encodeURIComponent(taskId)}?${params.toString()}`;
-}
-
-async function fetchTaskScopeSnapshot(taskId: string, project: Project) {
-    const res = await fetch(buildTaskScopeUrl(taskId, project), { method: "GET" });
-    const data = await res.json().catch(() => null);
-
-    if (!res.ok || !data?.ok || !data.taskItem || !data.taskData) {
-        throw new Error(data?.error || "Не удалось перезагрузить данные задачи для выбранного проекта.");
-    }
-
-    return data as {
-        ok: true;
-        taskItem: WorkbenchProps["taskItem"];
-        taskData: WorkbenchProps["taskData"];
-    };
+    void loadProject()
+    return () => { cancelled = true }
+  }, [
+    args.projectStorage,
+    args.setProject,
+    args.setProjectActionError,
+    args.setProjectActionPending,
+    args.setProjectReady,
+    args.setProjects,
+    args.setPreviewVersion,
+    args.taskId,
+  ])
 }
 
 /**
@@ -99,183 +104,62 @@ async function fetchTaskScopeSnapshot(taskId: string, project: Project) {
  * ```
  */
 export function useProjectController(taskId: string) {
-    const fallbackProject = createFallbackProject(taskId);
+  const fallbackProject = createFallbackProject(taskId)
+  const [previewVersion, setPreviewVersion] = useState(0)
+  const [project, setProject] = useState<Project>(fallbackProject)
+  const [projects, setProjects] = useState<Project[]>([fallbackProject])
+  const [projectReady, setProjectReady] = useState(false)
+  const [projectActionPending, setProjectActionPending] = useState(false)
+  const [projectActionError, setProjectActionError] = useState("")
+  const projectStorage = useMemo(() => createProjectStorage(taskId), [taskId])
+  const uiKitOptions = useMemo(() => listProjectUiKitOptions(), [])
 
-    const [previewVersion, setPreviewVersion] = useState(0);
-    const [project, setProject] = useState<Project>(fallbackProject);
-    const [projects, setProjects] = useState<Project[]>([fallbackProject]);
-    const [projectReady, setProjectReady] = useState(false);
-    const [projectActionPending, setProjectActionPending] = useState(false);
-    const [projectActionError, setProjectActionError] = useState("");
-    const projectStorage = useMemo(() => {
-        if (typeof window === "undefined") return null;
-        return createBrowserProjectStorage({ storage: window.localStorage, taskId });
-    }, [taskId]);
-    const uiKitOptions = useMemo(() => Object.values(sandpackUiKitsConfig), []);
+  const controllerState = {
+    setPreviewVersion,
+    setProject,
+    setProjects,
+    setProjectActionError,
+    setProjectActionPending,
+  }
+  const refreshProjectState = (preferredProjectId?: string, options?: { commit?: boolean }) => (
+    refreshProjectControllerState({ ...controllerState, commit: options?.commit, preferredProjectId, projectStorage, taskId })
+  )
+  const persistProject = (nextProject: Project, options?: { bumpPreview?: boolean }) => (
+    persistProjectState({ ...controllerState, bumpPreview: options?.bumpPreview, nextProject, projectStorage })
+  )
+  const createProject = (title: string) => (
+    createProjectInScope({ ...controllerState, projectStorage, refreshProjectState, taskId, title })
+  )
+  const selectProject = (projectId: string) => (
+    selectProjectInScope({ ...controllerState, currentProject: project, projectId, projectStorage, refreshProjectState })
+  )
 
-    async function refreshProjectState(preferredProjectId?: string, options?: { commit?: boolean }) {
-        const shouldCommit = options?.commit ?? true;
+  useProjectBootstrap({
+    projectStorage,
+    setProject,
+    setProjectActionError,
+    setProjectActionPending,
+    setProjectReady,
+    setProjects,
+    setPreviewVersion,
+    taskId,
+  })
 
-        if (!projectStorage) {
-            const nextFallbackProject = createFallbackProject(taskId);
-            if (shouldCommit) {
-                setProject(nextFallbackProject);
-                setProjects([nextFallbackProject]);
-            }
-            return nextFallbackProject;
-        }
-
-        const nextProjects = await projectStorage.listProjects();
-        const candidateProject = preferredProjectId
-            ? await projectStorage.getProject(preferredProjectId)
-            : await projectStorage.getActiveProject();
-
-        const nextProject = candidateProject
-            ?? nextProjects[0]
-            ?? await projectStorage.createProject(createLabProjectDraft(taskId));
-
-        await projectStorage.setActiveProjectId(nextProject.id);
-        const resolvedProjects = await projectStorage.listProjects();
-
-        if (shouldCommit) {
-            setProject(nextProject);
-            setProjects(resolvedProjects);
-        }
-        return nextProject;
-    }
-
-    useEffect(() => {
-        let cancelled = false;
-
-        async function loadProject() {
-            const nextFallbackProject = createFallbackProject(taskId);
-
-            setProjectReady(false);
-            setProject(nextFallbackProject);
-            setProjects([nextFallbackProject]);
-
-            if (!projectStorage) {
-                const runtimeProject = createProjectWorkspace(createLabProjectDraft(taskId));
-                setProject(runtimeProject);
-                setProjects([runtimeProject]);
-                setProjectReady(true);
-                return;
-            }
-
-            try {
-                const nextProject = await refreshProjectState(undefined, { commit: false });
-                if (!cancelled) {
-                    setProject(nextProject);
-                    setProjects(await projectStorage.listProjects());
-                    setProjectReady(true);
-                }
-            } catch {
-                if (!cancelled) {
-                    const runtimeProject = createProjectWorkspace(createLabProjectDraft(taskId));
-                    setProject(runtimeProject);
-                    setProjects([runtimeProject]);
-                    setProjectReady(true);
-                }
-            }
-        }
-
-        void loadProject();
-        return () => { cancelled = true; };
-    }, [projectStorage, taskId]);
-
-    function persistProject(nextProject: Project, options?: { bumpPreview?: boolean }) {
-        const normalized = normalizeProject(nextProject);
-        setProject(normalized);
-        setProjects((currentProjects) => mergeProjects(currentProjects, normalized));
-        setProjectActionError("");
-        if (options?.bumpPreview !== false) {
-            setPreviewVersion((value) => value + 1);
-        }
-
-        void projectStorage?.saveProject(normalized)
-            .then(() => projectStorage.setActiveProjectId(normalized.id))
-            .catch(() => {
-                // localStorage может быть недоступен в приватном режиме; runtime продолжит работать в памяти страницы.
-            });
-
-        return normalized;
-    }
-
-    async function createProject(title: string) {
-        const normalizedTitle = title.trim();
-
-        if (!normalizedTitle) {
-            setProjectActionError("Укажите название проекта, чтобы создать новый workspace.");
-            return null;
-        }
-
-        setProjectActionPending(true);
-        setProjectActionError("");
-
-        try {
-            if (!projectStorage) {
-                const nextFallbackProject = createFallbackProject(taskId, normalizedTitle);
-                setProject(nextFallbackProject);
-                setProjects([nextFallbackProject]);
-                setPreviewVersion((value) => value + 1);
-                return nextFallbackProject;
-            }
-
-            const createdProject = await projectStorage.createProject({ title: normalizedTitle });
-            await projectStorage.setActiveProjectId(createdProject.id);
-            await refreshProjectState(createdProject.id);
-            setPreviewVersion((value) => value + 1);
-            return createdProject;
-        } catch {
-            setProjectActionError("Не удалось создать проект. Проверьте localStorage и попробуйте снова.");
-            return null;
-        } finally {
-            setProjectActionPending(false);
-        }
-    }
-
-    async function selectProject(projectId: string) {
-        if (project.id === projectId) {
-            return project;
-        }
-
-        setProjectActionPending(true);
-        setProjectActionError("");
-
-        try {
-            if (!projectStorage) {
-                return null;
-            }
-
-            await projectStorage.setActiveProjectId(projectId);
-            const nextProject = await refreshProjectState(projectId);
-            if (nextProject.id !== project.id) {
-                setPreviewVersion((value) => value + 1);
-            }
-            return nextProject;
-        } catch {
-            setProjectActionError("Не удалось переключить active project.");
-            return null;
-        } finally {
-            setProjectActionPending(false);
-        }
-    }
-
-    return {
-        project,
-        projectActionError,
-        projectActionPending,
-        projectReady,
-        projects,
-        previewVersion,
-        persistProject,
-        setProjectActionError,
-        setProjectActionPending,
-        setPreviewVersion,
-        uiKitOptions,
-        createProject,
-        selectProject,
-    };
+  return {
+    createProject,
+    persistProject,
+    previewVersion,
+    project,
+    projectActionError,
+    projectActionPending,
+    projectReady,
+    projects,
+    selectProject,
+    setProjectActionError,
+    setProjectActionPending,
+    setPreviewVersion,
+    uiKitOptions,
+  }
 }
 
 /**
@@ -286,117 +170,22 @@ export function useProjectController(taskId: string) {
  * ```
  */
 export function useWorkbenchProjectScope(args: {
-    projectState: ReturnType<typeof useProjectController>;
-    props: Pick<WorkbenchProps, "onScreenEventChange" | "onTaskItemChange" | "screenEvent" | "taskItem">;
-    replaceTaskData: (taskData: WorkbenchProps["taskData"]) => void;
-    saveBeforeAction: (targetFileIds?: string[]) => Promise<boolean>;
+  projectState: ReturnType<typeof useProjectController>
+  props: Pick<WorkbenchProps, "onScreenEventChange" | "onTaskItemChange" | "screenEvent" | "taskItem">
+  replaceTaskData: (taskData: WorkbenchProps["taskData"]) => void
+  saveBeforeAction: (targetFileIds?: string[]) => Promise<boolean>
 }) {
-    const { projectState, props, replaceTaskData, saveBeforeAction } = args;
+  const runtimeArgs = args
+  const handleProjectSelect = (projectId: string) => handleProjectSelection(runtimeArgs, projectId)
+  const handleProjectCreate = (title: string) => handleProjectCreation(runtimeArgs, title)
+  const migrateProjectUiKit = (nextUiKitId: Project["settings"]["uiKitId"]) => (
+    migrateProjectUiKitInScope(runtimeArgs, nextUiKitId)
+  )
 
-    async function rehydrateTaskScope(nextProject: Project, previousProjectId?: string) {
-        try {
-            const data = await fetchTaskScopeSnapshot(props.taskItem.id, nextProject);
-            replaceTaskData(data.taskData);
-            props.onTaskItemChange(data.taskItem);
-            props.onScreenEventChange(changeLabTaskScreenEventInput({
-                taskId: props.screenEvent.scope.taskId,
-                activeScreen: readLabTaskScreenEventActiveScreen(props.screenEvent),
-            }, "component"));
-            return true;
-        } catch (error) {
-            if (previousProjectId && previousProjectId !== nextProject.id) {
-                await projectState.selectProject(previousProjectId);
-            }
-
-            projectState.setProjectActionError(
-                error instanceof Error
-                    ? error.message
-                    : "Не удалось переключить project scope без смешивания данных задачи.",
-            );
-            return false;
-        }
-    }
-
-    async function handleProjectSelect(projectId: string) {
-        if (projectState.project.id === projectId) {
-            return;
-        }
-
-        const previousProjectId = projectState.project.id;
-        if (!(await saveBeforeAction())) {
-            return;
-        }
-
-        const switchedProject = await projectState.selectProject(projectId);
-        if (!switchedProject || switchedProject.id === previousProjectId) {
-            return;
-        }
-
-        await rehydrateTaskScope(switchedProject, previousProjectId);
-    }
-
-    async function handleProjectCreate(title: string) {
-        const previousProjectId = projectState.project.id;
-        if (!(await saveBeforeAction())) {
-            return false;
-        }
-
-        const createdProject = await projectState.createProject(title);
-        if (!createdProject) {
-            return false;
-        }
-
-        return rehydrateTaskScope(createdProject, previousProjectId);
-    }
-
-    async function migrateProjectUiKit(nextUiKitId: Project["settings"]["uiKitId"]) {
-        const target = getProjectMigrationTarget(nextUiKitId);
-        if (!projectNeedsUiKitMigration(projectState.project, target)) {
-            projectState.persistProject(normalizeProject({
-                ...projectState.project,
-                migration: undefined,
-            }), { bumpPreview: false });
-            return true;
-        }
-
-        const pendingProject = projectState.persistProject(
-            startProjectUiKitMigration(projectState.project, target),
-            { bumpPreview: false },
-        );
-        projectState.setProjectActionPending(true);
-        projectState.setProjectActionError("");
-
-        try {
-            const data = await postProjectMigration(props.taskItem.id, pendingProject, target);
-            if (!data?.ok || !data.taskItem || !data.taskData) {
-                throw new Error(!data?.ok ? data.error : "Не удалось выполнить migration проекта");
-            }
-
-            replaceTaskData(data.taskData);
-            props.onTaskItemChange(data.taskItem);
-            projectState.persistProject(completeProjectUiKitMigration(pendingProject, target, {
-                invalidationScope: "current-level",
-                requiresReplay: true,
-                message: `Migration проекта завершена: UI kit переключён на ${target.uiKitId}, текущий уровень нужно пройти заново.`,
-            }));
-            return true;
-        } catch (error) {
-            projectState.persistProject(failProjectUiKitMigration(
-                pendingProject,
-                target,
-                error instanceof Error ? error.message : "Не удалось выполнить migration проекта",
-            ), { bumpPreview: false });
-            projectState.setProjectActionError(error instanceof Error ? error.message : "Не удалось выполнить migration проекта");
-            return false;
-        } finally {
-            projectState.setProjectActionPending(false);
-        }
-    }
-
-    return {
-        ...projectState,
-        handleProjectCreate,
-        handleProjectSelect,
-        migrateProjectUiKit,
-    };
+  return {
+    ...args.projectState,
+    handleProjectCreate,
+    handleProjectSelect,
+    migrateProjectUiKit,
+  }
 }

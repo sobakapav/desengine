@@ -95,9 +95,9 @@ describe("browser webcrypto runtime boundary", () => {
       "preview-runtime-notices.tsx",
     )
 
-    expect(noticesSource).toContain("Превью сейчас не запускается в этом браузерном окружении.")
-    expect(noticesSource).toContain("Превью нельзя запустить в текущем окружении")
-    expect(noticesSource).toContain("не позволил установить локальный fallback для Sandpack")
+    expect(noticesSource).toContain("Предпросмотр сейчас не запускается в этом браузере.")
+    expect(noticesSource).toContain("Предпросмотр нельзя запустить в текущем окружении")
+    expect(noticesSource).toContain("не позволил включить локальный запасной режим для Sandpack")
     expect(noticesSource).toContain("HTTPS")
     expect(noticesSource).toContain("совместимый браузер")
   })

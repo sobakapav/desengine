@@ -47,6 +47,6 @@
 ## Acceptance Criteria
 
 - `dispatcher-project` отображается в дереве OpenSpec как активный dispatcher под `focus-domain`.
-- Его producer owner явно задан как `producer-project`.
+- Его producer-контекст явно считывается из той же domain-линии, но не задаётся иерархическим parentage.
 - У dispatcher есть понятная tactical зона ответственности: workspace boundary, onboarding/task layer, workflow-layer, `workbench` / preview binding и migration rules для project `UI kit`.
 - Dispatcher достаточно описан, чтобы быть родителем для downstream `implement` и `fix` changes project-линии на последовательных волнах.

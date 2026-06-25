@@ -43,13 +43,13 @@ function TransitionHeader({ transition, nextLevel }: { transition: TaskTransitio
   return (
     <div className="space-y-2">
       <p className="text-muted-foreground">
-        Проверка уровня {transition.fromLevel.number} пройдена
+        Проверка текущего шага пройдена
       </p>
       <h1 className="font-semibold">
-        {`Задача ${transition.taskId} готова продолжиться на ${nextLevel.title}`}
+        {`Задача ${transition.taskId} готова перейти к ${nextLevel.title}`}
       </h1>
       <p className="text-muted-foreground">
-        Текущий цикл завершён успешно. Следующий уровень открывается как продолжение этой же задачи.
+        Текущий шаг завершён успешно. Дальше можно сразу продолжить ту же задачу на следующем шаге.
       </p>
     </div>
   );
@@ -107,7 +107,7 @@ export function TaskLevelTransition({
           <TransitionPanel
             assetBasePath={previousLevelAssetBasePath}
             description={transition.fromLevel.description}
-            title="Что удалось на предыдущем уровне"
+            title="Что удалось на текущем шаге"
           >
             <MarkdownContent content={previousLevelTaskText} />
           </TransitionPanel>
@@ -127,7 +127,7 @@ export function TaskLevelTransition({
           <TransitionPanel
             assetBasePath={nextLevelAssetBasePath}
             description={nextLevel.description}
-            title="Что хочет следующий уровень"
+            title="Что нужно на следующем шаге"
           >
             <MarkdownContent content={nextLevelTaskText} />
           </TransitionPanel>

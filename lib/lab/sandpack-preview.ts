@@ -25,11 +25,9 @@ import {
   createDefaultProject,
   normalizeProject,
   resolveProjectPreviewConfig,
-  validateHtmlTagsComponentSource,
   validateUiKitComponentSource,
   type Project,
   type ProjectCompatibility,
-  type ProjectUiMode,
   type RawProject,
 } from "@/lib/project/runtime"
 import {
@@ -1024,7 +1022,6 @@ function buildDerivedPreviewArtifactsCacheKey(args: {
     args.project.id,
     args.project.title,
     args.project.settings.uiKitId,
-    args.project.settings.uiMode,
     args.resolvedUiKitId,
     args.compatibility.status,
     args.compatibility.message,
@@ -1067,7 +1064,6 @@ function resolvePreviewProject(
   sourceFiles: SandpackPreviewSourceFiles,
   options: {
     uiKitId?: SandpackUiKitId | string | null
-    uiMode?: ProjectUiMode | string | null
     project?: RawProject | null
   },
 ): ResolvedPreviewProject {
@@ -1077,19 +1073,14 @@ function resolvePreviewProject(
       uiKitId: typeof options.uiKitId === "string"
         ? normalizeSandpackUiKitId(options.uiKitId)
         : (options.uiKitId ?? DEFAULT_SANDPACK_UI_KIT_ID),
-      uiMode: options.uiMode ?? undefined,
     },
   })
   const projectPreviewConfig = resolveProjectPreviewConfig(project)
   const resolvedUiKitId = projectPreviewConfig.effectiveUiKitId
 
-  const shouldValidateCompatibility = Boolean(options.project || options.uiMode)
+  const shouldValidateCompatibility = Boolean(options.project || options.uiKitId)
   const compatibility = shouldValidateCompatibility
-    ? (
-        project.settings.uiMode === "html-tags"
-          ? validateHtmlTagsComponentSource(sourceFiles.component)
-          : validateUiKitComponentSource(sourceFiles.component, resolvedUiKitId)
-      )
+    ? validateUiKitComponentSource(sourceFiles.component, resolvedUiKitId)
     : { status: "compatible" as const, message: "Режим проекта совместим с выбранным UI kit." }
 
   return { project, resolvedUiKitId, compatibility }
@@ -1164,7 +1155,6 @@ async function buildSandpackPreviewPayload(
   sourceFiles: SandpackPreviewSourceFiles,
   options: {
     uiKitId?: SandpackUiKitId | string | null
-    uiMode?: ProjectUiMode | string | null
     project?: RawProject | null
     appTemplate?: SandpackAppTemplateOptions | null
     previewSessionId?: string | null

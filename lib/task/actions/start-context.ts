@@ -18,6 +18,7 @@ import type { TaskActionHttpResult } from "./types"
 
 type StartRuntimeContext = {
   project: Project
+  activeFileId?: string | null
   taskItem: NonNullable<Awaited<ReturnType<typeof getTaskListItemById>>>
   level: Awaited<ReturnType<typeof getLevelForTaskItem>>
   labContext: Awaited<ReturnType<typeof getTaskLabContext>>
@@ -49,7 +50,7 @@ async function resumeStartedLevel(
   return taskActionShared.jsonResult({ ok: true, taskData, taskItem: { ...taskItem, progress }, level })
 }
 
-async function loadStartRuntimeContext(taskId: string, project: Project): Promise<
+async function loadStartRuntimeContext(taskId: string, project: Project, activeFileId?: string | null): Promise<
   | { context: StartRuntimeContext }
   | { response: TaskActionHttpResult }
 > {
@@ -70,7 +71,7 @@ async function loadStartRuntimeContext(taskId: string, project: Project): Promis
 
   try {
     const imageBase64List = await taskActionShared.readPromptImages(taskId, promptImages)
-    return { context: { project, taskItem, level, labContext, already, promptImages, imageBase64List } }
+    return { context: { project, activeFileId, taskItem, level, labContext, already, promptImages, imageBase64List } }
   } catch {
     console.error("[desengine][task-start] missing_required_images", {
       taskId,

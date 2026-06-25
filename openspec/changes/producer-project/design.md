@@ -13,6 +13,8 @@
 - первым implementation-срезом не должна становиться полная project-mode миграция; сначала нужен отдельный foundation-change, который вводит `ProjectWorkspace`, active project boundary и `project.settings`;
 - дальнейшая project-scoped миграция идёт очень постепенно: onboarding/task-слой, затем workflow как отдельный процессный слой, затем `workbench`, затем тяжёлая `UI kit` migration, а уже после этого `LLM`, `Figma` и `Git/GitHub`.
 
+Текущий practical focus этой линии сужен: сначала нужно выровнять основную цепочку `проект -> workflow -> проверка/чеклист -> результат`, а все интеграционные ветки после `workbench` считаются отложенными.
+
 Поэтому нужен не новый `idea`, а `producer`, который переведёт эту гипотезу в первую delivery-рамку feature-уровня.
 
 ## Goals

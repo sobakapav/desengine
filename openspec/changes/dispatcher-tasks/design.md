@@ -23,8 +23,12 @@ Task-система уже не является гипотезой: roadmap з�
 3. Concrete изменения линии оформляются отдельными child changes:
    - implement: когда меняется task contract, task metadata, task/lab UX-path, progress model, guidance path или тестовая опора;
    - fix: когда устраняется регрессия или локальная ошибка внутри уже заданного task-контракта.
-4. Release-трассировка и verification strategy фиксируются на уровне child changes, а не на уровне dispatcher.
-5. Для любого behavior-change в этой линии обязательна человеко-понятная тестовая часть: capability/scenarios, уровень проверки, команды запуска, fixtures и traceability.
+4. Если onboarding-задачи переводятся в проектный и workflow режимы, эта работа остаётся внутри `dispatcher-tasks`, потому что она меняет структуру task metadata, task surfaces и путь прохождения.
+5. Для такого перехода допустимы отдельные child changes двух типов:
+   - no-code implement change с инструкцией для контент-менеджера по migration структуры задач и metadata;
+   - UI-oriented implement changes, которые переводят task surfaces на новый режим без переоткрытия общих project/workflow contracts.
+6. Release-трассировка и verification strategy фиксируются на уровне child changes, а не на уровне dispatcher.
+7. Для любого behavior-change в этой линии обязательна человеко-понятная тестовая часть: capability/scenarios, уровень проверки, команды запуска, fixtures и traceability.
 
 ## Scope Boundaries
 

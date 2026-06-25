@@ -20,18 +20,27 @@ import { usePromptController, usePromptInput } from "./useWorkbenchPrompt";
 import { buildWorkbenchSurfaceSnapshot } from "./workbenchSurface";
 import { changeLabTaskScreenEventInput, readLabTaskScreenEventActiveScreen } from "../LabScreen/screen-event";
 
-function buildTaskHintUrl(taskId: string, project: Project) {
+function buildTaskHintUrl(taskId: string, project: Project, activeScreen?: string | null) {
     const params = new URLSearchParams({
         projectId: project.id,
         projectTitle: project.title,
         uiKitId: project.settings.uiKitId,
-        uiMode: project.settings.uiMode,
     });
+
+    if (activeScreen) {
+        params.set("activeScreen", activeScreen);
+    }
 
     return `/api/tasks/${encodeURIComponent(taskId)}/hint?${params.toString()}`;
 }
 
-function useTaskHintController(taskId: string, initialTaskTip: string, project: Project, projectReady: boolean) {
+function useTaskHintController(
+    taskId: string,
+    initialTaskTip: string,
+    project: Project,
+    projectReady: boolean,
+    activeScreen?: string | null,
+) {
     const [taskTip, setTaskTip] = useState(initialTaskTip);
 
     useEffect(() => {
@@ -48,7 +57,7 @@ function useTaskHintController(taskId: string, initialTaskTip: string, project: 
 
         async function refreshTaskTip() {
             try {
-                const res = await fetch(buildTaskHintUrl(taskId, project));
+                const res = await fetch(buildTaskHintUrl(taskId, project, activeScreen));
                 const data = await res.json().catch(() => null);
 
                 if (!cancelled && res.ok && data?.ok && typeof data.taskTip === "string") {
@@ -61,12 +70,13 @@ function useTaskHintController(taskId: string, initialTaskTip: string, project: 
 
         void refreshTaskTip();
         return () => { cancelled = true; };
-    }, [initialTaskTip, project.id, project.title, project.settings.uiKitId, project.settings.uiMode, projectReady, taskId]);
+    }, [activeScreen, initialTaskTip, project.id, project.title, project.settings.uiKitId, projectReady, taskId]);
 
     return { taskTip };
 }
 
 function useWorkbenchController(props: WorkbenchProps) {
+    const activeScreen = readLabTaskScreenEventActiveScreen(props.screenEvent);
     const editableFileIds = useEditableFileIds(props.taskData);
     const refs = useWorkbenchRefs(props.taskItem.id, props.taskData, editableFileIds);
     const projectState = useProjectController(props.taskItem.id);
@@ -86,7 +96,13 @@ function useWorkbenchController(props: WorkbenchProps) {
         replaceTaskData,
         saveBeforeAction: saveController.saveBeforeAction,
     });
-    const hint = useTaskHintController(props.taskItem.id, props.taskData.labContext?.taskTip ?? "", project.project, project.projectReady);
+    const hint = useTaskHintController(
+        props.taskItem.id,
+        props.taskData.labContext?.taskTip ?? "",
+        project.project,
+        project.projectReady,
+        activeScreen,
+    );
     const actions = useWorkbenchActions(props, project.project, saveController.saveBeforeAction, replaceTaskData);
     const reset = useResetAction(props, project.project, saveController.saveBeforeAction, replaceTaskData, actions);
     const prompt = usePromptController(props, project.project, saveController.saveBeforeAction, replaceTaskData, project.setPreviewVersion);
@@ -95,6 +111,7 @@ function useWorkbenchController(props: WorkbenchProps) {
         project: project.project,
         taskData: props.taskData,
         taskItem: props.taskItem,
+        activeFileId: activeScreen,
     });
 
     useSaveEffects(saveController.saveDirtyFiles, dirty.dirtyFileIds, autosaveRevision);
@@ -104,7 +121,6 @@ function useWorkbenchController(props: WorkbenchProps) {
     }
 
     async function handleFileChange(nextFileId: string) {
-        const activeScreen = readLabTaskScreenEventActiveScreen(props.screenEvent);
         if (await saveController.saveBeforeAction(activeScreen ? [activeScreen] : undefined)) {
             props.onScreenEventChange(changeLabTaskScreenEventInput({
                 taskId: props.screenEvent.scope.taskId,
@@ -113,12 +129,27 @@ function useWorkbenchController(props: WorkbenchProps) {
         }
     }
 
+    async function handleWorkflowPointSelect(pointId: string) {
+        const point = surface?.workflowPoints.find((item) => item.id === pointId);
+
+        if (!point?.isSelectable || !point.primaryFileId) {
+            return;
+        }
+
+        if (point.primaryFileId === activeScreen) {
+            return;
+        }
+
+        await handleFileChange(point.primaryFileId);
+    }
+
     return {
         actions,
         code,
         dirty,
         handleBackToLevelList,
         handleFileChange,
+        handleWorkflowPointSelect,
         hint,
         project,
         prompt,

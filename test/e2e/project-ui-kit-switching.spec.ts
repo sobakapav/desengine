@@ -4,7 +4,6 @@
 // @openSpec capability: task
 // @openSpec scenarios:
 // @openSpec  - "Sandpack preview использует project.uiKitId"
-// @openSpec  - "Режим html-tags работает без UI kit"
 
 import { expect, test, type Page } from "playwright/test"
 import fs from "node:fs"
@@ -24,7 +23,6 @@ const fixtureAccessSalt = resolveFixtureAccessSalt()
 
 function buildProjectStorageValue(taskId: string, overrides: {
   uiKitId: "shadcn" | "none" | "ant"
-  uiMode: "ui-kit" | "html-tags"
 }) {
   const now = "2026-05-28T00:00:00.000Z"
 
@@ -45,8 +43,7 @@ async function readStoredProjectSettings(page: Page, taskId: string) {
       id: string
       settings?: {
         uiKitId?: string
-        uiMode?: string
-      }
+              }
     }> : []
 
     const projectId = activeProjectId ?? `task-${nextTaskId}`
@@ -65,7 +62,6 @@ async function readStoredProjectSettings(page: Page, taskId: string) {
 
 async function seedProjectStorageBeforeNavigation(page: Page, taskId: string, overrides: {
   uiKitId: "shadcn" | "none" | "ant"
-  uiMode: "ui-kit" | "html-tags"
 }) {
   const projectId = `task-${taskId}`
   const storageKey = `desengine:project:${taskId}`
@@ -213,7 +209,7 @@ test.describe("project UI kit switching", () => {
   return <div data-testid="ui-kit-switching-preview">UI kit switching fixture</div>;
 }
 `)
-    await seedProjectStorageBeforeNavigation(page, "oncor-row", { uiKitId: "shadcn", uiMode: "ui-kit" })
+    await seedProjectStorageBeforeNavigation(page, "oncor-row", { uiKitId: "shadcn" })
 
     await context.addCookies([{
       name: ACCESS_COOKIE_NAME,
@@ -224,9 +220,9 @@ test.describe("project UI kit switching", () => {
     }])
 
     const cases = [
-      { uiKitId: "shadcn" as const, uiMode: "ui-kit" as const },
-      { uiKitId: "none" as const, uiMode: "html-tags" as const },
-      { uiKitId: "ant" as const, uiMode: "ui-kit" as const },
+      { uiKitId: "shadcn" as const as const },
+      { uiKitId: "none" as const as const },
+      { uiKitId: "ant" as const as const },
     ]
 
     await page.close()
@@ -243,13 +239,11 @@ test.describe("project UI kit switching", () => {
 
       const payloadUrl = (await payloadRequest).url()
       expect(payloadUrl).toContain(`uiKitId=${testCase.uiKitId}`)
-      expect(payloadUrl).toContain(`uiMode=${testCase.uiMode}`)
       expect(currentPage.url()).toMatch(/\/lab\/oncor-row$/)
       await expect.poll(() => readStoredProjectSettings(currentPage, "oncor-row")).toMatchObject({
         activeProjectId: "task-oncor-row",
         settings: {
           uiKitId: testCase.uiKitId,
-          uiMode: testCase.uiMode,
         },
       })
 

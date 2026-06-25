@@ -128,13 +128,11 @@ describe("iterate timeout feedback", () => {
         title: "Проект task-a",
         createdAt: "1970-01-01T00:00:00.000Z",
         updatedAt: "1970-01-01T00:00:00.000Z",
-        settings: { uiKitId: "none", uiMode: "html-tags" },
+        settings: { uiKitId: "none" },
         migration: {
           state: "idle",
           sourceUiKitId: "none",
-          sourceUiMode: "html-tags",
           targetUiKitId: "none",
-          targetUiMode: "html-tags",
           invalidationScope: "none",
           requiresReplay: false,
           message: "",
@@ -152,10 +150,10 @@ describe("iterate timeout feedback", () => {
       },
     })).resolves.toEqual({
       kind: "error",
-      error: "Не удалось проверить уровень",
+      error: "Не удалось запустить проверку результата",
     })
 
     expect(pendingStates).toEqual([true, false])
-    expect(errorMessage).toBe("Не удалось проверить уровень")
+    expect(errorMessage).toBe("Не удалось запустить проверку результата")
   })
 })

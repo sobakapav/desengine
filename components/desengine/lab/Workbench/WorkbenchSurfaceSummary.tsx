@@ -1,6 +1,6 @@
 "use client";
 
-import type { WorkbenchSurfaceSnapshot } from "./workbenchSurface";
+import type { WorkbenchSurfaceSnapshot, WorkbenchWorkflowPointSnapshot } from "./workbenchSurface";
 
 function SurfaceFact({
     label,
@@ -17,6 +17,23 @@ function SurfaceFact({
     );
 }
 
+function WorkflowPointCard({ point }: { point: WorkbenchWorkflowPointSnapshot }) {
+    return (
+        <div className={`rounded-xl border px-3 py-3 ${point.isSelected ? "border-black bg-white" : point.isFocus ? "border-black/20 bg-white" : "border-black/10 bg-white/75"}`}>
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <p className="text-sm font-medium text-black">{point.title}</p>
+                    <p className="mt-1 text-xs text-black/55">{point.artifactCountLabel}</p>
+                    <p className="mt-2 text-[11px] text-black/50">{point.selectionLabel}</p>
+                </div>
+                <span className="rounded-full border border-black/10 bg-[#f6f2ea] px-2 py-1 text-[11px] font-medium text-black/70">
+                    {point.statusLabel}
+                </span>
+            </div>
+        </div>
+    );
+}
+
 /**
  * @example
  * ```tsx
@@ -24,8 +41,10 @@ function SurfaceFact({
  * ```
  */
 export function WorkbenchSurfaceSummary({
+    onSelectWorkflowPoint,
     surface,
 }: {
+    onSelectWorkflowPoint?: (pointId: string) => void;
     surface: WorkbenchSurfaceSnapshot;
 }) {
     return (
@@ -43,6 +62,23 @@ export function WorkbenchSurfaceSummary({
                 <SurfaceFact label="Task" value={surface.taskId} />
                 <SurfaceFact label="Workflow step" value={surface.workflowStepTitle} />
                 <SurfaceFact label="Workbench" value={surface.workbenchDefinitionTitle} />
+            </div>
+
+            <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/45">Пункты workflow</p>
+                <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    {surface.workflowPoints.map((point) => (
+                        <button
+                            key={point.id}
+                            className="text-left disabled:cursor-default"
+                            disabled={!point.isSelectable}
+                            onClick={() => onSelectWorkflowPoint?.(point.id)}
+                            type="button"
+                        >
+                            <WorkflowPointCard point={point} />
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <div className="grid gap-2 md:grid-cols-3">

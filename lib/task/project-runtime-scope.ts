@@ -3,6 +3,7 @@ import "server-only"
 import { readFile, writeFile } from "node:fs/promises"
 
 import { normalizeProject, type Project } from "@/lib/project/runtime"
+import { parseProjectComponentRuntimeId } from "@/lib/task/project-runtime-scope-id"
 import {
   ensureParentDir,
   getUserTaskFilePath,
@@ -42,16 +43,57 @@ function isLegacyTaskRuntimeProject(taskId: string, projectId: string) {
 async function readStoredTaskProject(taskId: string): Promise<Project | null> {
   try {
     const raw = await readFile(getTaskProjectScopeFilePath(taskId), "utf-8")
-    return normalizeProject(JSON.parse(raw))
+    const parsed = JSON.parse(raw) as {
+      lastProject?: unknown
+      scopes?: unknown
+    } | Project
+
+    if (parsed && typeof parsed === "object" && "lastProject" in parsed) {
+      return parsed.lastProject ? normalizeProject(parsed.lastProject as Project) : null
+    }
+
+    return normalizeProject(parsed as Project)
   } catch {
     return null
   }
 }
 
+async function listStoredTaskProjects(taskId: string): Promise<Project[]> {
+  try {
+    const raw = await readFile(getTaskProjectScopeFilePath(taskId), "utf-8")
+    const parsed = JSON.parse(raw) as {
+      lastProject?: unknown
+      scopes?: unknown
+    } | Project
+
+    if (!parsed || typeof parsed !== "object") {
+      return []
+    }
+
+    if ("scopes" in parsed && Array.isArray(parsed.scopes)) {
+      return parsed.scopes.map((scope) => normalizeProject(scope as Project))
+    }
+
+    return [normalizeProject(parsed as Project)]
+  } catch {
+    return []
+  }
+}
+
 async function writeStoredTaskProject(taskId: string, project: Project) {
   const filePath = getTaskProjectScopeFilePath(taskId)
+  const normalizedProject = normalizeProject(project)
+  const storedProjects = await listStoredTaskProjects(taskId)
+  const nextProjects = [
+    normalizedProject,
+    ...storedProjects.filter((entry) => entry.id !== normalizedProject.id),
+  ]
+
   await ensureParentDir(filePath)
-  await writeFile(filePath, JSON.stringify(normalizeProject(project), null, 2), "utf-8")
+  await writeFile(filePath, JSON.stringify({
+    lastProject: normalizedProject,
+    scopes: nextProjects,
+  }, null, 2), "utf-8")
 }
 
 async function resolveTaskProject(taskId: string, project?: Project): Promise<Project> {
@@ -89,12 +131,23 @@ function buildTaskMutationScopeKey(taskId: string, projectId: string) {
   return `${taskId}::${projectId}`
 }
 
+function getBaseProjectId(projectId: string) {
+  return parseProjectComponentRuntimeId(projectId).projectId
+}
+
+function getProjectComponentId(projectId: string) {
+  return parseProjectComponentRuntimeId(projectId).componentId
+}
+
 export {
   buildTaskMutationScopeKey,
   createDefaultTaskProject,
+  getBaseProjectId,
+  getProjectComponentId,
   getScopedTaskRuntimeFilePath,
   getScopedTaskRuntimeRelativePath,
   isLegacyTaskRuntimeProject,
+  listStoredTaskProjects,
   readStoredTaskProject,
   resolveTaskProject,
   resolveTaskRuntimeFilePath,

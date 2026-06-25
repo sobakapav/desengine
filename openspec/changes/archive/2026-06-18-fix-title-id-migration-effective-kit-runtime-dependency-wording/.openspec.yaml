@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-06-18
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "fix"
+execution_mode: "code"
+parent_change: "dispatcher-project"
+strategy_root: "focus-domain"
+roadmap_ref: ""
+release_ref: ""
+producer_ref: ""
+verification_level: "unit"
+verification_command: "npx vitest run --project unit test/unit/project-user-surface-foundation.test.ts test/unit/project-config-and-ui-kit-contract.test.ts test/unit/project-component-registry-surface.test.ts test/unit/check-prompt-context.test.ts test/unit/project-history-diagnostics-surface.test.ts test/unit/architecture-transform-project-facing.test.ts && npm run test:traceability"
+issue: ""
+short: "упростить пользовательский слой проекта: редактируемые title и id, явное ло"

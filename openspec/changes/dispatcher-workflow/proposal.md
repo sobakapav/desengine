@@ -19,7 +19,7 @@
   - user-facing language шагов и фаз;
   - связь workflow с task, artifacts и Workbench;
   - routing downstream implementation changes.
-- Dispatcher становится первым operational получателем producer-контекста от `producer-workflow`.
+- Dispatcher работает в той же focus-линии, что и `producer-workflow`, и использует producer-контекст как содержательный pressure, а не как parentage.
 
 ## Non-goals
 
@@ -44,6 +44,6 @@
 ## Acceptance Criteria
 
 - `dispatcher-workflow` отображается в дереве OpenSpec как активный dispatcher в `focus-domain`.
-- Его producer parent явно задан как `producer-workflow`.
+- Его producer-контекст явно считывается из той же domain-линии без иерархического parentage.
 - У dispatcher есть понятная tactical зона ответственности: model, transitions, step manifestation и routing downstream changes.
 - Dispatcher достаточно описан, чтобы быть parent для следующих workflow implementation waves.

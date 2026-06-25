@@ -86,7 +86,7 @@ OpenSpec-слой в этом репозитории состоит из трё�
 - `producer` ведёт собственный roadmap, формирует ожидания к downstream delivery и работает через переговоры с dispatcher changes, а не через direct implement/fix children.
 - `dispatcher`: тактический слой; `execution_mode=no-code`; обязательны `parent_change` и `roadmap_ref` или `roadmap_refs`; управляет `implement` changes.
 - `dispatcher` не может иметь `producer_ref`: тактическая линия должна оставаться независимой от producer на уровне metadata.
-- `dispatcher` может иметь родителя любого типа, кроме `producer`; единственное ограничение — dispatcher не может быть верхнеуровневым и не подчиняется producer напрямую.
+- `dispatcher` обязан быть child соответствующего `focus`; верхнеуровневый dispatcher и `dispatcher -> producer` считаются ошибкой topology.
 - roadmap для dispatcher не хранится в его собственном каталоге как источник истины: он должен ссылаться на roadmap стратегического владельца (`focus|idea|producer`) по пути `<change>/roadmaps/<file>.md`.
 - если у dispatcher тактический родитель типа `dispatcher`, roadmap допускается наследовать от стратегического предка по цепочке `parent_change` и/или от `strategy_root`.
 - `implement`: внедренческий слой; `execution_mode=code`; обязательный `parent_change` на `dispatcher`, а также `strategy_root`, `verification_level`, `verification_command`.
