@@ -149,6 +149,89 @@ describe("taskServerMutations.registerPromptForCurrentLevel", () => {
   })
 })
 
+describe("taskServerMutations.failCurrentTaskLevelCheck", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    const store: UserProgressStore = {
+      tasks: {
+        "task-a": {
+          currentLevel: 1,
+          updatedAt: "2026-05-24T10:09:00.000Z",
+          levels: {
+            "1": {
+              status: "in_progress",
+              isPassed: false,
+              promptsUsed: 2,
+              initializedAt: "2026-05-24T10:00:00.000Z",
+              checkAttemptsUsed: 1,
+              checkingState: "idle",
+            },
+          },
+        },
+      },
+    }
+
+    mocks.readPromptHistory.mockResolvedValue([])
+    mocks.readTaskConfig.mockResolvedValue({
+      image: { width: 100, height: 100 },
+      base: { width: 100, height: 100 },
+      variants: null,
+      images: { base: { width: 100, height: 100 } },
+      maxLevel: 1,
+    })
+    mocks.readUserProgressStore.mockResolvedValue(store)
+    mocks.writeUserProgressStore.mockResolvedValue(undefined)
+    mocks.getLevelsCatalog.mockResolvedValue([
+      {
+        id: "level-1",
+        number: 1,
+        title: "Уровень 1",
+        description: "Первый уровень",
+        url: undefined,
+        layoutKey: "level-1",
+        maxPromptsPerTask: 3,
+        maxCheckAttempts: 2,
+        labId: "level-1",
+        images: [{ id: "base", show: true }],
+        editableFileIds: ["component"],
+      },
+    ])
+  })
+
+  it("на последней неуспешной проверке сохраняет рабочее состояние и не удаляет runtime", async () => {
+    const { taskServerMutations } = await import("@/lib/task/server-runtime-mutations")
+
+    const result = await taskServerMutations.failCurrentTaskLevelCheck("task-a")
+
+    expect(result).toMatchObject({
+      attemptNumber: 2,
+      maxCheckAttempts: 2,
+      exhausted: true,
+      summary: expect.objectContaining({
+        currentLevel: 1,
+        currentLevelStatus: "in_progress",
+        checkAttemptsUsed: 2,
+        checkAttemptsLimit: 2,
+      }),
+    })
+    expect(mocks.writeUserProgressStore).toHaveBeenCalledWith(expect.objectContaining({
+      tasks: {
+        "task-a": expect.objectContaining({
+          levels: {
+            "1": expect.objectContaining({
+              status: "in_progress",
+              checkAttemptsUsed: 2,
+            }),
+          },
+        }),
+      },
+    }))
+    expect(mocks.removeUserTaskDir).not.toHaveBeenCalled()
+    expect(mocks.removeTaskCheckResult).not.toHaveBeenCalled()
+  })
+})
+
 describe("taskServerMutations.resetCurrentTaskLevel", () => {
   beforeEach(() => {
     vi.clearAllMocks()

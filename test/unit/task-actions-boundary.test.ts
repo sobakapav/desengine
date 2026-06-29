@@ -296,7 +296,7 @@ describe("task action service boundary", () => {
       summary: progress,
       attemptNumber: 1,
       maxCheckAttempts: 2,
-      reset: false,
+      exhausted: false,
     })
     mocks.filterWorkbenchPayloadByAllowlist.mockImplementation((payload: Record<string, string | null>) => ({
       allowedEntries: Object.entries(payload).map(([fileId, content]) => ({
@@ -714,6 +714,29 @@ describe("task action service boundary", () => {
         }),
       ]),
     })
+  })
+
+  it("checkTaskLevel серверно блокирует новую проверку после исчерпания лимита", async () => {
+    mocks.getTaskListItemById.mockResolvedValue({
+      ...taskItem,
+      progress: {
+        ...taskItem.progress,
+        checkAttemptsUsed: 2,
+        checkAttemptsLimit: 2,
+      },
+    })
+    const { checkTaskLevel } = await import("@/lib/task/actions")
+
+    const result = await checkTaskLevel("task-a")
+
+    expect(result.status).toBe(409)
+    expect(result.body).toMatchObject({
+      ok: false,
+      error: "Лимит содержательных проверок исчерпан. Сначала выполните явный сброс текущей итерации или всей задачи.",
+    })
+    expect(mocks.runStructuredLlmRequest).not.toHaveBeenCalled()
+    expect(mocks.failCurrentTaskLevelCheck).not.toHaveBeenCalled()
+    expect(mocks.saveTaskCheckResult).not.toHaveBeenCalled()
   })
 
   it("checkTaskLevel возвращает bounded budget-ошибку и не пишет technical check-result", async () => {

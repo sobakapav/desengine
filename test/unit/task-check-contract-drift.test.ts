@@ -195,7 +195,7 @@ describe("task check contract drift", () => {
         },
         attemptNumber: 1,
         maxCheckAttempts: 2,
-        reset: false,
+        exhausted: false,
       })
       checkActionMocks.getLevelEditableWorkbenchFiles.mockReturnValue([
         { id: "component", fileName: "Component.tsx" },

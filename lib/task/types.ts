@@ -88,7 +88,7 @@ export type TaskData = {
 }
 
 
-type TaskCheckResultKind = "passed" | "failed" | "technical_error" | "failed_and_reset"
+type TaskCheckResultKind = "passed" | "failed" | "technical_error" | "failed_limit_exhausted"
 
 type TaskCheckResult = {
   taskId: string

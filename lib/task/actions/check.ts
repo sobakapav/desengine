@@ -83,6 +83,13 @@ async function validateCheckRequest(taskId: string, project: Project) {
     return taskActionShared.jsonResult({ ok: false, error: "Текущий уровень уже завершён" }, 409)
   }
 
+  if (taskItem.progress.checkAttemptsUsed >= taskItem.progress.checkAttemptsLimit) {
+    return taskActionShared.jsonResult({
+      ok: false,
+      error: "Лимит содержательных проверок исчерпан. Сначала выполните явный сброс текущей итерации или всей задачи.",
+    }, 409)
+  }
+
   return { taskItem }
 }
 
@@ -265,7 +272,7 @@ async function buildFailedCheckResponse(
     context,
     failureUpdate,
     response,
-    failureUpdate.reset ? "failed_and_reset" : "failed",
+    failureUpdate.exhausted ? "failed_limit_exhausted" : "failed",
   )
 
   await saveTaskCheckResult(result)
@@ -275,15 +282,12 @@ async function buildFailedCheckResponse(
     return taskActionShared.jsonResult({ ok: false, error: "Задание не найдено" }, 404)
   }
 
-  const taskResponse = await taskActionShared.buildTaskResponse(taskId, failureUpdate.summary
-    ? { ...nextTaskItem, progress: failureUpdate.summary }
-    : nextTaskItem, project)
+  const currentTaskItem = { ...nextTaskItem, progress: failureUpdate.summary }
+  const taskResponse = await taskActionShared.buildTaskResponse(taskId, currentTaskItem, project)
 
   return taskActionShared.jsonResult({
     ok: true,
-    taskItem: failureUpdate.summary
-      ? { ...nextTaskItem, progress: failureUpdate.summary }
-      : nextTaskItem,
+    taskItem: currentTaskItem,
     taskData: taskResponse.taskData,
     started: taskResponse.started,
     checkResult: result,

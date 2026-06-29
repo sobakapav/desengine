@@ -106,4 +106,25 @@ describe("task progress presentation", () => {
     expect(getLevelBadgeText(task)).toBe("done")
     expect(getIndicatorWidth(task)).toBe("100%")
   })
+
+  it("отдельно показывает исчерпанный лимит проверок без автоматического reset", () => {
+    const task = createTask({
+      progress: {
+        ...createTask().progress,
+        currentLevelStatus: "in_progress",
+        currentLevelDisplayStatus: "in_progress",
+        currentLevelStarted: true,
+        currentLevelNotStarted: false,
+        promptsUsed: 2,
+        promptsRemaining: 3,
+        checkAttemptsUsed: 3,
+        checkAttemptsLimit: 3,
+      },
+    })
+
+    expect(getStatusText(task)).toBe("До состояния «Проверка пройдена»: лимит проверок исчерпан, нужен явный сброс")
+    expect(getPromptRemainderText(task)).toBe(
+      "Попытки проверки закончились. Можно вернуться к рабочим файлам и затем явно сбросить текущую итерацию или всю задачу.",
+    )
+  })
 })

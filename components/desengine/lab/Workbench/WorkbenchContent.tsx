@@ -67,6 +67,8 @@ function ContextStatusItem({ label, value }: { label: string; value: string }) {
 
 function TaskTip({
     surface,
+    checkAttemptsLimit,
+    checkAttemptsUsed,
     currentLevel,
     currentLevelDisplayStatus,
     maxLevel,
@@ -78,6 +80,8 @@ function TaskTip({
     promptsUsed,
 }: {
     surface: WorkbenchSurfaceSnapshot | null;
+    checkAttemptsLimit: number;
+    checkAttemptsUsed: number;
     currentLevel: number;
     currentLevelDisplayStatus: WorkbenchProps["taskItem"]["progress"]["currentLevelDisplayStatus"];
     maxLevel: number;
@@ -89,6 +93,7 @@ function TaskTip({
     promptsUsed: number;
 }) {
     const visibleFiles = taskWorkbenchFiles.filter((file) => editableFileIds.includes(file.id));
+    const remainingChecks = Math.max(checkAttemptsLimit - checkAttemptsUsed, 0);
 
     return (
         <div
@@ -128,6 +133,8 @@ function TaskTip({
                 </div>
                 {currentLevelDisplayStatus === "awaiting_check_retry" ? (
                     <p className="mt-3 text-sm text-black/70">Следующий шаг: повторить проверку, не начиная отдельный новый workflow-этап.</p>
+                ) : remainingChecks === 0 ? (
+                    <p className="mt-3 text-sm text-black/70">Лимит содержательных проверок исчерпан. Рабочие файлы сохранены: их можно разобрать перед явным сбросом текущей итерации или всей задачи.</p>
                 ) : null}
             </div>
 
@@ -188,6 +195,8 @@ export function WorkbenchOverview({ controller, props }: { controller: Workbench
             </div>
             <TaskTip
                 surface={controller.surface}
+                checkAttemptsLimit={props.taskItem.progress.checkAttemptsLimit}
+                checkAttemptsUsed={props.taskItem.progress.checkAttemptsUsed}
                 currentLevel={props.taskItem.progress.currentLevel}
                 currentLevelDisplayStatus={props.taskItem.progress.currentLevelDisplayStatus}
                 maxLevel={props.taskItem.maxLevel}

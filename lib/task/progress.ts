@@ -19,6 +19,9 @@ export function getStatusText(task: TaskListItem) {
   if (task.progress.currentLevelDisplayStatus === "awaiting_check_retry") {
     return "До состояния «Проверка пройдена»: повторите проверку"
   }
+  if (!task.progress.isCompleted && task.progress.checkAttemptsUsed >= task.progress.checkAttemptsLimit) {
+    return "До состояния «Проверка пройдена»: лимит проверок исчерпан, нужен явный сброс"
+  }
   if (task.progress.isCompleted) {
     return "Проверка пройдена"
   }
@@ -42,6 +45,10 @@ export function getPromptRemainderText(task: TaskListItem) {
 
   if (task.progress.currentLevelDisplayStatus === "awaiting_check_retry") {
     return `Следующий шаг: повторить проверку. Попыток проверки осталось ${remainingChecks} из ${task.progress.checkAttemptsLimit}.`
+  }
+
+  if (!task.progress.isCompleted && remainingChecks === 0) {
+    return "Попытки проверки закончились. Можно вернуться к рабочим файлам и затем явно сбросить текущую итерацию или всю задачу."
   }
 
   return `Осталось уточнений: ${task.progress.promptsRemaining} из ${task.progress.promptsLimit}. Попыток проверки осталось ${remainingChecks} из ${task.progress.checkAttemptsLimit}.`

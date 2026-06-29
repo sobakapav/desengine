@@ -31,6 +31,10 @@ function getRemainingOutcomeText(taskItem: WorkbenchProps["taskItem"]) {
         return `До состояния «Проверка пройдена» остался один шаг: повторить проверку. Попыток проверки осталось ${remainingChecks} из ${taskItem.progress.checkAttemptsLimit}.`;
     }
 
+    if (remainingChecks === 0) {
+        return "Лимит содержательных проверок исчерпан. Вернитесь к рабочим файлам, чтобы разобрать решение, затем сбросьте текущую итерацию или всю задачу.";
+    }
+
     if (taskItem.progress.currentLevelNotStarted) {
         return "До состояния «Проверка пройдена» осталось начать workflow-сессию, собрать решение и отправить его на проверку.";
     }
@@ -47,14 +51,14 @@ function ResetErrorNotice({ message }: { message: string }) {
 }
 
 function LevelResetDialog({
-    canCompleteCurrentLevel,
+    canResetCurrentLevel,
     completePending,
     interactionDisabled,
     onResetLevel,
     resetError,
     resetPending,
 }: {
-    canCompleteCurrentLevel: boolean;
+    canResetCurrentLevel: boolean;
     completePending: boolean;
     interactionDisabled: boolean;
     onResetLevel: () => Promise<boolean>;
@@ -73,7 +77,7 @@ function LevelResetDialog({
     return (
         <AlertDialog open={open} onOpenChange={setOpen}>
             <AlertDialogTrigger asChild>
-                <Button variant="outline" disabled={interactionDisabled || completePending || resetPending || !canCompleteCurrentLevel}>
+                <Button variant="outline" disabled={interactionDisabled || completePending || resetPending || !canResetCurrentLevel}>
                     {resetPending ? "Сброс…" : "Сбросить текущую итерацию"}
                 </Button>
             </AlertDialogTrigger>
@@ -155,7 +159,8 @@ function TaskResetDialog({
 }
 
 function WorkbenchHeaderActions({
-    canCompleteCurrentLevel,
+    canCheckCurrentLevel,
+    canResetCurrentLevel,
     completePending,
     interactionDisabled,
     onBackToLevelList,
@@ -165,7 +170,8 @@ function WorkbenchHeaderActions({
     resetError,
     resetPending,
 }: {
-    canCompleteCurrentLevel: boolean;
+    canCheckCurrentLevel: boolean;
+    canResetCurrentLevel: boolean;
     completePending: boolean;
     interactionDisabled: boolean;
     onBackToLevelList: () => void;
@@ -179,7 +185,7 @@ function WorkbenchHeaderActions({
         <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={onBackToLevelList}>Назад к задачам</Button>
             <LevelResetDialog
-                canCompleteCurrentLevel={canCompleteCurrentLevel}
+                canResetCurrentLevel={canResetCurrentLevel}
                 completePending={completePending}
                 interactionDisabled={interactionDisabled}
                 onResetLevel={onResetLevel}
@@ -192,7 +198,7 @@ function WorkbenchHeaderActions({
                 resetError={resetError}
                 resetPending={resetPending}
             />
-            <Button variant="secondary" disabled={interactionDisabled || completePending || resetPending || !canCompleteCurrentLevel} onClick={onCheck}>
+            <Button variant="secondary" disabled={interactionDisabled || completePending || resetPending || !canCheckCurrentLevel} onClick={onCheck}>
                 {completePending ? "Проверяем решение…" : "Отправить решение на проверку"}
             </Button>
         </div>
@@ -240,6 +246,9 @@ export function WorkbenchHeader({
     surface: WorkbenchSurfaceSnapshot | null;
 }) {
     const projectComponentState = useTaskProjectComponent(taskItem.id, surface?.projectId ?? null);
+    const canResetCurrentLevel = taskItem.progress.currentLevelStarted && taskItem.progress.currentLevelStatus !== "completed";
+    const canCheckCurrentLevel = canResetCurrentLevel
+        && taskItem.progress.checkAttemptsUsed < taskItem.progress.checkAttemptsLimit;
 
     return (
         <div className="space-y-3">
@@ -264,7 +273,8 @@ export function WorkbenchHeader({
                     </p>
                 </div>
                 <WorkbenchHeaderActions
-                    canCompleteCurrentLevel={taskItem.progress.currentLevelStarted && taskItem.progress.currentLevelStatus !== "completed"}
+                    canCheckCurrentLevel={canCheckCurrentLevel}
+                    canResetCurrentLevel={canResetCurrentLevel}
                     completePending={completePending}
                     interactionDisabled={interactionDisabled}
                     onBackToLevelList={onBackToLevelList}

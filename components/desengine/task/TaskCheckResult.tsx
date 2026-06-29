@@ -19,7 +19,7 @@ function getTitle(result: TaskCheckResult, transition: TaskTransition | null) {
       : `Проверка пройдена. Работа по задаче завершена`
   }
 
-  if (result.kind === "failed_and_reset") {
+  if (result.kind === "failed_limit_exhausted") {
     return "Проверка не пройдена. Лимит проверок исчерпан"
   }
 
@@ -41,8 +41,8 @@ function getMeta(result: TaskCheckResult) {
 
   const remainingAttempts = Math.max(result.maxCheckAttempts - result.attemptNumber, 0)
 
-  if (result.kind === "failed_and_reset") {
-    return `Попытка ${result.attemptNumber} из ${result.maxCheckAttempts} оказалась последней для текущего шага, поэтому система возвращает его к старту.`
+  if (result.kind === "failed_limit_exhausted") {
+    return `Попытка ${result.attemptNumber} из ${result.maxCheckAttempts} оказалась последней для текущего шага. Рабочие файлы сохранены: можно вернуться, разобрать решение и затем отдельно решить, нужен ли сброс.`
   }
 
   return `Попытка ${result.attemptNumber} из ${result.maxCheckAttempts}. До состояния «Проверка пройдена» остались доработка и новая проверка. Доступно ещё попыток: ${remainingAttempts}.`
@@ -64,7 +64,7 @@ export function TaskCheckResult({
 }: TaskCheckResultProps) {
   const canContinue = result.kind === "passed"
   const canRetry = result.kind === "technical_error"
-  const canReturnToLab = result.kind === "failed" || result.kind === "failed_and_reset"
+  const canReturnToLab = result.kind === "failed" || result.kind === "failed_limit_exhausted"
 
   return (
     <section className="space-y-4 rounded-md border p-6">
@@ -93,7 +93,7 @@ export function TaskCheckResult({
         ) : null}
         {canReturnToLab ? (
           <Button variant="outline" disabled={pending} onClick={onBackToLab}>
-            {result.kind === "failed_and_reset" ? "Начать шаг заново" : "Вернуться к работе"}
+            {result.kind === "failed_limit_exhausted" ? "Вернуться к задаче" : "Вернуться к работе"}
           </Button>
         ) : null}
         {canRetry ? (

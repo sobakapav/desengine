@@ -22,8 +22,8 @@ export type TaskCheckMutationResult = {
 }
 
 export type FailedTaskCheckMutationResult = {
-  summary: TaskProgressSummary | null
+  summary: TaskProgressSummary
   attemptNumber: number
   maxCheckAttempts: number
-  reset: boolean
+  exhausted: boolean
 }

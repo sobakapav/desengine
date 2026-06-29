@@ -194,12 +194,11 @@ export const taskServerMutations = {
 
     await taskServerStorage.writeUserProgressStore(context.store)
     if (exhausted) {
-      await taskServerMutations.resetTask(taskId, { preserveCheckResult: true })
       return {
-        summary: null,
+        summary: summarizeTaskProgress(context.levels, context.taskConfig, context.taskProgress),
         attemptNumber,
         maxCheckAttempts: currentLevel.maxCheckAttempts,
-        reset: true,
+        exhausted: true,
       }
     }
 
@@ -207,7 +206,7 @@ export const taskServerMutations = {
       summary: summarizeTaskProgress(context.levels, context.taskConfig, context.taskProgress),
       attemptNumber,
       maxCheckAttempts: currentLevel.maxCheckAttempts,
-      reset: false,
+      exhausted: false,
     }
   },
   async resetTask(taskId: string, options?: { preserveCheckResult?: boolean; project?: Project }) {
