@@ -22,7 +22,7 @@
   - контракты взаимодействия между крупными частями системы.
 - Dispatcher получает два явных контекстных якоря:
   - `parent_change=focus-tech` как тактическое место в active topology;
-  - ссылку на `producer-architecture-transform/roadmaps/architecture-implementation.md` как producer-конкурентный operational источник downstream waves.
+  - стратегический roadmap `focus-tech/roadmaps/architecture-transformation.md`, который удерживает порядок technical waves без ложного parentage на producer.
 - Dispatcher работает рядом с `producer-architecture-transform`: не переоткрывает его смысловые решения, но и не подчиняется ему иерархически.
 
 ## Non-goals
@@ -48,6 +48,5 @@
 
 - `dispatcher-architecture` отображается в дереве OpenSpec как активный dispatcher в `focus-tech`.
 - Его lineage явно задан так, что tactical dispatcher является child `focus-tech`, а producer-контекст приходит через roadmap и содержательную конкуренцию, а не через `parent_change`.
-- У dispatcher есть явная ссылка на implementation plan producer'а как на operational backlog source.
 - У dispatcher есть понятная tactical зона ответственности: карта, ADR, именование, модульные границы, контракты взаимодействия.
 - Dispatcher достаточно описан, чтобы быть родителем для downstream architecture implementation/fix waves.

@@ -33,7 +33,18 @@
 - workflow внутри project-wave фиксируется как самостоятельный процесс решения;
 - domain-wave вокруг `Project` идёт в том же релизном срезе, что и общая архитектурная трансформация.
 
+Дополнительно внутри этой же волны подготовлен supporting-артефакт для onboarding migration:
+
+- появился guide для контент-менеджера, который объясняет, как переводить onboarding-задачи со старой level-центричной схемы на путь `проект -> workflow -> проверка/чеклист -> результат`;
+- guide нужен не как отдельная пользовательская поставка, а как опорный материал для следующих onboarding UI-waves внутри той же архитектурной трансформации.
+
 ## Готовые changes
+
+### `implement-onboarding-project-workflow-migration-guide`
+
+- Что меняется для команды: у onboarding-линии появился канонический migration guide, который объясняет, как перестраивать структуру задач и metadata под новый режим `project/workflow/check/result`.
+- Как это влияет на пользователя: напрямую интерфейс не меняется, но следующая UI-волна onboarding больше не должна угадывать, как раскладывать старые `level`-данные по проектному входу, workflow-шагам, проверке и результату.
+- Как проверить: открыть [migration-guide.md](/home/op/dev/sobakapav/desengine/openspec/changes/archive/2026-06-25-implement-onboarding-project-workflow-migration-guide/migration-guide.md) и убедиться, что там есть инвентаризация текущей схемы, mapping `level -> project/workflow/check/result`, правила раскладки metadata, пошаговая инструкция и checklist готовности.
 
 ### `implement-project-user-surface-foundation`
 

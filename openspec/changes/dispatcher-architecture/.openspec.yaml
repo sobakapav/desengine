@@ -9,6 +9,4 @@ execution_mode: "no-code"
 parent_change: "focus-tech"
 strategy_root: "focus-tech"
 roadmap_ref: "focus-tech/roadmaps/architecture-transformation.md"
-roadmap_refs:
-  - "producer-architecture-transform/roadmaps/architecture-implementation.md"
 release_ref: ""

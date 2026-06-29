@@ -18,16 +18,20 @@
 
 ## 6. Подготовить content-migration onboarding-задач
 
-- [ ] 6.1 Поставить child change `implement-onboarding-project-workflow-migration-guide` под `dispatcher-tasks`.
-- [ ] 6.2 Зафиксировать, что этот change должен дать контент-менеджеру практическую инструкцию по migration onboarding-задач и metadata.
-- [ ] 6.3 Зафиксировать, что без этой content-wave UI-переход onboarding на новый режим не считается подготовленным.
+- [x] 6.1 Поставить child change `implement-onboarding-project-workflow-migration-guide` под `dispatcher-tasks`.
+- [x] 6.2 Зафиксировать, что этот change должен дать контент-менеджеру практическую инструкцию по migration onboarding-задач и metadata.
+- [x] 6.3 Зафиксировать, что без этой content-wave UI-переход onboarding на новый режим не считается подготовленным.
 
 ## 7. Поставить UI-волны для нового режима
 
-- [ ] 7.1 Поставить downstream wave на перевод onboarding task surfaces к проектному входу.
-- [ ] 7.2 Поставить downstream wave на перевод onboarding task/task-list экранов на workflow-язык вместо level-центричного языка.
-- [ ] 7.3 Поставить downstream wave на связку onboarding-задач с шагами проверки, повторной проверки и результата.
-- [ ] 7.4 Поставить downstream wave на user-facing показ onboarding metadata только в нужной для нового режима форме.
+- [x] 7.1 Поставить downstream wave на перевод onboarding task surfaces к проектному входу.
+  Child change: `implement-onboarding-project-entry-surface`
+- [x] 7.2 Поставить downstream wave на перевод onboarding task/task-list экранов на workflow-язык вместо level-центричного языка.
+  Child change: `implement-onboarding-workflow-language-surface`
+- [x] 7.3 Поставить downstream wave на связку onboarding-задач с шагами проверки, повторной проверки и результата.
+  Child change: `implement-onboarding-check-result-surface`
+- [x] 7.4 Поставить downstream wave на user-facing показ onboarding metadata только в нужной для нового режима форме.
+  Child change: `implement-onboarding-contextual-metadata-surface`
 
 ## Тестовая часть change
 

@@ -35,7 +35,7 @@ Producer фиксирует архитектурную трансформаци�
    - `parent_change=focus-tech` фиксирует, что dispatcher остаётся обычным tactical child focus-линии;
    - `strategy_root=focus-tech` сохраняет принадлежность общей technical strategy;
    - `roadmap_ref=focus-tech/roadmaps/architecture-transformation.md` оставляет стратегический roadmap корня;
-   - `roadmap_refs` дополняется ссылкой на `producer-architecture-transform/roadmaps/architecture-implementation.md`, чтобы producer pressure и operational backlog были видны прямо из metadata без ложного parentage.
+   - producer pressure удерживается содержательно через общую focus-орбиту и связанные downstream decisions, а не через дополнительную metadata-ссылку на неактивный change.
 
 3. Dispatcher не заменяет предметные линии.
    Если downstream change явно относится к runtime, dataflow или log-system, dispatcher-architecture не становится его универсальным заменителем. Он нужен для тех changes, где главная тема — сама архитектурная граница.

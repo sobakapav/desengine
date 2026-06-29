@@ -22,6 +22,11 @@
       "reason": "Сейчас runnable evidence закрывает только routing/evidence часть capability: scenarios про маршрутизацию через `dispatcher-architecture`, сохранение ownership у предметного dispatcher и обязательный evidence-пакет для boundary change. Остальные roadmap/lifecycle scenarios описывают порядок архитектурных waves, cleanup lane, governance baseline и platform-sourcing decisions; для них ещё нет отдельного runnable harness и они сознательно отложены, чтобы не подменять архитектурный контракт случайными unit-проверками без реального operational evidence.",
       "targetStage": "architecture-roadmap-lifecycle-harness"
     },
+    "architecture-transform": {
+      "priority": "P1",
+      "reason": "Сейчас runnable evidence закрывает 6 из 9 scenarios capability: producer-level аттракторы, AI-рамку, ограничения рабочей модели, boundary evidence и отсутствие обязательной architecture-панели на project page. Отдельного runnable harness пока нет для user-facing обещаний про понятность рабочего пути `проект -> компонент -> workflow -> работа`, для вычищения внутренней инженерной лексики из обычного project-facing слоя и для общего proof, что downstream architecture change приносит именно пользовательское улучшение, а не только refactor-эффект.",
+      "targetStage": "architecture-transform-user-facing-harness"
+    },
     "level-labs": {
       "priority": "P1",
       "reason": "Большая часть level-labs уже покрыта runnable unit/browser/integration evidence, но canonical scenario про маппинг текущего lab level в workflow step profile пока не закреплён отдельным traceability harness. До появления этого harness capability остаётся в coverage-plan, чтобы не смешивать runtime projection контракт со случайными косвенными проверками.",

@@ -148,7 +148,6 @@ function DoneScreenSection({
 function CheckScreenSection({
     applyDeferredTaskState,
     handleCheckResult,
-    handleReturnToLevelList,
     router,
     screen,
     setScreen,
@@ -158,7 +157,6 @@ function CheckScreenSection({
 }: {
     applyDeferredTaskState: (nextTaskItem: TaskListItem | null, nextTaskData: TaskData | null) => void;
     handleCheckResult: CheckResultHandler;
-    handleReturnToLevelList: (levelId?: string) => void;
     router: RouterLike;
     screen: Extract<LabScreenState, { type: "check" }>;
     setScreen: (screen: LabScreenState) => void;
@@ -171,7 +169,7 @@ function CheckScreenSection({
             result={screen.result}
             transition={screen.transition}
             pending={status.length > 0}
-            onContinue={() => handleCheckContinue({ applyDeferredTaskState, handleReturnToLevelList, router, screen, setScreen, taskItem })}
+            onContinue={() => handleCheckContinue({ applyDeferredTaskState, router, screen, setScreen, taskItem })}
             onBackToLab={() => {
                 if (!taskItem) return;
                 applyDeferredTaskState(screen.nextTaskItem, screen.nextTaskData);
@@ -185,14 +183,12 @@ function CheckScreenSection({
 
 function handleCheckContinue({
     applyDeferredTaskState,
-    handleReturnToLevelList,
     router,
     screen,
     setScreen,
     taskItem,
 }: {
     applyDeferredTaskState: (nextTaskItem: TaskListItem | null, nextTaskData: TaskData | null) => void;
-    handleReturnToLevelList: (levelId?: string) => void;
     router: RouterLike;
     screen: Extract<LabScreenState, { type: "check" }>;
     setScreen: (screen: LabScreenState) => void;
@@ -200,7 +196,9 @@ function handleCheckContinue({
 }) {
     if (screen.transition?.toLevel) {
         applyDeferredTaskState(screen.nextTaskItem, screen.nextTaskData);
-        void handleReturnToLevelList(taskItem?.progress.currentLevelId);
+        if (!taskItem) return;
+        router.push(getLabUrl(taskItem.id));
+        setScreen({ type: "task", screen: "component" });
         return;
     }
 
@@ -212,7 +210,9 @@ function handleCheckContinue({
     }
 
     applyDeferredTaskState(screen.nextTaskItem, screen.nextTaskData);
-    void handleReturnToLevelList(taskItem?.progress.currentLevelId);
+    if (!taskItem) return;
+    router.push(getLabUrl(taskItem.id));
+    setScreen({ type: "task", screen: "component" });
 }
 
 async function handleRetry({

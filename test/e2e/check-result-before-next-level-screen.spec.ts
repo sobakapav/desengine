@@ -168,19 +168,19 @@ test.describe("check result before next level screen", () => {
     fs.rmSync(backupRoot, { recursive: true, force: true })
   })
 
-  test("канонический check-route остаётся первым экраном, даже если следующий уровень уже стал текущим", async ({ baseURL, context, page }) => {
+  test("канонический check-route остаётся первым экраном, а основной CTA продолжает ту же задачу на новом уровне", async ({ baseURL, context, page }) => {
     preparePassedCheckFixture(repoRoot, { checkLevel: 1, currentLevel: 2 })
     await authorizeFixtureTask(context, baseURL)
 
     await page.goto(`/tasks/${taskId}/check`, { waitUntil: "domcontentloaded" })
 
-    await expect(page.getByRole("heading", { name: "Проверка пройдена. Уровень Вызываем UI-библиотеку уже доступен" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Проверка пройдена. Следующий шаг уже доступен" })).toBeVisible()
     await expect(page.getByRole("heading", { name: `Начать уровень 2 в задаче ${taskId}` })).toHaveCount(0)
 
-    await page.getByRole("button", { name: "Вернуться к задачам уровня" }).click()
+    await page.getByRole("button", { name: "Продолжить задачу на следующем уровне" }).click()
 
-    await expect(page).toHaveURL(new RegExp("/levels/level-2$"), { timeout: 15_000 })
-    await expect(page.getByRole("heading", { name: "Вызываем UI-библиотеку" })).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`/lab/${taskId}$`), { timeout: 15_000 })
+    await expect(page.getByRole("heading", { name: `Начать уровень 2 в задаче ${taskId}` })).toBeVisible()
   })
 
   test("последний уровень тоже сначала показывает check-result и только потом done flow", async ({ baseURL, context, page }) => {
@@ -189,7 +189,7 @@ test.describe("check result before next level screen", () => {
 
     await page.goto(`/tasks/${taskId}/check`, { waitUntil: "domcontentloaded" })
 
-    await expect(page.getByRole("heading", { name: "Проверка пройдена. Задача решена целиком" })).toBeVisible()
+    await expect(page.getByRole("heading", { name: "Проверка пройдена. Работа по задаче завершена" })).toBeVisible()
     await expect(page.getByRole("heading", { name: `Задача ${taskId} завершена на уровне 5` })).toHaveCount(0)
 
     await page.getByRole("button", { name: "Открыть итог задачи" }).click()

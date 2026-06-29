@@ -41,6 +41,8 @@ export function LevelTaskCard({
   pending = false,
   onOpenTask,
 }: LevelTaskCardProps) {
+  const ctaLabel = task.started ? "Продолжить задачу" : "Начать решать"
+
   return (
     <div className="rounded-md border p-3">
       {mode === "available" ? (
@@ -53,14 +55,14 @@ export function LevelTaskCard({
           </div>
           {onOpenTask ? (
             <Button disabled={pending} onClick={() => onOpenTask(task.id)}>
-              Продолжить задачу
+              {ctaLabel}
             </Button>
           ) : (
             <Link
              
               href={getLabUrl(task.id)}
             >
-              Продолжить задачу
+              {ctaLabel}
             </Link>
           )}
         </div>

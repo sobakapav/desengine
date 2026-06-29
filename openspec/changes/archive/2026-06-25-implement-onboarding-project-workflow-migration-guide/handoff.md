@@ -22,6 +22,7 @@
 ## Границы исполнения
 
 - Что входит в этот change: инвентаризация текущей onboarding-структуры, mapping старых и новых metadata, инструкция для контент-менеджера, примеры и checklist готовности.
+- Какой артефакт подготовлен в этой волне: `openspec/changes/implement-onboarding-project-workflow-migration-guide/migration-guide.md`
 - Что сознательно не входит в этот change: кодовая миграция onboarding UI, переписывание runtime-контрактов и массовая правка всех onboarding-задач.
 - Какие решения уже принадлежат parent change / strategy_root и не должны переоткрываться: тактическая рамка onboarding-линии и общий стратегический фокус onboarding как отдельного контура.
 
@@ -34,3 +35,4 @@
 ## Открытые вопросы
 
 - Какие вопросы исполнитель должен закрыть по ходу работы: какие onboarding metadata обязательны для project/workflow режима; какие старые level-поля удалить или архивировать; какие примеры нужны контент-менеджеру для реальной миграции.
+- Что остаётся на downstream UI-waves: как именно project/workflow/check/result модель будет показана на task list, task detail, check screen и result screen.

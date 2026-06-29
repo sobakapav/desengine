@@ -13,7 +13,7 @@ const navigationLinks = [
   { href: "/", label: "desengine" },
   { href: getLabRootUrl(), label: "лаборатория" },
   { href: getLevelsRootUrl(), label: "уровни" },
-  { href: getProjectsRootUrl(), label: "Проекты" },
+  { href: getProjectsRootUrl(), label: "проекты" },
   { href: getTasksRootUrl(), label: "задачи" },
   { href: getSystemUrl(), label: "система" },
   { href: getHelpRootUrl(), label: "справка" },

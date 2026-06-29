@@ -20,7 +20,7 @@ function getTitle(result: TaskCheckResult, transition: TaskTransition | null) {
   }
 
   if (result.kind === "failed_and_reset") {
-    return "Проверка не пройдена. Текущий шаг начнётся заново"
+    return "Проверка не пройдена. Лимит проверок исчерпан"
   }
 
   if (result.kind === "technical_error") {
@@ -42,7 +42,7 @@ function getMeta(result: TaskCheckResult) {
   const remainingAttempts = Math.max(result.maxCheckAttempts - result.attemptNumber, 0)
 
   if (result.kind === "failed_and_reset") {
-    return `Попытка ${result.attemptNumber} из ${result.maxCheckAttempts} оказалась последней для текущего шага.`
+    return `Попытка ${result.attemptNumber} из ${result.maxCheckAttempts} оказалась последней для текущего шага, поэтому система возвращает его к старту.`
   }
 
   return `Попытка ${result.attemptNumber} из ${result.maxCheckAttempts}. До состояния «Проверка пройдена» остались доработка и новая проверка. Доступно ещё попыток: ${remainingAttempts}.`
@@ -88,7 +88,7 @@ export function TaskCheckResult({
       <div className="flex flex-wrap gap-3">
         {canContinue ? (
           <Button disabled={pending} onClick={onContinue}>
-            {transition?.toLevel ? "Перейти к следующему шагу" : "Открыть итог задачи"}
+            {transition?.toLevel ? "Продолжить задачу на следующем уровне" : "Открыть итог задачи"}
           </Button>
         ) : null}
         {canReturnToLab ? (

@@ -114,10 +114,11 @@ describe("lab route contract", () => {
     }
   })
 
-  it("успешный check-result с новым уровнем возвращает к списку задач уровня, а не в lab автоматически", () => {
+  it("успешный check-result с новым уровнем продолжает ту же задачу в lab", () => {
     const source = readProjectFile("components", "desengine", "lab", "LabScreen", "ScreenSections.tsx")
 
     expect(source).toContain("if (screen.transition?.toLevel)")
-    expect(source).toContain("void handleReturnToLevelList(taskItem?.progress.currentLevelId);")
+    expect(source).toContain("router.push(getLabUrl(taskItem.id));")
+    expect(source).toContain('setScreen({ type: "task", screen: "component" });')
   })
 })

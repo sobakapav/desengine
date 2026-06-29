@@ -117,6 +117,6 @@ describe("architecture transform project-facing surface", () => {
 
     expect(architectureSpec).toContain("### Requirement: Архитектурная линия не навязывает project page отдельную пользовательскую панель")
     expect(architectureSpec).toContain("#### Scenario: Downstream change убирает архитектурную панель с project page")
-    expect(coveragePlan).not.toContain('"architecture-transform"')
+    expect(coveragePlan).toContain('"architecture-transform"')
   })
 })

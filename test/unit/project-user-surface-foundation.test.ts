@@ -77,7 +77,7 @@ describe("project user surface foundation", () => {
     const projectRegistryHook = readProjectFile("components", "desengine", "project", "useProjectRegistry.ts")
     const projectOverviewHook = readProjectFile("components", "desengine", "project", "useProjectOverview.ts")
 
-    expect(navigation).toContain('label: "Проекты"')
+    expect(navigation).toContain('label: "проекты"')
     expect(navigation).toContain("getProjectsRootUrl()")
 
     expect(projectsPage).toContain('import { ProjectsScreen } from "@/components/desengine/project/ProjectsScreen"')
