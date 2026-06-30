@@ -118,7 +118,14 @@ describe("lab route contract", () => {
     const source = readProjectFile("components", "desengine", "lab", "LabScreen", "ScreenSections.tsx")
 
     expect(source).toContain("if (screen.transition?.toLevel)")
-    expect(source).toContain("router.push(getLabUrl(taskItem.id));")
+    expect(source).toContain("router.push(getLabUrl(taskItem.id, null, readProjectFromTaskUrl(taskItem.id) ?? undefined));")
     expect(source).toContain('setScreen({ type: "task", screen: "component" });')
+  })
+
+  it("done-screen возвращает пользователя к уровню завершённой задачи, а не к глобальному fallback уровня", () => {
+    const source = readProjectFile("components", "desengine", "lab", "LabScreen", "ScreenSections.tsx")
+
+    expect(source).toContain("onBackToTaskList={() => handleReturnToLevelList(screen.transition.fromLevel.id)}")
+    expect(source).not.toContain("onBackToTaskList={() => handleReturnToLevelList()}")
   })
 })

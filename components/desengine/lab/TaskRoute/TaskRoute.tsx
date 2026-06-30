@@ -103,7 +103,7 @@ function TaskRoute({ initTaskItem, initTaskData }: TaskRouteProps) {
 
         router.push(
             transition.toLevel
-                ? getLabUrl(transition.taskId)
+                ? getLabUrl(transition.taskId, null, readProjectFromTaskUrl(transition.taskId) ?? undefined)
                 : createTaskDonePath(transition.taskId),
         );
     }

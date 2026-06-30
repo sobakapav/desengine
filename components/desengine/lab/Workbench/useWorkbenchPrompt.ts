@@ -1,7 +1,6 @@
 "use client";
 
 import { type KeyboardEvent as ReactKeyboardEvent, useState } from "react";
-import type { Dispatch, SetStateAction } from "react";
 import type { Project } from "@/lib/project/runtime";
 import type { IterateTaskSuccessBody } from "@/lib/task/actions/types";
 
@@ -95,7 +94,6 @@ function usePromptController(
     project: Project,
     saveBeforeAction: () => Promise<boolean>,
     replaceTaskData: (taskData: WorkbenchProps["taskData"]) => void,
-    setPreviewVersion: Dispatch<SetStateAction<number>>,
 ) {
     const [promptText, setPromptText] = useState("");
     const [promptStatus, setPromptStatus] = useState("");
@@ -121,9 +119,6 @@ function usePromptController(
         replaceTaskData(outcome.data.taskData);
         props.onTransition(outcome.data.transition ?? null);
         const nextState = resolvePromptRunSuccessState(outcome.data);
-        if (nextState.refreshPreview) {
-            setPreviewVersion((current) => current + 1);
-        }
         if (nextState.clearPrompt) {
             setPromptText("");
         }

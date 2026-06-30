@@ -14,6 +14,7 @@ import type { LevelOverview as LevelOverviewData } from "@/lib/level/types";
 import type { TaskCheckResult as TaskCheckResultData, TaskData, TaskListItem, TaskTransition } from "@/lib/task/types";
 import type { LabScreenState } from "./states";
 import type { LabTaskScreenEvent, LabTaskScreenEventInput } from "./screen-event";
+import { readProjectFromTaskUrl } from "../task-client-boundary";
 
 type RouterLike = {
     push: (href: string) => void;
@@ -108,7 +109,7 @@ function TransitionScreenSection({
             started={taskItem?.started ?? false}
             pending={status.length > 0}
             onContinue={() => {
-                router.push(getLabUrl(screen.transition.taskId));
+                router.push(getLabUrl(screen.transition.taskId, null, readProjectFromTaskUrl(screen.transition.taskId) ?? undefined));
                 setScreen({ type: "task", screen: "component" });
             }}
             onBackToLevelList={() => handleReturnToLevelList(screen.transition.toLevel?.id)}
@@ -137,10 +138,10 @@ function DoneScreenSection({
             started={taskItem?.started ?? false}
             pending={status.length > 0}
             onOpenTask={() => {
-                router.push(getLabUrl(screen.transition.taskId));
+                router.push(getLabUrl(screen.transition.taskId, null, readProjectFromTaskUrl(screen.transition.taskId) ?? undefined));
                 setScreen({ type: "task", screen: "component" });
             }}
-            onBackToTaskList={() => handleReturnToLevelList()}
+            onBackToTaskList={() => handleReturnToLevelList(screen.transition.fromLevel.id)}
         />
     );
 }
@@ -173,7 +174,7 @@ function CheckScreenSection({
             onBackToLab={() => {
                 if (!taskItem) return;
                 applyDeferredTaskState(screen.nextTaskItem, screen.nextTaskData);
-                router.push(getLabUrl(taskItem.id));
+                router.push(getLabUrl(taskItem.id, null, readProjectFromTaskUrl(taskItem.id) ?? undefined));
                 setScreen({ type: "task", screen: "component" });
             }}
             onRetry={() => void handleRetry({ handleCheckResult, setStatus, taskItem })}
@@ -197,7 +198,7 @@ function handleCheckContinue({
     if (screen.transition?.toLevel) {
         applyDeferredTaskState(screen.nextTaskItem, screen.nextTaskData);
         if (!taskItem) return;
-        router.push(getLabUrl(taskItem.id));
+        router.push(getLabUrl(taskItem.id, null, readProjectFromTaskUrl(taskItem.id) ?? undefined));
         setScreen({ type: "task", screen: "component" });
         return;
     }
@@ -211,7 +212,7 @@ function handleCheckContinue({
 
     applyDeferredTaskState(screen.nextTaskItem, screen.nextTaskData);
     if (!taskItem) return;
-    router.push(getLabUrl(taskItem.id));
+    router.push(getLabUrl(taskItem.id, null, readProjectFromTaskUrl(taskItem.id) ?? undefined));
     setScreen({ type: "task", screen: "component" });
 }
 

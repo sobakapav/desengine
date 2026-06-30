@@ -178,9 +178,8 @@ function useTaskLoader({
 }) {
     async function handleTaskOpen(taskId: string) {
         setStatus("Загрузка задания…");
-        router.push(getLabUrl(taskId));
-
         const project = await readStoredProject(taskId);
+        router.push(getLabUrl(taskId, null, project));
         const res = await fetch(buildTaskOpenUrl(taskId, project), { method: "GET" });
         const data = await res.json();
 
@@ -218,7 +217,8 @@ function useTaskResultHandlers({
 
     function handleTransition(transition: TaskTransition | null) {
         if (!transition) return;
-        router.push(transition.toLevel ? getLabUrl(transition.taskId) : createDoneHref(transition.taskId));
+        const project = readProjectFromTaskUrl(transition.taskId) ?? undefined;
+        router.push(transition.toLevel ? getLabUrl(transition.taskId, null, project) : createDoneHref(transition.taskId));
         setScreen(transition.toLevel ? { type: "task", screen: "component" } : { type: "done", transition });
     }
 

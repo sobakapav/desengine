@@ -1,3 +1,4 @@
+import type { Project } from "@/lib/project/runtime"
 import { getDefaultCodeScreen } from "@/lib/lab/editor"
 import {
   getLabRootUrl,
@@ -24,8 +25,8 @@ function getSystemUrl() {
   return "/system"
 }
 
-function createLabUrl(taskId: string, screen?: string | null) {
-  return getLabUrl(taskId, screen)
+function createLabUrl(taskId: string, screen?: string | null, project?: Project) {
+  return getLabUrl(taskId, screen, project)
 }
 
 function createLabLegacyTransitionRedirectPath(taskId: string, screen: TaskTransitionScreen) {

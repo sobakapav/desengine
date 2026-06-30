@@ -26,19 +26,7 @@ function resolveProjectComponentTaskId(args: {
     return args.component.taskId
   }
 
-  const locallyOccupiedTaskIds = new Set(
-    args.components
-      .filter((component) => component.id !== args.component.id)
-      .map((component) => component.taskId)
-      .filter((taskId): taskId is string => Boolean(taskId)),
-  )
-  const globallyOccupiedTaskIds = new Set(args.occupiedTaskIds)
-  const availableTask = args.workflowTaskCatalog.find((task) => (
-    !locallyOccupiedTaskIds.has(task.taskId)
-    && !globallyOccupiedTaskIds.has(task.taskId)
-  ))
-
-  return availableTask?.taskId ?? null
+  return args.workflowTaskCatalog[0]?.taskId ?? null
 }
 
 /**

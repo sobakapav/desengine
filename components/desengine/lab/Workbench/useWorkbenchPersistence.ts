@@ -286,6 +286,7 @@ export { postFileUpdates };
  *   dirty,
  *   save,
  *   onTaskDataChange,
+ *   setPreviewVersion,
  * })
  * ```
  */
@@ -295,11 +296,13 @@ export function useTaskDataReplacement({
   onTaskDataChange,
   refs,
   save,
+  setPreviewVersion,
 }: Pick<WorkbenchProps, "onTaskDataChange"> & {
   code: ReturnType<typeof useCodeController>;
   dirty: ReturnType<typeof useDirtyFiles>;
   refs: ReturnType<typeof useWorkbenchRefs>;
   save: ReturnType<typeof useSaveController>;
+  setPreviewVersion: Dispatch<SetStateAction<number>>;
 }) {
   function replaceTaskData(nextTaskData: WorkbenchProps["taskData"]) {
     refs.savedContentByFileIdRef.current = { ...nextTaskData.contentByFileId };
@@ -310,6 +313,7 @@ export function useTaskDataReplacement({
     save.setSaveError("");
     save.setSaveStatus("idle");
     onTaskDataChange(nextTaskData);
+    setPreviewVersion((current) => current + 1);
   }
 
   return replaceTaskData;
