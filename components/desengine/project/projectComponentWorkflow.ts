@@ -5,6 +5,10 @@ type ProjectWorkflowTaskCatalogItem = {
   taskTitle: string
 }
 
+function normalizeWorkflowTaskKey(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9а-яё]/g, "")
+}
+
 /**
  * @example
  * ```ts
@@ -24,6 +28,17 @@ function resolveProjectComponentTaskId(args: {
 }) {
   if (args.component.taskId) {
     return args.component.taskId
+  }
+
+  const preferredProjectTask = args.workflowTaskCatalog.find((task) => task.taskId === args.component.projectId)
+  if (preferredProjectTask) {
+    return preferredProjectTask.taskId
+  }
+
+  const normalizedProjectId = normalizeWorkflowTaskKey(args.component.projectId)
+  const normalizedProjectTask = args.workflowTaskCatalog.find((task) => normalizeWorkflowTaskKey(task.taskId) === normalizedProjectId)
+  if (normalizedProjectTask) {
+    return normalizedProjectTask.taskId
   }
 
   return args.workflowTaskCatalog[0]?.taskId ?? null

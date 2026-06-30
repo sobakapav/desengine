@@ -115,12 +115,14 @@ describe("P1 source contracts", () => {
 
   it("task runtime применяет fallback/error-boundary контракт для пользовательского render", () => {
     const outRender = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "OutRender.tsx")
+    const previewBridge = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "preview-runtime-bridge.tsx")
+    const previewPayload = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "preview-payload.ts")
     const sandpackRoute = readProjectFile("app", "api", "tasks", "[taskId]", "sandpack", "route.ts")
     const taskActions = readProjectFile("lib", "task", "actions.ts")
 
     expect(outRender).toContain("PreviewErrorNotice")
-    expect(outRender).toContain("Ошибка загрузки превью")
-    expect(outRender).toContain('width: "100%"')
+    expect(previewPayload).toContain("Ошибка загрузки превью")
+    expect(previewBridge).toContain('width: "100%"')
     expect(sandpackRoute).toContain("buildSandpackPreviewPayload")
     expect(sandpackRoute).toContain("readFilesRecursively")
     expect(taskActions).toContain("validateGeneratedFilesPayload")

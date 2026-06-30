@@ -14,12 +14,6 @@
       "reason": "Code-панель уже была orchestration-компонентом, а текущий рабочий diff затрагивает её вместе с preview/runtime boundary. Безопасное разбиение на presentation/controller части нужно делать отдельным UI refactor.",
       "targetStage": "architecture-followup-code-panel-split"
     },
-    "components/desengine/lab/InOut/OutRender/OutRender.tsx": {
-      "rules": ["file-length"],
-      "owner": "team-desengine",
-      "reason": "OutRender держит смешанный preview/output orchestration с несколькими режимами отображения. Безопасное разбиение на presentation и adapter-слои нужно делать отдельным UI refactor, чтобы не расшатать текущий render pipeline.",
-      "targetStage": "architecture-followup-out-render-split"
-    },
     "components/desengine/lab/TaskRoute/TaskRoute.tsx": {
       "rules": ["function-length"],
       "owner": "team-desengine",

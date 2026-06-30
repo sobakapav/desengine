@@ -37,13 +37,13 @@ describe("browser webcrypto runtime boundary", () => {
   })
 
   it("пытается установить узкий digest-fallback до отказа от preview", () => {
-    const outRenderSource = readProjectFile(
+    const previewBridgeSource = readProjectFile(
       "components",
       "desengine",
       "lab",
       "InOut",
       "OutRender",
-      "OutRender.tsx",
+      "preview-runtime-bridge.tsx",
     )
     const noticesSource = readProjectFile(
       "components",
@@ -74,11 +74,11 @@ describe("browser webcrypto runtime boundary", () => {
     expect(webcryptoSource).toContain('Object.defineProperty(cryptoCandidate, "subtle"')
     expect(webcryptoSource).toContain("Не подменяем весь `crypto`")
     expect(webcryptoSource).not.toContain('Object.defineProperty(globalThis, "crypto"')
-    expect(outRenderSource).toContain("if (!previewRuntimeSupport.supported)")
-    expect(outRenderSource).toContain("<PreviewSecureContextNotice message={previewRuntimeSupport.message} />")
+    expect(previewBridgeSource).toContain("if (!previewRuntimeSupport.supported)")
+    expect(previewBridgeSource).toContain("<PreviewSecureContextNotice message={previewRuntimeSupport.message} />")
 
-    const unsupportedGuardIndex = outRenderSource.indexOf("if (!previewRuntimeSupport.supported)")
-    const sandpackSurfaceIndex = outRenderSource.indexOf("<SandpackRuntimeSurface")
+    const unsupportedGuardIndex = previewBridgeSource.indexOf("if (!previewRuntimeSupport.supported)")
+    const sandpackSurfaceIndex = previewBridgeSource.indexOf("<PreviewRuntimeSurface")
 
     expect(unsupportedGuardIndex).toBeGreaterThan(-1)
     expect(sandpackSurfaceIndex).toBeGreaterThan(-1)

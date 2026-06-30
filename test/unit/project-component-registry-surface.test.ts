@@ -132,6 +132,42 @@ describe("project component registry surface", () => {
     })).toBe("task-template")
   })
 
+  it("предпочитает backing task, совпадающий с projectId компонента", () => {
+    const component = normalizeProjectComponent({
+      id: "component-b",
+      projectId: "oncor-row",
+      title: "Row",
+    })
+
+    expect(resolveProjectComponentTaskId({
+      component,
+      components: [component],
+      occupiedTaskIds: [],
+      workflowTaskCatalog: [
+        { taskId: "dipole-button", taskTitle: "dipole-button" },
+        { taskId: "oncor-row", taskTitle: "oncor-row" },
+      ],
+    })).toBe("oncor-row")
+  })
+
+  it("умеет находить backing task по нормализованному projectId, даже если разделители различаются", () => {
+    const component = normalizeProjectComponent({
+      id: "component-b",
+      projectId: "ot-vinta-tab",
+      title: "Tab",
+    })
+
+    expect(resolveProjectComponentTaskId({
+      component,
+      components: [component],
+      occupiedTaskIds: [],
+      workflowTaskCatalog: [
+        { taskId: "dipole-button", taskTitle: "dipole-button" },
+        { taskId: "otvinta-tab", taskTitle: "otvinta-tab" },
+      ],
+    })).toBe("otvinta-tab")
+  })
+
   it("не требует свободный task slot и переиспользует template при глобальной занятости каталога", () => {
     const component = normalizeProjectComponent({
       id: "component-b",

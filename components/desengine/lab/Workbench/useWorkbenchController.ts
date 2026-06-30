@@ -137,7 +137,7 @@ function useWorkbenchRuntime(props: WorkbenchProps, activeScreen?: string | null
 }
 
 function useWorkbenchHandlers(args: {
-    activeScreen?: string | null;
+    activeScreen: string;
     onBackToLevelList: WorkbenchProps["onBackToLevelList"];
     onScreenEventChange: WorkbenchProps["onScreenEventChange"];
     saveBeforeAction: (targetFileIds?: string[]) => Promise<boolean>;
@@ -149,7 +149,7 @@ function useWorkbenchHandlers(args: {
     }
 
     async function handleFileChange(nextFileId: string) {
-        if (await args.saveBeforeAction(args.activeScreen ? [args.activeScreen] : undefined)) {
+        if (await args.saveBeforeAction([args.activeScreen])) {
             args.onScreenEventChange(changeLabTaskScreenEventInput({
                 taskId: args.screenEvent.scope.taskId,
                 activeScreen: args.activeScreen,

@@ -305,9 +305,11 @@ describe("P2 source contracts", () => {
 
   it("динамический render-островок лаборатории изолирован локальным boundary/fallback", () => {
     const outRender = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "OutRender.tsx")
+    const previewPayload = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "preview-payload.ts")
 
     expect(outRender).toContain("PreviewErrorNotice")
-    expect(outRender).toContain("Ошибка загрузки превью")
+    expect(previewPayload).toContain("Ошибка загрузки превью")
+    expect(previewPayload).toContain("setPreviewPayload(null);")
   })
 
   it("простой статический Navigation не требует механического boundary", () => {
