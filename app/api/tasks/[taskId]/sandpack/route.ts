@@ -11,7 +11,7 @@ import {
 import { normalizeSandpackUiKitId } from "@/lib/lab/sandpack-ui-kits.config"
 import { normalizeProject, resolveProjectPreviewConfig } from "@/lib/project/runtime"
 import { getLevelsCatalog, getTaskListItemById } from "@/lib/system/server"
-import { getUserTaskFilePath } from "@/lib/user/server"
+import { resolveTaskRuntimeFilePath } from "@/lib/task/project-runtime-scope"
 import {
   readFilesRecursively,
   readRecursiveTypeScriptTreeSignature,
@@ -38,8 +38,9 @@ type StablePreviewSourceFiles = {
 
 const stablePreviewSourceCache = new Map<string, StablePreviewSourceFiles>()
 
-async function readUserTaskFile(taskId: string, fileName: string, fallback = "") {
-  return readFile(getUserTaskFilePath(taskId, fileName), "utf-8").catch(() => fallback)
+async function readUserTaskFile(taskId: string, projectId: string, fileName: string, fallback = "") {
+  const filePath = await resolveTaskRuntimeFilePath(taskId, projectId, fileName)
+  return readFile(filePath, "utf-8").catch(() => fallback)
 }
 
 function touchStablePreviewSourceCacheEntry(
@@ -163,14 +164,18 @@ async function resolvePreviewLevel(taskItem: Awaited<ReturnType<typeof getTaskLi
   return { kind: "ready" as const, previewLevel }
 }
 
-async function readTaskPreviewSourceFiles(taskId: string, includeShadcnFiles: boolean): Promise<SandpackPreviewSourceFiles> {
+async function readTaskPreviewSourceFiles(
+  taskId: string,
+  projectId: string,
+  includeShadcnFiles: boolean,
+): Promise<SandpackPreviewSourceFiles> {
   const stablePreviewFilesPromise = readCachedStablePreviewSourceFiles(includeShadcnFiles)
   const [component, stories, styles, mock, props, stablePreviewFiles] = await Promise.all([
-    readUserTaskFile(taskId, "Component.tsx"),
-    readUserTaskFile(taskId, "Component.stories.ts", "export {};\n"),
-    readUserTaskFile(taskId, "styles.ts", "export const styles = {};\n"),
-    readUserTaskFile(taskId, "mock.ts", "export const mock = {};\n"),
-    readUserTaskFile(taskId, "props.ts", "export {};\n"),
+    readUserTaskFile(taskId, projectId, "Component.tsx"),
+    readUserTaskFile(taskId, projectId, "Component.stories.ts", "export {};\n"),
+    readUserTaskFile(taskId, projectId, "styles.ts", "export const styles = {};\n"),
+    readUserTaskFile(taskId, projectId, "mock.ts", "export const mock = {};\n"),
+    readUserTaskFile(taskId, projectId, "props.ts", "export {};\n"),
     stablePreviewFilesPromise,
   ])
 
@@ -251,7 +256,11 @@ export async function GET(
       labId: previewLevel.labId,
     })),
   ])
-  const sourceFiles = await readTaskPreviewSourceFiles(taskId, projectPreviewConfig.effectiveUiKitId === "shadcn")
+  const sourceFiles = await readTaskPreviewSourceFiles(
+    taskId,
+    project.id,
+    projectPreviewConfig.effectiveUiKitId === "shadcn",
+  )
 
   if (!sourceFiles.component.trim()) {
     return Response.json(

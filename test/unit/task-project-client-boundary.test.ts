@@ -163,6 +163,7 @@ describe("task project client boundary", () => {
     const taskRoute = readProjectFile("components", "desengine", "lab", "TaskRoute", "TaskRoute.tsx")
     const labScreen = readProjectFile("components", "desengine", "lab", "LabScreen", "LabScreen.tsx")
     const clientBoundary = readProjectFile("components", "desengine", "lab", "task-client-boundary.ts")
+    const sandpackRoute = readProjectFile("app", "api", "tasks", "[taskId]", "sandpack", "route.ts")
 
     expect(screenSections).toContain("storage.getActiveProjectId()")
     expect(screenSections).not.toContain("storage.getProject(`task-${taskId}`)")
@@ -175,5 +176,7 @@ describe("task project client boundary", () => {
     expect(labScreen).toContain("readProjectFromTaskUrl")
     expect(labScreen).toContain("storage.getActiveProjectId()")
     expect(clientBoundary).toContain("body: JSON.stringify({ project, activeScreen })")
+    expect(sandpackRoute).toContain("resolveTaskRuntimeFilePath")
+    expect(sandpackRoute).toContain("project.id")
   })
 })

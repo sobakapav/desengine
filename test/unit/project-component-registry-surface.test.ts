@@ -106,13 +106,13 @@ describe("project component registry surface", () => {
     })
   })
 
-  it("назначает компоненту типовой workflow template без поиска свободного слота", () => {
+  it("назначает компоненту первый свободный backing task, а не просто первый элемент каталога", () => {
     const components = [
       normalizeProjectComponent({
         id: "component-a",
         projectId: "project-a",
         title: "Card A",
-        taskId: "task-occupied-locally",
+        taskId: "task-template",
       }),
       normalizeProjectComponent({
         id: "component-b",
@@ -129,7 +129,25 @@ describe("project component registry surface", () => {
         { taskId: "task-template", taskTitle: "Task 1" },
         { taskId: "task-secondary", taskTitle: "Task 2" },
       ],
-    })).toBe("task-template")
+    })).toBe("task-secondary")
+  })
+
+  it("не привязывает новый компонент к уже глобально занятой задаче, если свободной нет", () => {
+    const component = normalizeProjectComponent({
+      id: "component-b",
+      projectId: "project-a",
+      title: "Card B",
+    })
+
+    expect(resolveProjectComponentTaskId({
+      component,
+      components: [component],
+      occupiedTaskIds: ["task-template", "task-secondary"],
+      workflowTaskCatalog: [
+        { taskId: "task-template", taskTitle: "Task 1" },
+        { taskId: "task-secondary", taskTitle: "Task 2" },
+      ],
+    })).toBeNull()
   })
 
   it("переиспользует уже назначенный backing task для повторного входа в workflow", () => {
