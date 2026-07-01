@@ -5,6 +5,12 @@ type ProjectWorkflowTaskCatalogItem = {
   taskTitle: string
 }
 
+const workflowTemplateTaskIdsByKind = {
+  "image-to-component-workflow": [
+    "easy-buy-app-badge",
+  ],
+} as const
+
 function normalizeWorkflowTaskKey(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9а-яё]/g, "")
 }
@@ -30,6 +36,23 @@ function resolveMatchingTaskId(
 
     if (normalizedTask) {
       return normalizedTask.taskId
+    }
+  }
+
+  return null
+}
+
+function resolveWorkflowTemplateTaskId(
+  workflowKind: ProjectComponent["workflowKind"],
+  workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[],
+) {
+  const preferredTaskIds = workflowTemplateTaskIdsByKind[workflowKind] ?? []
+
+  for (const preferredTaskId of preferredTaskIds) {
+    const matchedTask = workflowTaskCatalog.find((task) => task.taskId === preferredTaskId)
+
+    if (matchedTask) {
+      return matchedTask.taskId
     }
   }
 
@@ -64,7 +87,7 @@ function resolveProjectComponentTaskId(args: {
     return matchedTaskId
   }
 
-  return null
+  return resolveWorkflowTemplateTaskId(args.component.workflowKind, args.workflowTaskCatalog)
 }
 
 /**

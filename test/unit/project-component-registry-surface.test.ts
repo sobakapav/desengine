@@ -187,7 +187,7 @@ describe("project component registry surface", () => {
     })).toBe("otvinta-tab")
   })
 
-  it("не назначает произвольный первый task, если осмысленного template не найдено", () => {
+  it("переходит к каноническому workflow-template, если прямого совпадения нет", () => {
     const component = normalizeProjectComponent({
       id: "component-b",
       projectId: "project-a",
@@ -197,13 +197,13 @@ describe("project component registry surface", () => {
     expect(resolveProjectComponentTaskId({
       component,
       workflowTaskCatalog: [
-        { taskId: "task-template", taskTitle: "Task 1" },
+        { taskId: "easy-buy-app-badge", taskTitle: "easy-buy-app-badge" },
         { taskId: "task-secondary", taskTitle: "Task 2" },
       ],
-    })).toBeNull()
+    })).toBe("easy-buy-app-badge")
   })
 
-  it("не наследует task другого компонента проекта без собственного совпадения", () => {
+  it("не наследует task другого компонента проекта и берёт канонический workflow-template", () => {
     const components = [
       normalizeProjectComponent({
         id: "component-a",
@@ -224,7 +224,7 @@ describe("project component registry surface", () => {
         { taskId: "dipole-button", taskTitle: "dipole-button" },
         { taskId: "easy-buy-app-badge", taskTitle: "easy-buy-app-badge" },
       ],
-    })).toBeNull()
+    })).toBe("easy-buy-app-badge")
   })
 
   it("переиспользует уже назначенный backing task для повторного входа в workflow", () => {
