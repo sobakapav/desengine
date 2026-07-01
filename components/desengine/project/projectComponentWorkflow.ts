@@ -9,6 +9,33 @@ function normalizeWorkflowTaskKey(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9а-яё]/g, "")
 }
 
+function resolveMatchingTaskId(
+  workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[],
+  candidateValues: Array<string | null | undefined>,
+) {
+  for (const candidateValue of candidateValues) {
+    if (!candidateValue?.trim()) {
+      continue
+    }
+
+    const exactTask = workflowTaskCatalog.find((task) => task.taskId === candidateValue)
+    if (exactTask) {
+      return exactTask.taskId
+    }
+
+    const normalizedCandidateValue = normalizeWorkflowTaskKey(candidateValue)
+    const normalizedTask = workflowTaskCatalog.find(
+      (task) => normalizeWorkflowTaskKey(task.taskId) === normalizedCandidateValue,
+    )
+
+    if (normalizedTask) {
+      return normalizedTask.taskId
+    }
+  }
+
+  return null
+}
+
 /**
  * @example
  * ```ts
@@ -16,6 +43,7 @@ function normalizeWorkflowTaskKey(value: string) {
  *   component,
  *   components,
  *   occupiedTaskIds: [],
+ *   projectTitle: "oncor-row",
  *   workflowTaskCatalog: [{ taskId: "task-1", taskTitle: "Task 1" }],
  * })
  * ```
@@ -24,21 +52,19 @@ function resolveProjectComponentTaskId(args: {
   component: ProjectComponent
   components: ProjectComponent[]
   occupiedTaskIds: string[]
+  projectTitle?: string | null
   workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
 }) {
   if (args.component.taskId) {
     return args.component.taskId
   }
 
-  const preferredProjectTask = args.workflowTaskCatalog.find((task) => task.taskId === args.component.projectId)
-  if (preferredProjectTask) {
-    return preferredProjectTask.taskId
-  }
-
-  const normalizedProjectId = normalizeWorkflowTaskKey(args.component.projectId)
-  const normalizedProjectTask = args.workflowTaskCatalog.find((task) => normalizeWorkflowTaskKey(task.taskId) === normalizedProjectId)
-  if (normalizedProjectTask) {
-    return normalizedProjectTask.taskId
+  const matchedTaskId = resolveMatchingTaskId(args.workflowTaskCatalog, [
+    args.component.projectId,
+    args.projectTitle,
+  ])
+  if (matchedTaskId) {
+    return matchedTaskId
   }
 
   return args.workflowTaskCatalog[0]?.taskId ?? null

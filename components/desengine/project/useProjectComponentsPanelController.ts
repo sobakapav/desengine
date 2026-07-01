@@ -23,13 +23,7 @@ type UseProjectComponentsPanelControllerArgs = {
   workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
 }
 
-function useProjectComponentsPanelController({
-  occupiedTaskIds,
-  project,
-  workflowTaskCatalog,
-}: UseProjectComponentsPanelControllerArgs) {
-  const router = useRouter()
-  const state = useProjectComponents(project.id)
+function useProjectComponentsPanelState(projectId: string) {
   const [title, setTitle] = useState("")
   const [lastCreatedComponentId, setLastCreatedComponentId] = useState<string | null>(null)
   const [createState, setCreateState] = useState<"idle" | "creating" | "created" | "error">("idle")
@@ -44,94 +38,9 @@ function useProjectComponentsPanelController({
     setTitle("")
     setActiveComponentId(null)
     setLastCreatedComponentId(null)
-  }, [project.id])
+  }, [projectId])
 
-  async function handleCreate() {
-    if (!title.trim()) {
-      setCreateState("error")
-      setMessage("Введите имя компонента, чтобы добавить новую рабочую часть в проект.")
-      return
-    }
-
-    setCreateState("creating")
-    setMessage("")
-    setLastCreatedComponentId(null)
-
-    try {
-      const component = await state.createComponent({ title, workflowKind: "image-to-component-workflow" })
-      setTitle("")
-      setLastCreatedComponentId(component.id)
-      setCreateState("created")
-      setOpenState("idle")
-      setMessage(`Компонент «${component.title}» создан. Теперь можно сразу открыть работу над ним или добавить следующий компонент.`)
-    } catch (error) {
-      setCreateState("error")
-      setOpenState("idle")
-      setMessage(error instanceof Error ? error.message : "Не удалось создать компонент проекта.")
-    }
-  }
-
-  async function handleOpenWorkflow(componentId: string) {
-    const component = state.components.find((item) => item.id === componentId)
-
-    if (!component) {
-      setOpenState("error")
-      setMessage("Не удалось найти выбранный компонент проекта.")
-      return
-    }
-
-    const projectStorage = createBrowserProjectStorage({ storage: window.localStorage })
-
-    try {
-      await projectStorage.setActiveProjectId(project.id)
-      const runtimeProject = buildProjectComponentRuntimeProject(project, component.id)
-
-      if (component.taskId && component.status !== "draft") {
-        setOpenState("opened")
-        setMessage(`Возвращаемся к работе над компонентом «${component.title}».`)
-        router.push(getLabUrl(component.taskId, null, runtimeProject))
-        return
-      }
-
-      const resolvedTaskId = resolveProjectComponentTaskId({
-        component,
-        components: state.components,
-        occupiedTaskIds,
-        workflowTaskCatalog,
-      })
-
-      if (!resolvedTaskId) {
-        setOpenState("error")
-        setMessage("Для этого workflow пока не найден базовый runtime-шаблон.")
-        return
-      }
-
-      setActiveComponentId(componentId)
-      setOpenState("opening")
-      setMessage("")
-
-      const savedComponent = await state.saveComponent({ ...component, taskId: resolvedTaskId })
-      const response = await postTaskStart(resolvedTaskId, runtimeProject, "component")
-      const data = await response.json().catch(() => null)
-
-      if (!response.ok || !data?.ok) {
-        throw new Error(data?.error || "Не удалось открыть работу для компонента.")
-      }
-
-      await state.saveComponent({ ...savedComponent, status: "in_progress" })
-      setMessage(`Открываем работу над компонентом «${component.title}».`)
-      setOpenState("opened")
-      router.push(getLabUrl(resolvedTaskId, null, runtimeProject))
-    } catch (error) {
-      setOpenState("error")
-      setMessage(error instanceof Error ? error.message : "Не удалось открыть работу над компонентом.")
-    } finally {
-      setActiveComponentId(null)
-    }
-  }
-
-  function handleTitleChange(value: string) {
-    setTitle(value)
+  function resetFeedback() {
     setCreateState("idle")
     setOpenState("idle")
     setMessage("")
@@ -140,14 +49,156 @@ function useProjectComponentsPanelController({
   return {
     activeComponentId,
     createState,
-    handleCreate,
-    handleOpenWorkflow,
-    handleTitleChange,
     lastCreatedComponentId,
     message,
     openState,
-    state,
+    resetFeedback,
+    setActiveComponentId,
+    setCreateState,
+    setLastCreatedComponentId,
+    setMessage,
+    setOpenState,
+    setTitle,
     title,
+  }
+}
+
+async function openProjectComponentWorkflow(args: {
+  componentId: string
+  occupiedTaskIds: string[]
+  project: ProjectWorkspace
+  projectTitle: string
+  push: (href: string) => void
+  setActiveComponentId: (componentId: string | null) => void
+  setMessage: (message: string) => void
+  setOpenState: (state: "idle" | "opening" | "opened" | "error") => void
+  state: ReturnType<typeof useProjectComponents>
+  workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
+}) {
+  const component = args.state.components.find((item) => item.id === args.componentId)
+
+  if (!component) {
+    args.setOpenState("error")
+    args.setMessage("Не удалось найти выбранный компонент проекта.")
+    return
+  }
+
+  const projectStorage = createBrowserProjectStorage({ storage: window.localStorage })
+
+  try {
+    await projectStorage.setActiveProjectId(args.project.id)
+    const runtimeProject = buildProjectComponentRuntimeProject(args.project, component.id)
+
+    if (component.taskId && component.status !== "draft") {
+      args.setOpenState("opened")
+      args.setMessage(`Возвращаемся к работе над компонентом «${component.title}».`)
+      args.push(getLabUrl(component.taskId, null, runtimeProject))
+      return
+    }
+
+    const resolvedTaskId = resolveProjectComponentTaskId({
+      component,
+      components: args.state.components,
+      occupiedTaskIds: args.occupiedTaskIds,
+      projectTitle: args.projectTitle,
+      workflowTaskCatalog: args.workflowTaskCatalog,
+    })
+
+    if (!resolvedTaskId) {
+      args.setOpenState("error")
+      args.setMessage("Для этого workflow пока не найден базовый runtime-шаблон.")
+      return
+    }
+
+    args.setActiveComponentId(args.componentId)
+    args.setOpenState("opening")
+    args.setMessage("")
+
+    const savedComponent = await args.state.saveComponent({ ...component, taskId: resolvedTaskId })
+    const response = await postTaskStart(resolvedTaskId, runtimeProject, "component")
+    const data = await response.json().catch(() => null)
+
+    if (!response.ok || !data?.ok) {
+      throw new Error(data?.error || "Не удалось открыть работу для компонента.")
+    }
+
+    await args.state.saveComponent({ ...savedComponent, status: "in_progress" })
+    args.setMessage(`Открываем работу над компонентом «${component.title}».`)
+    args.setOpenState("opened")
+    args.push(getLabUrl(resolvedTaskId, null, runtimeProject))
+  } catch (error) {
+    args.setOpenState("error")
+    args.setMessage(error instanceof Error ? error.message : "Не удалось открыть работу над компонентом.")
+  } finally {
+    args.setActiveComponentId(null)
+  }
+}
+
+function useProjectComponentsPanelController({
+  occupiedTaskIds,
+  project,
+  workflowTaskCatalog,
+}: UseProjectComponentsPanelControllerArgs) {
+  const router = useRouter()
+  const state = useProjectComponents(project.id)
+  const panelState = useProjectComponentsPanelState(project.id)
+
+  async function handleCreate() {
+    if (!panelState.title.trim()) {
+      panelState.setCreateState("error")
+      panelState.setMessage("Введите имя компонента, чтобы добавить новую рабочую часть в проект.")
+      return
+    }
+
+    panelState.setCreateState("creating")
+    panelState.setMessage("")
+    panelState.setLastCreatedComponentId(null)
+
+    try {
+      const component = await state.createComponent({ title: panelState.title, workflowKind: "image-to-component-workflow" })
+      panelState.setTitle("")
+      panelState.setLastCreatedComponentId(component.id)
+      panelState.setCreateState("created")
+      panelState.setOpenState("idle")
+      panelState.setMessage(`Компонент «${component.title}» создан. Теперь можно сразу открыть работу над ним или добавить следующий компонент.`)
+    } catch (error) {
+      panelState.setCreateState("error")
+      panelState.setOpenState("idle")
+      panelState.setMessage(error instanceof Error ? error.message : "Не удалось создать компонент проекта.")
+    }
+  }
+
+  async function handleOpenWorkflow(componentId: string) {
+    await openProjectComponentWorkflow({
+      componentId,
+      occupiedTaskIds,
+      project,
+      projectTitle: project.title,
+      push: router.push,
+      setActiveComponentId: panelState.setActiveComponentId,
+      setMessage: panelState.setMessage,
+      setOpenState: panelState.setOpenState,
+      state,
+      workflowTaskCatalog,
+    })
+  }
+
+  function handleTitleChange(value: string) {
+    panelState.setTitle(value)
+    panelState.resetFeedback()
+  }
+
+  return {
+    activeComponentId: panelState.activeComponentId,
+    createState: panelState.createState,
+    handleCreate,
+    handleOpenWorkflow,
+    handleTitleChange,
+    lastCreatedComponentId: panelState.lastCreatedComponentId,
+    message: panelState.message,
+    openState: panelState.openState,
+    state,
+    title: panelState.title,
   }
 }
 

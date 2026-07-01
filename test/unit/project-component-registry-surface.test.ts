@@ -168,6 +168,25 @@ describe("project component registry surface", () => {
     })).toBe("otvinta-tab")
   })
 
+  it("предпочитает task, совпадающий с title проекта, если projectId был автосгенерирован", () => {
+    const component = normalizeProjectComponent({
+      id: "component-b",
+      projectId: "project-mc4h1m-z8x2kq",
+      title: "Badge",
+    })
+
+    expect(resolveProjectComponentTaskId({
+      component,
+      components: [component],
+      occupiedTaskIds: [],
+      projectTitle: "easy-buy-app-badge",
+      workflowTaskCatalog: [
+        { taskId: "dipole-button", taskTitle: "dipole-button" },
+        { taskId: "easy-buy-app-badge", taskTitle: "easy-buy-app-badge" },
+      ],
+    })).toBe("easy-buy-app-badge")
+  })
+
   it("не требует свободный task slot и переиспользует template при глобальной занятости каталога", () => {
     const component = normalizeProjectComponent({
       id: "component-b",
