@@ -17,7 +17,6 @@ import {
 import { useProjectComponents } from "./useProjectComponents"
 
 type UseProjectComponentsPanelControllerArgs = {
-  occupiedTaskIds: string[]
   project: ProjectWorkspace
   workflowReadout: ProjectWorkflowReadoutSnapshot
   workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
@@ -65,7 +64,6 @@ function useProjectComponentsPanelState(projectId: string) {
 
 async function openProjectComponentWorkflow(args: {
   componentId: string
-  occupiedTaskIds: string[]
   project: ProjectWorkspace
   projectTitle: string
   push: (href: string) => void
@@ -98,15 +96,13 @@ async function openProjectComponentWorkflow(args: {
 
     const resolvedTaskId = resolveProjectComponentTaskId({
       component,
-      components: args.state.components,
-      occupiedTaskIds: args.occupiedTaskIds,
       projectTitle: args.projectTitle,
       workflowTaskCatalog: args.workflowTaskCatalog,
     })
 
     if (!resolvedTaskId) {
       args.setOpenState("error")
-      args.setMessage("Для этого workflow пока не найден базовый runtime-шаблон.")
+      args.setMessage("Для этого компонента пока не найден подходящий workflow-шаблон.")
       return
     }
 
@@ -135,7 +131,6 @@ async function openProjectComponentWorkflow(args: {
 }
 
 function useProjectComponentsPanelController({
-  occupiedTaskIds,
   project,
   workflowTaskCatalog,
 }: UseProjectComponentsPanelControllerArgs) {
@@ -171,7 +166,6 @@ function useProjectComponentsPanelController({
   async function handleOpenWorkflow(componentId: string) {
     await openProjectComponentWorkflow({
       componentId,
-      occupiedTaskIds,
       project,
       projectTitle: project.title,
       push: router.push,

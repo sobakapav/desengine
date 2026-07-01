@@ -1,6 +1,7 @@
 import "server-only"
 
 import { readPromptHistory } from "@/lib/onboarding/repository"
+import { buildTaskProgressScopeKey } from "@/lib/task/project-runtime-scope"
 
 import type { LevelConfig } from "../level/types"
 import type { Project } from "../project/runtime"
@@ -27,23 +28,27 @@ async function buildTransition(
   return { taskId, fromLevel, toLevel, fromTaskTip, toTaskTip }
 }
 
-async function loadProgressContext(taskId: string) {
+async function loadProgressContext(taskId: string, project?: Project) {
   const [levels, store, taskConfig, promptHistory] = await Promise.all([
     taskServerOverview.getLevelsCatalog(),
     taskServerStorage.readUserProgressStore(),
     taskServerStorage.readTaskConfig(taskId),
-    readPromptHistory(taskId),
+    readPromptHistory(taskId, project),
   ])
 
-  const taskProgress = taskServerProgress.ensureTaskProgress(store, taskId, taskConfig.maxLevel)
+  const taskProgress = taskServerProgress.ensureTaskProgress(
+    store,
+    buildTaskProgressScopeKey(taskId, project?.id),
+    taskConfig.maxLevel,
+  )
   taskServerProgress.reconcileTaskProgressWithHistory(levels, taskConfig, taskProgress, promptHistory)
   return { levels, taskConfig, taskProgress }
 }
 
 export const taskServerTransitions = {
   buildTransition,
-  async getTaskPendingTransition(taskId: string): Promise<TaskTransition | null> {
-    const { levels, taskConfig, taskProgress } = await loadProgressContext(taskId)
+  async getTaskPendingTransition(taskId: string, project?: Project): Promise<TaskTransition | null> {
+    const { levels, taskConfig, taskProgress } = await loadProgressContext(taskId, project)
     const currentLevelNumber = taskProgress.currentLevel
     const currentLevelProgress = taskProgress.levels[String(currentLevelNumber)]
 
@@ -64,8 +69,8 @@ export const taskServerTransitions = {
 
     return buildTransition(levels, taskId, taskConfig, previousLevelNumber, currentLevelNumber)
   },
-  async getTaskDoneTransition(taskId: string): Promise<TaskTransition | null> {
-    const { levels, taskConfig, taskProgress } = await loadProgressContext(taskId)
+  async getTaskDoneTransition(taskId: string, project?: Project): Promise<TaskTransition | null> {
+    const { levels, taskConfig, taskProgress } = await loadProgressContext(taskId, project)
     const currentLevelNumber = taskProgress.currentLevel
     const currentLevelProgress = taskProgress.levels[String(currentLevelNumber)]
 

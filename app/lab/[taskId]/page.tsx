@@ -32,14 +32,6 @@ export default async function LabTaskPage({
 
   await requireAccessOrRedirect(canonicalPath)
 
-  const taskItem = await getTaskListItemById(taskId)
-
-  if (!taskItem) {
-    notFound()
-  }
-
-  const labContext = await getTaskLabContext(taskItem)
-  const allowedScreens = labContext?.editableFileIds ?? []
   const defaultScreen = getDefaultCodeScreen()
   const hasProjectContext = ["projectId", "projectTitle", "uiKitId"]
     .some((key) => {
@@ -55,6 +47,14 @@ export default async function LabTaskPage({
       },
     })
     : undefined
+  const taskItem = await getTaskListItemById(taskId, project)
+
+  if (!taskItem) {
+    notFound()
+  }
+
+  const labContext = await getTaskLabContext(taskItem)
+  const allowedScreens = labContext?.editableFileIds ?? []
 
   if (allowedScreens.length === 0) {
     notFound()

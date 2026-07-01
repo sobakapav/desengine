@@ -108,7 +108,7 @@ async function validateIterationRequest(taskId: string, promptText: string, proj
     return taskActionShared.jsonResult({ ok: false, error: "Сначала запустите задачу" }, 400)
   }
 
-  const taskItem = await getTaskListItemById(taskId)
+  const taskItem = await getTaskListItemById(taskId, project)
   if (!taskItem) {
     return taskActionShared.jsonResult({ ok: false, error: "Задание не найдено" }, 404)
   }
@@ -388,9 +388,9 @@ function getIterationNoopMessage(reason: IterateNoopReason) {
 }
 
 async function completeIterationTaskLevel(taskId: string, project: Project): Promise<TaskActionHttpResult> {
-  await clearTaskCheckResult(taskId)
-  const progressUpdate = await registerPromptForCurrentLevel(taskId)
-  const nextTaskItem = await getTaskListItemById(taskId)
+  await clearTaskCheckResult(taskId, project)
+  const progressUpdate = await registerPromptForCurrentLevel(taskId, project)
+  const nextTaskItem = await getTaskListItemById(taskId, project)
   const nextLabContext = nextTaskItem ? await getTaskLabContext(nextTaskItem) : null
   const nextTaskData = await readTaskData({ id: taskId }, nextLabContext, project)
   const body: IterateTaskSuccessBody = {

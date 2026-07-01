@@ -115,9 +115,9 @@ async function completeStartTaskLevel(
   context: StartRuntimeContext,
   writeResult: StartWriteResult,
 ): Promise<TaskActionHttpResult> {
-  await clearTaskCheckResult(taskId)
-  const progress = await markCurrentTaskLevelInitialized(taskId)
-  const nextTaskItem = await getTaskListItemById(taskId)
+  await clearTaskCheckResult(taskId, context.project)
+  const progress = await markCurrentTaskLevelInitialized(taskId, context.project)
+  const nextTaskItem = await getTaskListItemById(taskId, context.project)
   const nextLabContext = nextTaskItem ? await getTaskLabContext(nextTaskItem) : null
   const nextTaskData = await readTaskData({ id: taskId }, nextLabContext, context.project)
   console.log("[desengine][task-start] success", {

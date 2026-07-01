@@ -219,7 +219,7 @@ export async function GET(
   const project = parseProjectFromRequest(request, taskId)
   const previewSessionId = parsePreviewSessionIdFromRequest(request)
   const projectPreviewConfig = resolveProjectPreviewConfig(project)
-  const taskItem = await getTaskListItemById(taskId)
+  const taskItem = await getTaskListItemById(taskId, project)
   const previewLevelState = await resolvePreviewLevel(taskItem)
 
   if (previewLevelState.kind === "task-not-found") {

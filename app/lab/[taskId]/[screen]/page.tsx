@@ -46,7 +46,7 @@ export default async function TaskScreenPage({
 
   await requireAccessOrRedirect(canonicalPath)
 
-  const taskItem = await getTaskListItemById(taskId)
+  const taskItem = await getTaskListItemById(taskId, project)
 
   if (!taskItem) {
     notFound()

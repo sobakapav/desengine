@@ -1,15 +1,15 @@
 schema: spec-driven
-created: 2026-06-11
+created: 2026-07-01
 short_policy: "none"
 review_sync_state: "none"
 change_kind: "implement"
 execution_mode: "code"
-parent_change: "dispatcher-project"
+parent_change: "dispatcher-ui-kit"
 strategy_root: "focus-domain"
 roadmap_ref: ""
 release_ref: "release-2026-06-10-architecture"
-producer_ref: "producer-project"
+producer_ref: "producer-ui-kit"
 verification_level: "static/contract"
 verification_command: "npm run test:traceability"
 issue: ""
-short: "вывести в пользовательский мир read-only workflow/artifact surface проекта"
+short: "единый editorial visual language для product-shell интерфейса"

@@ -45,7 +45,7 @@ export const taskFilesAction = {
     const resolvedProject = await resolveTaskProject(taskId, project)
 
     return runTaskMutation(buildTaskMutationScopeKey(taskId, resolvedProject.id), async () => {
-      const taskItem = await getTaskListItemById(taskId)
+      const taskItem = await getTaskListItemById(taskId, resolvedProject)
 
       if (!taskItem) {
         return { kind: "not_found", error: "Задание не найдено" }
@@ -88,16 +88,16 @@ export const taskFilesAction = {
     const resolvedProject = await resolveTaskProject(taskId, project)
 
     return runTaskMutation(buildTaskMutationScopeKey(taskId, resolvedProject.id), async () => {
-      const taskItem = await getTaskListItemById(taskId)
+      const taskItem = await getTaskListItemById(taskId, resolvedProject)
 
       if (!taskItem) {
         return { kind: "not_found", error: "Задание не найдено" }
       }
 
       await resetTask(taskId, { project: resolvedProject })
-      await clearTaskCheckResult(taskId)
+      await clearTaskCheckResult(taskId, resolvedProject)
 
-      const nextTaskItem = await getTaskListItemById(taskId)
+      const nextTaskItem = await getTaskListItemById(taskId, resolvedProject)
       const labContext = nextTaskItem ? await getTaskLabContext(nextTaskItem) : null
 
       return {
@@ -112,7 +112,7 @@ export const taskFilesAction = {
     const resolvedProject = await resolveTaskProject(taskId, project)
 
     return runTaskMutation(buildTaskMutationScopeKey(taskId, resolvedProject.id), async () => {
-      const taskItem = await getTaskListItemById(taskId)
+      const taskItem = await getTaskListItemById(taskId, resolvedProject)
 
       if (!taskItem) {
         return { kind: "not_found", error: "Задание не найдено" }
@@ -120,7 +120,7 @@ export const taskFilesAction = {
 
       try {
         const progress = await resetCurrentTaskLevel(taskId, resolvedProject)
-        const nextTaskItem = await getTaskListItemById(taskId)
+        const nextTaskItem = await getTaskListItemById(taskId, resolvedProject)
         const labContext = nextTaskItem ? await getTaskLabContext(nextTaskItem) : null
 
         return {
@@ -145,7 +145,7 @@ export const taskFilesAction = {
     const resolvedProject = await resolveTaskProject(taskId, project)
 
     return runTaskMutation(buildTaskMutationScopeKey(taskId, resolvedProject.id), async () => {
-      const taskItem = await getTaskListItemById(taskId)
+      const taskItem = await getTaskListItemById(taskId, resolvedProject)
 
       if (!taskItem) {
         return { kind: "not_found", error: "Задание не найдено" }
@@ -170,7 +170,7 @@ export const taskFilesAction = {
 
       try {
         const progress = await invalidateCurrentTaskLevelForProjectMigration(taskId, resolvedProject)
-        const nextTaskItem = await getTaskListItemById(taskId)
+        const nextTaskItem = await getTaskListItemById(taskId, resolvedProject)
         if (!nextTaskItem) {
           return { kind: "not_found", error: "Задание не найдено" }
         }

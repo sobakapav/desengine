@@ -12,20 +12,20 @@ import {
 import { removeTaskCheckResult } from "@/lib/user/server"
 
 export const taskServerCheckResult = {
-  async getTaskCheckResult(taskId: string) {
-    return taskServerStorage.readTaskCheckResult(taskId)
+  async getTaskCheckResult(taskId: string, project?: Parameters<typeof resolveTaskProject>[1]) {
+    return taskServerStorage.readTaskCheckResult(taskId, project)
   },
-  async saveTaskCheckResult(result: TaskCheckResult) {
-    await taskServerStorage.writeTaskCheckResult(result)
+  async saveTaskCheckResult(result: TaskCheckResult, project?: Parameters<typeof resolveTaskProject>[1]) {
+    await taskServerStorage.writeTaskCheckResult(result, project)
   },
-  async clearTaskCheckResult(taskId: string) {
-    const project = await resolveTaskProject(taskId)
+  async clearTaskCheckResult(taskId: string, project?: Parameters<typeof resolveTaskProject>[1]) {
+    const resolvedProject = await resolveTaskProject(taskId, project)
 
-    if (isLegacyTaskRuntimeProject(taskId, project.id)) {
+    if (isLegacyTaskRuntimeProject(taskId, resolvedProject.id)) {
       await removeTaskCheckResult(taskId)
       return
     }
 
-    await rm(getScopedTaskRuntimeFilePath(taskId, project.id, "check-result.json"), { force: true })
+    await rm(getScopedTaskRuntimeFilePath(taskId, resolvedProject.id, "check-result.json"), { force: true })
   },
 }

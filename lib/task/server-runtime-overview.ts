@@ -1,6 +1,8 @@
 import "server-only"
 
 import { readPromptHistory } from "@/lib/onboarding/repository"
+import type { Project } from "@/lib/project/runtime"
+import { buildTaskProgressScopeKey } from "@/lib/task/project-runtime-scope"
 
 import { summarizeTaskProgress } from "./progress"
 import type {
@@ -150,4 +152,41 @@ export const taskServerOverview: TaskServerOverview = {
     const levels = await taskServerOverview.getLevelsCatalog()
     return taskServerModel.requireLevel(levels, taskItem.progress.currentLevel)
   },
+}
+
+async function getScopedTaskListItemById(taskId: string, project?: Project) {
+  if (!project) {
+    return taskServerOverview.getTaskListItemById(taskId)
+  }
+
+  const [levels, store, taskConfig, promptHistory] = await Promise.all([
+    taskServerOverview.getLevelsCatalog(),
+    taskServerStorage.readUserProgressStore(),
+    taskServerStorage.readTaskConfig(taskId),
+    readPromptHistory(taskId, project),
+  ])
+  const taskProgress = taskServerProgress.ensureTaskProgress(
+    store,
+    buildTaskProgressScopeKey(taskId, project.id),
+    taskConfig.maxLevel,
+  )
+  const changed = taskServerProgress.reconcileTaskProgressWithHistory(
+    levels,
+    taskConfig,
+    taskProgress,
+    promptHistory,
+  )
+
+  if (changed) {
+    await taskServerStorage.writeUserProgressStore(store)
+  }
+
+  return taskServerProgress.buildTaskListItem({
+    id: taskId,
+    config: taskConfig,
+  }, levels, taskProgress)
+}
+
+export {
+  getScopedTaskListItemById,
 }

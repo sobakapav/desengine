@@ -13,7 +13,9 @@ import {
   getTaskCatalogFilePath,
 } from "@/lib/user/server"
 import {
+  buildTaskProgressScopeKey,
   getScopedTaskRuntimeFilePath,
+  parseTaskProgressScopeKey,
   resolveTaskProject,
   resolveTaskRuntimeFilePath,
 } from "@/lib/task/project-runtime-scope"
@@ -24,7 +26,7 @@ import { taskServerProgress } from "./server-runtime-progress"
 import { renderTaskCheckContract } from "./check-contract"
 import { renderTaskHint } from "./hints"
 import type { LevelConfig } from "../level/types"
-import type { Project } from "../project/runtime"
+import { normalizeProject, type Project } from "../project/runtime"
 import type { TaskCheckResult, TaskConfig, TaskProgress } from "./types"
 
 const FORCED_TASK_MAX_LEVEL = 5
@@ -54,11 +56,11 @@ async function readLevelsCatalogRaw() {
   return LevelsCatalogSchema.parse({ levels })
 }
 
-async function readTaskCheckResult(taskId: string): Promise<TaskCheckResult | null> {
+async function readTaskCheckResult(taskId: string, project?: Project): Promise<TaskCheckResult | null> {
   try {
-    const project = await resolveTaskProject(taskId)
+    const resolvedProject = await resolveTaskProject(taskId, project)
     const raw = await readFile(
-      await resolveTaskRuntimeFilePath(taskId, project.id, "check-result.json"),
+      await resolveTaskRuntimeFilePath(taskId, resolvedProject.id, "check-result.json"),
       "utf-8",
     )
     const parsed = JSON.parse(raw) as TaskCheckResult
@@ -86,8 +88,8 @@ async function readTaskCheckResult(taskId: string): Promise<TaskCheckResult | nu
   }
 }
 
-async function repairProgressFromCheckResult(taskId: string, taskProgress: TaskProgress) {
-  const checkResult = await readTaskCheckResult(taskId)
+async function repairProgressFromCheckResult(taskId: string, taskProgress: TaskProgress, project?: Project) {
+  const checkResult = await readTaskCheckResult(taskId, project)
   if (!checkResult || !checkResult.passed || checkResult.kind !== "passed") return false
 
   const levelProgress = taskProgress.levels[String(checkResult.levelNumber)]
@@ -131,9 +133,16 @@ async function readUserProgressStore() {
     const store = UserProgressStoreSchema.parse(JSON.parse(raw))
     let changed = false
 
-    for (const [taskId, taskProgress] of Object.entries(store.tasks)) {
+    for (const [progressScopeKey, taskProgress] of Object.entries(store.tasks)) {
+      const { taskId, projectId } = parseTaskProgressScopeKey(progressScopeKey)
+      const project = projectId
+        ? normalizeProject({
+          id: projectId,
+          title: `Проект ${taskId}`,
+        })
+        : undefined
       const normalizedFlags = taskServerProgress.normalizePassedFlags(taskProgress)
-      const repairedFromCheckResult = await repairProgressFromCheckResult(taskId, taskProgress)
+      const repairedFromCheckResult = await repairProgressFromCheckResult(taskId, taskProgress, project)
       changed = changed || normalizedFlags || repairedFromCheckResult
     }
 
@@ -149,9 +158,9 @@ async function writeUserProgressStore(store: UserProgressStore) {
   await writeFile(appConfig.userProgressFile, JSON.stringify(store, null, 2), "utf-8")
 }
 
-async function writeTaskCheckResult(result: TaskCheckResult) {
-  const project = await resolveTaskProject(result.taskId)
-  const filePath = getScopedTaskRuntimeFilePath(result.taskId, project.id, "check-result.json")
+async function writeTaskCheckResult(result: TaskCheckResult, project?: Project) {
+  const resolvedProject = await resolveTaskProject(result.taskId, project)
+  const filePath = getScopedTaskRuntimeFilePath(result.taskId, resolvedProject.id, "check-result.json")
   await ensureParentDir(filePath)
   await writeFile(filePath, JSON.stringify(result, null, 2), "utf-8")
 }
@@ -209,6 +218,7 @@ async function readTaskLevelCheckContract(
 }
 
 export const taskServerStorage = {
+  buildTaskProgressScopeKey,
   forcedTaskMaxLevel: FORCED_TASK_MAX_LEVEL,
   readLevelsCatalogRaw,
   readUserProgressStore,

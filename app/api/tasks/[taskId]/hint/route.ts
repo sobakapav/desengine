@@ -46,7 +46,8 @@ export async function GET(
   if (unauthorizedResponse) return unauthorizedResponse
 
   const { taskId } = await params
-  const taskItem = await getTaskListItemById(taskId)
+  const project = parseProjectFromRequest(request, taskId)
+  const taskItem = await getTaskListItemById(taskId, project)
 
   if (!taskItem) {
     const taskDirs = await readdir(appConfig.taskCatalogRoot, { withFileTypes: true }).catch(() => [])
@@ -66,7 +67,6 @@ export async function GET(
     )
   }
 
-  const project = parseProjectFromRequest(request, taskId)
   const activeScreen = parseActiveScreenFromRequest(request)
   const taskTip = await getTaskLevelHint(taskItem, project, activeScreen)
 

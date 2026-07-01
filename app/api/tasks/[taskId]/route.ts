@@ -47,7 +47,7 @@ export async function GET(
   const { taskId } = await params
   const project = parseProjectFromRequest(request, taskId)
 
-  const taskItem = await getTaskListItemById(taskId)
+  const taskItem = await getTaskListItemById(taskId, project)
 
   if (!taskItem) {
     return Response.json({ ok: false, error: "Задание не найдено" }, { status: 404 })

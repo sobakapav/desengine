@@ -32,7 +32,7 @@ async function resumeStartedLevel(
   taskItem: StartRuntimeContext["taskItem"],
   project: Project,
 ): Promise<TaskActionHttpResult> {
-  await clearTaskCheckResult(taskId)
+  await clearTaskCheckResult(taskId, project)
   const labContext = await getTaskLabContext(taskItem)
   const cleanup = await cleanupForbiddenWorkbenchFiles(taskId, labContext.editableFileIds)
 
@@ -45,7 +45,7 @@ async function resumeStartedLevel(
   }
 
   const level = await getLevelForTaskItem(taskItem)
-  const progress = await markTaskLevelInProgress(taskId)
+  const progress = await markTaskLevelInProgress(taskId, project)
   const taskData = await readTaskData(taskItem, labContext, project)
   return taskActionShared.jsonResult({ ok: true, taskData, taskItem: { ...taskItem, progress }, level })
 }
@@ -54,7 +54,7 @@ async function loadStartRuntimeContext(taskId: string, project: Project, activeF
   | { context: StartRuntimeContext }
   | { response: TaskActionHttpResult }
 > {
-  const taskItem = await getTaskListItemById(taskId)
+  const taskItem = await getTaskListItemById(taskId, project)
   if (!taskItem) {
     console.error("[desengine][task-start] task_not_found", { taskId })
     return { response: taskActionShared.jsonResult({ ok: false, error: "Задание не найдено" }, 404) }

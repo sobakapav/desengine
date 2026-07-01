@@ -9,7 +9,6 @@ import { useProjectComponents } from "./useProjectComponents"
 import { useProjectComponentsPanelController } from "./useProjectComponentsPanelController"
 
 type ProjectComponentsPanelProps = {
-  occupiedTaskIds: string[]
   project: ProjectWorkspace
   workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
   workflowReadout: ProjectWorkflowReadoutSnapshot
@@ -128,13 +127,11 @@ function ComponentRegistryState(args: {
 }
 
 function ProjectComponentsPanel({
-  occupiedTaskIds,
   project,
   workflowTaskCatalog,
   workflowReadout,
 }: ProjectComponentsPanelProps) {
   const controller = useProjectComponentsPanelController({
-    occupiedTaskIds,
     project,
     workflowReadout,
     workflowTaskCatalog,

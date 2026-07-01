@@ -106,25 +106,15 @@ describe("project component registry surface", () => {
     })
   })
 
-  it("назначает компоненту типовой backing task из workflow catalog, даже если template уже используется", () => {
-    const components = [
-      normalizeProjectComponent({
-        id: "component-a",
-        projectId: "project-a",
-        title: "Card A",
-        taskId: "task-template",
-      }),
-      normalizeProjectComponent({
-        id: "component-b",
-        projectId: "project-a",
-        title: "Card B",
-      }),
-    ]
+  it("назначает компоненту типовой backing task из workflow catalog при прямом совпадении", () => {
+    const component = normalizeProjectComponent({
+      id: "component-b",
+      projectId: "task-template",
+      title: "Card B",
+    })
 
     expect(resolveProjectComponentTaskId({
-      component: components[1],
-      components,
-      occupiedTaskIds: ["task-occupied-globally"],
+      component,
       workflowTaskCatalog: [
         { taskId: "task-template", taskTitle: "Task 1" },
         { taskId: "task-secondary", taskTitle: "Task 2" },
@@ -141,8 +131,6 @@ describe("project component registry surface", () => {
 
     expect(resolveProjectComponentTaskId({
       component,
-      components: [component],
-      occupiedTaskIds: [],
       workflowTaskCatalog: [
         { taskId: "dipole-button", taskTitle: "dipole-button" },
         { taskId: "oncor-row", taskTitle: "oncor-row" },
@@ -159,8 +147,6 @@ describe("project component registry surface", () => {
 
     expect(resolveProjectComponentTaskId({
       component,
-      components: [component],
-      occupiedTaskIds: [],
       workflowTaskCatalog: [
         { taskId: "dipole-button", taskTitle: "dipole-button" },
         { taskId: "otvinta-tab", taskTitle: "otvinta-tab" },
@@ -177,8 +163,6 @@ describe("project component registry surface", () => {
 
     expect(resolveProjectComponentTaskId({
       component,
-      components: [component],
-      occupiedTaskIds: [],
       projectTitle: "easy-buy-app-badge",
       workflowTaskCatalog: [
         { taskId: "dipole-button", taskTitle: "dipole-button" },
@@ -187,7 +171,23 @@ describe("project component registry surface", () => {
     })).toBe("easy-buy-app-badge")
   })
 
-  it("не требует свободный task slot и переиспользует template при глобальной занятости каталога", () => {
+  it("умеет находить backing task по title самого компонента", () => {
+    const component = normalizeProjectComponent({
+      id: "component-b",
+      projectId: "project-scope",
+      title: "otvinta-tab",
+    })
+
+    expect(resolveProjectComponentTaskId({
+      component,
+      workflowTaskCatalog: [
+        { taskId: "dipole-button", taskTitle: "dipole-button" },
+        { taskId: "otvinta-tab", taskTitle: "otvinta-tab" },
+      ],
+    })).toBe("otvinta-tab")
+  })
+
+  it("не назначает произвольный первый task, если осмысленного template не найдено", () => {
     const component = normalizeProjectComponent({
       id: "component-b",
       projectId: "project-a",
@@ -196,13 +196,35 @@ describe("project component registry surface", () => {
 
     expect(resolveProjectComponentTaskId({
       component,
-      components: [component],
-      occupiedTaskIds: ["task-template", "task-secondary"],
       workflowTaskCatalog: [
         { taskId: "task-template", taskTitle: "Task 1" },
         { taskId: "task-secondary", taskTitle: "Task 2" },
       ],
-    })).toBe("task-template")
+    })).toBeNull()
+  })
+
+  it("не наследует task другого компонента проекта без собственного совпадения", () => {
+    const components = [
+      normalizeProjectComponent({
+        id: "component-a",
+        projectId: "project-a",
+        title: "Primary card",
+        taskId: "dipole-button",
+      }),
+      normalizeProjectComponent({
+        id: "component-b",
+        projectId: "project-a",
+        title: "Fresh card",
+      }),
+    ]
+
+    expect(resolveProjectComponentTaskId({
+      component: components[1],
+      workflowTaskCatalog: [
+        { taskId: "dipole-button", taskTitle: "dipole-button" },
+        { taskId: "easy-buy-app-badge", taskTitle: "easy-buy-app-badge" },
+      ],
+    })).toBeNull()
   })
 
   it("переиспользует уже назначенный backing task для повторного входа в workflow", () => {
@@ -215,8 +237,6 @@ describe("project component registry surface", () => {
 
     expect(resolveProjectComponentTaskId({
       component,
-      components: [component],
-      occupiedTaskIds: ["task-stable", "task-other"],
       workflowTaskCatalog: [
         { taskId: "task-stable", taskTitle: "Task Stable" },
         { taskId: "task-other", taskTitle: "Task Other" },
@@ -275,7 +295,7 @@ describe("project component registry surface", () => {
     expect(componentsPanelController).toContain("image-to-component-workflow")
     expect(componentsPanelController).toContain("postTaskStart")
     expect(componentsPanelController).toContain("getLabUrl")
-    expect(componentsPanelController).toContain("базовый runtime-шаблон")
+    expect(componentsPanelController).toContain("подходящий workflow-шаблон")
   })
 
   it("сохраняет совместимость overview project model с новым component layer", () => {

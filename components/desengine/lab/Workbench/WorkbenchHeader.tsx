@@ -259,8 +259,9 @@ export function WorkbenchHeader({
                         <p className="text-sm font-medium text-black/75">
                             Компонент проекта: {projectComponentState.component.title}
                         </p>
-                    ) : null}
-                    <p className="text-muted-foreground">Задача: <code>{taskItem.id}</code></p>
+                    ) : (
+                        <p className="text-muted-foreground">Задача: <code>{taskItem.id}</code></p>
+                    )}
                     <h1 className="text-2xl font-semibold text-black">{surface?.headline ?? "Работаем над workflow"}</h1>
                     <p className="text-sm font-medium text-black/70">
                         {surface ? `${surface.workflowStepTitle} • ${surface.sessionStatusLabel}` : "Текущий этап уже открыт"}

@@ -17,18 +17,21 @@ type TaskScreenProps = {
 }
 
 function TaskScreenHeader({ binding, taskId }: Pick<TaskScreenProps, "binding" | "taskId">) {
+  const hasComponentContext = Boolean(binding?.componentId)
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="py-2 text-7xl">Задача {taskId}</h1>
+        <h1 className="py-2 text-7xl">{hasComponentContext ? "Работа над компонентом" : `Задача ${taskId}`}</h1>
         <Link className="rounded-full border border-black px-4 py-2" href={getLabUrl(taskId)}>
-          Открыть работу
+          {hasComponentContext ? "Открыть workflow-сессию" : "Открыть работу"}
         </Link>
       </div>
 
       <p className="max-w-4xl text-xl text-black/70">
-        Задача здесь показывает отдельную рабочую сессию внутри проекта. Ниже видно, с каким
-        проектом и компонентом она связана, а дальше можно перейти прямо в саму работу.
+        {hasComponentContext
+          ? "Здесь открывается рабочая workflow-сессия конкретного компонента внутри проекта. Ниже видно, к какому проекту и компоненту она относится."
+          : "Задача здесь показывает отдельную рабочую сессию внутри проекта. Ниже видно, с каким проектом и компонентом она связана, а дальше можно перейти прямо в саму работу."}
       </p>
       <TaskProjectComponentContext componentId={binding?.componentId} mode="detail" projectId={binding?.projectId} taskId={taskId} />
     </>

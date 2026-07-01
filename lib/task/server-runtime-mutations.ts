@@ -7,6 +7,7 @@ import {
   removeUserTaskDir,
 } from "@/lib/user/server"
 import {
+  buildTaskProgressScopeKey,
   getScopedTaskRuntimeFilePath,
   isLegacyTaskRuntimeProject,
 } from "@/lib/task/project-runtime-scope"
@@ -28,15 +29,19 @@ import type {
   TaskProgressMutationResult,
 } from "./server-runtime-types"
 
-async function loadMutationContext(taskId: string) {
+async function loadMutationContext(taskId: string, project?: Project) {
   const [levels, store, taskConfig, promptHistory] = await Promise.all([
     taskServerOverview.getLevelsCatalog(),
     taskServerStorage.readUserProgressStore(),
     taskServerStorage.readTaskConfig(taskId),
-    readPromptHistory(taskId),
+    readPromptHistory(taskId, project),
   ])
 
-  const taskProgress = taskServerProgress.ensureTaskProgress(store, taskId, taskConfig.maxLevel)
+  const taskProgress = taskServerProgress.ensureTaskProgress(
+    store,
+    buildTaskProgressScopeKey(taskId, project?.id),
+    taskConfig.maxLevel,
+  )
   const changed = taskServerProgress.reconcileTaskProgressWithHistory(
     levels,
     taskConfig,
@@ -77,8 +82,8 @@ function buildMigrationLevelProgress() {
 }
 
 export const taskServerMutations = {
-  async markTaskLevelInProgress(taskId: string) {
-    const context = await loadMutationContext(taskId)
+  async markTaskLevelInProgress(taskId: string, project?: Project) {
+    const context = await loadMutationContext(taskId, project)
     const currentLevel = context.taskProgress.levels[String(context.taskProgress.currentLevel)]
     let changed = context.changed
 
@@ -91,8 +96,8 @@ export const taskServerMutations = {
     if (changed) await taskServerStorage.writeUserProgressStore(context.store)
     return summarizeTaskProgress(context.levels, context.taskConfig, context.taskProgress)
   },
-  async markCurrentTaskLevelInitialized(taskId: string) {
-    const context = await loadMutationContext(taskId)
+  async markCurrentTaskLevelInitialized(taskId: string, project?: Project) {
+    const context = await loadMutationContext(taskId, project)
     const levelProgress = context.taskProgress.levels[String(context.taskProgress.currentLevel)]
     let changed = false
 
@@ -113,8 +118,8 @@ export const taskServerMutations = {
 
     return summarizeTaskProgress(context.levels, context.taskConfig, context.taskProgress)
   },
-  async registerPromptForCurrentLevel(taskId: string): Promise<TaskProgressMutationResult> {
-    const context = await loadMutationContext(taskId)
+  async registerPromptForCurrentLevel(taskId: string, project?: Project): Promise<TaskProgressMutationResult> {
+    const context = await loadMutationContext(taskId, project)
     const currentLevelNumber = context.taskProgress.currentLevel
     taskServerModel.requireLevel(context.levels, currentLevelNumber)
     const levelProgress = context.taskProgress.levels[String(currentLevelNumber)]
@@ -137,8 +142,8 @@ export const taskServerMutations = {
       transition: null,
     }
   },
-  async markCurrentTaskLevelCheckTechnicalError(taskId: string) {
-    const context = await loadMutationContext(taskId)
+  async markCurrentTaskLevelCheckTechnicalError(taskId: string, project?: Project) {
+    const context = await loadMutationContext(taskId, project)
     const levelProgress = context.taskProgress.levels[String(context.taskProgress.currentLevel)]
 
     levelProgress.checkingState = "awaiting_retry"
@@ -147,8 +152,8 @@ export const taskServerMutations = {
     await taskServerStorage.writeUserProgressStore(context.store)
     return summarizeTaskProgress(context.levels, context.taskConfig, context.taskProgress)
   },
-  async passCurrentTaskLevelCheck(taskId: string): Promise<TaskCheckMutationResult> {
-    const context = await loadMutationContext(taskId)
+  async passCurrentTaskLevelCheck(taskId: string, project?: Project): Promise<TaskCheckMutationResult> {
+    const context = await loadMutationContext(taskId, project)
     const currentLevelNumber = context.taskProgress.currentLevel
     const currentLevel = taskServerModel.requireLevel(context.levels, currentLevelNumber)
     const levelProgress = context.taskProgress.levels[String(currentLevelNumber)]
@@ -179,8 +184,8 @@ export const taskServerMutations = {
       maxCheckAttempts: currentLevel.maxCheckAttempts,
     }
   },
-  async failCurrentTaskLevelCheck(taskId: string): Promise<FailedTaskCheckMutationResult> {
-    const context = await loadMutationContext(taskId)
+  async failCurrentTaskLevelCheck(taskId: string, project?: Project): Promise<FailedTaskCheckMutationResult> {
+    const context = await loadMutationContext(taskId, project)
     const currentLevelNumber = context.taskProgress.currentLevel
     const currentLevel = taskServerModel.requireLevel(context.levels, currentLevelNumber)
     const levelProgress = context.taskProgress.levels[String(currentLevelNumber)]
@@ -221,7 +226,7 @@ export const taskServerMutations = {
     }
 
     if (store.tasks[taskId]) {
-      delete store.tasks[taskId]
+      delete store.tasks[buildTaskProgressScopeKey(taskId, projectId)]
       await taskServerStorage.writeUserProgressStore(store)
     }
 
@@ -230,7 +235,7 @@ export const taskServerMutations = {
     }
   },
   async resetCurrentTaskLevel(taskId: string, project?: Project) {
-    const context = await loadMutationContext(taskId)
+    const context = await loadMutationContext(taskId, project)
     const currentLevelNumber = context.taskProgress.currentLevel
     const currentLevel = taskServerModel.requireLevel(context.levels, currentLevelNumber)
     const snapshot = await readTaskLevelSnapshot(taskId, currentLevelNumber, project)
@@ -253,7 +258,7 @@ export const taskServerMutations = {
     return summarizeTaskProgress(context.levels, context.taskConfig, context.taskProgress)
   },
   async invalidateCurrentTaskLevelForProjectMigration(taskId: string, project?: Project) {
-    const context = await loadMutationContext(taskId)
+    const context = await loadMutationContext(taskId, project)
     const currentLevelNumber = context.taskProgress.currentLevel
     const currentLevel = taskServerModel.requireLevel(context.levels, currentLevelNumber)
     const snapshot = await readTaskLevelSnapshot(taskId, currentLevelNumber, project)

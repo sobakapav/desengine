@@ -64,7 +64,7 @@ type CheckContextLoadResult =
   | { error: TaskActionHttpResult }
 
 async function validateCheckRequest(taskId: string, project: Project) {
-  const taskItem = await getTaskListItemById(taskId)
+  const taskItem = await getTaskListItemById(taskId, project)
 
   if (!taskItem) {
     return taskActionShared.jsonResult({ ok: false, error: "Задание не найдено" }, 404)
@@ -235,13 +235,13 @@ async function buildSuccessfulCheckResponse(
   response: CheckResponse,
   project: Project,
 ) {
-  await clearTaskCheckResult(taskId)
-  const progressUpdate = await passCurrentTaskLevelCheck(taskId)
+  await clearTaskCheckResult(taskId, project)
+  const progressUpdate = await passCurrentTaskLevelCheck(taskId, project)
   const result = buildCheckResult(context, progressUpdate, response, "passed")
 
-  await saveTaskCheckResult(result)
+  await saveTaskCheckResult(result, project)
 
-  const nextTaskItem = await getTaskListItemById(taskId)
+  const nextTaskItem = await getTaskListItemById(taskId, project)
   if (!nextTaskItem) {
     return taskActionShared.jsonResult({ ok: false, error: "Задание не найдено" }, 404)
   }
@@ -267,7 +267,7 @@ async function buildFailedCheckResponse(
   response: CheckResponse,
   project: Project,
 ) {
-  const failureUpdate = await failCurrentTaskLevelCheck(taskId)
+  const failureUpdate = await failCurrentTaskLevelCheck(taskId, project)
   const result = buildCheckResult(
     context,
     failureUpdate,
@@ -275,9 +275,9 @@ async function buildFailedCheckResponse(
     failureUpdate.exhausted ? "failed_limit_exhausted" : "failed",
   )
 
-  await saveTaskCheckResult(result)
+  await saveTaskCheckResult(result, project)
 
-  const nextTaskItem = await getTaskListItemById(taskId)
+  const nextTaskItem = await getTaskListItemById(taskId, project)
   if (!nextTaskItem) {
     return taskActionShared.jsonResult({ ok: false, error: "Задание не найдено" }, 404)
   }
@@ -301,7 +301,7 @@ async function buildTechnicalCheckResponse(
   error: unknown,
   project: Project,
 ) {
-  const progress = await markCurrentTaskLevelCheckTechnicalError(taskId)
+  const progress = await markCurrentTaskLevelCheckTechnicalError(taskId, project)
   const result: TaskCheckResult = {
     taskId,
     levelId: context.level.id,
@@ -315,9 +315,9 @@ async function buildTechnicalCheckResponse(
     createdAt: new Date().toISOString(),
   }
 
-  await saveTaskCheckResult(result)
+  await saveTaskCheckResult(result, project)
 
-  const nextTaskItem = await getTaskListItemById(taskId)
+  const nextTaskItem = await getTaskListItemById(taskId, project)
   if (!nextTaskItem) {
     return taskActionShared.jsonResult({ ok: false, error: "Задание не найдено" }, 404)
   }

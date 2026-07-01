@@ -131,6 +131,30 @@ function buildTaskMutationScopeKey(taskId: string, projectId: string) {
   return `${taskId}::${projectId}`
 }
 
+function buildTaskProgressScopeKey(taskId: string, projectId?: string | null) {
+  if (!projectId?.trim() || isLegacyTaskRuntimeProject(taskId, projectId)) {
+    return taskId
+  }
+
+  return buildTaskMutationScopeKey(taskId, projectId)
+}
+
+function parseTaskProgressScopeKey(scopeKey: string) {
+  const separatorIndex = scopeKey.indexOf("::")
+
+  if (separatorIndex < 0) {
+    return {
+      taskId: scopeKey,
+      projectId: null,
+    }
+  }
+
+  return {
+    taskId: scopeKey.slice(0, separatorIndex),
+    projectId: scopeKey.slice(separatorIndex + 2) || null,
+  }
+}
+
 function getBaseProjectId(projectId: string) {
   return parseProjectComponentRuntimeId(projectId).projectId
 }
@@ -140,6 +164,7 @@ function getProjectComponentId(projectId: string) {
 }
 
 export {
+  buildTaskProgressScopeKey,
   buildTaskMutationScopeKey,
   createDefaultTaskProject,
   getBaseProjectId,
@@ -148,6 +173,7 @@ export {
   getScopedTaskRuntimeRelativePath,
   isLegacyTaskRuntimeProject,
   listStoredTaskProjects,
+  parseTaskProgressScopeKey,
   readStoredTaskProject,
   resolveTaskProject,
   resolveTaskRuntimeFilePath,

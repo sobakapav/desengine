@@ -19,7 +19,6 @@ import { useProjectOverview } from "./useProjectOverview"
 import { useProjectTaskBindings } from "./useProjectTaskBindings"
 
 type ProjectOverviewScreenProps = {
-  occupiedTaskIds: string[]
   projectId: string
   historyDiagnostics: ProjectHistoryDiagnosticsSnapshot
   workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
@@ -219,7 +218,6 @@ function ProjectOverviewTaskBindings({ projectId }: { projectId: string }) {
 
 function ProjectOverviewReadyState({
   projectId,
-  occupiedTaskIds,
   historyDiagnostics,
   workflowTaskCatalog,
   workflowReadout,
@@ -257,7 +255,6 @@ function ProjectOverviewReadyState({
       />
       <ProjectConfigPanel project={state.project} onProjectSaved={state.replaceProject} />
       <ProjectComponentsPanel
-        occupiedTaskIds={occupiedTaskIds}
         project={state.project}
         workflowTaskCatalog={workflowTaskCatalog}
         workflowReadout={workflowReadout}
@@ -271,7 +268,6 @@ function ProjectOverviewReadyState({
 }
 
 function ProjectOverviewScreen({
-  occupiedTaskIds,
   projectId,
   historyDiagnostics,
   workflowTaskCatalog,
@@ -280,7 +276,6 @@ function ProjectOverviewScreen({
   return (
     <ProjectOverviewReadyState
       historyDiagnostics={historyDiagnostics}
-      occupiedTaskIds={occupiedTaskIds}
       projectId={projectId}
       workflowTaskCatalog={workflowTaskCatalog}
       workflowReadout={workflowReadout}

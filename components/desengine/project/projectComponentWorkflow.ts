@@ -41,8 +41,6 @@ function resolveMatchingTaskId(
  * ```ts
  * const taskId = resolveProjectComponentTaskId({
  *   component,
- *   components,
- *   occupiedTaskIds: [],
  *   projectTitle: "oncor-row",
  *   workflowTaskCatalog: [{ taskId: "task-1", taskTitle: "Task 1" }],
  * })
@@ -50,8 +48,6 @@ function resolveMatchingTaskId(
  */
 function resolveProjectComponentTaskId(args: {
   component: ProjectComponent
-  components: ProjectComponent[]
-  occupiedTaskIds: string[]
   projectTitle?: string | null
   workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
 }) {
@@ -62,12 +58,13 @@ function resolveProjectComponentTaskId(args: {
   const matchedTaskId = resolveMatchingTaskId(args.workflowTaskCatalog, [
     args.component.projectId,
     args.projectTitle,
+    args.component.title,
   ])
   if (matchedTaskId) {
     return matchedTaskId
   }
 
-  return args.workflowTaskCatalog[0]?.taskId ?? null
+  return null
 }
 
 /**

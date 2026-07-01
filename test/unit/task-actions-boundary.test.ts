@@ -416,7 +416,9 @@ describe("task action service boundary", () => {
     expect(mocks.resetTask).toHaveBeenCalledWith("task-a", expect.objectContaining({
       project: expect.objectContaining({ id: "task-task-a" }),
     }))
-    expect(mocks.clearTaskCheckResult).toHaveBeenCalledWith("task-a")
+    expect(mocks.clearTaskCheckResult).toHaveBeenCalledWith("task-a", expect.objectContaining({
+      id: "task-task-a",
+    }))
   })
 
   it("resetCurrentTaskLevelRuntime возвращает отдельный contract без полного reset задачи", async () => {
@@ -502,7 +504,9 @@ describe("task action service boundary", () => {
       schemaName: "desengine_start_component_files",
       imageBase64List: [Buffer.from("image-bytes").toString("base64")],
     }))
-    expect(mocks.markCurrentTaskLevelInitialized).toHaveBeenCalledWith("task-a")
+    expect(mocks.markCurrentTaskLevelInitialized).toHaveBeenCalledWith("task-a", expect.objectContaining({
+      id: "task-task-a",
+    }))
     expect(mocks.readTaskData).toHaveBeenCalledWith(taskItem, labContext, expect.objectContaining({
       id: "task-task-a",
     }))
@@ -572,7 +576,9 @@ describe("task action service boundary", () => {
       teachingCostCents: 50,
       llmCall: expect.objectContaining({ provider: "openai", model: "mock-model" }),
     }), expect.objectContaining({ id: "task-task-a" }))
-    expect(mocks.registerPromptForCurrentLevel).toHaveBeenCalledWith("task-a")
+    expect(mocks.registerPromptForCurrentLevel).toHaveBeenCalledWith("task-a", expect.objectContaining({
+      id: "task-task-a",
+    }))
     expect(result.body).toMatchObject({
       runtimeDiagnostics: expect.arrayContaining([
         expect.objectContaining({
@@ -686,7 +692,9 @@ describe("task action service boundary", () => {
       },
       transition: null,
     })
-    expect(mocks.passCurrentTaskLevelCheck).toHaveBeenCalledWith("task-a")
+    expect(mocks.passCurrentTaskLevelCheck).toHaveBeenCalledWith("task-a", expect.objectContaining({
+      id: "task-task-a",
+    }))
     expect(mocks.readTaskData).toHaveBeenCalledWith(taskItem, labContext, expect.objectContaining({
       id: "task-task-a",
     }))
@@ -694,6 +702,8 @@ describe("task action service boundary", () => {
       taskId: "task-a",
       kind: "passed",
       message: "Уровень принят",
+    }), expect.objectContaining({
+      id: "task-task-a",
     }))
     expect(result.body).toMatchObject({
       runtimeDiagnostics: expect.arrayContaining([

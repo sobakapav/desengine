@@ -2,8 +2,9 @@ import "server-only"
 
 import { taskServerCheckResult } from "./server-runtime-check-result"
 import { taskServerMutations } from "./server-runtime-mutations"
-import { taskServerOverview } from "./server-runtime-overview"
+import { getScopedTaskListItemById, taskServerOverview } from "./server-runtime-overview"
 import { taskServerTransitions } from "./server-runtime-transitions"
+import type { Project } from "../project/runtime"
 import type { LevelConfig, LevelOverview } from "../level/types"
 import type { TaskCheckResult, TaskLabContext, TaskListItem, TaskTransition } from "./types"
 import type {
@@ -66,8 +67,14 @@ export async function getAllLevelOverviews(): Promise<LevelOverview[]> {
   return taskServerOverview.getAllLevelOverviews()
 }
 
-export async function getTaskListItemById(taskId: string) {
-  return taskServerOverview.getTaskListItemById(taskId)
+/**
+ * @example
+ * ```ts
+ * const taskItem = await getTaskListItemById("task-1", { id: "project-1", title: "Проект 1" })
+ * ```
+ */
+export async function getTaskListItemById(taskId: string, project?: Project) {
+  return getScopedTaskListItemById(taskId, project)
 }
 
 export async function getLevelForTaskItem(taskItem: TaskListItem): Promise<LevelConfig> {
@@ -80,12 +87,18 @@ export async function getLevelForTaskItem(taskItem: TaskListItem): Promise<Level
  * const transition = await getTaskPendingTransition("task-1")
  * ```
  */
-export async function getTaskPendingTransition(taskId: string): Promise<TaskTransition | null> {
-  return taskServerTransitions.getTaskPendingTransition(taskId)
+export async function getTaskPendingTransition(taskId: string, project?: Project): Promise<TaskTransition | null> {
+  return taskServerTransitions.getTaskPendingTransition(taskId, project)
 }
 
-export async function getTaskDoneTransition(taskId: string): Promise<TaskTransition | null> {
-  return taskServerTransitions.getTaskDoneTransition(taskId)
+/**
+ * @example
+ * ```ts
+ * const transition = await getTaskDoneTransition("task-1", { id: "project-1", title: "Проект 1" })
+ * ```
+ */
+export async function getTaskDoneTransition(taskId: string, project?: Project): Promise<TaskTransition | null> {
+  return taskServerTransitions.getTaskDoneTransition(taskId, project)
 }
 
 export async function getTaskLabContext(taskItem: TaskListItem): Promise<TaskLabContext> {
@@ -106,8 +119,14 @@ export async function getTaskLevelHint(
   return taskServerTransitions.getTaskLevelHint(taskItem, project, activeFileId)
 }
 
-export async function markTaskLevelInProgress(taskId: string) {
-  return taskServerMutations.markTaskLevelInProgress(taskId)
+/**
+ * @example
+ * ```ts
+ * await markTaskLevelInProgress("task-1", { id: "project-1", title: "Проект 1" })
+ * ```
+ */
+export async function markTaskLevelInProgress(taskId: string, project?: Project) {
+  return taskServerMutations.markTaskLevelInProgress(taskId, project)
 }
 
 /**
@@ -116,8 +135,8 @@ export async function markTaskLevelInProgress(taskId: string) {
  * const progress = await markCurrentTaskLevelInitialized("task-1")
  * ```
  */
-export async function markCurrentTaskLevelInitialized(taskId: string) {
-  return taskServerMutations.markCurrentTaskLevelInitialized(taskId)
+export async function markCurrentTaskLevelInitialized(taskId: string, project?: Project) {
+  return taskServerMutations.markCurrentTaskLevelInitialized(taskId, project)
 }
 
 /**
@@ -126,12 +145,18 @@ export async function markCurrentTaskLevelInitialized(taskId: string) {
  * const { summary, transition } = await registerPromptForCurrentLevel("task-1")
  * ```
  */
-export async function registerPromptForCurrentLevel(taskId: string): Promise<TaskProgressMutationResult> {
-  return taskServerMutations.registerPromptForCurrentLevel(taskId)
+export async function registerPromptForCurrentLevel(taskId: string, project?: Project): Promise<TaskProgressMutationResult> {
+  return taskServerMutations.registerPromptForCurrentLevel(taskId, project)
 }
 
-export async function markCurrentTaskLevelCheckTechnicalError(taskId: string) {
-  return taskServerMutations.markCurrentTaskLevelCheckTechnicalError(taskId)
+/**
+ * @example
+ * ```ts
+ * await markCurrentTaskLevelCheckTechnicalError("task-1", { id: "project-1", title: "Проект 1" })
+ * ```
+ */
+export async function markCurrentTaskLevelCheckTechnicalError(taskId: string, project?: Project) {
+  return taskServerMutations.markCurrentTaskLevelCheckTechnicalError(taskId, project)
 }
 
 /**
@@ -140,8 +165,8 @@ export async function markCurrentTaskLevelCheckTechnicalError(taskId: string) {
  * const result = await passCurrentTaskLevelCheck("task-1")
  * ```
  */
-export async function passCurrentTaskLevelCheck(taskId: string): Promise<TaskCheckMutationResult> {
-  return taskServerMutations.passCurrentTaskLevelCheck(taskId)
+export async function passCurrentTaskLevelCheck(taskId: string, project?: Project): Promise<TaskCheckMutationResult> {
+  return taskServerMutations.passCurrentTaskLevelCheck(taskId, project)
 }
 
 /**
@@ -150,20 +175,41 @@ export async function passCurrentTaskLevelCheck(taskId: string): Promise<TaskChe
  * const result = await failCurrentTaskLevelCheck("task-1")
  * ```
  */
-export async function failCurrentTaskLevelCheck(taskId: string): Promise<FailedTaskCheckMutationResult> {
-  return taskServerMutations.failCurrentTaskLevelCheck(taskId)
+export async function failCurrentTaskLevelCheck(taskId: string, project?: Project): Promise<FailedTaskCheckMutationResult> {
+  return taskServerMutations.failCurrentTaskLevelCheck(taskId, project)
 }
 
-export async function getTaskCheckResult(taskId: string) {
-  return taskServerCheckResult.getTaskCheckResult(taskId)
+/**
+ * @example
+ * ```ts
+ * const checkResult = await getTaskCheckResult("task-1", { id: "project-1", title: "Проект 1" })
+ * ```
+ */
+export async function getTaskCheckResult(taskId: string, project?: Project) {
+  return taskServerCheckResult.getTaskCheckResult(taskId, project)
 }
 
-export async function saveTaskCheckResult(result: TaskCheckResult) {
-  await taskServerCheckResult.saveTaskCheckResult(result)
+/**
+ * @example
+ * ```ts
+ * await saveTaskCheckResult({ taskId: "task-1", kind: "passed", passed: true, message: "OK" }, {
+ *   id: "project-1",
+ *   title: "Проект 1",
+ * })
+ * ```
+ */
+export async function saveTaskCheckResult(result: TaskCheckResult, project?: Project) {
+  await taskServerCheckResult.saveTaskCheckResult(result, project)
 }
 
-export async function clearTaskCheckResult(taskId: string) {
-  await taskServerCheckResult.clearTaskCheckResult(taskId)
+/**
+ * @example
+ * ```ts
+ * await clearTaskCheckResult("task-1", { id: "project-1", title: "Проект 1" })
+ * ```
+ */
+export async function clearTaskCheckResult(taskId: string, project?: Project) {
+  await taskServerCheckResult.clearTaskCheckResult(taskId, project)
 }
 
 /**
