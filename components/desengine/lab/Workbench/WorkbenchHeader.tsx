@@ -286,7 +286,13 @@ export function WorkbenchHeader({
                     resetPending={resetPending}
                 />
             </div>
-            {surface ? <WorkbenchSurfaceSummary onSelectWorkflowPoint={onSelectWorkflowPoint} surface={surface} /> : null}
+            {surface ? (
+                <WorkbenchSurfaceSummary
+                    componentTitle={projectComponentState.component?.title ?? null}
+                    onSelectWorkflowPoint={onSelectWorkflowPoint}
+                    surface={surface}
+                />
+            ) : null}
         </div>
     );
 }

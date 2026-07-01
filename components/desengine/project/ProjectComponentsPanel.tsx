@@ -91,7 +91,6 @@ function ComponentRegistryState(args: {
   openState: "idle" | "opening" | "opened" | "error"
   stateStatus: ReturnType<typeof useProjectComponents>["status"]
   workflowReadout: ProjectWorkflowReadoutSnapshot
-  workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
 }) {
   if (args.stateStatus === "loading") {
     return <p className="mt-4 text-lg text-black/70">Загружаем project-scoped registry компонентов...</p>
@@ -121,7 +120,6 @@ function ComponentRegistryState(args: {
       openState={args.openState}
       onOpenWorkflow={args.onOpenWorkflow}
       workflowReadout={args.workflowReadout}
-      workflowTaskCatalog={args.workflowTaskCatalog}
     />
   )
 }
@@ -169,7 +167,6 @@ function ProjectComponentsPanel({
         openState={controller.openState}
         stateStatus={state.status}
         workflowReadout={workflowReadout}
-        workflowTaskCatalog={workflowTaskCatalog}
       />
     </section>
   )

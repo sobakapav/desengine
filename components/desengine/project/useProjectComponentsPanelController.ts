@@ -86,14 +86,6 @@ async function openProjectComponentWorkflow(args: {
   try {
     await projectStorage.setActiveProjectId(args.project.id)
     const runtimeProject = buildProjectComponentRuntimeProject(args.project, component.id)
-
-    if (component.taskId && component.status !== "draft") {
-      args.setOpenState("opened")
-      args.setMessage(`Возвращаемся к работе над компонентом «${component.title}».`)
-      args.push(getLabUrl(component.taskId, null, runtimeProject))
-      return
-    }
-
     const resolvedTaskId = resolveProjectComponentTaskId({
       component,
       projectTitle: args.projectTitle,
@@ -106,11 +98,21 @@ async function openProjectComponentWorkflow(args: {
       return
     }
 
+    if (component.status !== "draft") {
+      if (component.taskId) {
+        await args.state.saveComponent({ ...component, taskId: null })
+      }
+
+      args.setOpenState("opened")
+      args.setMessage(`Возвращаемся к работе над компонентом «${component.title}».`)
+      args.push(getLabUrl(resolvedTaskId, null, runtimeProject))
+      return
+    }
+
     args.setActiveComponentId(args.componentId)
     args.setOpenState("opening")
     args.setMessage("")
 
-    const savedComponent = await args.state.saveComponent({ ...component, taskId: resolvedTaskId })
     const response = await postTaskStart(resolvedTaskId, runtimeProject, "component")
     const data = await response.json().catch(() => null)
 
@@ -118,7 +120,7 @@ async function openProjectComponentWorkflow(args: {
       throw new Error(data?.error || "Не удалось открыть работу для компонента.")
     }
 
-    await args.state.saveComponent({ ...savedComponent, status: "in_progress" })
+    await args.state.saveComponent({ ...component, taskId: null, status: "in_progress" })
     args.setMessage(`Открываем работу над компонентом «${component.title}».`)
     args.setOpenState("opened")
     args.push(getLabUrl(resolvedTaskId, null, runtimeProject))

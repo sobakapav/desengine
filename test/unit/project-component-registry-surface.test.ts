@@ -4,7 +4,7 @@
 // @openSpec  - "Пользователь видит список компонентов проекта"
 // @openSpec  - "Пользователь создаёт компонент внутри проекта"
 // @openSpec  - "Пользователь начинает работу над компонентом проекта"
-// @openSpec  - "Компонент проекта сохраняет связь с backing task"
+// @openSpec  - "Компонент проекта открывает component-scoped workflow-сессию без пользовательской привязки к task"
 // @openSpec  - "Пользователь видит состояние workflow-сессии прямо в карточке компонента проекта"
 // @openSpec capability: workflow
 // @openSpec scenarios:
@@ -44,7 +44,6 @@ describe("project component registry surface", () => {
     expect(buildProjectComponentSurfaceModel(component)).toEqual({
       id: "component-card",
       title: "Product card",
-      taskLabel: "ещё не назначен",
       workflowLabel: "Компонент по картинке",
       statusLabel: "Черновик",
       sessionStatusLabel: "Работа ещё не запускалась",
@@ -70,7 +69,6 @@ describe("project component registry surface", () => {
     })
 
     expect(buildProjectComponentSurfaceModel(component, {
-      taskLabel: "Task 1 (task-1)",
       workflowEntry: {
         projectId: "project-a",
         taskId: "task-1",
@@ -97,7 +95,6 @@ describe("project component registry surface", () => {
         workbenchProfileId: null,
       },
     })).toMatchObject({
-      taskLabel: "Task 1 (task-1)",
       sessionStatusLabel: "Работа в процессе",
       sessionActionLabel: "Продолжить работу",
       workflowProgressLabel: "Готово 2 из 4 шагов работы",
@@ -106,85 +103,37 @@ describe("project component registry surface", () => {
     })
   })
 
-  it("назначает компоненту типовой backing task из workflow catalog при прямом совпадении", () => {
+  it("использует внутренний workflow-template, если у компонента ещё нет legacy taskId", () => {
     const component = normalizeProjectComponent({
       id: "component-b",
-      projectId: "task-template",
+      projectId: "project-a",
       title: "Card B",
     })
 
     expect(resolveProjectComponentTaskId({
       component,
       workflowTaskCatalog: [
-        { taskId: "task-template", taskTitle: "Task 1" },
+        { taskId: "easy-buy-app-badge", taskTitle: "Task 1" },
         { taskId: "task-secondary", taskTitle: "Task 2" },
-      ],
-    })).toBe("task-template")
-  })
-
-  it("предпочитает backing task, совпадающий с projectId компонента", () => {
-    const component = normalizeProjectComponent({
-      id: "component-b",
-      projectId: "oncor-row",
-      title: "Row",
-    })
-
-    expect(resolveProjectComponentTaskId({
-      component,
-      workflowTaskCatalog: [
-        { taskId: "dipole-button", taskTitle: "dipole-button" },
-        { taskId: "oncor-row", taskTitle: "oncor-row" },
-      ],
-    })).toBe("oncor-row")
-  })
-
-  it("умеет находить backing task по нормализованному projectId, даже если разделители различаются", () => {
-    const component = normalizeProjectComponent({
-      id: "component-b",
-      projectId: "ot-vinta-tab",
-      title: "Tab",
-    })
-
-    expect(resolveProjectComponentTaskId({
-      component,
-      workflowTaskCatalog: [
-        { taskId: "dipole-button", taskTitle: "dipole-button" },
-        { taskId: "otvinta-tab", taskTitle: "otvinta-tab" },
-      ],
-    })).toBe("otvinta-tab")
-  })
-
-  it("предпочитает task, совпадающий с title проекта, если projectId был автосгенерирован", () => {
-    const component = normalizeProjectComponent({
-      id: "component-b",
-      projectId: "project-mc4h1m-z8x2kq",
-      title: "Badge",
-    })
-
-    expect(resolveProjectComponentTaskId({
-      component,
-      projectTitle: "easy-buy-app-badge",
-      workflowTaskCatalog: [
-        { taskId: "dipole-button", taskTitle: "dipole-button" },
-        { taskId: "easy-buy-app-badge", taskTitle: "easy-buy-app-badge" },
       ],
     })).toBe("easy-buy-app-badge")
   })
 
-  it("умеет находить backing task по title самого компонента", () => {
+  it("не подбирает runtime-task по projectId или title компонента", () => {
     const component = normalizeProjectComponent({
       id: "component-b",
-      projectId: "project-scope",
-      title: "otvinta-tab",
+      projectId: "ot-vinta-tab",
+      title: "oncor-row",
     })
 
     expect(resolveProjectComponentTaskId({
       component,
       workflowTaskCatalog: [
-        { taskId: "dipole-button", taskTitle: "dipole-button" },
+        { taskId: "oncor-row", taskTitle: "oncor-row" },
         { taskId: "otvinta-tab", taskTitle: "otvinta-tab" },
+        { taskId: "easy-buy-app-badge", taskTitle: "easy-buy-app-badge" },
       ],
-    })).toBe("otvinta-tab")
+    })).toBe("easy-buy-app-badge")
   })
 
   it("переходит к каноническому workflow-template, если прямого совпадения нет", () => {
@@ -203,7 +152,7 @@ describe("project component registry surface", () => {
     })).toBe("easy-buy-app-badge")
   })
 
-  it("не наследует task другого компонента проекта и берёт канонический workflow-template", () => {
+  it("не наследует runtime-task другого компонента проекта", () => {
     const components = [
       normalizeProjectComponent({
         id: "component-a",
@@ -291,7 +240,7 @@ describe("project component registry surface", () => {
     expect(componentsPanelContent).toContain("Работать над компонентом")
     expect(componentsPanelContent).toContain("Продолжить работу")
     expect(componentsPanelContent).toContain("Последняя активность")
-    expect(componentsPanelContent).toContain("Открыть задачу")
+    expect(componentsPanelContent).not.toContain("Открыть задачу")
     expect(componentsPanelController).toContain("image-to-component-workflow")
     expect(componentsPanelController).toContain("postTaskStart")
     expect(componentsPanelController).toContain("getLabUrl")

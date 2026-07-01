@@ -60,18 +60,19 @@
 - **WHEN** пользователь открывает `/projects/<projectId>`
 - **AND** у проекта есть `ProjectComponent`
 - **AND** пользователь выбирает действие `Работать над компонентом`
-- **THEN** система назначает или переиспользует типовой `backing task` для этого workflow
+- **THEN** система использует внутренний workflow-template runtime для этого workflow
 - **AND** несколько компонентов одного проекта могут использовать один и тот же workflow template без конфликта runtime-данных
+- **AND** конкретный template `taskId` не становится пользовательской привязкой самого `ProjectComponent`
 - **AND** запускает существующий `image-to-component` workflow в контексте выбранного проекта
 - **AND** переводит пользователя в рабочую workflow-сессию этого компонента
 
 #### Scenario: Пользователь продолжает workflow компонента из страницы проекта
-- **WHEN** у `ProjectComponent` уже есть сохранённый `backing task`
-- **AND** project page показывает краткий workflow readout для этого task
+- **WHEN** у `ProjectComponent` уже есть открытый component-scoped runtime
+- **AND** project page показывает краткий workflow readout для этого runtime
 - **THEN** пользователь видит состояние run и последнюю активность прямо в карточке компонента
 - **AND** действие `Продолжить работу` открывает ту же workflow-сессию, а не создаёт новую
 
 #### Scenario: Пользователь видит компонент проекта внутри workflow-сессии
 - **WHEN** пользователь открывает workflow-сессию компонента проекта
 - **THEN** Workbench header явно показывает название `ProjectComponent`
-- **AND** пользователь понимает, что текущий task является backing runtime этого компонента
+- **AND** пользователь понимает, что текущий runtime обслуживает этот компонент, не раскрывая concrete template task как основную пользовательскую сущность

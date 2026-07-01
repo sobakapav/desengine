@@ -11,37 +11,6 @@ const workflowTemplateTaskIdsByKind = {
   ],
 } as const
 
-function normalizeWorkflowTaskKey(value: string) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9а-яё]/g, "")
-}
-
-function resolveMatchingTaskId(
-  workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[],
-  candidateValues: Array<string | null | undefined>,
-) {
-  for (const candidateValue of candidateValues) {
-    if (!candidateValue?.trim()) {
-      continue
-    }
-
-    const exactTask = workflowTaskCatalog.find((task) => task.taskId === candidateValue)
-    if (exactTask) {
-      return exactTask.taskId
-    }
-
-    const normalizedCandidateValue = normalizeWorkflowTaskKey(candidateValue)
-    const normalizedTask = workflowTaskCatalog.find(
-      (task) => normalizeWorkflowTaskKey(task.taskId) === normalizedCandidateValue,
-    )
-
-    if (normalizedTask) {
-      return normalizedTask.taskId
-    }
-  }
-
-  return null
-}
-
 function resolveWorkflowTemplateTaskId(
   workflowKind: ProjectComponent["workflowKind"],
   workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[],
@@ -64,8 +33,7 @@ function resolveWorkflowTemplateTaskId(
  * ```ts
  * const taskId = resolveProjectComponentTaskId({
  *   component,
- *   projectTitle: "oncor-row",
- *   workflowTaskCatalog: [{ taskId: "task-1", taskTitle: "Task 1" }],
+ *   workflowTaskCatalog: [{ taskId: "easy-buy-app-badge", taskTitle: "Easy Buy App Badge" }],
  * })
  * ```
  */
@@ -76,15 +44,6 @@ function resolveProjectComponentTaskId(args: {
 }) {
   if (args.component.taskId) {
     return args.component.taskId
-  }
-
-  const matchedTaskId = resolveMatchingTaskId(args.workflowTaskCatalog, [
-    args.component.projectId,
-    args.projectTitle,
-    args.component.title,
-  ])
-  if (matchedTaskId) {
-    return matchedTaskId
   }
 
   return resolveWorkflowTemplateTaskId(args.component.workflowKind, args.workflowTaskCatalog)

@@ -19,19 +19,19 @@ function readProjectFile(...segments: string[]) {
 }
 
 describe("workflow component-aware surface labels", () => {
-  it("находит project component по backing taskId и componentId", () => {
+  it("находит project component по componentId даже если taskId является общим runtime-template", () => {
     const components = [
       normalizeProjectComponent({
         id: "component-a",
         projectId: "project-a",
         title: "Hero card",
-        taskId: "task-hero",
+        taskId: "easy-buy-app-badge",
       }),
       normalizeProjectComponent({
         id: "component-b",
         projectId: "project-a",
         title: "Promo banner",
-        taskId: "task-banner",
+        taskId: "easy-buy-app-badge",
       }),
     ]
 

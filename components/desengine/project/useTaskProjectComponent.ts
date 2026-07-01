@@ -22,7 +22,7 @@ type TaskProjectComponentState = {
  */
 function findProjectComponentByTaskId(components: ProjectComponent[], taskId: string, componentId?: string | null) {
   if (componentId) {
-    return components.find((component) => component.id === componentId && component.taskId === taskId) ?? null
+    return components.find((component) => component.id === componentId) ?? null
   }
 
   return components.find((component) => component.taskId === taskId) ?? null

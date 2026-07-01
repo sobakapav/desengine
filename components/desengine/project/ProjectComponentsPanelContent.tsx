@@ -1,15 +1,7 @@
 "use client"
 
-import Link from "next/link"
-
-import { getTaskUrl } from "@/lib/task/navigation"
 import type { ProjectWorkflowReadoutSnapshot } from "@/lib/project/workflow-readout"
 import type { ProjectComponent } from "@/lib/project/component-runtime"
-
-import {
-  resolveProjectWorkflowTaskTitle,
-  type ProjectWorkflowTaskCatalogItem,
-} from "./projectComponentWorkflow"
 import { buildProjectComponentSurfaceModel } from "./projectSurface"
 
 const START_COMPONENT_WORK_LABEL = "Работать над компонентом"
@@ -21,7 +13,6 @@ type ComponentCardProps = {
   openState: "idle" | "opening" | "opened" | "error"
   onOpenWorkflow: (componentId: string) => void
   workflowReadout: ProjectWorkflowReadoutSnapshot
-  workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
 }
 
 function ComponentCard({
@@ -30,13 +21,9 @@ function ComponentCard({
   openState,
   onOpenWorkflow,
   workflowReadout,
-  workflowTaskCatalog,
 }: ComponentCardProps) {
-  const workflowEntry = component.taskId
-    ? workflowReadout.entries.find((entry) => entry.taskId === component.taskId && entry.componentId === component.id) ?? null
-    : null
+  const workflowEntry = workflowReadout.entries.find((entry) => entry.componentId === component.id) ?? null
   const model = buildProjectComponentSurfaceModel(component, {
-    taskLabel: resolveProjectWorkflowTaskTitle(component.taskId, workflowTaskCatalog),
     workflowEntry,
   })
   const sessionActionLabel = model.sessionActionLabel === RESUME_COMPONENT_WORK_LABEL
@@ -55,7 +42,6 @@ function ComponentCard({
         <code>{model.id}</code>
       </p>
       <dl className="mt-4 grid gap-2 text-base">
-        <div><dt className="text-black/60">Рабочая задача</dt><dd>{model.taskLabel}</dd></div>
         <div><dt className="text-black/60">Тип работы</dt><dd>{model.workflowLabel}</dd></div>
         <div><dt className="text-black/60">Состояние работы</dt><dd>{model.sessionStatusLabel}</dd></div>
         <div><dt className="text-black/60">Последняя активность</dt><dd>{model.lastActivityLabel}</dd></div>
@@ -73,11 +59,6 @@ function ComponentCard({
         >
           {openState === "opening" && activeComponentId === component.id ? "Открываем…" : sessionActionLabel}
         </button>
-        {component.taskId ? (
-          <Link className="rounded-full border border-black px-4 py-2 text-sm" href={getTaskUrl(component.taskId)}>
-            Открыть задачу
-          </Link>
-        ) : null}
       </div>
     </article>
   )
@@ -89,7 +70,6 @@ type ComponentsReadyStateProps = {
   openState: "idle" | "opening" | "opened" | "error"
   onOpenWorkflow: (componentId: string) => void
   workflowReadout: ProjectWorkflowReadoutSnapshot
-  workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
 }
 
 function ComponentsReadyState({
@@ -98,7 +78,6 @@ function ComponentsReadyState({
   openState,
   onOpenWorkflow,
   workflowReadout,
-  workflowTaskCatalog,
 }: ComponentsReadyStateProps) {
   return (
     <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -110,7 +89,6 @@ function ComponentsReadyState({
           openState={openState}
           onOpenWorkflow={onOpenWorkflow}
           workflowReadout={workflowReadout}
-          workflowTaskCatalog={workflowTaskCatalog}
         />
       ))}
     </div>

@@ -41,12 +41,18 @@ function WorkflowPointCard({ point }: { point: WorkbenchWorkflowPointSnapshot })
  * ```
  */
 export function WorkbenchSurfaceSummary({
+    componentTitle,
     onSelectWorkflowPoint,
     surface,
 }: {
+    componentTitle?: string | null;
     onSelectWorkflowPoint?: (pointId: string) => void;
     surface: WorkbenchSurfaceSnapshot;
 }) {
+    const taskSurfaceValue = componentTitle
+        ? `внутренний runtime для компонента «${componentTitle}»`
+        : surface.taskId;
+
     return (
         <div className="mt-3 space-y-3 rounded-2xl border border-black/10 bg-[#f6f2ea] p-3 shadow-sm">
             <div className="space-y-1">
@@ -59,7 +65,7 @@ export function WorkbenchSurfaceSummary({
 
             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
                 <SurfaceFact label="Project" value={`${surface.projectTitle} (${surface.projectId})`} />
-                <SurfaceFact label="Task" value={surface.taskId} />
+                <SurfaceFact label="Task" value={taskSurfaceValue} />
                 <SurfaceFact label="Workflow step" value={surface.workflowStepTitle} />
                 <SurfaceFact label="Workbench" value={surface.workbenchDefinitionTitle} />
             </div>
