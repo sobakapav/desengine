@@ -52,12 +52,6 @@ ZAI_BASE_URL=https://api.z.ai/api/paas/v4
 ALLOWLIST_BASE_URL=https://sobakapav.ru/allowlist/
 ALLOWLIST_SALT=68vBN7EWDTDsMLzoTyOghApJ5zDBI/Mg1ZNGpbrxvIY=
 
-# Источник обучающего контента
-# Если своего onboarding-репозитория пока нет, оставьте канонический URL как есть
-ONBOARDING_REPO_URL=https://github.com/sobakapav/desengine-onboarding.git
-
-# # # # # # # # # # # # # # # # # # # # #
-
 # Sandpack preview
 # Какой UI kit подключать в виртуальном проекте Sandpack.
 # В каждый момент времени активен только один kit (или ни одного).

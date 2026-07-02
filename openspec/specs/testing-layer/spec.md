@@ -21,13 +21,6 @@
 - **AND** интеграционные и e2e smoke-проверки не запускаются автоматически в составе `test:full`
 - **AND** live/provider-проверки с реальными внешними сервисами не запускаются случайно
 
-#### Scenario: Разработчик запускает явную smoke-проверку реального onboarding checkout
-
-- **WHEN** разработчик выполняет `npm run test:onboarding:real`
-- **THEN** система проверяет совместимость реального `/onboarding` checkout через текущий smoke/repair контракт
-- **AND** команда не использует unit-фикстуры как доказательство готовности реального checkout
-- **AND** при проблеме возвращает диагностику про `ONBOARDING_REPO_URL`, layout, source marker или результат repair
-
 #### Scenario: Разработчик запускает проверки по capability
 
 - **WHEN** разработчик указывает OpenSpec capability для выборочного запуска
@@ -168,36 +161,36 @@
 - **THEN** harness ожидает bounded error response и structured refusal diagnostics
 - **AND** oversized path не требует реального provider-call
 
-### Requirement: Lab-flow проверяется без live credentials
+### Requirement: Project workflow проверяется без live credentials
 
-Система SHALL иметь воспроизводимую проверку ключевого lab-flow или его service-level эквивалента без реальных LLM credentials.
+Система SHALL иметь воспроизводимую проверку ключевого project workflow или его service-level эквивалента без реальных LLM credentials.
 
-#### Scenario: Разработчик проверяет lab runtime после hardening
+#### Scenario: Разработчик проверяет browser runtime после hardening
 - **WHEN** разработчик запускает обязательную проверку change
-- **THEN** lab-flow проверяется на mock LLM или fixture service данных
+- **THEN** project workflow проверяется на mock LLM или fixture service данных
 - **AND** команда не требует live provider credentials
 
 #### Scenario: Проверка использует временное пользовательское состояние
-- **WHEN** тест lab-flow записывает task files, progress или check-result
+- **WHEN** тест project workflow записывает project files, workflow state или history snapshot
 - **THEN** он использует temp/fixture storage или полностью замоканный service boundary
 - **AND** тест не оставляет изменение пользовательских данных после завершения
 
 #### Scenario: Integration-слой покрывает route handlers через fixture boundary
-- **WHEN** разработчик запускает integration-проверку task и support route handlers
+- **WHEN** разработчик запускает integration-проверку project и support route handlers
 - **THEN** тесты проходят через реальные route handlers, request/params parsing и HTTP response mapping
 - **AND** runtime/service зависимости подменяются fixture или stub boundary без live provider credentials
 - **AND** тест не оставляет изменения в рабочем пользовательском состоянии
 
 ### Requirement: Downstream speed/load проверки читают единый runtime diagnostics contract
 
-Система SHALL держать канонический runtime diagnostics contract для task actions и preview payload, чтобы verdict layer не собирал ad-hoc speed/load сигналы из разноформатных логов.
+Система SHALL держать канонический runtime diagnostics contract для workflow actions и preview payload, чтобы verdict layer не собирал ad-hoc speed/load сигналы из разноформатных логов.
 
-#### Scenario: Unit-проверка читает project-aware task client boundary
-- **WHEN** unit-слой проверяет client boundary project-aware task/opening flow
-- **THEN** проверка читает явные `fetch` contract'ы для `open`, `start`, `iterate`, `check`, `save files`, `reset task` или `reset current level`
+#### Scenario: Unit-проверка читает project-aware workflow client boundary
+- **WHEN** unit-слой проверяет client boundary project-aware workflow/opening flow
+- **THEN** проверка читает явные `fetch` contract'ы для `open`, `start`, `iterate`, `check` и `save files`
 - **AND** подтверждает, что active project передаётся через client boundary без browser e2e или live credentials
 
-#### Scenario: Unit-проверка читает runtime diagnostics task action
+#### Scenario: Unit-проверка читает runtime diagnostics workflow action
 - **WHEN** unit-слой проверяет `start`, `iterate` или `check`
 - **THEN** он читает structured diagnostics из action result
 - **AND** проверка не требует внешнего telemetry backend или live credentials

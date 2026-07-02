@@ -50,7 +50,6 @@ describe("project history diagnostics surface", () => {
             status: "in_progress",
             createdAt: "2026-06-15T09:00:00.000Z",
             updatedAt: "2026-06-15T10:00:00.000Z",
-            taskId: null,
           },
         ],
       }),
@@ -77,14 +76,15 @@ describe("project history diagnostics surface", () => {
 
     const projectPage = readProjectFile("app", "projects", "[projectId]", "page.tsx")
     const projectOverview = readProjectFile("components", "desengine", "project", "ProjectOverviewScreen.tsx")
+    const projectSupportPanels = readProjectFile("components", "desengine", "project", "ProjectOverviewSupportPanels.tsx")
     const diagnosticsPanel = readProjectFile("components", "desengine", "project", "ProjectHistoryDiagnosticsPanel.tsx")
     const diagnosticsAdapter = readProjectFile("lib", "project", "history-diagnostics.ts")
     const projectSpec = readProjectFile("openspec", "specs", "projects", "spec.md")
 
     expect(projectPage).not.toContain("readProjectHistoryDiagnostics")
-    expect(projectOverview).toContain("historyDiagnostics={workspace.historyDiagnostics}")
-
-    expect(projectOverview).toContain("ProjectHistoryDiagnosticsPanel")
+    expect(projectOverview).toContain("ProjectOverviewSupportPanels")
+    expect(projectSupportPanels).toContain("ProjectHistoryDiagnosticsPanel")
+    expect(projectSupportPanels).toContain("historyDiagnostics={historyDiagnostics}")
 
     expect(diagnosticsPanel).toContain("История проектной работы")
     expect(diagnosticsPanel).toContain("Смены фокуса")

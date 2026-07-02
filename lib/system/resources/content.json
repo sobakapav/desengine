@@ -1,22 +1,22 @@
 [
   {
     "id": "access-session",
-    "label": "Доступ в лабораторию",
+    "label": "Доступ к проектной работе",
     "conditions": {
       "valid": {
         "state": "ready",
-        "summary": "Доступ есть, можно решать задачи",
-        "detail": "Заходите на страницу лаборатории — [там-то вас задачи и ждут](/lab). И информация о вашем прогрессе тоже."
+        "summary": "Доступ есть, можно работать над проектами",
+        "detail": "Заходите на страницу [проектов](/projects): там запускается project workflow, собирается история работы и продолжается дизайн прямо в коде."
       },
       "expired": {
         "state": "warning",
         "summary": "Сейчас доступа нет — видимо, срок истёк",
-        "detail": "Чтобы войти в лабораторию, введите email ещё в поле справа."
+        "detail": "Чтобы снова открыть проекты и workflow, введите email ещё в поле справа."
       },
       "missingConfigured": {
         "state": "blocked",
         "summary": "Пока доступа нет",
-        "detail": "Чтобы войти в лабораторию, введите email в поле справа."
+        "detail": "Чтобы открыть проекты и workflow, введите email в поле справа."
       },
       "missingUnconfigured": {
         "state": "blocked",
@@ -27,11 +27,11 @@
     "instructions": {
       "expired": {
         "actor": "user",
-        "text": "Предыдущий допуск истёк. Повторно введите email в поле справа, чтобы открыть задачи и рабочую часть лаборатории."
+        "text": "Предыдущий допуск истёк. Повторно введите email в поле справа, чтобы открыть проекты и рабочую часть продукта."
       },
       "missingConfigured": {
         "actor": "user",
-        "text": "Введите email в поле справа, чтобы открыть задачи и рабочую часть лаборатории."
+        "text": "Введите email в поле справа, чтобы открыть проекты и рабочую часть продукта."
       }
     }
   },
@@ -179,7 +179,7 @@
     "instructions": {
       "missing": {
         "actor": "admin",
-        "text": "Задайте `ALLOWLIST_BASE_URL` и `ALLOWLIST_SALT`, чтобы пользователи могли получить допуск в лабораторию."
+        "text": "Задайте `ALLOWLIST_BASE_URL` и `ALLOWLIST_SALT`, чтобы пользователи могли получить доступ к проектной работе."
       }
     }
   },
@@ -234,59 +234,6 @@
       "unavailable": {
         "actor": "admin",
         "text": "Проверьте доступность удалённого allowlist-хранилища и корректность `ALLOWLIST_BASE_URL`."
-      }
-    }
-  },
-  {
-    "id": "onboarding-config",
-    "label": "Хранилище задач",
-    "conditions": {
-      "ready": {
-        "state": "ready",
-        "summary": "Адрес хранилища задач задан",
-        "detail": "Используется значение `ONBOARDING_REPO_URL`: {{repoUrl}}."
-      },
-      "missing": {
-        "state": "blocked",
-        "summary": "Адрес хранилища задач не задан",
-        "detail": "Добавьте `ONBOARDING_REPO_URL` в `desengine.config.txt`, чтобы система знала, где брать задачи и описания уровней."
-      }
-    },
-    "instructions": {
-      "missing": {
-        "actor": "admin",
-        "text": "Добавьте `ONBOARDING_REPO_URL` в `desengine.config.txt`, чтобы система знала, где брать задачи и описания уровней."
-      }
-    }
-  },
-  {
-    "id": "onboarding-content",
-    "label": "Актуальность набора задач",
-    "conditions": {
-      "synced": {
-        "state": "ready",
-        "summary": "{{summary}}",
-        "detail": "{{detail}}{{legacyPathsText}}"
-      },
-      "missing": {
-        "state": "blocked",
-        "summary": "{{summary}}",
-        "detail": "{{detail}}{{legacyPathsText}}"
-      },
-      "unconfirmed": {
-        "state": "warning",
-        "summary": "{{summary}}",
-        "detail": "{{detail}}{{legacyPathsText}}"
-      }
-    },
-    "instructions": {
-      "missing": {
-        "actor": "admin",
-        "text": "{{syncInstruction}}"
-      },
-      "unconfirmed": {
-        "actor": "admin",
-        "text": "{{syncInstruction}}"
       }
     }
   }

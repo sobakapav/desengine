@@ -4,16 +4,6 @@
 // @openSpec  - "Читатель открывает `tools/README.md` или admin-раздел root-документации"
 // @openSpec  - "Разработчик запускает unit-проект Vitest"
 // @openSpec  - "Разработчик добавляет новый модуль в `lib`"
-// @openSpec capability: external-local-onboarding
-// @openSpec scenarios:
-// @openSpec  - "Пользователь открывает шаблон конфигурации"
-// @openSpec  - "Пользователь проходит новую установку по шаблонной конфигурации"
-// @openSpec  - "Команда перепроверяет документацию локального запуска"
-// @openSpec  - "Читатель открывает инструкцию первого запуска"
-// @openSpec  - "Читателю нужны подробности по частной теме"
-// @openSpec capability: onboarding-repo
-// @openSpec scenarios:
-// @openSpec  - "Пользователь хочет повторно обновить onboarding-контент"
 // @openSpec capability: navigation
 // @openSpec scenarios:
 // @openSpec  - "Пользователь открывает product-shell страницу"
@@ -52,8 +42,6 @@ describe("P2 source contracts", () => {
     const commands = [
       "npm run smoke",
       "npm run allowlist:marker -- user@example.com",
-      "npm run admin:tasks:configs",
-      "npm run admin:tasks:import -- --variants-root=... --base-root=...",
     ]
 
     for (const command of commands) {
@@ -125,62 +113,26 @@ describe("P2 source contracts", () => {
     expect(fs.existsSync(projectPath("lib", "prompts.server.ts"))).toBe(false)
   })
 
-  it("шаблон локальной конфигурации первым шагом объясняет переименование и задаёт ONBOARDING_REPO_URL", () => {
+  it("шаблон локальной конфигурации первым шагом объясняет переименование", () => {
     const template = readProjectFile("desengine.config-example.txt")
     const lines = template.split(/\r?\n/)
 
     expect(lines[0]).toContain("Переименуйте этот файл в desengine.config.txt")
-    expect(template).toContain("ONBOARDING_REPO_URL=https://github.com/sobakapav/desengine-onboarding.git")
   })
 
-  it("официальный smoke-flow подтягивает onboarding из ONBOARDING_REPO_URL перед готовностью установки", () => {
+  it("официальный smoke-flow проверяет конфиг, доступ и production build", () => {
     const install = readProjectFile("INSTALL.md")
     const smoke = readProjectFile("tools", "smoke-local-install.mjs")
-    const repair = readProjectFile("tools", "repair-onboarding.mjs")
 
     expect(install).toContain("npm run smoke")
-    expect(smoke).toContain("ensureOnboardingReady")
-    expect(smoke).toContain("ONBOARDING_REPO_URL")
-    expect(smoke).toContain("repairToolPath")
-    expect(repair).toContain("process.env.ONBOARDING_REPO_URL")
-    expect(repair).toContain('["clone", "--depth", "1", repoUrl, checkoutDir]')
-    expect(repair).toContain("validateOnboardingLayout(checkoutDir)")
-    expect(repair).toContain('error.code === "EXDEV"')
-    expect(repair).toContain("fs.promises.cp(sourcePath, targetPath")
-    expect(repair).toContain("repoUrl, syncedAt")
-  })
-
-  it("smoke и repair разделяют канонический onboarding prompt contract с runtime", () => {
-    const runtime = readProjectFile("lib", "onboarding", "server.ts")
-    const smoke = readProjectFile("tools", "smoke-local-install", "onboarding.mjs")
-    const repair = readProjectFile("tools", "repair-onboarding.mjs")
-
-    expect(runtime).toContain('path.join(promptsRoot, "default.njk")')
-    expect(smoke).toContain('canonicalDefaultPromptFileName = "default.njk"')
-    expect(repair).toContain('canonicalDefaultPromptFileName = "default.njk"')
-    expect(smoke).toContain("defaultPromptPath")
-    expect(repair).toContain("defaultPromptPath")
-    expect(smoke).not.toContain("default.md")
-    expect(repair).not.toContain("default.md")
-  })
-
-  it("repair-onboarding остаётся import-safe для unit guardrails и не запускает sync вне CLI entrypoint", () => {
-    const smoke = readProjectFile("tools", "smoke-local-install", "onboarding.mjs")
-    const repair = readProjectFile("tools", "repair-onboarding.mjs")
-
-    expect(smoke).toContain("export async function validateOnboardingLayout")
-    expect(smoke).toContain("export async function inspectOnboardingState")
-    expect(repair).toContain("export async function validateOnboardingLayout")
-    expect(repair).toContain("export async function main()")
-    expect(repair).toContain("const isCliEntrypoint")
-    expect(repair).toContain("if (isCliEntrypoint)")
-    expect(repair).toContain("await main().catch")
+    expect(smoke).toContain("createLlmChecks")
+    expect(smoke).toContain("createAllowlistCheck")
+    expect(smoke).toContain("runBuildCheck")
   })
 
   it("install-tools используют канонический модуль локального конфига без legacy-import пути", () => {
     const toolFiles = [
       readProjectFile("tools", "smoke-local-install.mjs"),
-      readProjectFile("tools", "repair-onboarding.mjs"),
       readProjectFile("tools", "generate-allowlist-marker.mjs"),
     ]
 
@@ -190,13 +142,11 @@ describe("P2 source contracts", () => {
     }
   })
 
-  it("локальная документация согласована по config, onboarding, routes и allowlist-flow", () => {
-    const docs = readDocs("README.md", "INSTALL.md", "UPDATE.md", "docs/onboarding.md")
+  it("локальная документация согласована по config, routes и allowlist-flow", () => {
+    const docs = readDocs("README.md", "INSTALL.md", "UPDATE.md")
 
     for (const { fileName, source } of docs) {
       expect(source, fileName).toContain("desengine.config.txt")
-      expect(source, fileName).toContain("ONBOARDING_REPO_URL")
-      expect(source, fileName).toContain("/onboarding")
       expect(source, fileName).toContain("/system")
     }
 
@@ -207,13 +157,11 @@ describe("P2 source contracts", () => {
   it("инструкции первого запуска разделяют роли пользователя и администратора", () => {
     const readme = readProjectFile("README.md")
     const install = readProjectFile("INSTALL.md")
-    const onboardingDocs = readProjectFile("docs", "onboarding.md")
 
     expect(readme).toContain("Пользовательский контур")
     expect(readme).toContain("Административный контур")
     expect(install).toContain("Администратор")
     expect(install).toContain("Пользователь")
-    expect(onboardingDocs).toContain("Пользователю этот документ обычно не нужен")
   })
 
   it("root-документы ведут к профильным документам вместо полного дублирования частных тем", () => {
@@ -222,7 +170,6 @@ describe("P2 source contracts", () => {
 
     for (const docPath of [
       "docs/access-control.md",
-      "docs/onboarding.md",
       "docs/openai.md",
       "docs/deepseek.md",
       "docs/gemini.md",
@@ -233,7 +180,6 @@ describe("P2 source contracts", () => {
     }
 
     expect(install).toContain("docs/access-control.md")
-    expect(install).toContain("docs/onboarding.md")
     expect(install).toContain("docs/platform-notes.md")
   })
 
@@ -250,28 +196,13 @@ describe("P2 source contracts", () => {
     expect(deepseekDocs).not.toContain("Текстовый контекст задачи и ограничения по JSON-ответу при этом сохраняются")
   })
 
-  it("страница /system предоставляет ручное обновление onboarding через API синхронизации", () => {
-    const systemPage = readProjectFile("app", "system", "page.tsx")
-    const remediationControl = readProjectFile("components", "desengine", "system", "ResourceRemediationControl.tsx")
-    const card = readProjectFile("components", "desengine", "system", "OnboardingUpdateCard.tsx")
-    const route = readProjectFile("app", "api", "onboarding", "update", "route.ts")
-
-    expect(systemPage).toContain("SystemScreen")
-    expect(remediationControl).toContain("OnboardingUpdateCard")
-    expect(card).toContain("Обновить onboarding")
-    expect(card).toContain('fetch("/api/onboarding/update"')
-    expect(card).toContain("ONBOARDING_REPO_URL")
-    expect(route).toContain("updateOnboardingFromConfig")
-  })
-
   it("product-shell страницы получают общий Navigation из root layout", () => {
     const layout = readProjectFile("app", "layout.tsx")
 
     expect(layout).toContain('import { Navigation } from "@/components/desengine/system/Navigation"')
     expect(layout).toContain("<Navigation />")
     expect(fs.existsSync(projectPath("app", "page.tsx"))).toBe(true)
-    expect(fs.existsSync(projectPath("app", "tasks", "page.tsx"))).toBe(true)
-    expect(fs.existsSync(projectPath("app", "levels", "page.tsx"))).toBe(true)
+    expect(fs.existsSync(projectPath("app", "projects", "page.tsx"))).toBe(true)
     expect(fs.existsSync(projectPath("app", "auth", "page.tsx"))).toBe(true)
     expect(fs.existsSync(projectPath("app", "system", "page.tsx"))).toBe(true)
     expect(fs.existsSync(projectPath("app", "help", "page.tsx"))).toBe(true)
@@ -290,25 +221,15 @@ describe("P2 source contracts", () => {
     const navigationHelpers = readProjectFile("lib", "system", "navigation.ts")
     const navigation = readProjectFile("components", "desengine", "system", "Navigation.tsx")
 
-    expect(readProjectFile("lib", "task", "navigation.ts")).toContain("/tasks")
-    expect(readProjectFile("lib", "level", "navigation.ts")).toContain("/levels")
     expect(readProjectFile("lib", "auth", "navigation.ts")).toContain("/auth")
     expect(navigationHelpers).toContain("/system")
+    expect(readProjectFile("lib", "project", "navigation.ts")).toContain("/projects")
     expect(readProjectFile("lib", "help", "navigation.ts")).toContain("/help")
 
     expect(navigation).toContain('href: "/"')
-    expect(navigation).toContain("getLevelsRootUrl()")
+    expect(navigation).toContain("getProjectsRootUrl()")
     expect(navigation).toContain("getSystemUrl()")
     expect(navigation).toContain("getHelpRootUrl()")
-  })
-
-  it("динамический render-островок лаборатории изолирован локальным boundary/fallback", () => {
-    const outRender = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "OutRender.tsx")
-    const previewPayload = readProjectFile("components", "desengine", "lab", "InOut", "OutRender", "preview-payload.ts")
-
-    expect(outRender).toContain("PreviewErrorNotice")
-    expect(previewPayload).toContain("Ошибка загрузки превью")
-    expect(previewPayload).toContain("setPreviewPayload(null);")
   })
 
   it("простой статический Navigation не требует механического boundary", () => {

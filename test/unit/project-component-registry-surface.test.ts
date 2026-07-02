@@ -4,7 +4,7 @@
 // @openSpec  - "Пользователь видит список компонентов проекта"
 // @openSpec  - "Пользователь создаёт компонент внутри проекта"
 // @openSpec  - "Пользователь делает компонент текущим фокусом проекта"
-// @openSpec  - "Компонент не открывает отдельную task-сессию"
+// @openSpec  - "Компонент не открывает отдельную runtime-сессию"
 // @openSpec  - "Пользователь видит положение компонента внутри project-workflow"
 // @openSpec capability: workflow
 // @openSpec scenarios:
@@ -20,7 +20,7 @@ import {
   buildProjectComponentSurfaceModel,
   buildProjectSurfaceModel,
 } from "../../components/desengine/project/projectSurface"
-import { resolveProjectComponentTaskId } from "../../components/desengine/project/projectComponentWorkflow"
+import { resolveProjectComponentWorkflowSessionId } from "../../components/desengine/project/projectComponentWorkflow"
 import { createMemoryProjectComponentStorage } from "../../lib/project/component-storage"
 import { normalizeProjectComponent } from "../../lib/project/component-runtime"
 import { normalizeProject } from "../../lib/project/runtime"
@@ -62,7 +62,6 @@ describe("project component registry surface", () => {
       id: "component-card",
       projectId: "project-a",
       title: "Product card",
-      taskId: "task-1",
       workflowKind: "image-to-component-workflow",
       status: "in_progress",
       createdAt: "2026-06-17T09:10:00.000Z",
@@ -91,62 +90,61 @@ describe("project component registry surface", () => {
     })
   })
 
-  it("использует внутренний workflow-template, если у компонента ещё нет legacy taskId", () => {
+  it("использует project workflow как каноническую сессию компонента", () => {
     const component = normalizeProjectComponent({
       id: "component-b",
       projectId: "project-a",
       title: "Card B",
     })
 
-    expect(resolveProjectComponentTaskId({
+    expect(resolveProjectComponentWorkflowSessionId({
       component,
-      workflowTaskCatalog: [
-        { taskId: "easy-buy-app-badge", taskTitle: "Task 1" },
-        { taskId: "task-secondary", taskTitle: "Task 2" },
+      workflowSessionCatalog: [
+        { sessionId: "easy-buy-app-badge", sessionTitle: "Workflow 1" },
+        { sessionId: "workflow-secondary", sessionTitle: "Workflow 2" },
       ],
-    })).toBe("component-workflow")
+    })).toBeNull()
   })
 
-  it("не подбирает runtime-task по projectId или title компонента", () => {
+  it("не подбирает legacy runtime по projectId или title компонента", () => {
     const component = normalizeProjectComponent({
       id: "component-b",
       projectId: "ot-vinta-tab",
       title: "oncor-row",
     })
 
-    expect(resolveProjectComponentTaskId({
+    expect(resolveProjectComponentWorkflowSessionId({
       component,
-      workflowTaskCatalog: [
-        { taskId: "oncor-row", taskTitle: "oncor-row" },
-        { taskId: "otvinta-tab", taskTitle: "otvinta-tab" },
-        { taskId: "easy-buy-app-badge", taskTitle: "easy-buy-app-badge" },
+      workflowSessionCatalog: [
+        { sessionId: "oncor-row", sessionTitle: "oncor-row" },
+        { sessionId: "otvinta-tab", sessionTitle: "otvinta-tab" },
+        { sessionId: "easy-buy-app-badge", sessionTitle: "easy-buy-app-badge" },
       ],
-    })).toBe("component-workflow")
+    })).toBeNull()
   })
 
-  it("переходит к каноническому workflow-template, если прямого совпадения нет", () => {
+  it("не подбирает workflow по косвенному совпадению каталога", () => {
     const component = normalizeProjectComponent({
       id: "component-b",
       projectId: "project-a",
       title: "Card B",
     })
 
-    expect(resolveProjectComponentTaskId({
+    expect(resolveProjectComponentWorkflowSessionId({
       component,
-      workflowTaskCatalog: [
-        { taskId: "easy-buy-app-badge", taskTitle: "easy-buy-app-badge" },
-        { taskId: "task-secondary", taskTitle: "Task 2" },
+      workflowSessionCatalog: [
+        { sessionId: "easy-buy-app-badge", sessionTitle: "easy-buy-app-badge" },
+        { sessionId: "workflow-secondary", sessionTitle: "Workflow 2" },
       ],
-    })).toBe("component-workflow")
+    })).toBeNull()
   })
 
-  it("не наследует runtime-task другого компонента проекта", () => {
+  it("не наследует runtime slot другого компонента проекта", () => {
     const components = [
       normalizeProjectComponent({
         id: "component-a",
         projectId: "project-a",
         title: "Primary card",
-        taskId: "dipole-button",
       }),
       normalizeProjectComponent({
         id: "component-b",
@@ -155,30 +153,29 @@ describe("project component registry surface", () => {
       }),
     ]
 
-    expect(resolveProjectComponentTaskId({
+    expect(resolveProjectComponentWorkflowSessionId({
       component: components[1],
-      workflowTaskCatalog: [
-        { taskId: "dipole-button", taskTitle: "dipole-button" },
-        { taskId: "easy-buy-app-badge", taskTitle: "easy-buy-app-badge" },
+      workflowSessionCatalog: [
+        { sessionId: "dipole-button", sessionTitle: "dipole-button" },
+        { sessionId: "easy-buy-app-badge", sessionTitle: "easy-buy-app-badge" },
       ],
-    })).toBe("component-workflow")
+    })).toBeNull()
   })
 
-  it("переиспользует уже назначенный backing task для повторного входа в workflow", () => {
+  it("не хранит отдельный backing runtime для повторного входа в workflow", () => {
     const component = normalizeProjectComponent({
       id: "component-a",
       projectId: "project-a",
       title: "Card A",
-      taskId: "task-stable",
     })
 
-    expect(resolveProjectComponentTaskId({
+    expect(resolveProjectComponentWorkflowSessionId({
       component,
-      workflowTaskCatalog: [
-        { taskId: "task-stable", taskTitle: "Task Stable" },
-        { taskId: "task-other", taskTitle: "Task Other" },
+      workflowSessionCatalog: [
+        { sessionId: "project-workflow", sessionTitle: "Project Workflow" },
+        { sessionId: "workflow-other", sessionTitle: "Workflow Other" },
       ],
-    })).toBe("task-stable")
+    })).toBe("project-workflow")
   })
 
   it("хранит project-scoped компоненты отдельно по projectId", async () => {
@@ -219,7 +216,7 @@ describe("project component registry surface", () => {
     expect(componentsPanel).toContain("Добавить компонент")
     expect(componentsPanel).toContain("Компоненты проекта")
     expect(componentsPanel).toContain("ComponentCounters")
-    expect(componentsPanel).toContain("Компоненты больше не запускают отдельные task-runtime")
+    expect(componentsPanel).toContain("Компоненты больше не запускают отдельные runtime-сессии")
     expect(componentsPanel).toContain("Всего компонентов")
     expect(componentsPanel).toContain("Теперь его можно сделать явным фокусом всей работы")
     expect(componentsPanelContent).toContain("Сделать фокусом проекта")

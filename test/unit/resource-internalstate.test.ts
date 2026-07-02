@@ -10,16 +10,13 @@ const mocks = vi.hoisted(() => ({
   addAccessAndReleaseResources: vi.fn(),
   addAllowlistResources: vi.fn(),
   addLlmResources: vi.fn(),
-  addOnboardingResources: vi.fn(),
   createResourceCollector: vi.fn(),
   getAccessControlConfig: vi.fn(),
   getAccessSessionState: vi.fn(),
   getLlmStatus: vi.fn(),
   getLocalConfigState: vi.fn(),
-  getOnboardingSyncStatus: vi.fn(),
   getSystemReleaseStatus: vi.fn(),
   loadLocalConfig: vi.fn(),
-  updateOnboardingFromConfig: vi.fn(),
 }))
 
 vi.mock("@/lib/auth/server", () => ({
@@ -31,14 +28,6 @@ vi.mock("@/lib/llm/server", () => ({
   getLlmStatus: mocks.getLlmStatus,
 }))
 
-vi.mock("@/lib/onboarding/server", () => ({
-  getOnboardingSyncStatus: mocks.getOnboardingSyncStatus,
-}))
-
-vi.mock("@/lib/onboarding/update", () => ({
-  updateOnboardingFromConfig: mocks.updateOnboardingFromConfig,
-}))
-
 vi.mock("@/lib/system/release", () => ({
   getSystemReleaseStatus: mocks.getSystemReleaseStatus,
 }))
@@ -47,7 +36,6 @@ vi.mock("@/lib/system/resources/internalstate-sections", () => ({
   addAccessAndReleaseResources: mocks.addAccessAndReleaseResources,
   addAllowlistResources: mocks.addAllowlistResources,
   addLlmResources: mocks.addLlmResources,
-  addOnboardingResources: mocks.addOnboardingResources,
   createResourceCollector: mocks.createResourceCollector,
 }))
 
@@ -85,12 +73,6 @@ describe("resource internalstate", () => {
       baseUrl: "https://allowlist.example",
       isConfigured: true,
       salt: "salt",
-    })
-    mocks.getOnboardingSyncStatus.mockResolvedValue({
-      state: "confirmed",
-      detail: "ok",
-      summary: "ok",
-      legacyPaths: [],
     })
     mocks.getSystemReleaseStatus.mockResolvedValue({
       branch: "main",
@@ -150,7 +132,6 @@ describe("resource internalstate", () => {
       allowlistConfigured: true,
       authState: "missing",
       hasAccess: false,
-      onboardingSyncState: "confirmed",
       readyForProtectedLab: false,
     })
   })

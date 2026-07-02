@@ -4,6 +4,7 @@
 // @openSpec  - "Пользователь открывает список проектов"
 // @openSpec  - "Пользователь создаёт новый проект из project registry"
 // @openSpec  - "Пользователь открывает страницу конкретного проекта"
+// @openSpec  - "Страница проекта выделяет один главный следующий шаг"
 
 import fs from "node:fs"
 import path from "node:path"
@@ -74,6 +75,8 @@ describe("project user surface foundation", () => {
     const projectPage = readProjectFile("app", "projects", "[projectId]", "page.tsx")
     const projectsScreen = readProjectFile("components", "desengine", "project", "ProjectsScreen.tsx")
     const projectOverview = readProjectFile("components", "desengine", "project", "ProjectOverviewScreen.tsx")
+    const projectPrimaryFlow = readProjectFile("components", "desengine", "project", "ProjectOverviewPrimaryFlow.tsx")
+    const projectSupportPanels = readProjectFile("components", "desengine", "project", "ProjectOverviewSupportPanels.tsx")
     const projectWorkspacePanel = readProjectFile("components", "desengine", "project", "ProjectWorkspacePanel.tsx")
     const projectRegistryHook = readProjectFile("components", "desengine", "project", "useProjectRegistry.ts")
     const projectOverviewHook = readProjectFile("components", "desengine", "project", "useProjectOverview.ts")
@@ -93,12 +96,16 @@ describe("project user surface foundation", () => {
     expect(projectsScreen).toContain("локально в браузере")
     expect(projectsScreen).toContain("Открыть проект")
     expect(projectsScreen).toContain("Следующий шаг")
-    expect(projectOverview).toContain("Идентификатор проекта")
-    expect(projectOverview).toContain("Хранение")
     expect(projectOverview).not.toContain("ProjectArchitectureTransformPanel")
-    expect(projectOverview).toContain("Все проекты")
+    expect(projectOverview).toContain("ProjectOverviewPrimaryFlow")
+    expect(projectOverview).toContain("ProjectOverviewSupportPanels")
     expect(projectWorkspacePanel).toContain("Работа над проектом")
-    expect(projectOverview).toContain("Сделайте один из компонентов текущим фокусом проекта")
+    expect(projectPrimaryFlow).toContain("Сейчас важно")
+    expect(projectPrimaryFlow).toContain("Добавьте первый компонент")
+    expect(projectPrimaryFlow).toContain("Сделать фокусом проекта")
+    expect(projectSupportPanels).toContain("Поддерживающий слой проекта")
+    expect(projectSupportPanels).toContain("Паспорт проекта")
+    expect(projectSupportPanels).toContain("Идентификатор проекта")
     expect(projectRegistryHook).toContain("createBrowserProjectStorage")
     expect(projectOverviewHook).toContain("createBrowserProjectStorage")
   })

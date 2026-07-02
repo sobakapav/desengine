@@ -2,14 +2,12 @@
 
 import Link from "next/link"
 
-import { getLevelsRootUrl } from "@/lib/level/navigation"
 import { getProjectsRootUrl } from "@/lib/project/navigation"
 import { getSystemUrl } from "@/lib/system/navigation"
 import { getHelpRootUrl } from "@/lib/help/navigation"
 
 const navigationLinks = [
   { href: "/", label: "desengine" },
-  { href: getLevelsRootUrl(), label: "уровни" },
   { href: getProjectsRootUrl(), label: "проекты" },
   { href: getSystemUrl(), label: "система" },
   { href: getHelpRootUrl(), label: "справка" },

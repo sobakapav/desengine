@@ -37,5 +37,4 @@ Text-only запросы допустимы только для сценарие
 Для recovery path оператору нужно либо выбрать провайдера с vision-поддержкой, либо не запускать сценарий, которому нужны изображения.
 
 Для доступа по email см. [access-control.md](./access-control.md).
-Для onboarding-источника и ручного обновления см. [onboarding.md](./onboarding.md).
 Админские команды сопровождения и smoke-check собраны в [tools/README.md](../tools/README.md).

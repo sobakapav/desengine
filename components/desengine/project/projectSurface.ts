@@ -1,4 +1,4 @@
-import { sandpackUiKitsConfig } from "@/lib/lab/sandpack-ui-kits.config"
+import { projectUiKitsConfig } from "@/lib/project/ui-kit-config"
 import type { ProjectWorkspace } from "@/lib/project/runtime"
 import { PROJECT_STORAGE_LABEL } from "./projectStorageLabels"
 import {
@@ -17,18 +17,18 @@ import {
 } from "./projectSurfaceRuntime"
 
 function resolveProjectUiKitTitle(project: ProjectWorkspace) {
-  return sandpackUiKitsConfig[project.settings.uiKitId].title
+  return projectUiKitsConfig[project.settings.uiKitId].title
 }
 
 function listProjectUiKitOptions(): ProjectUiKitOption[] {
-  return Object.values(sandpackUiKitsConfig).map((kit) => ({
+  return Object.values(projectUiKitsConfig).map((kit) => ({
     id: kit.id,
     title: kit.title,
   }))
 }
 
 function buildProjectConfigContractModel(project: ProjectWorkspace): ProjectConfigContractModel {
-  const selectedUiKit = sandpackUiKitsConfig[project.settings.uiKitId]
+  const selectedUiKit = projectUiKitsConfig[project.settings.uiKitId]
 
   return {
     selectedUiKitId: selectedUiKit.id,

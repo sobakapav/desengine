@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Зафиксировать требования к подключению LLM в `lab`: система работает через выбранный провайдер, не раскрывает секреты и различает учебные индикаторы стоимости и реальные метрики провайдера.
+Зафиксировать требования к подключению LLM в project/workflow продукте: система работает через выбранный провайдер, не раскрывает секреты и различает учебные индикаторы стоимости и реальные метрики провайдера.
 
 ## Requirements
 
@@ -47,15 +47,15 @@
 
 ### Requirement: LLM-настройки задаются через локальные переменные окружения
 
-Система SHALL хранить рабочие LLM-настройки лаборатории в локальных переменных окружения, а не в пользовательских данных задач.
+Система SHALL хранить рабочие LLM-настройки продукта в локальных переменных окружения, а не в пользовательских данных проекта.
 
-Система SHALL использовать одну и ту же модель для инициирующего запуска уровня и для обычных уточняющих запросов.
+Система SHALL использовать одну и ту же модель для инициирующего запуска workflow step и для обычных уточняющих запросов.
 Система SHALL брать имя модели только из `desengine.config.txt` или эквивалентных env vars процесса, а не из `desengine.config.json`.
 Система SHALL брать `base URL` активного провайдера только из локального env-конфига (`<PROVIDER>_BASE_URL`) без скрытых hardcoded endpoint fallback внутри адаптера.
 Система SHALL показывать диагностические тексты LLM-ресурсов из конфигурации системных ресурсов, а не из кода диагностики.
 
-#### Scenario: Пользователь меняет модель для лаборатории
-- **WHEN** пользователь перенастраивает LLM для лаборатории
+#### Scenario: Пользователь меняет модель для workflow
+- **WHEN** пользователь перенастраивает LLM для workflow
 - **THEN** он делает это через `desengine.config.txt` или эквивалентные env vars процесса
 - **AND** новая настройка одинаково влияет и на `start`, и на `iterate`
 
@@ -92,71 +92,26 @@ Start, iterate и check LLM flows SHALL строить PromptContext через 
 #### Scenario: Система выполняет start
 - **WHEN** система формирует инициирующий LLM-запрос
 - **THEN** она включает общий базовый prompt `default`
-- **AND** использует PromptContext с project, task, workflow step, artifacts, workbench, constraints и provider capabilities
+- **AND** использует PromptContext с project, component, workflow step, artifacts, constraints и provider capabilities
 
 #### Scenario: Система выполняет iterate
 - **WHEN** система формирует уточняющий LLM-запрос
 - **THEN** она включает общий базовый prompt `default`
 - **AND** использует PromptContext с userText текущего уточнения
 
-#### Scenario: В каталоге лаборатории остался legacy-конфиг
-- **WHEN** рядом с лабораторией остаётся `.env.local`
+#### Scenario: В рабочем каталоге остался legacy-конфиг
+- **WHEN** рядом с продуктом остаётся `.env.local`
 - **THEN** система явно предупреждает, что канонический локальный конфиг лежит в `desengine.config.txt`
 - **AND** пользователь получает инструкцию убрать legacy-файл, чтобы настройки не были двусмысленными
 
 ### Requirement: Базовый prompt не обещает неподдерживаемый preview runtime
 
-Система SHALL рекомендовать в общем onboarding prompt только те компоненты и импорты, которые текущий preview/runtime может исполнить без дополнительного framework- или router-окружения.
+Система SHALL рекомендовать в базовом production prompt только те компоненты и импорты, которые текущий preview/runtime может исполнить без дополнительного framework- или router-окружения.
 
 #### Scenario: Базовый prompt описывает безопасный путь для preview по умолчанию
-- **WHEN** система рендерит общий prompt `default` для task/lab flow
+- **WHEN** система рендерит общий prompt `default`
 - **THEN** guidance рекомендует React-примитивы, существующие локальные UI-компоненты и стандартные HTML-теги как fallback
 - **AND** не описывает неподдерживаемые framework/router-компоненты как безопасный путь по умолчанию
-
-### Requirement: Level-specific prompts читаются из скрытого onboarding prompt-слоя
-
-Система SHALL читать level-specific prompts класса `start`, `iterate` и `check` из скрытого onboarding prompt-слоя.
-Формат шаблонов — `.njk` (Nunjucks). Для обратной совместимости onboarding-контента runtime MAY поддерживать legacy `.md` как fallback, если `.njk` отсутствует.
-
-#### Scenario: Система выполняет start для уровня
-- **WHEN** runtime подбирает start prompt уровня
-- **THEN** он читает `onboarding/prompts/levels/<levelId>/start.njk`
-
-#### Scenario: Система выполняет iterate prompt lookup для уровня
-- **WHEN** runtime подбирает iterate prompt уровня
-- **THEN** он читает `onboarding/prompts/levels/<levelId>/iterate.njk`
-
-#### Scenario: Система выполняет checking prompt lookup для уровня
-- **WHEN** runtime подбирает hidden prompt проверки уровня
-- **THEN** он ищет `onboarding/prompts/levels/<levelId>/check.njk`
-- **AND** если файл существует, включает его содержимое в checking instruction
-- **AND** передаёт hidden prompt template совместимый `PromptContext.renderContext`
-
-#### Scenario: Hidden check получает task-specific contract
-- **WHEN** runtime подбирает hidden prompt проверки уровня
-- **AND** у текущей task/level комбинации есть task-specific contract проверки
-- **THEN** checking instruction включает этот contract как отдельную hidden-check секцию
-- **AND** contract участвует в оценке наравне с level-specific hidden prompt и изображениями уровня
-
-#### Scenario: Task-specific contract имеет приоритет над общим tip
-- **WHEN** hidden check получает и task-specific contract, и общий task tip
-- **THEN** runtime трактует task-specific contract как более строгий источник hidden-check требований
-- **AND** не позволяет общему tip ослабить или переопределить этот contract
-
-#### Scenario: Hidden prompt проверки уровня отсутствует
-- **WHEN** runtime подбирает hidden prompt проверки уровня
-- **AND** `onboarding/prompts/levels/<levelId>/check.njk` отсутствует
-- **THEN** runtime использует пустой level-specific checking prompt
-- **AND** не считает отсутствие файла технической ошибкой проверки
-
-### Requirement: LLM-контур не требует level promptKey
-
-Система SHALL определять level-specific prompts по `levelId` без отдельного `promptKey` в открытом конфиге уровня.
-
-#### Scenario: Runtime знает идентификатор уровня
-- **WHEN** системе известен `levelId`
-- **THEN** этого достаточно для поиска hidden level prompts
-- **AND** дополнительный `promptKey` не требуется
 
 ### Requirement: Ключ не попадает в репозиторий и пользовательские ошибки
 

@@ -1,5 +1,4 @@
 import type { AuthState } from "@/lib/auth/types"
-import type { OnboardingSyncState } from "@/lib/onboarding/status"
 import type { SystemReleaseStatus } from "@/lib/system/release"
 import type { ResourceRemediationControl } from "@/lib/system/types"
 
@@ -13,23 +12,6 @@ function getAccessSessionRemediationControl(params: {
 
   return {
     kind: "auth-form",
-  }
-}
-
-function getOnboardingContentRemediationControl(params: {
-  detail: string
-  repoConfigured: boolean
-  syncState: OnboardingSyncState
-}): ResourceRemediationControl | undefined {
-  if (params.syncState === "synced" || !params.repoConfigured) {
-    return undefined
-  }
-
-  return {
-    kind: "onboarding-update",
-    canUpdate: true,
-    detail: params.detail,
-    syncState: params.syncState,
   }
 }
 
@@ -51,6 +33,5 @@ function getSystemReleaseRemediationControl(
 
 export {
   getAccessSessionRemediationControl,
-  getOnboardingContentRemediationControl,
   getSystemReleaseRemediationControl,
 }

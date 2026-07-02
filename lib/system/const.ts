@@ -26,8 +26,6 @@ const RESOURCE_IDS = [
   "allowlist-network",
   "access-session",
   "system-release",
-  "onboarding-config",
-  "onboarding-content",
 ] as const
 
 /** Роли пользователей в системе */

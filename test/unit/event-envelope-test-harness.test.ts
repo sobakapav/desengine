@@ -32,30 +32,15 @@ describe("event envelope foundation harness", () => {
     expect(source).toContain("assertEventEnvelope")
     expect(source).toContain("validateEventEnvelope")
     expect(source).toContain("createProjectEventScope")
-    expect(source).toContain("createTaskEventScope")
     expect(source).toContain("createWorkflowStepEventScope")
     expect(source).toContain("createWorkbenchInstanceEventScope")
   })
 
   it("требует использовать foundation contract вместо локальных ad-hoc event shape", () => {
     const runtimeBoundaryTest = readProjectFile("test", "unit", "project-event-log-runtime-boundary.test.ts")
-    const propagationTest = readProjectFile("test", "unit", "lab-screen-event-propagation.test.ts")
-    const screenEventSource = readProjectFile(
-      "components",
-      "desengine",
-      "lab",
-      "LabScreen",
-      "screen-event.ts",
-    )
 
     expect(runtimeBoundaryTest).toContain('from "@/lib/system/events"')
     expect(runtimeBoundaryTest).not.toContain('from "@/lib/system/events/envelope"')
-
-    expect(propagationTest).toContain('from "../../components/desengine/lab/LabScreen/screen-event"')
-    expect(screenEventSource).toContain('type EventEnvelope')
-    expect(screenEventSource).toContain("createWorkflowStepEventScope")
-    expect(screenEventSource).toContain('family: "experience"')
-    expect(screenEventSource).not.toContain('kind: "workflow-step"')
   })
 
   it("оставляет service-level log boundary проверяемой без storage и producer wiring", () => {

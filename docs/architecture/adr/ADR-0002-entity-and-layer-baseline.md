@@ -8,9 +8,9 @@
 
 Producer и dispatcher уже зафиксировали несколько важных архитектурных тезисов:
 
-- текущий lab должен эволюционировать в project-scoped workspace;
+- project workspace является основной продуктовой поверхностью;
 - важные сущности должны иметь явное место в коде;
-- `Project`, `Task`, `Workflow`, `Workbench` и `Artifact` не должны оформляться как параллельные и несовместимые модели;
+- `Project`, `ProjectComponent`, `Workflow` и `Artifact` не должны оформляться как параллельные и несовместимые модели;
 - сквозные сущности `код`, `LLM`, `бюджет` и `дизайн` нельзя терять в случайном именовании.
 
 До этого change эти правила были размазаны по roadmap, design и архивным материалам. Для downstream implementation wave этого недостаточно.
@@ -22,20 +22,16 @@ Producer и dispatcher уже зафиксировали несколько ва
 1. Слои:
    - `Product Shell`
    - `Project Workspace`
-   - `Task / Workflow / Artifact`
-   - `Workbench Platform`
+   - `Workflow Surface`
    - `Prompt / LLM`
    - `Storage Boundary`
    - `Quality / Governance`
 
 2. Ключевые сущности:
    - `Project`
-   - `Task`
+   - `ProjectComponent`
    - `WorkflowInstance`
    - `WorkflowStep`
-   - `WorkbenchDefinition`
-   - `WorkbenchInstance`
-   - `WorkbenchTool`
    - `Artifact`
    - `PromptContext`
    - `ApplicationService`
@@ -51,7 +47,7 @@ Producer и dispatcher уже зафиксировали несколько ва
 4. Явные исключения baseline:
    - `AI-трансформация` остаётся стратегической рамкой, а не operational-модулем;
    - `сессия работы` пока не выделяется в самостоятельный слой;
-   - `WorkflowStep` и `WorkbenchInstance` не фиксируются как отношение `1:1`;
+   - `WorkflowStep` не должен подменяться legacy-уровнем или экраном;
    - `документация`, `Figma` и `качество` не поднимаются до отдельного списка сквозных сущностей этой карты.
 
 ## Последствия

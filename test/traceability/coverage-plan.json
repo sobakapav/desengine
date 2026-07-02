@@ -2,10 +2,50 @@
   "mode": "migration",
   "description": "План мягкого внедрения traceability для существующих OpenSpec specs. Capability остаётся здесь, пока не покрыт полный набор обязательных scenarios.",
   "uncoveredCapabilities": {
+    "artifacts": {
+      "priority": "P2",
+      "reason": "Capability остаётся активным, но отдельный runnable harness на полный artifact lifecycle ещё не собран после project-first перестройки продукта.",
+      "targetStage": "artifact-lifecycle-harness"
+    },
+    "component-file-set": {
+      "priority": "P2",
+      "reason": "Контракт набора файлов компонента пока покрыт частично через project/workflow tests, но полного traceability-набора по capability ещё нет.",
+      "targetStage": "component-file-set-harness"
+    },
+    "component-sourcing": {
+      "priority": "P2",
+      "reason": "Сейчас нет отдельного runnable evidence на полный sourcing-контур компонентных источников после удаления legacy-слоя.",
+      "targetStage": "component-sourcing-harness"
+    },
+    "event-envelope": {
+      "priority": "P2",
+      "reason": "Foundation contract уже частично покрыт unit-слоем, но capability пока не закрыт полностью всеми scenario и остаётся в migration coverage-plan.",
+      "targetStage": "event-envelope-complete-harness"
+    },
+    "image-inspector": {
+      "priority": "P2",
+      "reason": "После удаления legacy demo-сценариев нужен новый project-facing runnable harness для image-inspector capability.",
+      "targetStage": "image-inspector-project-harness"
+    },
+    "iteration": {
+      "priority": "P1",
+      "reason": "Iteration capability остаётся активной, но её runnable coverage нужно пересобрать уже вокруг project/workflow модели без legacy-сценариев.",
+      "targetStage": "iteration-project-first-harness"
+    },
     "navigation": {
       "priority": "P2",
       "reason": "Покрыты общий Navigation, правые контакты и top-level URL map; нужен отдельный follow-up на левую часть Navigation, где текущий runtime ещё не показывает весь контракт `/auth`, `/system`, `/help` как canonical labels.",
       "targetStage": "5.4"
+    },
+    "llm": {
+      "priority": "P1",
+      "reason": "LLM capability остаётся в активном контракте, но после удаления legacy-слоя нужен обновлённый runnable набор на project-first LLM flow.",
+      "targetStage": "llm-project-first-harness"
+    },
+    "prompt-context": {
+      "priority": "P2",
+      "reason": "Prompt context ещё не получил отдельный полный traceability harness после зачистки legacy prompt-слоя.",
+      "targetStage": "prompt-context-harness"
     },
     "ui-foundation": {
       "priority": "P2",
@@ -27,25 +67,30 @@
       "reason": "Сейчас runnable evidence закрывает 6 из 9 scenarios capability: producer-level аттракторы, AI-рамку, ограничения рабочей модели, boundary evidence и отсутствие обязательной architecture-панели на project page. Отдельного runnable harness пока нет для user-facing обещаний про понятность рабочего пути `проект -> компонент -> workflow -> работа`, для вычищения внутренней инженерной лексики из обычного project-facing слоя и для общего proof, что downstream architecture change приносит именно пользовательское улучшение, а не только refactor-эффект.",
       "targetStage": "architecture-transform-user-facing-harness"
     },
-    "level-labs": {
-      "priority": "P1",
-      "reason": "Большая часть level-labs уже покрыта runnable unit/browser/integration evidence, но canonical scenario про маппинг текущего lab level в workflow step profile пока не закреплён отдельным traceability harness. До появления этого harness capability остаётся в coverage-plan, чтобы не смешивать runtime projection контракт со случайными косвенными проверками.",
-      "targetStage": "level-lab-workflow-step-profile-harness"
-    },
     "projects": {
       "priority": "P1",
-      "reason": "Foundation create/select flow для ProjectWorkspace закрыт через unit и source-contract слой, но browser/e2e-сценарий на выбор active project и создание нового проекта из Workbench UI ещё не добавлен.",
+      "reason": "Foundation create/select flow для ProjectWorkspace закрыт через unit и source-contract слой, но browser/e2e-сценарий на выбор active project и создание нового проекта из project UI ещё не добавлен.",
       "targetStage": "project-workspace-browser-flow"
+    },
+    "storage-adapter": {
+      "priority": "P2",
+      "reason": "Storage adapter всё ещё покрыт неполно: project-local runtime уже проверяется частично, но не весь capability синхронизирован с traceability.",
+      "targetStage": "storage-adapter-harness"
+    },
+    "testing-layer": {
+      "priority": "P2",
+      "reason": "Testing-layer перестроен, но ещё не получил полный runnable набор на все активные scenario после чистки legacy-сценариев.",
+      "targetStage": "testing-layer-complete-harness"
+    },
+    "workbench-tools": {
+      "priority": "P2",
+      "reason": "Tooling вокруг workbench осталось без полного runnable coverage после вырезания старого product path.",
+      "targetStage": "workbench-tools-harness"
     },
     "workflow": {
       "priority": "P1",
       "reason": "Unit-слой уже покрывает coordinator step, workflow points, component-aware surfaces и project-facing continue flow, но полный пользовательский проход нескольких workflow-run внутри проекта пока не закреплён отдельным browser/e2e harness.",
       "targetStage": "project-workflow-browser-flow"
-    },
-    "task": {
-      "priority": "P1",
-      "reason": "Большая часть task capability уже закрыта unit/integration/browser evidence, но traceability всё ещё показывает неполное покрытие одного сценария после project-first перестройки task/project binding и preview-runtime контракта. Capability остаётся в coverage-plan до отдельного follow-up, который закрепит этот оставшийся пользовательский или runtime-path сценарий runnable evidence без возврата к task-centric продуктовой модели.",
-      "targetStage": "task-binding-and-preview-gap-closure"
     }
   }
 }

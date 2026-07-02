@@ -18,15 +18,10 @@
 // @openSpec capability: llm
 // @openSpec scenarios:
 // @openSpec  - "Диагностика показывает статус LLM-конфигурации"
-// @openSpec capability: external-local-onboarding
-// @openSpec scenarios:
-// @openSpec  - "Диагностика показывает статус onboarding"
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   getAccessSessionRemediationControl,
-  getOnboardingContentRemediationControl,
   getSystemReleaseRemediationControl,
 } from "@/lib/system/resources/remediation"
 import { addLlmResources, createResourceCollector } from "@/lib/system/resources/internalstate-sections"
@@ -81,7 +76,7 @@ describe("resource status resolver", () => {
     expect(resolved.instruction?.text).toContain("OPENAI_API_KEY")
   })
 
-  it("использует конфигурацию текстов для LLM, allowlist и onboarding ресурсов", () => {
+  it("использует конфигурацию текстов для LLM и allowlist-ресурсов", () => {
     const llm = resolveResourceStatus({
       id: "llm-config",
       condition: "ready",
@@ -94,23 +89,11 @@ describe("resource status resolver", () => {
       id: "allowlist-network",
       condition: "notFound",
     })
-    const onboarding = resolveResourceStatus({
-      id: "onboarding-content",
-      condition: "unconfirmed",
-      values: {
-        detail: "Источник onboarding-контента не подтверждён.",
-        legacyPathsText: "",
-        summary: "Источник onboarding-контента не подтверждён",
-        syncInstruction: "Обновите onboarding.",
-      },
-    })
 
     expect(llm.resource.summary).toBe("DeepSeek: настройки готовы")
     expect(llm.resource.detail).toBe("DeepSeek настроен")
     expect(allowlist.resource.summary).toBe("Сервер проверки доступа сообщает об ошибке")
     expect(allowlist.instruction?.text).toContain("Базовый URL allowlist")
-    expect(onboarding.resource.summary).toBe("Источник onboarding-контента не подтверждён")
-    expect(onboarding.instruction?.text).toBe("Обновите onboarding.")
   })
 
   it("подставляет переменные шаблона", () => {
@@ -128,7 +111,7 @@ describe("resource status resolver", () => {
       condition: "valid",
     })
 
-    expect(resolved.resource.detail).toContain("](/lab)")
+    expect(resolved.resource.detail).toContain("](/projects)")
     expect(resolved.instruction).toBeNull()
   })
 
@@ -144,27 +127,6 @@ describe("resource status resolver", () => {
       getAccessSessionRemediationControl({
         authState: "missing",
         accessConfigured: false,
-      }),
-    ).toBeUndefined()
-
-    expect(
-      getOnboardingContentRemediationControl({
-        detail: "Нужна повторная синхронизация.",
-        repoConfigured: true,
-        syncState: "unconfirmed",
-      }),
-    ).toEqual({
-      kind: "onboarding-update",
-      canUpdate: true,
-      detail: "Нужна повторная синхронизация.",
-      syncState: "unconfirmed",
-    })
-
-    expect(
-      getOnboardingContentRemediationControl({
-        detail: "Репозиторий не настроен.",
-        repoConfigured: false,
-        syncState: "missing",
       }),
     ).toBeUndefined()
 

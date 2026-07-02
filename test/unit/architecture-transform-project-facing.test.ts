@@ -3,7 +3,7 @@
 // @openSpec  - "Команда открывает архитектурную линию перед новой волной"
 // @openSpec  - "Downstream change пытается расширить список сквозных сущностей"
 // @openSpec  - "Команда описывает место AI-трансформации в архитектурной карте"
-// @openSpec  - "Downstream change проектирует новый workflow или workbench surface"
+// @openSpec  - "Downstream change проектирует новый workflow или рабочий surface"
 // @openSpec  - "Downstream change меняет архитектурную границу"
 // @openSpec  - "Downstream change убирает архитектурную панель с project page"
 // @openSpec capability: projects
@@ -88,7 +88,7 @@ describe("architecture transform project-facing surface", () => {
     expect(model.headline).toBe("Architecture transform")
     expect(model.visionLabel).toContain("AI-трансформация")
     expect(model.attractors.map((item) => item.id)).toEqual(["code", "llm", "budget", "design"])
-    expect(model.attractors[0]?.projectSignal).toContain("component")
+    expect(model.attractors[0]?.projectSignal).toContain("компонент")
     expect(model.attractors[1]?.projectSignal).toContain("LLM")
     expect(model.attractors[2]?.projectSignal).toContain("Workflow readout")
     expect(model.attractors[3]?.projectSignal).toContain("UI kit")

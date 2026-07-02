@@ -1,13 +1,10 @@
 import { createRequire } from "node:module"
 import { createCheck, getNodeVersionStatus, runBuildCheck } from "./smoke-local-install/checks.mjs"
 import { createLlmChecks } from "./smoke-local-install/llm-checks.mjs"
-import { ensureOnboardingReady } from "./smoke-local-install/onboarding.mjs"
 
 const require = createRequire(import.meta.url)
 const { getLocalConfigPath, getLocalConfigState, readLocalConfig } = require("../lib/system/config/local.cjs")
 const rootDir = process.cwd()
-// Контракт smoke-flow остаётся в этом CLI entry point: ensureOnboardingReady читает ONBOARDING_REPO_URL
-// и запускает repairToolPath через соседний модуль без изменения команды `npm run smoke`.
 
 function createConfigChecks(localConfigState) {
   return [
@@ -65,7 +62,6 @@ async function main() {
     ...createConfigChecks(localConfigState),
     ...createLlmChecks(env),
     createAllowlistCheck(env),
-    await ensureOnboardingReady(rootDir, env),
     await runBuildCheck(rootDir),
   ]
 

@@ -10,7 +10,6 @@ const LIVE_PROVIDER_ENV = {
 
 const SUPPORTED_LIVE_PROVIDERS = Object.freeze(Object.keys(LIVE_PROVIDER_ENV))
 const LIVE_ALLOWLIST_ENV = ["ALLOWLIST_BASE_URL", "ALLOWLIST_SALT"]
-const LIVE_ONBOARDING_ENV = ["ONBOARDING_REPO_URL"]
 
 function readRequiredTestEnv(names, env = process.env) {
   const values = {}
@@ -135,7 +134,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 
 export {
   LIVE_ALLOWLIST_ENV,
-  LIVE_ONBOARDING_ENV,
   LIVE_PROVIDER_ENV,
   SUPPORTED_LIVE_PROVIDERS,
   describeMissingTestEnv,

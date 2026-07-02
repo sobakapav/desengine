@@ -9,8 +9,6 @@ type ResourceStatesModel = {
   allowlistConfigured: boolean
   authState: AuthState
   hasAccess: boolean
-  onboardingRepoConfigured: boolean
-  onboardingSyncState: string
   readyForProtectedLab: boolean
 }
 

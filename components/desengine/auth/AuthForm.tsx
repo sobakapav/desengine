@@ -39,7 +39,7 @@ export default function AuthForm({
       </h3>
 
   <p className="mt-1 text-sm leading-relaxed text-slate-500">
-    Введите email, чтобы открыть защищённую часть лаборатории.
+    Введите email, чтобы открыть защищённую часть проектной работы.
   </p>
 </div>
 
@@ -78,7 +78,7 @@ export default function AuthForm({
         disabled={isPending || !configured}
         className="h-11"
       >
-        {isPending ? "Проверяем доступ…" : "Открыть защищённую лабораторию"}
+        {isPending ? "Проверяем доступ…" : "Открыть проектную работу"}
       </Button>
     </form>
   </div>

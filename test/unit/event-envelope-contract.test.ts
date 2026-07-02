@@ -1,7 +1,6 @@
 // @openSpec capability: event-envelope
 // @openSpec scenarios:
 // @openSpec  - "Runtime создаёт project-scoped событие"
-// @openSpec  - "Runtime создаёт task-scoped событие"
 // @openSpec  - "Runtime создаёт workflow-step-scoped событие"
 // @openSpec  - "Runtime создаёт workbench-instance-scoped событие"
 // @openSpec  - "Envelope без обязательного поля отклоняется"
@@ -19,7 +18,6 @@ import {
   buildCostEventEnvelope,
   buildExperienceEventEnvelope,
   createProjectEventScope,
-  createTaskEventScope,
   createWorkbenchInstanceEventScope,
   createWorkflowStepEventScope,
   resolveEventScopeKind,
@@ -27,16 +25,13 @@ import {
 } from "@/lib/system/events"
 
 describe("EventEnvelope foundation contract", () => {
-  it("принимает все четыре MVP scope-комбинации", () => {
+  it("принимает все три MVP scope-комбинации", () => {
     const envelopes = [
       buildExperienceEventEnvelope({
         scope: createProjectEventScope("project-a"),
       }),
-      buildActionEventEnvelope({
-        scope: createTaskEventScope("project-a", "task-a"),
-      }),
       buildExperienceEventEnvelope({
-        scope: createWorkflowStepEventScope("project-a", "task-a", "step-a"),
+        scope: createWorkflowStepEventScope("project-a", "step-a"),
       }),
       buildCostEventEnvelope({
         scope: createWorkbenchInstanceEventScope("project-a", "workbench-a"),
@@ -45,7 +40,7 @@ describe("EventEnvelope foundation contract", () => {
 
     const scopeKinds = envelopes.map((envelope) => resolveEventScopeKind(envelope.scope))
 
-    expect(scopeKinds).toEqual(["project", "task", "workflow-step", "workbench-instance"])
+    expect(scopeKinds).toEqual(["project", "workflow-step", "workbench-instance"])
 
     for (const envelope of envelopes) {
       const result = validateEventEnvelope(envelope)
@@ -70,17 +65,11 @@ describe("EventEnvelope foundation contract", () => {
 
   it("отклоняет неполные и смешанные scope-комбинации MVP", () => {
     const invalidScopes = [
-      {
-        projectId: "project-a",
-        taskId: "task-a",
-        workbenchInstanceId: "workbench-a",
-      },
+      { workflowStepId: "step-a" },
       {
         projectId: "project-a",
         workflowStepId: "step-a",
-      },
-      {
-        taskId: "task-a",
+        workbenchInstanceId: "workbench-a",
       },
       {},
     ]

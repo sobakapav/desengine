@@ -9,14 +9,9 @@
 - **THEN** `scope` содержит только `projectId`
 - **AND** envelope проходит общий source-contract
 
-#### Scenario: Runtime создаёт task-scoped событие
-- **WHEN** foundation-слой создаёт событие уровня задачи
-- **THEN** `scope` содержит `projectId` и `taskId`
-- **AND** envelope проходит общий source-contract
-
 #### Scenario: Runtime создаёт workflow-step-scoped событие
 - **WHEN** foundation-слой создаёт событие уровня workflow step
-- **THEN** `scope` содержит `projectId`, `taskId` и `workflowStepId`
+- **THEN** `scope` содержит `projectId` и `workflowStepId`
 - **AND** envelope проходит общий source-contract
 
 #### Scenario: Runtime создаёт workbench-instance-scoped событие

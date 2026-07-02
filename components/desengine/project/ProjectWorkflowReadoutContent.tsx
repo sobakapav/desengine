@@ -13,7 +13,7 @@ function WorkflowReadoutSummary({ model }: { model: ReturnType<typeof buildProje
       <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Компоненты</p><p className="mt-2 text-2xl">{model.summary.componentCountLabel}</p></article>
       <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Фокусы</p><p className="mt-2 text-2xl">{model.summary.focusedCountLabel}</p></article>
       <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Готово</p><p className="mt-2 text-2xl">{model.summary.completedCountLabel}</p></article>
-      <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Этапы</p><p className="mt-2 text-2xl">{model.summary.stageCountLabel}</p></article>
+      <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Шаги workflow</p><p className="mt-2 text-2xl">{model.summary.stageCountLabel}</p></article>
     </div>
   )
 }
@@ -35,7 +35,7 @@ function WorkflowReadoutCard({ entry }: { entry: ReturnType<typeof buildProjectW
           <p className="mt-2 text-sm text-black/70">Последняя активность: {entry.lastActivityLabel}</p>
         </div>
         <div className="rounded-2xl border border-black/10 bg-white p-4">
-          <p className="text-sm uppercase tracking-wide text-black/50">Этап project-workflow</p>
+          <p className="text-sm uppercase tracking-wide text-black/50">Шаг workflow</p>
           <p className="mt-2 text-lg">{entry.stageTitle}</p>
           <p className="mt-2 text-sm text-black/70">{entry.stageStatusLabel}</p>
         </div>

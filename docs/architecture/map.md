@@ -34,27 +34,25 @@
 ```text
 Product Shell
   -> Project Workspace
-    -> Task Catalog / Task Instances
+    -> Project Components
       -> Workflow Instances
         -> Workflow Steps
-          -> Workbench Instances
-            -> Tools
-            -> Prompt Context
-            -> Sandpack Preview
-            -> Artifacts
+          -> Prompt Context
+          -> Artifacts
+          -> Runtime Readout
 
 Application Services
-  -> startTaskLevel
-  -> iterateTaskLevel
-  -> checkTaskLevel
-  -> saveWorkbenchFiles
-  -> resetTask
+  -> openProject
+  -> startWorkflow
+  -> continueWorkflow
+  -> persistProjectFiles
+  -> readProjectHistory
 
 Storage Boundary
   -> project data
-  -> user progress
-  -> task/workbench artifacts
-  -> check-results
+  -> component artifacts
+  -> workflow state
+  -> project history
   -> event logs
 
 Quality / Governance Layer
@@ -92,57 +90,37 @@ Quality / Governance Layer
 
 Назначение:
 
-- верхний пользовательский scope для dev-mode и будущих импортов;
-- место, где сходятся project-level настройки и дальнейшие сущности.
+- верхний пользовательский scope работы;
+- место, где сходятся project-level настройки, компоненты и workflow.
 
 Текущее проявление в коде:
 
 - `lib/project/**`
-- связанный runtime и storage в `lib/task/**`
+- `components/desengine/project/**`
 
 Граница:
 
 - `Project` не должен растворяться в глобальном env/config;
-- project-level контракт не должен дублироваться в task/workbench ветках.
+- project-level контракт не должен дублироваться в параллельных legacy-ветках.
 
-### 3. Task / Workflow / Artifact
-
-Назначение:
-
-- описывать пользовательскую работу не как набор файлов, а как управляемый flow;
-- связывать входные и выходные артефакты с шагами выполнения.
-
-Текущее проявление в коде:
-
-- `lib/task/**`
-- `lib/level/**`
-- `lib/onboarding/**`
-- `user/tasks/**`, `user/check-results/**`
-
-Граница:
-
-- текущий task-level lab считается частным случаем более общей модели;
-- downstream changes не должны насильно фиксировать правило `один шаг = один верстак`.
-
-### 4. Workbench Platform
+### 3. Workflow Surface
 
 Назначение:
 
-- дать единый runtime-контур инструментов и состояния рабочей поверхности;
-- удерживать preview, файлы, prompt flow и инструменты как связанную сущность.
+- описывать пользовательскую работу как управляемый project flow;
+- связывать шаги, компоненты, историю и результаты выполнения.
 
 Текущее проявление в коде:
 
-- `components/desengine/lab/Workbench/**`
-- `components/desengine/lab/InOut/**`
-- `lib/lab/**`
+- `lib/workflow/**`
+- `components/desengine/project/**`
 
 Граница:
 
-- текущий lab workbench является первым `WorkbenchInstance`, а не вечным special case;
-- image tools, layout tools и будущие workbench-расширения должны использовать общий tool contract.
+- workflow принадлежит проекту, а не отдельному legacy runtime;
+- downstream changes не должны возвращать отдельные legacy-маршруты.
 
-### 5. Prompt / LLM контур
+### 4. Prompt / LLM контур
 
 Назначение:
 
@@ -154,33 +132,31 @@ Quality / Governance Layer
 - `lib/llm/**`
 - `lib/prompt/**`
 - `prompts/**`
-- `onboarding/prompts/**`
 
 Граница:
 
-- prompt context должен быть общим контрактом для task/workflow/workbench;
+- prompt context должен быть общим контрактом для project/workflow;
 - route handlers не должны становиться скрытым владельцем LLM-логики.
 
-### 6. Storage и mutation boundary
+### 5. Storage и mutation boundary
 
 Назначение:
 
 - удерживать локальное хранилище как MVP без размазывания `fs`-вызовов по системе;
-- подготовить переход к project-scoped storage и event logs.
+- удерживать project-scoped storage и event logs в явной границе.
 
 Текущее проявление в коде:
 
 - `lib/project/storage.ts`
-- `lib/task/server-runtime-storage.ts`
-- `lib/task/level-reset-storage.ts`
-- `lib/onboarding/repository.ts`
+- `lib/project/**`
+- `lib/workflow/**`
 
 Граница:
 
 - смена storage идёт через adapter boundary, а не через массовое переписывание прямых чтений/записей;
 - downstream changes должны показывать, где заканчивается mutation boundary.
 
-### 7. Quality / Governance
+### 6. Quality / Governance
 
 Назначение:
 
@@ -203,16 +179,14 @@ Quality / Governance Layer
 | Сущность | Роль в системе | Где должна проявляться в коде | Tactical owner |
 | --- | --- | --- | --- |
 | `Project` | верхний scope пользовательской работы | `lib/project/**`, project-scoped storage и bindings | предметная project-линия, при architectural boundary change — `dispatcher-architecture` |
-| `Task` | единица пользовательской цели | `lib/task/**`, task catalog и runtime services | предметная task/runtime-линия |
-| `WorkflowInstance` | связанный процесс выполнения задачи | workflow bindings и orchestration contracts | предметная workflow-линия |
-| `WorkflowStep` | шаг процесса, в котором открывается workbench | step bindings и prompt/runtime orchestration | workflow/workbench линии |
-| `WorkbenchInstance` | рабочая поверхность для шага | `components/desengine/lab/Workbench/**`, state и artifact bindings | workbench-линия |
-| `WorkbenchTool` | отдельный инструмент внутри верстака | tool registry, applicability, state schema | workbench tool lines |
-| `Artifact` | входной или выходной материал работы | task/project storage, preview, prompt context, checks | task/workflow/workbench линии |
+| `ProjectComponent` | рабочая единица внутри проекта | `components/desengine/project/**`, component registry и bindings | предметная project-линия |
+| `WorkflowInstance` | связанный процесс проектной работы | workflow bindings и orchestration contracts | предметная workflow-линия |
+| `WorkflowStep` | шаг процесса, в котором двигается проектная работа | step bindings и prompt/runtime orchestration | workflow-линия |
+| `Artifact` | входной или выходной материал работы | project/workflow storage, runtime readout, prompt context | project/workflow линии |
 | `PromptContext` | единый контекст для LLM-вызова | `lib/prompt/**`, application services | runtime/LLM линии |
 | `EventEnvelope` | общий контейнер событий experience/cost/log | event-layer contracts и logs | event/log-system линии |
 | `StorageAdapter` | граница доступа к хранилищу | storage services и mutation boundary | runtime/project/storage lines |
-| `ApplicationService` | оркестрация user flow без route-level хаоса | `lib/task/actions/**` и соседние service boundaries | runtime-линия |
+| `ApplicationService` | оркестрация user flow без route-level хаоса | `lib/project/**`, `lib/workflow/**` и соседние service boundaries | runtime-линия |
 
 ## Сквозные сущности
 
@@ -246,8 +220,8 @@ Change должен идти в `dispatcher-architecture`, если его гл�
 
 Change не должен автоматически идти в `dispatcher-architecture`, если он в первую очередь:
 
-- меняет runtime поведение lab/task flow;
-- вводит domain behavior внутри project/task/workflow/workbench;
+- меняет runtime поведение project/workflow flow;
+- вводит domain behavior внутри project/component/workflow/runtime;
 - реализует event/log/cost специфику без изменения общей архитектурной карты.
 
 В таких случаях `dispatcher-architecture` остаётся governance-опорой, но tactical owner выбирается по предметной линии.

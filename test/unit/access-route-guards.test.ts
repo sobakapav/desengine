@@ -31,21 +31,11 @@ describe("route-level access guards", () => {
   it("защищённые route entry points используют route-level guard", () => {
     const routeFiles = [
       "app/page.tsx",
-      "app/tasks/page.tsx",
-      "app/tasks/[taskId]/check/page.tsx",
-      "app/tasks/[taskId]/done/page.tsx",
-      "app/lab/page.tsx",
-      "app/levels/page.tsx",
+      "app/projects/page.tsx",
       "app/help/page.tsx",
       "app/help/[helpId]/page.tsx",
       "app/help/error/page.tsx",
       "app/help/mermaid/[mermaidId]/page.tsx",
-      "app/lab/[taskId]/page.tsx",
-      "app/lab/[taskId]/[screen]/page.tsx",
-      "app/lab/[taskId]/check/page.tsx",
-      "app/lab/[taskId]/done/page.tsx",
-      "app/lab/[taskId]/next/page.tsx",
-      "app/levels/[levelId]/page.tsx",
     ]
 
     for (const filePath of routeFiles) {

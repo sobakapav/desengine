@@ -1,6 +1,7 @@
 // @openSpec capability: projects
 // @openSpec scenarios:
 // @openSpec  - "Пользователь открывает workflow проекта"
+// @openSpec  - "Страница проекта выделяет один главный следующий шаг"
 // @openSpec capability: workflow
 // @openSpec scenarios:
 // @openSpec  - "Пользователь видит project-owned workflow прямо на странице проекта"
@@ -64,12 +65,12 @@ describe("project workflow readout surface", () => {
       componentCountLabel: "1 компонент",
       focusedCountLabel: "1 фокус",
       completedCountLabel: "0 готовых компонентов",
-      stageCountLabel: "2 этапа",
+      stageCountLabel: "2 шага workflow",
     })
     expect(model.entries[0]).toMatchObject({
       componentStatusLabel: "В активной работе проекта",
       focusLabel: "Текущий фокус проекта",
-      stageStatusLabel: "Этап в работе",
+      stageStatusLabel: "Шаг в работе",
       stageTitle: "Проект сейчас работает через этот компонент",
     })
     expect(model.entries[0]?.lastActivityLabel).toBe("2026-06-17 10:15 UTC")
@@ -79,6 +80,7 @@ describe("project workflow readout surface", () => {
   it("подключает workflow readout к project page как отдельный пользовательский слой", () => {
     const projectPage = readProjectFile("app", "projects", "[projectId]", "page.tsx")
     const projectOverview = readProjectFile("components", "desengine", "project", "ProjectOverviewScreen.tsx")
+    const projectSupportPanels = readProjectFile("components", "desengine", "project", "ProjectOverviewSupportPanels.tsx")
     const workflowPanel = readProjectFile("components", "desengine", "project", "ProjectWorkflowReadoutPanel.tsx")
     const workflowPanelContent = readProjectFile("components", "desengine", "project", "ProjectWorkflowReadoutContent.tsx")
     const workflowAdapter = readProjectFile("lib", "project", "workflow-readout.ts")
@@ -88,15 +90,16 @@ describe("project workflow readout surface", () => {
     expect(projectPage).not.toContain("readProjectWorkflowReadout")
     expect(projectPage).toContain("<ProjectOverviewScreen projectId={projectId} />")
 
-    expect(projectOverview).toContain("ProjectWorkflowReadoutPanel")
-    expect(projectOverview).toContain("workflowReadout={workspace.workflowReadout}")
+    expect(projectOverview).toContain("ProjectOverviewSupportPanels")
+    expect(projectSupportPanels).toContain("ProjectWorkflowReadoutPanel")
+    expect(projectSupportPanels).toContain("workflowReadout={workflowReadout}")
 
     expect(workflowPanel).toContain("Как проект держит рабочий контур")
     expect(workflowPanel).toContain("WorkflowReadoutContent")
     expect(workflowPanelContent).toContain("Компоненты")
     expect(workflowPanelContent).toContain("Фокусы")
     expect(workflowPanelContent).toContain("Последняя активность")
-    expect(workflowPanelContent).toContain("Этап project-workflow")
+    expect(workflowPanelContent).toContain("Шаг workflow")
 
     expect(workflowAdapter).toContain("listProjectWorkflowStages")
     expect(workflowAdapter).toContain("componentId")
@@ -104,6 +107,7 @@ describe("project workflow readout surface", () => {
     expect(workflowAdapter).toContain("lastActivityAt")
 
     expect(projectSpec).toContain("### Requirement: Проект показывает workflow как наблюдаемый слой")
+    expect(projectSpec).toContain("#### Scenario: Страница проекта выделяет один главный следующий шаг")
     expect(workflowSpec).toContain("### Requirement: Project-aware workflow доступен для пользовательского readout")
   })
 })

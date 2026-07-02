@@ -25,7 +25,7 @@ const inter = localFont({
 
 export const metadata: Metadata = {
   title: "desengine",
-  description: "Лаборатория задач и уровней для генерации React-компонентов по PNG-референсам.",
+  description: "Инструмент для проектной работы над React-дизайном прямо в коде через workflow и шаги.",
 };
 
 export default function RootLayout({

@@ -1,6 +1,5 @@
 import {
   LIVE_ALLOWLIST_ENV,
-  LIVE_ONBOARDING_ENV,
   LIVE_PROVIDER_ENV,
   describeMissingTestEnv,
   readLiveProviderEnv,
@@ -56,7 +55,6 @@ type LiveProviderPreflightResult =
 
 export {
   LIVE_ALLOWLIST_ENV,
-  LIVE_ONBOARDING_ENV,
   LIVE_PROVIDER_ENV,
   describeMissingTestEnv,
   readLiveProviderEnv,

@@ -39,9 +39,7 @@ user/
 Границы данных:
 
 - `desengine.config.txt` — локальная конфигурация сервера.
-- `user/` — пользовательское состояние и прогресс; не удалять при обычном обновлении.
-- `/onboarding` — учебный контент; обновляется отдельно через `/system` кнопкой `Обновить onboarding`.
-- `ONBOARDING_REPO_URL` — адрес внешнего источника `/onboarding`; он должен остаться в `desengine.config.txt` после обновления.
+- рабочее состояние пользователя и проекта не должно теряться при обычном обновлении.
 
 ---
 
@@ -541,14 +539,14 @@ git add package.json package-lock.json
 git commit -m "Add missing markdown render dependencies"
 ```
 
-## Ошибка регистра папки `Lab` / `lab` на macOS
+## Ошибка регистра папки на macOS
 
 Ошибка:
 
 ```text
-File name '.../components/desengine/lab/LabScreen/index.ts'
+File name '.../some/path'
 differs from already included file name
-'.../components/desengine/Lab/LabScreen/index.ts'
+'.../Some/Path'
 only in casing.
 ```
 
@@ -558,14 +556,14 @@ only in casing.
 
 ```bash
 ls -la components/desengine
-find components/desengine -maxdepth 3 -iname "LabScreen" -print
+find . -maxdepth 4 -iname "<имя-папки-или-файла>" -print
 ```
 
-Если папка называется `Lab`, а импорты используют `lab`, переименуйте через временное имя:
+Если фактическое имя отличается только регистром, переименуйте через временное имя:
 
 ```bash
-mv components/desengine/Lab components/desengine/lab_tmp
-mv components/desengine/lab_tmp components/desengine/lab
+mv path/to/Folder path/to/folder_tmp
+mv path/to/folder_tmp path/to/folder
 ```
 
 Очистите кеши:
@@ -631,10 +629,10 @@ http://localhost:3000
 http://localhost:3000/auth
 ```
 
-5. После авторизации доступен список задач:
+5. После авторизации доступен список проектов:
 
 ```text
-http://localhost:3000/tasks
+http://localhost:3000/projects
 ```
 
 6. Страница статуса и конфигурации системы открывается:
@@ -643,15 +641,12 @@ http://localhost:3000/tasks
 http://localhost:3000/system
 ```
 
-Если onboarding неполон, `/system` должен явно показать проблему и позволить ручное обновление.
-
 ---
 
 # Что обновление не должно делать
 
 - Не удаляйте `user/` при обычном обновлении.
 - Не удаляйте `desengine.config.txt`.
-- Не подменяйте обновление onboarding-контента обычным обновлением основного Git-репозитория.
 - Не используйте `git merge v0.1.5` для папки, которая изначально была скачана архивом.
 - Не используйте `git checkout -f` и `git clean -fdx`, пока не сохранили `desengine.config.txt`.
 
@@ -697,6 +692,5 @@ rg -n "UPDATE\.md" README.md INSTALL.md INSTALL-USER.md tools/README.md docs/*.m
 - [README.md](README.md) — карта документации и контуров.
 - [INSTALL.md](INSTALL.md) — первая установка.
 - [INSTALL-USER.md](INSTALL-USER.md) — упрощённая инструкция установки для неопытного пользователя.
-- [docs/onboarding.md](docs/onboarding.md) — контракт `/onboarding` и ручное обновление.
 - [docs/access-control.md](docs/access-control.md) — allowlist-контур.
 - [tools/README.md](tools/README.md) — канонические админские команды.

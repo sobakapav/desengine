@@ -29,5 +29,4 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 ```
 
 Для доступа по email см. [access-control.md](./access-control.md).
-Для onboarding-источника и ручного обновления см. [onboarding.md](./onboarding.md).
 Админские команды сопровождения и smoke-check собраны в [tools/README.md](../tools/README.md).

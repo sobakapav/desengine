@@ -6,7 +6,6 @@ import {
   USER_ROLES,
   LLM_PROVIDER_IDS,
 } from "./const"
-import type { OnboardingSyncState } from "@/lib/onboarding/status"
 
 /** Cтатус системного ресурса */
 type ResourceState =
@@ -20,12 +19,6 @@ type ResourceId =
 type ResourceRemediationControl =
   | {
       kind: "auth-form"
-    }
-  | {
-      kind: "onboarding-update"
-      canUpdate: boolean
-      detail: string
-      syncState: OnboardingSyncState
     }
   | {
       kind: "system-update"

@@ -8,7 +8,6 @@ import remarkGfm from "remark-gfm"
 import type { AuthState } from "@/lib/auth/types"
 import type { Resource } from "@/lib/system/types"
 import AuthForm from "../auth/AuthForm"
-import { OnboardingUpdateCard } from "./OnboardingUpdateCard"
 import { SystemUpdateCard } from "./SystemUpdateCard"
 
 type ResourceRemediationControlProps = {
@@ -21,6 +20,66 @@ type ResourceRemediationControlProps = {
   onEmailChange: (email: string) => void
   resource: Resource
   helpHref?: string
+}
+
+function ResourceMarkdown({ detail }: { detail: string }) {
+  return (
+    <div className="mt-1 text-base leading-relaxed text-slate-600">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        allowedElements={["p", "a", "code", "em", "strong", "ul", "ol", "li", "text"]}
+        unwrapDisallowed
+        components={{
+          p: ({ children }) => <p className="m-0">{children}</p>,
+          a: ({ href, children }) => (
+            <a href={href} className="underline underline-offset-2">
+              {children}
+            </a>
+          ),
+          code: ({ children }) => (
+            <code className="rounded bg-slate-100 px-1 py-0.5 text-sm text-slate-800">
+              {children}
+            </code>
+          ),
+        }}
+      >
+        {detail}
+      </ReactMarkdown>
+    </div>
+  )
+}
+
+function DefaultResourceRemediation({
+  helpHref,
+  resource,
+}: Pick<ResourceRemediationControlProps, "helpHref" | "resource">) {
+  return (
+    <div className="max-w-xl">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+        Нужно исправить
+      </p>
+
+      <h2 className="mt-5 text-4xl font-bold leading-tight text-slate-900">
+        {resource.label}
+      </h2>
+
+      <p className="mt-2 text-lg font-semibold leading-snug text-slate-800">
+        {resource.summary}
+      </p>
+
+      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-5">
+        <ResourceMarkdown detail={resource.detail} />
+        {helpHref && resource.state === "blocked" ? (
+          <a
+            href={helpHref}
+            className="mt-6 inline-flex text-sm font-medium text-slate-900 underline underline-offset-2"
+          >
+            Открыть справку
+          </a>
+        ) : null}
+      </div>
+    </div>
+  )
 }
 
 function ResourceRemediationControl({
@@ -48,16 +107,6 @@ function ResourceRemediationControl({
     )
   }
 
-  if (resource.remediationControl?.kind === "onboarding-update") {
-    return (
-      <OnboardingUpdateCard
-        canUpdate={resource.remediationControl.canUpdate}
-        detail={resource.remediationControl.detail}
-        syncState={resource.remediationControl.syncState}
-      />
-    )
-  }
-
   if (resource.remediationControl?.kind === "system-update") {
     return (
       <SystemUpdateCard
@@ -69,60 +118,7 @@ function ResourceRemediationControl({
     )
   }
 
-  return (
-  <div className="max-w-xl">
-    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-      Нужно исправить
-    </p>
-
-    <h2 className="mt-5 text-4xl font-bold leading-tight text-slate-900">
-      {resource.label}
-    </h2>
-
-    <p className="mt-2 text-lg font-semibold leading-snug text-slate-800">
-      {resource.summary}
-    </p>
-
-    <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-5">
-<div className="mt-1 text-base leading-relaxed text-slate-600">
-  <ReactMarkdown
-    remarkPlugins={[remarkGfm]}
-    allowedElements={["p", "a", "code", "em", "strong", "ul", "ol", "li", "text"]}
-    unwrapDisallowed
-    components={{
-      p: ({ children }) => (
-        <p className="m-0">
-          {children}
-        </p>
-      ),
-      a: ({ href, children }) => (
-        <a href={href} className="underline underline-offset-2">
-          {children}
-        </a>
-      ),
-      code: ({ children }) => (
-        <code className="rounded bg-slate-100 px-1 py-0.5 text-sm text-slate-800">
-          {children}
-        </code>
-      ),
-    }}
-  >
-    {resource.detail}
-  </ReactMarkdown>
-</div>
-
-{helpHref && resource.state === "blocked" ? (
-  <a
-    href={helpHref}
-    className="mt-6 inline-flex text-sm font-medium text-slate-900 underline underline-offset-2"
-  >
-    Открыть справку
-  </a>
-) : null}
-
-    </div>
-  </div>
-)
+  return <DefaultResourceRemediation helpHref={helpHref} resource={resource} />
 }
 
 export {

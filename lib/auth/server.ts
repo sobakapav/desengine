@@ -16,7 +16,7 @@ import {
   getAccessControlConfig,
   normalizeEmail,
 } from "@/lib/auth/shared"
-import { getTasksRootUrl } from "../task/navigation"
+import { getProjectsRootUrl } from "../project/navigation"
 import { getAuthPrepareUrl, getAuthUrl, sanitizeUrl } from "./navigation"
 import { AuthState } from "./types"
 
@@ -127,7 +127,7 @@ async function consumeReturnPathCookie() {
 
   cookieStore.delete(ACCESS_RETURN_PATH_COOKIE_NAME)
 
-  return safePath ?? getTasksRootUrl()
+  return safePath ?? getProjectsRootUrl()
 }
 
 /** Основной gate: пропускает, только если есть доступ */

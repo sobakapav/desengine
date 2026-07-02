@@ -2,20 +2,17 @@ import { checkAllowlistSystemReachability } from "@/lib/auth/allowlist"
 import type { LlmProvider } from "@/lib/llm/types"
 import {
   getAccessSessionRemediationControl,
-  getOnboardingContentRemediationControl,
   getSystemReleaseRemediationControl,
 } from "@/lib/system/resources/remediation"
 import { resolveResourceStatus } from "@/lib/system/resources/publicstate"
 import type { getAccessControlConfig, getAccessSessionState } from "@/lib/auth/server"
 import type { getLlmStatus } from "@/lib/llm/server"
-import type { getOnboardingSyncStatus } from "@/lib/onboarding/server"
 import type { getSystemReleaseStatus } from "@/lib/system/release"
 import type { Instruction, Resource, ResourceId, ResourceRemediationControl } from "@/lib/system/types"
 
 type LlmStatus = Awaited<ReturnType<typeof getLlmStatus>>
 type AuthState = Awaited<ReturnType<typeof getAccessSessionState>>
 type AccessConfig = ReturnType<typeof getAccessControlConfig>
-type OnboardingContent = Awaited<ReturnType<typeof getOnboardingSyncStatus>>
 type SystemRelease = Awaited<ReturnType<typeof getSystemReleaseStatus>>
 
 type ReachabilityResult = {
@@ -193,12 +190,6 @@ export function getAccessCondition(params: {
   return params.accessConfigured ? "missingConfigured" : "missingUnconfigured"
 }
 
-export function getOnboardingSyncInstruction(onboardingRepoUrl: string) {
-  return onboardingRepoUrl
-    ? "Система пытается синхронизировать `/onboarding` автоматически. Если статус не меняется, используйте `Обновить onboarding` на [`/system`](/system) или `npm run smoke`."
-    : "Сначала задайте `ONBOARDING_REPO_URL` в `desengine.config.txt`, затем запустите повторную синхронизацию `/onboarding`."
-}
-
 function getReleaseVersionText(version: string | null) {
   return version ?? "нет точного релизного тега"
 }
@@ -294,30 +285,4 @@ export async function addAllowlistResources(resources: ResourceCollector, access
       status: allowlistNetwork.status,
     },
   )
-}
-
-export function addOnboardingResources(args: {
-  resources: ResourceCollector
-  onboardingRepoUrl: string
-  onboardingContent: OnboardingContent
-}) {
-  const legacyPathsText =
-    args.onboardingContent.legacyPaths.length > 0
-      ? ` Legacy-каталоги ${args.onboardingContent.legacyPaths.join(", ")} не используются как fallback.`
-      : ""
-  const onboardingDetail = `${args.onboardingContent.detail}${legacyPathsText}`
-
-  args.resources.add("onboarding-config", args.onboardingRepoUrl ? "ready" : "missing", {
-    repoUrl: args.onboardingRepoUrl,
-  })
-  args.resources.add("onboarding-content", args.onboardingContent.state, {
-    detail: args.onboardingContent.detail,
-    legacyPathsText,
-    summary: args.onboardingContent.summary,
-    syncInstruction: getOnboardingSyncInstruction(args.onboardingRepoUrl),
-  }, getOnboardingContentRemediationControl({
-    detail: onboardingDetail,
-    repoConfigured: Boolean(args.onboardingRepoUrl),
-    syncState: args.onboardingContent.state,
-  }))
 }

@@ -42,13 +42,11 @@ function createProjectFixture() {
 }
 
 describe("next dev workspace root warning", () => {
-  it("явно закрепляет turbopack root на каталоге next.config.ts и сохраняет tracing includes", () => {
+  it("явно закрепляет turbopack root на каталоге next.config.ts", () => {
     const configPath = fileURLToPath(new URL("../../next.config.ts", import.meta.url))
 
     expect(nextConfig.turbopack?.root).toBe(path.dirname(configPath))
-    expect(nextConfig.outputFileTracingIncludes).toEqual({
-      "/api/**": ["lib/lab/sandpack-templates/**"],
-    })
+    expect(nextConfig.outputFileTracingIncludes).toBeUndefined()
   })
 
   it("не эмитит duplicated lockfile warning, когда turbopack.root задан явно", async () => {
@@ -56,9 +54,6 @@ describe("next dev workspace root warning", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
 
     const withoutRootConfig = {
-      outputFileTracingIncludes: {
-        "/api/**": ["lib/lab/sandpack-templates/**"],
-      },
     }
 
     await loadConfig(PHASE_DEVELOPMENT_SERVER, projectDir, {

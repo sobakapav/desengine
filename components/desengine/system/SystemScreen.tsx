@@ -7,7 +7,6 @@ import { getProjectsRootUrl } from "@/lib/project/navigation"
 import { Instruction, Resource } from "@/lib/system/types"
 import { ResourceCardList } from "./ResourceCardList"
 import { AuthState } from "@/lib/auth/types"
-import { ResourceRemediationControl } from "./ResourceRemediationControl"
 
 type SystemScreenProps = {
   authState: AuthState
@@ -19,9 +18,6 @@ type SystemScreenProps = {
 function SystemNavigationLinks() {
   return (
     <ul className="space-y-4">
-<li className="text-2xl">
-  <a href="/levels">Уровни</a>
-</li>
 <li className="text-2xl">
   <a href="/projects">Проекты</a>
 </li>
@@ -44,8 +40,8 @@ function SystemNavigationLinks() {
  * ```
  */
 export function SystemScreen({
-  authState,
-  configured,
+  authState: _authState,
+  configured: _configured,
   resources,
   instructions }: SystemScreenProps) {
   const router = useRouter()

@@ -53,7 +53,7 @@ describe("performance budget verdicts", () => {
         expectedStatus: "regression",
       },
       {
-        scenario: "lab/task entry path",
+        scenario: "project/workflow entry path",
         samplesMs: [58, 61, 60],
         baselineMs: 46,
         budgetMs: 56,

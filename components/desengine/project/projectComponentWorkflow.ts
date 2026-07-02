@@ -1,64 +1,70 @@
 import type { ProjectComponent } from "@/lib/project/component-runtime"
-import { resolveWorkflowSessionTaskId, resolveWorkflowTemplateTaskIdByKind } from "@/lib/task/workflow-template"
 
-type ProjectWorkflowTaskCatalogItem = {
-  taskId: string
-  taskTitle: string
+type ProjectWorkflowSessionCatalogItem = {
+  sessionId: string
+  sessionTitle: string
 }
 
-function resolveWorkflowTemplateTaskId(
+const PROJECT_WORKFLOW_SESSION_ID = "project-workflow"
+
+function resolveProjectWorkflowSessionId(
   workflowKind: ProjectComponent["workflowKind"],
-  workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[],
+  workflowSessionCatalog: ProjectWorkflowSessionCatalogItem[],
 ) {
-  const templateTaskId = resolveWorkflowTemplateTaskIdByKind(workflowKind)
-  const matchedTask = workflowTaskCatalog.find((task) => task.taskId === templateTaskId)
-  return matchedTask ? resolveWorkflowSessionTaskId(workflowKind) : null
+  const templateSessionId = workflowKind === "image-to-component-workflow"
+    ? PROJECT_WORKFLOW_SESSION_ID
+    : null
+
+  if (!templateSessionId) {
+    return null
+  }
+
+  const matchedSession = workflowSessionCatalog.find((session) => session.sessionId === templateSessionId)
+  return matchedSession ? PROJECT_WORKFLOW_SESSION_ID : null
 }
 
 /**
  * @example
  * ```ts
- * const taskId = resolveProjectComponentTaskId({
+ * const sessionId = resolveProjectComponentWorkflowSessionId({
  *   component,
- *   workflowTaskCatalog: [{ taskId: "easy-buy-app-badge", taskTitle: "Easy Buy App Badge" }],
+ *   workflowSessionCatalog: [{ sessionId: "project-workflow", sessionTitle: "Project workflow" }],
  * })
  * ```
  */
-function resolveProjectComponentTaskId(args: {
+function resolveProjectComponentWorkflowSessionId(args: {
   component: ProjectComponent
   projectTitle?: string | null
-  workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
+  workflowSessionCatalog: ProjectWorkflowSessionCatalogItem[]
 }) {
-  if (args.component.taskId) {
-    return args.component.taskId
-  }
-
-  return resolveWorkflowTemplateTaskId(args.component.workflowKind, args.workflowTaskCatalog)
+  return resolveProjectWorkflowSessionId(args.component.workflowKind, args.workflowSessionCatalog)
 }
 
 /**
  * @example
  * ```ts
- * const label = resolveProjectWorkflowTaskTitle("task-1", [
- *   { taskId: "task-1", taskTitle: "Task 1" },
+ * const label = resolveProjectWorkflowSessionLabel("project-workflow", [
+ *   { sessionId: "project-workflow", sessionTitle: "Project workflow" },
  * ])
  * ```
  */
-function resolveProjectWorkflowTaskTitle(
-  taskId: string | null,
-  workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[],
+function resolveProjectWorkflowSessionLabel(
+  sessionId: string | null,
+  workflowSessionCatalog: ProjectWorkflowSessionCatalogItem[],
 ) {
-  if (!taskId) {
+  if (!sessionId) {
     return "ещё не назначен"
   }
 
-  const task = workflowTaskCatalog.find((entry) => entry.taskId === taskId)
-  return task ? `${task.taskTitle} (${task.taskId})` : taskId
+  const session = workflowSessionCatalog.find((entry) => entry.sessionId === sessionId)
+  return session ? `${session.sessionTitle} (${session.sessionId})` : sessionId
 }
 
 export {
-  resolveProjectComponentTaskId,
-  resolveProjectWorkflowTaskTitle,
+  resolveProjectComponentWorkflowSessionId,
+  resolveProjectWorkflowSessionLabel,
 }
 
-export type { ProjectWorkflowTaskCatalogItem }
+export type {
+  ProjectWorkflowSessionCatalogItem,
+}

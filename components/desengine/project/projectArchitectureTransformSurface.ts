@@ -70,7 +70,7 @@ function buildProjectArchitectureTransformModel(args: {
       {
         id: "llm",
         title: "LLM",
-        description: "Prompt/runtime контур должен читаться как отдельная архитектурная линия, а не как случайный побочный эффект task flow.",
+        description: "Prompt/runtime контур должен читаться как отдельная архитектурная линия, а не как случайный побочный эффект старого flow.",
         projectSignal: signalSummary.llm,
       },
       {

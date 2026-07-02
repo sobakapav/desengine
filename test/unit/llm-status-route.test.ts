@@ -1,7 +1,7 @@
 // @openSpec capability: llm
 // @openSpec scenarios:
 // @openSpec  - "Конфигурация выбрала сетевой провайдер"
-// @openSpec  - "Пользователь меняет модель для лаборатории"
+// @openSpec  - "Пользователь меняет модель для workflow"
 // @openSpec  - "В desengine.config.json нет настройки модели"
 // @openSpec  - "Клиент запрашивает статус LLM"
 // @openSpec  - "Клиент пытается запросить отдельный OpenAI status endpoint"

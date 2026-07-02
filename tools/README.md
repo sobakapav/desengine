@@ -37,8 +37,6 @@ Root-карта документации:
 | Создание нового OpenSpec change с `short` в metadata | `tools/create-openspec-change.mjs` | `npm run openspec:new -- <name>` |
 | Подсистема code quality text | `tools/quality-text/engine.mjs` | `npm run quality:text` |
 | Генерация allowlist-маркера | `tools/generate-allowlist-marker.mjs` | `npm run allowlist:marker -- user@example.com` |
-| Генерация `config.json` по `base.png` и `variants.png` | `tools/generate-task-configs.mjs` | `npm run admin:tasks:configs` |
-| Подготовка task-каталогов из набора PNG | `tools/import-task-assets.mjs` | `npm run admin:tasks:import -- --variants-root=... --base-root=...` |
 
 Каноническими не считаются:
 - ad hoc shell-фрагменты;
@@ -51,12 +49,10 @@ Root-карта документации:
 | --- | --- | --- |
 | `scripts/smoke-local-install.mjs` | `tools/smoke-local-install.mjs` | `npm run smoke` |
 | `tools/generate-allowlist-marker.mjs` | `tools/generate-allowlist-marker.mjs` | `npm run allowlist:marker -- user@example.com` |
-| `utils/config.sh` | `tools/generate-task-configs.mjs` | `npm run admin:tasks:configs` |
-| `utils/generate_task_folders.sh` | `tools/import-task-assets.mjs` | `npm run admin:tasks:import -- --variants-root=... --base-root=...` |
 
 ## Канонические команды
 
-Этот файл фиксирует только CLI-утилиты из `/tools`. Ручное обновление локального `/onboarding` через кнопку `Обновить onboarding` на `/system` относится к административному контуру, но не считается CLI-admin-tool из `/tools`. Подробности по этому потоку собраны в [docs/onboarding.md](docs/onboarding.md).
+Этот файл фиксирует только CLI-утилиты из `/tools`.
 
 ### `npm run smoke`
 
@@ -328,29 +324,6 @@ npm run test:readability:repo
 
 ```bash
 npm run allowlist:marker -- user@example.com --salt=my-secret-salt
-```
-
-### `npm run admin:tasks:configs`
-
-Пересобирает `config.json` для всех задач в `onboarding/tasks` по размерам `base.png` и `variants.png`.
-
-Полезные аргументы:
-
-```bash
-npm run admin:tasks:configs -- --tasks-root=tasks
-npm run admin:tasks:configs -- --tasks-root=onboarding/tasks --max-level=20
-```
-
-### `npm run admin:tasks:import -- --variants-root=... --base-root=...`
-
-Создаёт или обновляет task-каталоги и раскладывает туда:
-- `variants.png` из каталога variants;
-- `base.png` из каталога base по маске `<task-name>-base.png`.
-
-Пример:
-
-```bash
-npm run admin:tasks:import -- --variants-root=incoming/variants --base-root=incoming/base --output-root=onboarding/tasks
 ```
 
 ## Правила admin tools

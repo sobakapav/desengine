@@ -32,18 +32,6 @@ npm run quality:text
 npm run test:e2e
 ```
 
-Реальный onboarding checkout проверяется отдельной командой:
-
-```bash
-npm run test:onboarding:real
-```
-
-Targeted smoke переключения UI kit использует fixture-доступ без live allowlist:
-
-```bash
-DESENGINE_E2E_FIXTURE_ACCESS=1 npm run test:e2e -- test/e2e/project-ui-kit-switching.spec.ts
-```
-
 Live/provider-проверки не входят в обычный обязательный прогон и запускаются только явно:
 
 ```bash
@@ -67,7 +55,6 @@ npm run test:live
 | `npm run test:e2e` | Playwright route smoke без live credentials. |
 | `npm run test:integration` | Integration-проверки route/API-flow в `test/integration/**/*.test.ts`. |
 | `npm run test:live` | Env-aware preflight для активного provider без реальных сетевых вызовов. |
-| `npm run test:onboarding:real` | Явный smoke-контракт реального `/onboarding` checkout через текущий repair path. |
 | `npm run test:spec -- <capability>` | Зарезервировано для выборочного запуска по OpenSpec capability. |
 
 ## Структура
@@ -192,7 +179,7 @@ E2E запускается через `playwright.e2e.config.ts`:
 npm run test:e2e
 ```
 
-Команда стартует отдельный `next dev` на `127.0.0.1:3410`, очищает live/provider env для тестового процесса и не требует реальных LLM ключей, allowlist-хранилища или `ONBOARDING_REPO_URL`.
+Команда стартует отдельный `next dev` на `127.0.0.1:3410` и очищает live/provider env для тестового процесса.
 
 По умолчанию используется bundled Chromium:
 
@@ -252,15 +239,13 @@ DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410 npm
 
 - `/auth` и `/system` открываются без допуска;
 - `/` без допуска переводит на `/auth`;
-- `/tasks`, `/levels`, task entry и level entry перечислены в наборе, но временно skipped до стабилизации параллельного runtime-переезда task/user schema.
+- project-facing маршруты должны подтверждать работу без возврата к task/level-модели.
 
 E2E helper делает snapshot каталога `user/` до и после активных сценариев. Если smoke меняет пользовательское состояние, тест должен упасть.
 
 ## Fixtures и credentials
 
 Обычные команды `npm test`, `npm run test:unit`, `npm run test:full` и `npm run test:e2e` не должны требовать live credentials.
-
-`npm run test:onboarding:real` намеренно не относится к этому обязательному детерминированному набору: команда использует реальный `ONBOARDING_REPO_URL`, может запускать repair и нужна именно для внешней проверки совместимости настоящего checkout.
 
 Секреты нельзя хранить в git. Для live/provider-проверок использовать только env или локальные некоммитимые файлы.
 
@@ -272,7 +257,6 @@ E2E helper делает snapshot каталога `user/` до и после а�
 - Claude: `LLM_PROVIDER`, `CLAUDE_API_KEY`, `CLAUDE_MODEL`, `CLAUDE_BASE_URL`, `CLAUDE_MAX_TOKENS`.
 - Z.AI: `LLM_PROVIDER`, `ZAI_API_KEY`, `ZAI_MODEL`, `ZAI_BASE_URL`.
 - Allowlist: `ALLOWLIST_BASE_URL`, `ALLOWLIST_SALT`.
-- Onboarding: `ONBOARDING_REPO_URL`.
 
 ## Как добавлять тест для change
 

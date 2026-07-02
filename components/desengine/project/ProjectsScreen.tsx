@@ -63,20 +63,72 @@ function ProjectsEmptyState() {
   )
 }
 
-function CreateProjectPanel({
-  createProject,
-  status,
+function CreatedProjectActions({
+  createdProjectId,
+  createdProjectTitle,
 }: {
-  createProject: ReturnType<typeof useProjectRegistry>["createProject"]
-  status: ReturnType<typeof useProjectRegistry>["status"]
+  createdProjectId: string
+  createdProjectTitle: string | null
 }) {
   const router = useRouter()
-  const [title, setTitle] = useState("")
-  const [projectId, setProjectId] = useState("")
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-3">
+      <button
+        className="rounded-full bg-black px-5 py-3 text-sm text-white"
+        type="button"
+        onClick={() => router.push(getProjectUrl(createdProjectId))}
+      >
+        Открыть проект
+      </button>
+      <span className="self-center text-sm text-black/65">
+        Следующий шаг: создать в проекте компонент{createdProjectTitle ? ` для «${createdProjectTitle}»` : ""}.
+      </span>
+    </div>
+  )
+}
+
+function CreateProjectFeedback({
+  createState,
+  message,
+}: {
+  createState: "idle" | "creating" | "created" | "error"
+  message: string
+}) {
+  if (!message) return null
+
+  return (
+    <p className={`mt-4 rounded-2xl border p-4 text-sm ${createState === "error"
+      ? "border-red-300 bg-red-50 text-red-900"
+      : "border-black/10 bg-white text-black/80"}`}
+    >
+      {message}
+    </p>
+  )
+}
+
+function useCreateProjectPanelState(createProject: ReturnType<typeof useProjectRegistry>["createProject"]) {
+  const [title, setTitleValue] = useState("")
+  const [projectId, setProjectIdValue] = useState("")
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null)
   const [createdProjectTitle, setCreatedProjectTitle] = useState<string | null>(null)
   const [createState, setCreateState] = useState<"idle" | "creating" | "created" | "error">("idle")
   const [message, setMessage] = useState("")
+
+  function resetDraftState() {
+    setCreateState("idle")
+    setMessage("")
+  }
+
+  function setTitle(value: string) {
+    setTitleValue(value)
+    resetDraftState()
+  }
+
+  function setProjectId(value: string) {
+    setProjectIdValue(value)
+    resetDraftState()
+  }
 
   async function handleCreate() {
     if (!title.trim()) {
@@ -95,8 +147,8 @@ function CreateProjectPanel({
         id: projectId.trim() || undefined,
         title,
       })
-      setTitle("")
-      setProjectId("")
+      setTitleValue("")
+      setProjectIdValue("")
       setCreateState("created")
       setCreatedProjectId(project.id)
       setCreatedProjectTitle(project.title)
@@ -106,6 +158,38 @@ function CreateProjectPanel({
       setMessage(error instanceof Error ? error.message : "Не удалось создать проект.")
     }
   }
+
+  return {
+    createState,
+    createdProjectId,
+    createdProjectTitle,
+    handleCreate,
+    message,
+    projectId,
+    setProjectId,
+    setTitle,
+    title,
+  }
+}
+
+function CreateProjectPanel({
+  createProject,
+  status,
+}: {
+  createProject: ReturnType<typeof useProjectRegistry>["createProject"]
+  status: ReturnType<typeof useProjectRegistry>["status"]
+}) {
+  const {
+    createState,
+    createdProjectId,
+    createdProjectTitle,
+    handleCreate,
+    message,
+    projectId,
+    setProjectId,
+    setTitle,
+    title,
+  } = useCreateProjectPanelState(createProject)
 
   return (
     <section className="mt-6 rounded-3xl border border-black/10 bg-[#f8f4ea] p-6">
@@ -120,21 +204,13 @@ function CreateProjectPanel({
           className="w-full rounded-2xl border border-black/15 bg-white px-4 py-3 text-base"
           placeholder="Например, Marketing site"
           value={title}
-          onChange={(event) => {
-            setTitle(event.target.value)
-            setCreateState("idle")
-            setMessage("")
-          }}
+          onChange={(event) => setTitle(event.target.value)}
         />
         <input
           className="w-full rounded-2xl border border-black/15 bg-white px-4 py-3 text-base"
           placeholder="Идентификатор проекта, например marketing-site"
           value={projectId}
-          onChange={(event) => {
-            setProjectId(event.target.value)
-            setCreateState("idle")
-            setMessage("")
-          }}
+          onChange={(event) => setProjectId(event.target.value)}
         />
         <button
           className="rounded-full bg-black px-5 py-3 text-sm text-white disabled:cursor-not-allowed disabled:bg-black/40"
@@ -146,28 +222,13 @@ function CreateProjectPanel({
         </button>
       </div>
 
-      {message ? (
-        <p className={`mt-4 rounded-2xl border p-4 text-sm ${createState === "error"
-          ? "border-red-300 bg-red-50 text-red-900"
-          : "border-black/10 bg-white text-black/80"}`}
-        >
-          {message}
-        </p>
-        ) : null}
+      <CreateProjectFeedback createState={createState} message={message} />
 
       {createState === "created" && createdProjectId ? (
-        <div className="mt-4 flex flex-wrap gap-3">
-          <button
-            className="rounded-full bg-black px-5 py-3 text-sm text-white"
-            type="button"
-            onClick={() => router.push(getProjectUrl(createdProjectId))}
-          >
-            Открыть проект
-          </button>
-          <span className="self-center text-sm text-black/65">
-            Следующий шаг: создать в проекте компонент{createdProjectTitle ? ` для «${createdProjectTitle}»` : ""}.
-          </span>
-        </div>
+        <CreatedProjectActions
+          createdProjectId={createdProjectId}
+          createdProjectTitle={createdProjectTitle}
+        />
       ) : null}
     </section>
   )
@@ -212,7 +273,7 @@ function ProjectsScreen() {
       <h1 className="py-2 text-8xl">Проекты</h1>
       <p className="max-w-4xl py-2 text-xl text-black/70">
         Здесь виден канонический реестр проектов: активный проект, доступные рабочие пространства
-        и отдельная точка входа в каждый проект без захода в рабочую среду конкретной задачи.
+        и отдельная точка входа в каждый проект без обходных legacy-сценариев.
       </p>
 
       <ProjectsSummary

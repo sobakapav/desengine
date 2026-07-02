@@ -5,7 +5,6 @@ export type ProjectComponent = {
   id: string
   projectId: string
   title: string
-  taskId: string | null
   workflowKind: ProjectComponentWorkflowKind
   status: ProjectComponentStatus
   createdAt: string
@@ -23,7 +22,6 @@ type RawProjectComponent = {
   id?: string | null
   projectId?: string | null
   title?: string | null
-  taskId?: string | null
   workflowKind?: string | null
   status?: string | null
   createdAt?: string | null
@@ -73,9 +71,6 @@ function normalizeProjectComponent(rawComponent: RawProjectComponent | null | un
     title: typeof rawComponent?.title === "string" && rawComponent.title.trim()
       ? rawComponent.title.trim()
       : "Новый компонент",
-    taskId: typeof rawComponent?.taskId === "string" && rawComponent.taskId.trim()
-      ? rawComponent.taskId.trim()
-      : null,
     workflowKind: normalizeProjectComponentWorkflowKind(rawComponent?.workflowKind),
     status: normalizeProjectComponentStatus(rawComponent?.status),
     createdAt,
@@ -90,7 +85,6 @@ function createProjectComponent(input: CreateProjectComponentInput): ProjectComp
     id: typeof input.id === "string" && input.id.trim() ? input.id.trim() : createProjectComponentId(),
     projectId: input.projectId,
     title: typeof input.title === "string" && input.title.trim() ? input.title.trim() : "Новый компонент",
-    taskId: null,
     workflowKind: input.workflowKind ?? "image-to-component-workflow",
     status: "draft",
     createdAt: now,

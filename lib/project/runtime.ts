@@ -1,20 +1,32 @@
 import {
-  DEFAULT_SANDPACK_UI_KIT_ID,
-  normalizeSandpackUiKitId,
-  type SandpackUiKitId,
-} from "@/lib/lab/sandpack-ui-kits.config"
+  DEFAULT_PROJECT_UI_KIT_ID,
+  normalizeProjectUiKitId,
+  type ProjectUiKitId,
+} from "@/lib/project/ui-kit-config"
+import {
+  type ProjectCompatibility,
+  type ProjectCompatibilityStatus,
+  resolveProjectPreviewConfig,
+  validateUiKitComponentSource,
+} from "@/lib/project/compatibility"
+import {
+  createProjectTimestamp,
+  createProjectWorkspaceId,
+  normalizeOptionalProjectTimestamp,
+  normalizeProjectTimestamp,
+} from "@/lib/project/runtime-helpers"
 
 export type ProjectSettings = {
-  uiKitId: SandpackUiKitId
+  uiKitId: ProjectUiKitId
 }
 
 export type ProjectMigrationState = "idle" | "pending" | "completed" | "failed"
-export type ProjectMigrationInvalidationScope = "none" | "current-level"
+export type ProjectMigrationInvalidationScope = "none" | "current-step"
 
 export type ProjectMigrationStatus = {
   state: ProjectMigrationState
-  sourceUiKitId: SandpackUiKitId
-  targetUiKitId: SandpackUiKitId
+  sourceUiKitId: ProjectUiKitId
+  targetUiKitId: ProjectUiKitId
   invalidationScope: ProjectMigrationInvalidationScope
   requiresReplay: boolean
   message: string
@@ -42,15 +54,8 @@ export type CreateProjectWorkspaceInput = {
   uiKitId?: string | null
 }
 
-export type ProjectCompatibilityStatus = "compatible" | "incompatible"
-
-export type ProjectCompatibility = {
-  status: ProjectCompatibilityStatus
-  message: string
-}
-
 export type ProjectMigrationTarget = {
-  uiKitId: SandpackUiKitId
+  uiKitId: ProjectUiKitId
 }
 
 export type RawProjectMigrationTarget = {
@@ -78,30 +83,6 @@ export type RawProject = {
   } | null
 }
 
-const DEFAULT_PROJECT_TIMESTAMP = "1970-01-01T00:00:00.000Z"
-const shadcnImportPattern = /(?:from\s+|import\s+)["']@\/components\/ui\//
-
-function normalizeProjectTimestamp(rawTimestamp: string | null | undefined, fallback = DEFAULT_PROJECT_TIMESTAMP) {
-  if (typeof rawTimestamp !== "string" || !rawTimestamp.trim()) return fallback
-  const date = new Date(rawTimestamp)
-  if (Number.isNaN(date.getTime())) return fallback
-  return date.toISOString()
-}
-
-function normalizeOptionalProjectTimestamp(rawTimestamp: string | null | undefined) {
-  if (typeof rawTimestamp !== "string" || !rawTimestamp.trim()) return null
-
-  return normalizeProjectTimestamp(rawTimestamp)
-}
-
-function createProjectTimestamp() {
-  return new Date().toISOString()
-}
-
-function createProjectWorkspaceId() {
-  return `project-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-}
-
 function createIdleProjectMigrationStatus(settings: ProjectSettings): ProjectMigrationStatus {
   return {
     state: "idle",
@@ -115,10 +96,10 @@ function createIdleProjectMigrationStatus(settings: ProjectSettings): ProjectMig
   }
 }
 
-function createDefaultProject(id = "lab-local-project"): Project {
+function createDefaultProject(id = "project-local-workspace"): Project {
   const now = createProjectTimestamp()
   const settings = {
-    uiKitId: DEFAULT_SANDPACK_UI_KIT_ID,
+    uiKitId: DEFAULT_PROJECT_UI_KIT_ID,
   } satisfies ProjectSettings
 
   return {
@@ -140,7 +121,7 @@ function normalizeProjectMigrationState(rawState?: string | null): ProjectMigrat
 }
 
 function normalizeProjectMigrationInvalidationScope(rawScope?: string | null): ProjectMigrationInvalidationScope {
-  return rawScope === "current-level" ? "current-level" : "none"
+  return rawScope === "current-step" ? "current-step" : "none"
 }
 
 function normalizeProjectMigrationStatus(
@@ -155,8 +136,8 @@ function normalizeProjectMigrationStatus(
 
   return {
     state: normalizeProjectMigrationState(rawMigration.state),
-    sourceUiKitId: normalizeSandpackUiKitId(rawMigration.sourceUiKitId ?? settings.uiKitId),
-    targetUiKitId: normalizeSandpackUiKitId(rawMigration.targetUiKitId ?? settings.uiKitId),
+    sourceUiKitId: normalizeProjectUiKitId(rawMigration.sourceUiKitId ?? settings.uiKitId),
+    targetUiKitId: normalizeProjectUiKitId(rawMigration.targetUiKitId ?? settings.uiKitId),
     invalidationScope: normalizeProjectMigrationInvalidationScope(rawMigration.invalidationScope),
     requiresReplay: Boolean(rawMigration.requiresReplay),
     message: typeof rawMigration.message === "string" ? rawMigration.message.trim() : "",
@@ -169,7 +150,7 @@ function normalizeProject(rawProject: RawProject | null | undefined): Project {
   const fallback = createDefaultProject(rawProject?.id || undefined)
   const rawSettings = rawProject?.settings ?? null
   const rawUiKitId = rawSettings?.uiKitId ?? rawProject?.uiKitId
-  const uiKitId = normalizeSandpackUiKitId(rawUiKitId)
+  const uiKitId = normalizeProjectUiKitId(rawUiKitId)
   const createdAt = normalizeProjectTimestamp(rawProject?.createdAt, fallback.createdAt)
   const settings = { uiKitId } satisfies ProjectSettings
 
@@ -203,11 +184,11 @@ function serializeProjectWorkspace(project: RawProject | ProjectWorkspace): Proj
   return normalizeProject(project)
 }
 
-function getProjectStorageKey(taskId: string) {
-  return `desengine:project:${taskId}`
+function getProjectStorageKey(projectId: string) {
+  return `desengine:project:${projectId}`
 }
 
-function getProjectMigrationTarget(nextUiKitId: SandpackUiKitId): ProjectMigrationTarget {
+function getProjectMigrationTarget(nextUiKitId: ProjectUiKitId): ProjectMigrationTarget {
   return {
     uiKitId: nextUiKitId,
   }
@@ -215,7 +196,7 @@ function getProjectMigrationTarget(nextUiKitId: SandpackUiKitId): ProjectMigrati
 
 function normalizeProjectMigrationTarget(rawTarget: RawProjectMigrationTarget): ProjectMigrationTarget {
   return {
-    uiKitId: normalizeSandpackUiKitId(rawTarget?.uiKitId),
+    uiKitId: normalizeProjectUiKitId(rawTarget?.uiKitId),
   }
 }
 
@@ -295,27 +276,6 @@ function failProjectUiKitMigration(
       startedAt: project.migration.startedAt ?? now,
       finishedAt: now,
     },
-  }
-}
-
-function validateUiKitComponentSource(componentSource: string, uiKitId: SandpackUiKitId): ProjectCompatibility {
-  if (uiKitId !== "shadcn" && shadcnImportPattern.test(componentSource)) {
-    return {
-      status: "incompatible",
-      message: `Проект с UI kit ${uiKitId} не подключает imports из components/ui: переключите проект на shadcn или уберите shadcn-компоненты.`,
-    }
-  }
-
-  return {
-    status: "compatible",
-    message: "Проект совместим с выбранным UI kit.",
-  }
-}
-
-function resolveProjectPreviewConfig(project: Project) {
-  return {
-    ...project,
-    effectiveUiKitId: project.settings.uiKitId,
   }
 }
 

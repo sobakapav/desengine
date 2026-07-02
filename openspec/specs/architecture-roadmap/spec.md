@@ -11,7 +11,7 @@
 Система разработки SHALL иметь roadmap-dispatcher, который описывает последовательность архитектурных changes, их статус, зависимости и причины порядка.
 
 #### Scenario: Команда выбирает следующий архитектурный шаг
-- **WHEN** команда завершила стабилизацию lab runtime и Project/Sandpack boundary
+- **WHEN** команда завершила стабилизацию project/workflow boundary
 - **THEN** dispatcher указывает следующий transformation change только среди шагов со статусом `active` или `planned`
 - **AND** объясняет, какой риск этот change снижает
 - **AND** не предлагает архивированный foundation-step как следующий change

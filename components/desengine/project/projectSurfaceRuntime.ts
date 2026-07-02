@@ -32,11 +32,11 @@ function resolveProjectComponentStatusLabel(status: ProjectComponent["status"]) 
 function resolveWorkflowStageStatusLabel(status: ProjectWorkflowReadoutSnapshot["entries"][number]["stageStatus"]) {
   switch (status) {
     case "completed":
-      return "Этап завершён"
+      return "Шаг завершён"
     case "in_progress":
-      return "Этап в работе"
+      return "Шаг в работе"
     default:
-      return "Этап ещё не начат"
+      return "Шаг ещё не начат"
   }
 }
 
@@ -142,7 +142,7 @@ function buildProjectWorkflowReadoutModel(snapshot: ProjectWorkflowReadoutSnapsh
       componentCountLabel: formatProjectSurfaceCount(snapshot.entries.length, "компонент", "компонента", "компонентов"),
       focusedCountLabel: formatProjectSurfaceCount(focusedCount, "фокус", "фокуса", "фокусов"),
       completedCountLabel: formatProjectSurfaceCount(completedCount, "готовый компонент", "готовых компонента", "готовых компонентов"),
-      stageCountLabel: formatProjectSurfaceCount(snapshot.stages.length, "этап", "этапа", "этапов"),
+      stageCountLabel: formatProjectSurfaceCount(snapshot.stages.length, "шаг workflow", "шага workflow", "шагов workflow"),
     },
     entries: snapshot.entries.map((entry) => ({
       componentId: entry.componentId,

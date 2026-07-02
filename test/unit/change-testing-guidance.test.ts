@@ -38,7 +38,6 @@ describe("change testing guidance", () => {
     expect(packageJson.scripts["test:full"]).toBe(
       "npm run test:unit && npm run test:traceability && npm run quality:text",
     )
-    expect(packageJson.scripts["test:onboarding:real"]).toBe("node tools/test-real-onboarding-smoke.mjs")
     expect(packageJson.scripts["test:spec"]).toBe("node tools/testing/pending-layer.mjs spec")
     expect(packageJson.scripts["test:live"]).toBe("node tools/testing/live-provider-preflight.mjs")
     expect(packageJson.scripts.os).toBe("node tools/list-active-openspec-changes.mjs")
@@ -184,8 +183,6 @@ describe("change testing guidance", () => {
     expect(source).toContain("## Тестовая часть change")
     expect(source).toContain("Минимальный пример")
     expect(source).toContain("Выбор уровня")
-    expect(source).toContain("test:onboarding:real")
-    expect(source).toContain("реальный onboarding checkout")
     expect(source).toContain("live/provider")
     expect(source).toContain("Если полный тест сейчас нельзя добавить")
     expect(source).toContain("targetStage")

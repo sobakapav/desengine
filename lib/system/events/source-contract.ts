@@ -15,7 +15,6 @@ import {
 const EventScopeSchema = z
   .object({
     projectId: z.string().min(1).optional(),
-    taskId: z.string().min(1).optional(),
     workflowStepId: z.string().min(1).optional(),
     workbenchInstanceId: z.string().min(1).optional(),
   })
@@ -27,7 +26,7 @@ const EventScopeSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
-          "Scope должен быть одной из MVP-комбинаций: project, task, workflow-step или workbench-instance.",
+          "Scope должен быть одной из MVP-комбинаций: project, workflow-step или workbench-instance.",
       })
     }
   })
@@ -86,36 +85,44 @@ export type EventEnvelopeValidationResult<TPayload extends EventPayload = EventP
 
 type EventScopeInput = {
   projectId?: string | undefined
-  taskId?: string | undefined
   workflowStepId?: string | undefined
   workbenchInstanceId?: string | undefined
 }
 
 export function resolveEventScopeKind(scope: EventScopeInput): EventScopeKind | null {
   const hasProject = Boolean(scope.projectId)
-  const hasTask = Boolean(scope.taskId)
   const hasWorkflowStep = Boolean(scope.workflowStepId)
   const hasWorkbench = Boolean(scope.workbenchInstanceId)
 
-  if (hasProject && !hasTask && !hasWorkflowStep && !hasWorkbench) {
+  if (hasProject && !hasWorkflowStep && !hasWorkbench) {
     return "project"
   }
 
-  if (hasProject && hasTask && !hasWorkflowStep && !hasWorkbench) {
-    return "task"
-  }
-
-  if (hasProject && hasTask && hasWorkflowStep && !hasWorkbench) {
+  if (hasProject && hasWorkflowStep && !hasWorkbench) {
     return "workflow-step"
   }
 
-  if (hasProject && !hasTask && !hasWorkflowStep && hasWorkbench) {
+  if (hasProject && !hasWorkflowStep && hasWorkbench) {
     return "workbench-instance"
   }
 
   return null
 }
 
+/**
+ * @example
+ * ```ts
+ * const result = validateEventEnvelope({
+ *   eventId: "event-1",
+ *   kind: "experience.opened",
+ *   occurredAt: new Date().toISOString(),
+ *   scope: { projectId: "project-a" },
+ *   privacyClass: "local",
+ *   redactionState: "raw",
+ *   payload: { family: "experience" },
+ * })
+ * ```
+ */
 export function validateEventEnvelope<TPayload extends EventPayload = EventPayload>(
   input: unknown,
 ): EventEnvelopeValidationResult<TPayload> {
@@ -134,6 +141,20 @@ export function validateEventEnvelope<TPayload extends EventPayload = EventPaylo
   }
 }
 
+/**
+ * @example
+ * ```ts
+ * const envelope = assertEventEnvelope({
+ *   eventId: "event-1",
+ *   kind: "action.saved",
+ *   occurredAt: new Date().toISOString(),
+ *   scope: { projectId: "project-a" },
+ *   privacyClass: "local",
+ *   redactionState: "raw",
+ *   payload: { family: "action" },
+ * })
+ * ```
+ */
 export function assertEventEnvelope<TPayload extends EventPayload = EventPayload>(
   input: unknown,
 ): EventEnvelope<TPayload> {

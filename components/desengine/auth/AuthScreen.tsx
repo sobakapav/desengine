@@ -20,8 +20,6 @@ const HELP_LINKS_BY_RESOURCE_ID: Partial<Record<Resource["id"], string>> = {
   "llm-config": "/help/llm-api-keys",
   "llm-network": "/help/llm-api-keys",
   "system-release": "/help/version-error",
-  "onboarding-config": "/help/onboarding-config",
-  "onboarding-content": "/help/onboarding-config",
 }
 
 function pickActiveResource(resources: Resource[]) {

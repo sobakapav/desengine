@@ -1,7 +1,3 @@
-// @openSpec capability: level-labs
-// @openSpec scenarios:
-// @openSpec  - "Пользователь открывает рабочий экран на desktop"
-
 import fs from "node:fs"
 import path from "node:path"
 
@@ -20,7 +16,7 @@ describe("repo root resolution", () => {
       const module = await import("../../lib/system/config/server")
       const { appConfig } = module
 
-      expect(appConfig.taskCatalogRoot).toBe(path.join(originalCwd, "onboarding", "tasks"))
+      expect(appConfig.promptsRoot).toBe(path.join(originalCwd, "prompts"))
     } finally {
       process.chdir(originalCwd)
     }

@@ -19,7 +19,6 @@ type ProjectStorage = {
 
 type BrowserProjectStorageOptions = {
   storage: Storage
-  taskId?: string
 }
 
 const PROJECT_REGISTRY_STORAGE_KEY = "desengine:project-workspaces"
@@ -70,18 +69,18 @@ function readBrowserStoredProjects(storage: Storage) {
   return normalizeProjectList(readStorageJson(storage, PROJECT_REGISTRY_STORAGE_KEY))
 }
 
-function readBrowserStoredProject(storage: Storage, projectId: string, _legacyTaskId?: string) {
+function readBrowserStoredProject(storage: Storage, projectId: string) {
   return readBrowserStoredProjects(storage)
     .find((project) => project.id === projectId) ?? null
 }
 
 function readBrowserStoredActiveProjectId(
   storage: Storage,
-  legacyTaskIdOrProjects?: string | ProjectWorkspace[],
+  projectsOrLegacyValue?: string | ProjectWorkspace[],
   maybeProjects?: ProjectWorkspace[],
 ) {
-  const projects = Array.isArray(legacyTaskIdOrProjects)
-    ? legacyTaskIdOrProjects
+  const projects = Array.isArray(projectsOrLegacyValue)
+    ? projectsOrLegacyValue
     : Array.isArray(maybeProjects)
       ? maybeProjects
       : readBrowserStoredProjects(storage)

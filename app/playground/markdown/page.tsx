@@ -27,7 +27,7 @@ const markdown = `
 
 ## Ссылка
 
-[Внутренняя ссылка](/tasks)
+[Внутренняя ссылка](/projects)
 
 [Внешняя ссылка](https://example.com)
 

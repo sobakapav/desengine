@@ -2,7 +2,7 @@
 // @openSpec scenarios:
 // @openSpec  - "Credentials не заданы"
 // @openSpec  - "Разработчик запускает browser verification preflight"
-// @openSpec  - "Разработчик проверяет lab runtime после hardening"
+// @openSpec  - "Разработчик проверяет browser runtime после hardening"
 
 import { expect, test } from "playwright/test"
 import { chromium } from "playwright/test"

@@ -4,7 +4,6 @@ export {
   EVENT_REDACTION_STATES,
   EVENT_SCOPE_KINDS,
   createProjectEventScope,
-  createTaskEventScope,
   createWorkflowStepEventScope,
   createWorkbenchInstanceEventScope,
   type EventEnvelope,

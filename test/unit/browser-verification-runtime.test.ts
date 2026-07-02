@@ -133,8 +133,8 @@ describe("browser verification runtime contract", () => {
       codexSandboxMode: "seatbelt",
       requiresWrapperRunner: true,
     })
-    expect(() => assertBrowserVerificationRunner(env, "test/e2e/workbench-context-visibility.spec.ts")).toThrow(
-      getWrapperRunnerCommand("test/e2e/workbench-context-visibility.spec.ts"),
+    expect(() => assertBrowserVerificationRunner(env, "test/e2e/route-smoke.spec.ts")).toThrow(
+      getWrapperRunnerCommand("test/e2e/route-smoke.spec.ts"),
     )
   })
 
@@ -300,6 +300,10 @@ describe("browser verification runtime contract", () => {
       path.join(process.cwd(), "tools", "testing", "run-browser-verification-runtime.mjs"),
       "utf8",
     )
+    const wrapperLib = fs.readFileSync(
+      path.join(process.cwd(), "tools", "testing", "browser-verification-runtime-lib.mjs"),
+      "utf8",
+    )
 
     expect(wrapper).toContain("test/e2e/browser-verification-runtime.spec.ts")
     expect(wrapper).toContain("function readSpecs")
@@ -308,21 +312,22 @@ describe("browser verification runtime contract", () => {
     expect(wrapper).toContain('DESENGINE_E2E_RUNNER: "browser-wrapper"')
     expect(wrapper).toContain('const DEFAULT_CHANNEL = "chromium"')
     expect(wrapper).toContain('"npm"')
-    expect(wrapper).toContain('const NEXT_DEV_LOCK_PATH = path.join(process.cwd(), ".next", "dev", "lock")')
-    expect(wrapper).toContain("readNextDevLock")
-    expect(wrapper).toContain("waitForProcessExit")
-    expect(wrapper).toContain("removeNextDevLock")
     expect(wrapper).toContain("process.execPath")
     expect(wrapper).toContain('node_modules", "next", "dist", "bin", "next"')
     expect(wrapper).toContain('"dev", "--hostname", "127.0.0.1"')
     expect(wrapper).toContain('"/api/status/llm"')
     expect(wrapper).toContain("browser-target-preflight.mjs")
-    expect(wrapper).toContain("createRequire(import.meta.url)")
     expect(wrapper).toContain("DESENGINE_E2E_ACCESS_SALT")
-    expect(wrapper).toContain("localConfig.loadLocalConfig()")
+    expect(wrapper).toContain("canReuseExistingTargetServer")
+    expect(wrapper).toContain("waitForProcessExit")
+    expect(wrapperLib).toContain('const NEXT_DEV_LOCK_PATH = path.join(process.cwd(), ".next", "dev", "lock")')
+    expect(wrapperLib).toContain("readNextDevLock")
+    expect(wrapperLib).toContain("removeNextDevLock")
+    expect(wrapperLib).toContain("createRequire(import.meta.url)")
+    expect(wrapperLib).toContain("localConfig.loadLocalConfig()")
+    expect(wrapperLib).toContain('source: "next-dev-lock"')
+    expect(wrapperLib).toContain('serverProcess.kill("SIGKILL")')
     expect(wrapper).toContain("переиспользует существующий target server")
-    expect(wrapper).toContain('source: "next-dev-lock"')
     expect(wrapper).toContain('server.kill("SIGTERM")')
-    expect(wrapper).toContain('serverProcess.kill("SIGKILL")')
   })
 })

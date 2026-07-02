@@ -1,6 +1,6 @@
 // @openSpec capability: projects
 // @openSpec scenarios:
-// @openSpec  - "Пользователь открывает lab в активном проекте"
+// @openSpec  - "Пользователь открывает рабочую среду в активном проекте"
 // @openSpec  - "Runtime записывает product event через единую project boundary"
 // @openSpec capability: testing-layer
 // @openSpec scenarios:
@@ -14,7 +14,7 @@ import { describe, expect, it, vi } from "vitest"
 import { recordEvent } from "@/lib/project/event-log"
 import {
   buildExperienceEventEnvelope,
-  createTaskEventScope,
+  createWorkflowStepEventScope,
   type EventEnvelope,
 } from "@/lib/system/events"
 
@@ -23,7 +23,7 @@ function buildEventEnvelope(overrides: Partial<EventEnvelope> = {}): EventEnvelo
     eventId: "event-1",
     kind: "experience.prompt-used",
     occurredAt: "2026-05-21T10:00:00.000Z",
-    scope: createTaskEventScope("project-1", "task-1"),
+    scope: createWorkflowStepEventScope("project-1", "workflow-step-1"),
     privacyClass: "local",
     redactionState: "redacted",
     payload: {
@@ -55,7 +55,7 @@ describe("project event log runtime boundary", () => {
   it("отклоняет невалидный envelope без fallback entrypoint", async () => {
     const envelope = buildEventEnvelope({
       scope: {
-        taskId: "task-1",
+        workflowStepId: "workflow-step-1",
       } as EventEnvelope["scope"],
     })
 

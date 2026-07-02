@@ -35,38 +35,11 @@ npm run test:unit
 | `npm run test:integration` | работает | Запускает Vitest project `integration` по `test/integration/**/*.test.ts` для route/API-flow на fixtures и stubs. |
 | `npm run test:e2e` | работает частично | Запускает Playwright route smoke без live credentials; runtime-зависимые маршруты могут быть явно skipped с причиной. |
 | `npm run test:live` | preflight | Проверяет env активного provider без сетевых вызовов и честно сообщает о недостающих переменных. |
-| `npm run test:onboarding:real` | работает | Проверяет реальный `/onboarding` checkout через smoke/repair контракт и не использует unit-фикстуры как доказательство совместимости. |
 | `npm run test:spec -- <capability>` | placeholder | Зарезервировано для выборочного запуска по OpenSpec capability. |
 
 Placeholder-команды завершаются успешно и печатают, какой этап `testing-layer` должен наполнить команду реальной проверкой. Сейчас это сделано намеренно для ещё не реализованного `test:spec`: стабильная точка входа уже существует, но не блокирует обычную разработку.
 
 `test:traceability` уже не placeholder: команда валидирует существующие связи тестов со specs. Пока она работает в миграционном режиме: неполное покрытие существующих specs допустимо только если capability есть в `test/traceability/coverage-plan.json`.
-
-## Реальный onboarding smoke
-
-Проверка, которая подтверждает именно реальный onboarding checkout, запускается отдельно:
-
-```bash
-npm run test:onboarding:real
-```
-
-Этот слой намеренно не входит в `test:full`:
-
-- `test:full` остаётся детерминированным и не зависит от внешнего checkout;
-- `test:onboarding:real` подтверждает именно реальный `/onboarding`, а не unit-фикстуры;
-- команда использует текущий smoke/repair контракт и, если нужно, сама пытается пересинхронизировать `/onboarding`.
-
-Предусловия:
-
-- в `desengine.config.txt` задан `ONBOARDING_REPO_URL`;
-- локальная среда может выполнить `git clone` канонического onboarding-репозитория;
-- у процесса есть права на замену локального каталога `/onboarding`.
-
-Что именно доказывает команда:
-
-- текущий `/onboarding` уже подтверждён marker'ом и runtime-compatible layout;
-- либо repair смог пересинхронизировать checkout и повторная проверка подтвердила marker + layout;
-- если подтверждение не получено, в выводе остаётся диагностика про repo URL, layout, source marker или ошибку repair.
 
 ## Integration
 
@@ -132,7 +105,7 @@ npm run test:storybook
 npm run test:e2e
 ```
 
-Команда использует `playwright.e2e.config.ts`, стартует отдельный `next dev` на `127.0.0.1:3410` и принудительно очищает live/provider env для тестового процесса. Поэтому e2e smoke не требует реальных LLM ключей, allowlist-хранилища или `ONBOARDING_REPO_URL`.
+Команда использует `playwright.e2e.config.ts`, стартует отдельный `next dev` на `127.0.0.1:3410` и принудительно очищает live/provider env для тестового процесса. Поэтому e2e smoke не требует реальных LLM ключей или allowlist-хранилища.
 
 Browser verification теперь имеет два явных режима:
 
@@ -191,24 +164,16 @@ DESENGINE_E2E_EXTERNAL_SERVER=1 DESENGINE_E2E_BASE_URL=http://127.0.0.1:3410 npm
 Для downstream `component/browser` fixes верификационная команда внутри Codex должна идти через wrapper-вход, например:
 
 ```bash
-DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs test/e2e/workbench-context-visibility.spec.ts
-```
-
-Targeted smoke переключения UI kit в Workbench запускается с fixture-доступом, который создаёт signed access cookie без live allowlist:
-
-```bash
-DESENGINE_E2E_FIXTURE_ACCESS=1 npm run test:e2e -- test/e2e/project-ui-kit-switching.spec.ts
+DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs test/e2e/route-smoke.spec.ts
 ```
 
 Для нестандартной тестовой соли можно задать `DESENGINE_E2E_ACCESS_SALT`; по умолчанию используется локальная fixture-соль. Этот режим предназначен для targeted spec и не меняет обычный route smoke без допуска.
 
 Текущий smoke-набор живёт в `test/e2e/route-smoke.spec.ts`:
 
-- публичные маршруты `/auth` и `/system` должны открываться без допуска;
+- публичные маршруты `/auth` и `/help` должны открываться без допуска;
 - защищённый `/` без допуска должен переводить на `/auth`;
-- `/tasks`, `/levels`, task entry и level entry уже перечислены как обязательный набор, но временно skipped, пока параллельный runtime-переезд task/user schema не стабилизирован.
-
-E2E helper снимает snapshot каталога `user/` до и после активных сценариев. Если smoke начнёт менять пользовательское состояние, команда упадёт.
+- project-facing browser smoke должен подтверждать вход в `/projects` без возврата к legacy-маршрутам.
 
 ## Полный прогон
 
@@ -336,7 +301,6 @@ LLM provider-проверки используют только выбранны
 Дополнительные live-контуры, если они появятся:
 
 - allowlist: `ALLOWLIST_BASE_URL`, `ALLOWLIST_SALT`;
-- onboarding: `ONBOARDING_REPO_URL`.
 
 Секреты не коммитятся. Для локального запуска используй env процесса или локальный некоммитимый файл, значения из которого заранее экспортированы в env; тестовые helpers не должны печатать значения секретов в диагностике.
 
@@ -347,12 +311,7 @@ LLM provider-проверки используют только выбранны
 - `test/helpers/test-env.ts` — безопасное чтение env для live-тестов без печати секретных значений;
 - `test/integration/helpers/route-harness.ts` — общий вызов route handlers с `Request` и async `params`;
 - `test/integration/helpers/temp-user-state.ts` — временный user-state root для integration-сценариев;
-- `test/e2e/fixtures/smoke-fixture.ts` — route smoke-набор и snapshot helper для проверки, что e2e не портит `user/`;
-- `test/fixtures/user-state.ts` — детерминированные user-state fixtures;
-- `test/fixtures/task-progress.ts` — уровни, task config и progress-state для сценариев прогресса;
-- `test/fixtures/onboarding-status.ts` — состояния onboarding-маркера и синхронизации;
 - `test/fixtures/provider-responses.ts` — mock-ответы LLM-провайдеров.
-- `test/traceability/spec-coverage-map.json` — карта specs по приоритетам P0/P1/P2 и обязательным сценариям;
 - `test/traceability/coverage-plan.json` — migration-план для capability, которые пока покрыты не полностью.
 
 Обязательные `npm test` и `npm run test:full` используют mock/fixtures и не требуют live credentials.

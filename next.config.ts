@@ -14,9 +14,6 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: rootDir,
   },
-  outputFileTracingIncludes: {
-    "/api/**": ["lib/lab/sandpack-templates/**"],
-  },
 };
 
 export default nextConfig;
