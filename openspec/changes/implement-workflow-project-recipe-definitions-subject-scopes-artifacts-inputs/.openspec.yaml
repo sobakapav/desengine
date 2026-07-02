@@ -1,0 +1,15 @@
+schema: spec-driven
+created: 2026-07-02
+short_policy: "none"
+review_sync_state: "none"
+change_kind: "implement"
+execution_mode: "code"
+parent_change: "dispatcher-workflow"
+strategy_root: "focus-domain"
+roadmap_ref: ""
+release_ref: ""
+producer_ref: ""
+verification_level: "static/contract"
+verification_command: "npm run test:traceability"
+issue: ""
+short: "перестроить Workflow из одного project recipe в каталог проектных операций"

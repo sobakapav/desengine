@@ -2,6 +2,7 @@ import { normalizeProject, serializeProjectWorkspace, type ProjectWorkspace } fr
 
 type ProjectConfigDraft = {
   id: string
+  promptBrief: string
   title: string
   uiKitId: ProjectWorkspace["settings"]["uiKitId"]
 }
@@ -19,6 +20,7 @@ type ValidateProjectConfigDraftResult =
 function buildProjectConfigDraft(project: ProjectWorkspace): ProjectConfigDraft {
   return {
     id: project.id,
+    promptBrief: project.settings.promptBrief,
     title: project.title,
     uiKitId: project.settings.uiKitId,
   }
@@ -27,8 +29,10 @@ function buildProjectConfigDraft(project: ProjectWorkspace): ProjectConfigDraft 
 function validateProjectConfigDraft(draft: ProjectConfigDraft): ValidateProjectConfigDraftResult {
   const normalized = normalizeProject({
     id: draft.id,
+    promptBrief: draft.promptBrief,
     title: draft.title,
     settings: {
+      promptBrief: draft.promptBrief,
       uiKitId: draft.uiKitId,
     },
   })
@@ -66,7 +70,9 @@ function applyProjectConfigDraft(project: ProjectWorkspace, draft: ProjectConfig
     title: validation.draft.title,
     updatedAt: new Date().toISOString(),
     settings: {
+      promptBrief: validation.draft.promptBrief.trim(),
       uiKitId: validation.draft.uiKitId,
+      workflowTemplateId: project.settings.workflowTemplateId,
     },
   })
 }

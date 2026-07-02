@@ -6,6 +6,22 @@ import {
   type ProjectWorkspace,
   type RawProject,
 } from "@/lib/project/runtime"
+import {
+  exportProjectManifest,
+  importProjectManifest,
+  type ProjectManifest,
+  type RawProjectManifest,
+} from "@/lib/project/manifest"
+import {
+  createBrowserProjectComponentStorage,
+  getProjectComponentsStorageKey,
+} from "@/lib/project/component-storage"
+import {
+  createBrowserProjectWorkspaceStorage,
+  getProjectActivityStorageKey,
+  getProjectSessionStorageKey,
+} from "@/lib/project/workspace-storage"
+import { normalizeProjectSession } from "@/lib/project/workspace-session"
 
 type ProjectStorage = {
   listProjects(): Promise<ProjectWorkspace[]>
@@ -15,6 +31,8 @@ type ProjectStorage = {
   saveProject(project: ProjectWorkspace, previousProjectId?: string | null): Promise<void>
   getActiveProjectId(): Promise<string | null>
   setActiveProjectId(projectId: string): Promise<void>
+  exportProjectManifest(projectId: string): Promise<ProjectManifest | null>
+  importProjectManifest(manifest: RawProjectManifest): Promise<ProjectManifest>
 }
 
 type BrowserProjectStorageOptions = {
@@ -233,12 +251,62 @@ function createBrowserProjectStorage({ storage }: BrowserProjectStorageOptions):
 
       writeActiveProjectId(projectId)
     },
+    async exportProjectManifest(projectId: string) {
+      const project = await this.getProject(projectId)
+      if (!project) {
+        return null
+      }
+
+      const componentStorage = createBrowserProjectComponentStorage(storage)
+      const workspaceStorage = createBrowserProjectWorkspaceStorage(storage)
+      const [components, session, activities] = await Promise.all([
+        componentStorage.listComponents(projectId),
+        workspaceStorage.getSession(projectId),
+        workspaceStorage.listActivities(projectId),
+      ])
+
+      return exportProjectManifest({
+        activities,
+        components,
+        project,
+        session,
+      })
+    },
+    async importProjectManifest(manifest: RawProjectManifest) {
+      const imported = importProjectManifest(manifest)
+      await this.saveProject(imported.project)
+      writeActiveProjectId(imported.project.id)
+
+      storage.setItem(
+        getProjectComponentsStorageKey(imported.project.id),
+        JSON.stringify(imported.components),
+      )
+      storage.setItem(
+        getProjectActivityStorageKey(imported.project.id),
+        JSON.stringify([]),
+      )
+      storage.setItem(
+        getProjectSessionStorageKey(imported.project.id),
+        JSON.stringify(normalizeProjectSession({
+          projectId: imported.project.id,
+          workflowKind: "project-design-workflow",
+          status: imported.components.length > 0 ? "in_progress" : "idle",
+          activeComponentId: imported.components.find((component) => component.status === "in_progress")?.id ?? null,
+          createdAt: imported.project.createdAt,
+          updatedAt: imported.project.updatedAt,
+          lastActivityAt: imported.artifactsSummary.lastActivityAt,
+        }, imported.project.id)),
+      )
+
+      return imported
+    },
   }
 }
 
 function createMemoryProjectStorage(initialProjects: ProjectWorkspace[] = []): ProjectStorage {
   let projects = initialProjects.map(serializeProjectWorkspace)
   let activeProjectId: string | null = projects[0]?.id ?? null
+  const manifests = new Map<string, ProjectManifest>()
 
   return {
     async listProjects() {
@@ -284,6 +352,32 @@ function createMemoryProjectStorage(initialProjects: ProjectWorkspace[] = []): P
       }
 
       activeProjectId = projectId
+    },
+    async exportProjectManifest(projectId: string) {
+      if (manifests.has(projectId)) {
+        return manifests.get(projectId) ?? null
+      }
+
+      const project = projects.find((item) => item.id === projectId) ?? null
+      if (!project) {
+        return null
+      }
+
+      const manifest = exportProjectManifest({
+        activities: [],
+        components: [],
+        project,
+        session: null,
+      })
+      manifests.set(projectId, manifest)
+      return manifest
+    },
+    async importProjectManifest(manifest: RawProjectManifest) {
+      const imported = importProjectManifest(manifest)
+      projects = mergeProject(projects, imported.project)
+      activeProjectId = imported.project.id
+      manifests.set(imported.project.id, imported)
+      return imported
     },
   }
 }

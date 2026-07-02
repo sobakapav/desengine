@@ -4,6 +4,23 @@
 
 Система SHALL описывать последовательность работы через `WorkflowInstance` и `WorkflowStepInstance`.
 
+#### Scenario: Workflow definition описывает тип проектной операции
+- **WHEN** система публикует workflow в product-facing или runtime-facing каталоге
+- **THEN** он представлен через `WorkflowDefinition`
+- **AND** definition содержит `operationFamily`, `subjectKinds`, `input requirements`, `producedArtifacts` и `stepDefinitions`
+- **AND** workflow не сводится к одному жёстко зашитому recipe проекта
+
+#### Scenario: Workflow run принадлежит проекту и конкретному предмету работы
+- **WHEN** пользователь запускает workflow
+- **THEN** система создаёт `WorkflowRun` внутри проекта
+- **AND** run явно знает project context и свой `subject`
+- **AND** subject может быть не только `component`, но и другим допустимым scope проектной работы
+
+#### Scenario: Workflow definition поддерживает альтернативные и опциональные inputs
+- **WHEN** workflow может стартовать от разных входов или с частичным project scope
+- **THEN** definition умеет различать `all-of`, `one-of` и `optional` input requirements
+- **AND** система не притворяется, будто все входы всегда обязательны одновременно
+
 #### Scenario: Workflow step принадлежит проекту
 - **WHEN** runtime строит workflow projection внутри active project
 - **THEN** каждый `WorkflowStepInstance` принадлежит этому `projectId`
@@ -31,6 +48,11 @@
 - **THEN** пользователь видит workflow проекта как наблюдаемую сущность с этапами, текущим фокусом и последней активностью
 - **AND** readout не требует знания legacy runtime, чтобы понять текущее состояние
 - **AND** project page остаётся главной поверхностью наблюдения за workflow
+
+#### Scenario: Пользователь видит workflow template проекта
+- **WHEN** система показывает workflow проекта
+- **THEN** пользователь видит выбранный workflow template как reusable recipe
+- **AND** template объясняет последовательность проектной работы, а не только текущий технический статус
 
 #### Scenario: Пользователь переводит проектный workflow на конкретный компонент
 - **WHEN** пользователь открывает `/projects/<projectId>`

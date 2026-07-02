@@ -18,6 +18,8 @@ import {
 
 export type ProjectSettings = {
   uiKitId: ProjectUiKitId
+  workflowTemplateId: "project-design-workflow"
+  promptBrief: string
 }
 
 export type ProjectMigrationState = "idle" | "pending" | "completed" | "failed"
@@ -49,9 +51,13 @@ export type CreateProjectWorkspaceInput = {
   id?: string | null
   title?: string | null
   settings?: {
+    promptBrief?: string | null
     uiKitId?: string | null
+    workflowTemplateId?: string | null
   } | null
+  promptBrief?: string | null
   uiKitId?: string | null
+  workflowTemplateId?: string | null
 }
 
 export type ProjectMigrationTarget = {
@@ -68,9 +74,13 @@ export type RawProject = {
   createdAt?: string | null
   updatedAt?: string | null
   settings?: {
+    promptBrief?: string | null
     uiKitId?: string | null
+    workflowTemplateId?: string | null
   } | null
+  promptBrief?: string | null
   uiKitId?: string | null
+  workflowTemplateId?: string | null
   migration?: {
     state?: string | null
     sourceUiKitId?: string | null
@@ -100,6 +110,8 @@ function createDefaultProject(id = "project-local-workspace"): Project {
   const now = createProjectTimestamp()
   const settings = {
     uiKitId: DEFAULT_PROJECT_UI_KIT_ID,
+    workflowTemplateId: "project-design-workflow",
+    promptBrief: "",
   } satisfies ProjectSettings
 
   return {
@@ -152,7 +164,16 @@ function normalizeProject(rawProject: RawProject | null | undefined): Project {
   const rawUiKitId = rawSettings?.uiKitId ?? rawProject?.uiKitId
   const uiKitId = normalizeProjectUiKitId(rawUiKitId)
   const createdAt = normalizeProjectTimestamp(rawProject?.createdAt, fallback.createdAt)
-  const settings = { uiKitId } satisfies ProjectSettings
+  const promptBrief = typeof rawSettings?.promptBrief === "string"
+    ? rawSettings.promptBrief.trim()
+    : typeof rawProject?.promptBrief === "string"
+      ? rawProject.promptBrief.trim()
+      : ""
+  const settings = {
+    uiKitId,
+    workflowTemplateId: "project-design-workflow",
+    promptBrief,
+  } satisfies ProjectSettings
 
   return {
     id: typeof rawProject?.id === "string" && rawProject.id.trim() ? rawProject.id.trim() : fallback.id,
@@ -176,7 +197,9 @@ function createProjectWorkspace(input: CreateProjectWorkspaceInput = {}): Projec
     createdAt: now,
     updatedAt: now,
     settings: input.settings,
+    promptBrief: input.promptBrief,
     uiKitId: input.uiKitId,
+    workflowTemplateId: input.workflowTemplateId,
   })
 }
 
@@ -243,6 +266,8 @@ function completeProjectUiKitMigration(
     updatedAt: now,
     settings: {
       uiKitId: target.uiKitId,
+      workflowTemplateId: project.settings.workflowTemplateId,
+      promptBrief: project.settings.promptBrief,
     },
     migration: {
       state: "completed",

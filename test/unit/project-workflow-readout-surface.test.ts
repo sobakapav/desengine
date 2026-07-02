@@ -80,6 +80,8 @@ describe("project workflow readout surface", () => {
   it("подключает workflow readout к project page как отдельный пользовательский слой", () => {
     const projectPage = readProjectFile("app", "projects", "[projectId]", "page.tsx")
     const projectOverview = readProjectFile("components", "desengine", "project", "ProjectOverviewScreen.tsx")
+    const productSurfaces = readProjectFile("components", "desengine", "project", "ProjectProductSurfacesPanel.tsx")
+    const productSurfaceModel = readProjectFile("components", "desengine", "project", "projectProductSurface.ts")
     const projectSupportPanels = readProjectFile("components", "desengine", "project", "ProjectOverviewSupportPanels.tsx")
     const workflowPanel = readProjectFile("components", "desengine", "project", "ProjectWorkflowReadoutPanel.tsx")
     const workflowPanelContent = readProjectFile("components", "desengine", "project", "ProjectWorkflowReadoutContent.tsx")
@@ -91,8 +93,12 @@ describe("project workflow readout surface", () => {
     expect(projectPage).toContain("<ProjectOverviewScreen projectId={projectId} />")
 
     expect(projectOverview).toContain("ProjectOverviewSupportPanels")
+    expect(projectOverview).toContain("ProjectProductSurfacesPanel")
     expect(projectSupportPanels).toContain("ProjectWorkflowReadoutPanel")
     expect(projectSupportPanels).toContain("workflowReadout={workflowReadout}")
+    expect(productSurfaces).toContain("Workflow template и readout")
+    expect(productSurfaceModel).toContain("buildProjectWorkflowTemplateModel")
+    expect(productSurfaceModel).toContain('title: "Project design workflow"')
 
     expect(workflowPanel).toContain("Как проект держит рабочий контур")
     expect(workflowPanel).toContain("WorkflowReadoutContent")

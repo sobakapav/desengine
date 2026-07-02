@@ -6,6 +6,7 @@ import { getProjectsRootUrl } from "@/lib/project/navigation"
 
 import { ProjectComponentsPanel } from "./ProjectComponentsPanel"
 import { ProjectOverviewPrimaryFlow } from "./ProjectOverviewPrimaryFlow"
+import { ProjectProductSurfacesPanel } from "./ProjectProductSurfacesPanel"
 import { ProjectOverviewSupportPanels } from "./ProjectOverviewSupportPanels"
 import { ProjectWorkspacePanel } from "./ProjectWorkspacePanel"
 import { buildProjectSurfaceModel } from "./projectSurface"
@@ -100,6 +101,14 @@ function ProjectOverviewReadyState({ projectId }: ProjectOverviewScreenProps) {
         componentCount={workspace.components.length}
         session={workspace.session}
         startProjectWork={() => void workspace.startProjectWork()}
+        workflowReadout={workspace.workflowReadout}
+      />
+      <ProjectProductSurfacesPanel
+        components={workspace.components}
+        historyDiagnostics={workspace.historyDiagnostics}
+        onProjectSaved={state.replaceProject}
+        project={state.project}
+        session={workspace.session}
         workflowReadout={workspace.workflowReadout}
       />
       <ProjectOverviewSupportPanels
