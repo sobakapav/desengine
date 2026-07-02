@@ -3,7 +3,7 @@
 import { FormEvent, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
-import { getTasksRootUrl } from "@/lib/task/navigation"
+import { getProjectsRootUrl } from "@/lib/project/navigation"
 import { Instruction, Resource } from "@/lib/system/types"
 import { ResourceCardList } from "./ResourceCardList"
 import { AuthState } from "@/lib/auth/types"
@@ -20,13 +20,10 @@ function SystemNavigationLinks() {
   return (
     <ul className="space-y-4">
 <li className="text-2xl">
-  <a href="/lab">Лаборатория</a>
-</li>
-<li className="text-2xl">
   <a href="/levels">Уровни</a>
 </li>
 <li className="text-2xl">
-  <a href="/tasks">Задачи</a>
+  <a href="/projects">Проекты</a>
 </li>
 <li className="text-2xl">
   <strong>
@@ -78,7 +75,7 @@ export function SystemScreen({
         return
       }
 
-      router.push(data.redirectTo || getTasksRootUrl())
+      router.push(data.redirectTo || getProjectsRootUrl())
       router.refresh()
     })
   }

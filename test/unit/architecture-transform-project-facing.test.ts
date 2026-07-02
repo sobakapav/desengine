@@ -37,40 +37,49 @@ describe("architecture transform project-facing surface", () => {
       project,
       historyDiagnostics: {
         projectId: "project-a",
-        prompts: [],
-        checkResults: [],
-        resetSnapshots: [],
-        runtimeContexts: [],
+        events: [
+          {
+            id: "event-1",
+            createdAt: "2026-06-15T10:00:00.000Z",
+            componentTitle: "Hero card",
+            kind: "project-focus-set",
+            message: "Проект переведён в фокус на компонент «Hero card».",
+          },
+        ],
         summary: {
-          taskCount: 2,
-          promptCount: 0,
-          checkResultCount: 0,
-          resetSnapshotCount: 0,
-          runtimeFileCount: 5,
+          eventCount: 2,
+          focusChangeCount: 1,
+          createdComponentCount: 1,
+          completedComponentCount: 1,
           lastActivityAt: null,
         },
       },
       workflowReadout: {
         projectId: "project-a",
+        sessionStatus: "in_progress",
+        currentStageId: "component-delivery",
+        currentStageTitle: "Довести компонент «Hero card»",
+        lastActivityAt: "2026-06-15T10:00:00.000Z",
+        lastActivityLabel: "2026-06-15 10:00 UTC",
+        stages: [
+          {
+            id: "project-structure",
+            title: "Собрать состав проекта",
+            description: "Проект получает набор компонентов, с которыми реально можно работать дальше.",
+            status: "completed",
+          },
+        ],
         entries: [
           {
             projectId: "project-a",
-            taskId: "intro-card",
-            taskTitle: "intro-card",
-            workflowInstanceId: "workflow:intro-card",
-            workflowStepId: "workflow-step:intro-card",
-            workflowStepKind: "image-to-component-workflow",
-            workflowStepTitle: "Работаем над workflow",
-            workflowStepStatus: "in_progress",
-            totalArtifactCount: 4,
-            inputArtifactCount: 1,
-            outputArtifactCount: 3,
-            artifactKindSummary: [{ kind: "code-file", count: 2 }],
-            artifactPreview: ["Component.tsx"],
-            workbenchInstanceId: "workbench:intro-card",
-            workbenchDefinitionId: "lab-component-workbench",
-            workbenchDefinitionTitle: "Lab workbench",
-            workbenchProfileId: "level-lab",
+            componentId: "hero-card",
+            componentTitle: "Hero card",
+            componentStatus: "in_progress",
+            isFocused: true,
+            stageTitle: "Проект сейчас работает через этот компонент",
+            stageStatus: "in_progress",
+            lastActivityAt: "2026-06-15T10:00:00.000Z",
+            notes: ["Компонент удерживает текущий фокус проектной работы."],
           },
         ],
       },
@@ -79,7 +88,7 @@ describe("architecture transform project-facing surface", () => {
     expect(model.headline).toBe("Architecture transform")
     expect(model.visionLabel).toContain("AI-трансформация")
     expect(model.attractors.map((item) => item.id)).toEqual(["code", "llm", "budget", "design"])
-    expect(model.attractors[0]?.projectSignal).toContain("runtime-файл")
+    expect(model.attractors[0]?.projectSignal).toContain("component")
     expect(model.attractors[1]?.projectSignal).toContain("LLM")
     expect(model.attractors[2]?.projectSignal).toContain("Workflow readout")
     expect(model.attractors[3]?.projectSignal).toContain("UI kit")

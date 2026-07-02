@@ -1,6 +1,5 @@
 import {
   createProjectWorkspace,
-  getProjectStorageKey,
   normalizeProject,
   serializeProjectWorkspace,
   type CreateProjectWorkspaceInput,
@@ -67,44 +66,59 @@ function hasProject(projects: ProjectWorkspace[], projectId: string | null | und
   return projects.some((project) => project.id === projectId)
 }
 
-function readLegacyTaskProject(storage: Storage, taskId: string) {
-  const legacyProject = readStorageJson(storage, getProjectStorageKey(taskId))
-  if (!legacyProject || typeof legacyProject !== "object") return null
-
-  return serializeProjectWorkspace(normalizeProject({
-    ...(legacyProject as RawProject),
-    id: `task-${taskId}`,
-    title: `Проект ${taskId}`,
-  }))
+function readBrowserStoredProjects(storage: Storage) {
+  return normalizeProjectList(readStorageJson(storage, PROJECT_REGISTRY_STORAGE_KEY))
 }
 
-function readBrowserStoredProjects(storage: Storage, taskId?: string) {
-  const projects = normalizeProjectList(readStorageJson(storage, PROJECT_REGISTRY_STORAGE_KEY))
-  const legacyProject = taskId ? readLegacyTaskProject(storage, taskId) : null
-
-  if (!legacyProject || projects.some((project) => project.id === legacyProject.id)) {
-    return projects
-  }
-
-  return mergeProject(projects, legacyProject)
-}
-
-function readBrowserStoredProject(storage: Storage, projectId: string, taskId?: string) {
-  return readBrowserStoredProjects(storage, taskId)
+function readBrowserStoredProject(storage: Storage, projectId: string, _legacyTaskId?: string) {
+  return readBrowserStoredProjects(storage)
     .find((project) => project.id === projectId) ?? null
 }
 
 function readBrowserStoredActiveProjectId(
   storage: Storage,
-  taskId?: string,
-  projects = readBrowserStoredProjects(storage, taskId),
+  legacyTaskIdOrProjects?: string | ProjectWorkspace[],
+  maybeProjects?: ProjectWorkspace[],
 ) {
+  const projects = Array.isArray(legacyTaskIdOrProjects)
+    ? legacyTaskIdOrProjects
+    : Array.isArray(maybeProjects)
+      ? maybeProjects
+      : readBrowserStoredProjects(storage)
   const activeProjectId = storage.getItem(ACTIVE_PROJECT_ID_STORAGE_KEY)
   if (hasProject(projects, activeProjectId)) return activeProjectId ?? null
   return projects[0]?.id ?? null
 }
 
-function createBrowserProjectStorage({ storage, taskId }: BrowserProjectStorageOptions): ProjectStorage {
+function normalizeSavedProject(project: ProjectWorkspace) {
+  return serializeProjectWorkspace({
+    ...project,
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+function resolvePreviousProjectId(previousProjectId: string | null | undefined, nextProjectId: string) {
+  if (!previousProjectId || previousProjectId === nextProjectId) {
+    return null
+  }
+
+  return previousProjectId
+}
+
+function updateRenamedActiveProjectId(args: {
+  nextProjectId: string
+  previousProjectId: string | null | undefined
+  readActiveProjectId: () => string | null
+  writeActiveProjectId: (projectId: string | null) => void
+}) {
+  if (!args.previousProjectId || args.readActiveProjectId() !== args.previousProjectId) {
+    return
+  }
+
+  args.writeActiveProjectId(args.nextProjectId)
+}
+
+function createBrowserProjectBindings(storage: Storage) {
   function writeProjects(projects: ProjectWorkspace[]) {
     storage.setItem(PROJECT_REGISTRY_STORAGE_KEY, JSON.stringify(projects.map(serializeProjectWorkspace)))
   }
@@ -118,32 +132,62 @@ function createBrowserProjectStorage({ storage, taskId }: BrowserProjectStorageO
     storage.setItem(ACTIVE_PROJECT_ID_STORAGE_KEY, projectId)
   }
 
-  function shouldPersistLegacyMigration() {
-    const legacyProject = taskId ? readLegacyTaskProject(storage, taskId) : null
-
-    if (!legacyProject) {
-      return false
-    }
-
-    const persistedProjects = normalizeProjectList(readStorageJson(storage, PROJECT_REGISTRY_STORAGE_KEY))
-
-    return !persistedProjects.some((project) => project.id === legacyProject.id && project.title === legacyProject.title)
+  function readActiveProjectId() {
+    return storage.getItem(ACTIVE_PROJECT_ID_STORAGE_KEY)
   }
 
   async function listProjects() {
-    const nextProjects = readBrowserStoredProjects(storage, taskId)
-    const nextActiveProjectId = readBrowserStoredActiveProjectId(storage, taskId, nextProjects)
+    const nextProjects = readBrowserStoredProjects(storage)
+    const nextActiveProjectId = readBrowserStoredActiveProjectId(storage, nextProjects)
 
-    if (shouldPersistLegacyMigration()) {
-      writeProjects(nextProjects)
-    }
-
-    if (storage.getItem(ACTIVE_PROJECT_ID_STORAGE_KEY) !== nextActiveProjectId) {
+    if (readActiveProjectId() !== nextActiveProjectId) {
       writeActiveProjectId(nextActiveProjectId)
     }
 
     return nextProjects
   }
+
+  async function getProjectsWithActiveProjectId() {
+    const projects = await listProjects()
+    return {
+      projects,
+      activeProjectId: readBrowserStoredActiveProjectId(storage, projects),
+    }
+  }
+
+  async function saveBrowserProject(project: ProjectWorkspace, previousProjectId?: string | null) {
+    const normalized = normalizeSavedProject(project)
+    const projects = await listProjects()
+    const nextProjects = mergeProject(
+      removeProject(projects, resolvePreviousProjectId(previousProjectId, normalized.id)),
+      normalized,
+    )
+    writeProjects(nextProjects)
+    updateRenamedActiveProjectId({
+      nextProjectId: normalized.id,
+      previousProjectId,
+      readActiveProjectId,
+      writeActiveProjectId,
+    })
+  }
+
+  return {
+    getProjectsWithActiveProjectId,
+    listProjects,
+    saveBrowserProject,
+    writeActiveProjectId,
+    writeProjects,
+  }
+}
+
+function createBrowserProjectStorage({ storage }: BrowserProjectStorageOptions): ProjectStorage {
+  const {
+    getProjectsWithActiveProjectId,
+    listProjects,
+    saveBrowserProject,
+    writeActiveProjectId,
+    writeProjects,
+  } = createBrowserProjectBindings(storage)
 
   return {
     async listProjects() {
@@ -154,8 +198,7 @@ function createBrowserProjectStorage({ storage, taskId }: BrowserProjectStorageO
       return projects.find((project) => project.id === projectId) ?? null
     },
     async getActiveProject() {
-      const projects = await listProjects()
-      const activeProjectId = readBrowserStoredActiveProjectId(storage, taskId, projects)
+      const { projects, activeProjectId } = await getProjectsWithActiveProjectId()
 
       if (!activeProjectId) {
         return null
@@ -176,24 +219,11 @@ function createBrowserProjectStorage({ storage, taskId }: BrowserProjectStorageO
       return project
     },
     async saveProject(project: ProjectWorkspace, previousProjectId?: string | null) {
-      const normalized = serializeProjectWorkspace({
-        ...project,
-        updatedAt: new Date().toISOString(),
-      })
-      const projects = await listProjects()
-      const nextProjects = mergeProject(
-        removeProject(projects, previousProjectId && previousProjectId !== normalized.id ? previousProjectId : null),
-        normalized,
-      )
-      writeProjects(nextProjects)
-
-      if (previousProjectId && storage.getItem(ACTIVE_PROJECT_ID_STORAGE_KEY) === previousProjectId) {
-        writeActiveProjectId(normalized.id)
-      }
+      await saveBrowserProject(project, previousProjectId)
     },
     async getActiveProjectId() {
-      const projects = await listProjects()
-      return readBrowserStoredActiveProjectId(storage, taskId, projects)
+      const { activeProjectId } = await getProjectsWithActiveProjectId()
+      return activeProjectId
     },
     async setActiveProjectId(projectId: string) {
       const projects = await listProjects()

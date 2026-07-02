@@ -26,67 +26,37 @@ type ProjectConfigContractModel = {
 
 type ProjectHistoryDiagnosticsModel = {
   summary: {
-    taskCountLabel: string
-    promptCountLabel: string
-    checkResultCountLabel: string
-    resetSnapshotCountLabel: string
-    runtimeFileCountLabel: string
+    eventCountLabel: string
+    focusChangeCountLabel: string
+    createdComponentCountLabel: string
+    completedComponentCountLabel: string
     lastActivityLabel: string
   }
-  prompts: Array<{
-    taskId: string
+  events: Array<{
+    id: string
     createdAtLabel: string
-    levelLabel: string
-    textPreview: string
-    changedFilesLabel: string
-    providerLabel: string
-  }>
-  checkResults: Array<{
-    taskId: string
-    createdAtLabel: string
-    levelLabel: string
-    statusLabel: string
-    messagePreview: string
-  }>
-  resetSnapshots: Array<{
-    taskId: string
-    levelLabel: string
-    editableFilesLabel: string
-    capturedFilesLabel: string
-  }>
-  runtimeContexts: Array<{
-    taskId: string
-    promptCountLabel: string
-    checkResultLabel: string
-    resetSnapshotLabel: string
-    runtimeFilesLabel: string
-    runtimeFilesPreview: string
-    lastActivityLabel: string
+    componentLabel: string
+    kindLabel: string
+    message: string
   }>
 }
 
 type ProjectWorkflowReadoutModel = {
   summary: {
-    runCountLabel: string
-    workflowPointCountLabel: string
-    artifactCountLabel: string
-    workbenchCountLabel: string
+    componentCountLabel: string
+    focusedCountLabel: string
+    completedCountLabel: string
+    stageCountLabel: string
   }
   entries: Array<{
-    taskId: string
-    taskTitle: string
-    runStatusLabel: string
-    workflowStepTitle: string
-    workflowStepStatusLabel: string
-    runProgressLabel: string
-    activeWorkflowPointLabel: string
+    componentId: string
+    componentTitle: string
+    componentStatusLabel: string
+    focusLabel: string
+    stageTitle: string
+    stageStatusLabel: string
     lastActivityLabel: string
-    artifactScopeLabel: string
-    artifactKindsLabel: string
-    artifactPreviewLabel: string
-    workflowPointLabels: string[]
-    workbenchLabel: string
-    bindingLabel: string
+    noteLabels: string[]
   }>
 }
 
@@ -100,6 +70,7 @@ type ProjectComponentSurfaceModel = {
   workflowProgressLabel: string
   activeWorkflowPointLabel: string
   lastActivityLabel: string
+  completeActionLabel: string
   createdAtLabel: string
   updatedAtLabel: string
 }

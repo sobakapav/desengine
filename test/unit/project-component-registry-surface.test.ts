@@ -3,13 +3,13 @@
 // @openSpec  - "Пользователь создаёт новый проект из project registry"
 // @openSpec  - "Пользователь видит список компонентов проекта"
 // @openSpec  - "Пользователь создаёт компонент внутри проекта"
-// @openSpec  - "Пользователь начинает работу над компонентом проекта"
-// @openSpec  - "Компонент проекта открывает component-scoped workflow-сессию без пользовательской привязки к task"
-// @openSpec  - "Пользователь видит состояние workflow-сессии прямо в карточке компонента проекта"
+// @openSpec  - "Пользователь делает компонент текущим фокусом проекта"
+// @openSpec  - "Компонент не открывает отдельную task-сессию"
+// @openSpec  - "Пользователь видит положение компонента внутри project-workflow"
 // @openSpec capability: workflow
 // @openSpec scenarios:
-// @openSpec  - "Пользователь запускает workflow из компонента проекта"
-// @openSpec  - "Пользователь продолжает workflow компонента из страницы проекта"
+// @openSpec  - "Пользователь переводит проектный workflow на конкретный компонент"
+// @openSpec  - "Пользователь возвращает готовый компонент в активный workflow"
 
 import fs from "node:fs"
 import path from "node:path"
@@ -44,13 +44,14 @@ describe("project component registry surface", () => {
     expect(buildProjectComponentSurfaceModel(component)).toEqual({
       id: "component-card",
       title: "Product card",
-      workflowLabel: "Компонент по картинке",
-      statusLabel: "Черновик",
-      sessionStatusLabel: "Работа ещё не запускалась",
-      sessionActionLabel: "Работать над компонентом",
-      workflowProgressLabel: "Работа ещё не запускалась из этой карточки",
-      activeWorkflowPointLabel: "Работа начнётся после первого запуска",
-      lastActivityLabel: "Работа ещё не запускалась",
+      workflowLabel: "Компонент внутри проектного workflow",
+      statusLabel: "Ещё не включён в работу",
+      sessionStatusLabel: "Компонент ещё не включён в активную работу проекта",
+      sessionActionLabel: "Сделать фокусом проекта",
+      workflowProgressLabel: "Проект ещё не выбрал этот компонент как явный фокус",
+      activeWorkflowPointLabel: "Работа через этот компонент начнётся после выбора фокуса",
+      lastActivityLabel: "Активность по компоненту ещё не зафиксирована",
+      completeActionLabel: "Отметить как готовый",
       createdAtLabel: "2026-06-17 09:10 UTC",
       updatedAtLabel: "2026-06-17 10:20 UTC",
     })
@@ -71,35 +72,22 @@ describe("project component registry surface", () => {
     expect(buildProjectComponentSurfaceModel(component, {
       workflowEntry: {
         projectId: "project-a",
-        taskId: "task-1",
-        taskTitle: "Task 1",
-        runStatus: "in_progress",
-        workflowInstanceId: "workflow-1",
-        workflowStepId: "step-1",
-        workflowStepKind: "coordinator",
-        workflowStepTitle: "Работаем над workflow",
-        workflowStepStatus: "in_progress",
+        componentId: "component-card",
+        componentTitle: "Product card",
+        componentStatus: "in_progress",
+        isFocused: true,
+        stageTitle: "Проект сейчас работает через этот компонент",
+        stageStatus: "in_progress",
         lastActivityAt: "2026-06-17T12:34:00.000Z",
-        workflowPointCount: 4,
-        completedWorkflowPointCount: 2,
-        activeWorkflowPointTitle: "Создаём stories как UI-сценарии",
-        totalArtifactCount: 3,
-        inputArtifactCount: 1,
-        outputArtifactCount: 2,
-        artifactKindSummary: [],
-        artifactPreview: [],
-        workflowPoints: [],
-        workbenchInstanceId: null,
-        workbenchDefinitionId: null,
-        workbenchDefinitionTitle: null,
-        workbenchProfileId: null,
+        notes: [],
       },
     })).toMatchObject({
-      sessionStatusLabel: "Работа в процессе",
-      sessionActionLabel: "Продолжить работу",
-      workflowProgressLabel: "Готово 2 из 4 шагов работы",
-      activeWorkflowPointLabel: "Сейчас: Создаём stories как UI-сценарии",
+      sessionStatusLabel: "Текущий фокус проекта",
+      sessionActionLabel: "Текущий фокус проекта",
+      workflowProgressLabel: "Проект сейчас работает через этот компонент",
+      activeWorkflowPointLabel: "Сейчас проект работает через этот компонент",
       lastActivityLabel: "2026-06-17 12:34 UTC",
+      completeActionLabel: "Отметить как готовый",
     })
   })
 
@@ -116,7 +104,7 @@ describe("project component registry surface", () => {
         { taskId: "easy-buy-app-badge", taskTitle: "Task 1" },
         { taskId: "task-secondary", taskTitle: "Task 2" },
       ],
-    })).toBe("easy-buy-app-badge")
+    })).toBe("component-workflow")
   })
 
   it("не подбирает runtime-task по projectId или title компонента", () => {
@@ -133,7 +121,7 @@ describe("project component registry surface", () => {
         { taskId: "otvinta-tab", taskTitle: "otvinta-tab" },
         { taskId: "easy-buy-app-badge", taskTitle: "easy-buy-app-badge" },
       ],
-    })).toBe("easy-buy-app-badge")
+    })).toBe("component-workflow")
   })
 
   it("переходит к каноническому workflow-template, если прямого совпадения нет", () => {
@@ -149,7 +137,7 @@ describe("project component registry surface", () => {
         { taskId: "easy-buy-app-badge", taskTitle: "easy-buy-app-badge" },
         { taskId: "task-secondary", taskTitle: "Task 2" },
       ],
-    })).toBe("easy-buy-app-badge")
+    })).toBe("component-workflow")
   })
 
   it("не наследует runtime-task другого компонента проекта", () => {
@@ -173,7 +161,7 @@ describe("project component registry surface", () => {
         { taskId: "dipole-button", taskTitle: "dipole-button" },
         { taskId: "easy-buy-app-badge", taskTitle: "easy-buy-app-badge" },
       ],
-    })).toBe("easy-buy-app-badge")
+    })).toBe("component-workflow")
   })
 
   it("переиспользует уже назначенный backing task для повторного входа в workflow", () => {
@@ -216,11 +204,11 @@ describe("project component registry surface", () => {
   it("подключает создание проектов и компонентов к project-facing surfaces", () => {
     const projectsScreen = readProjectFile("components", "desengine", "project", "ProjectsScreen.tsx")
     const projectOverview = readProjectFile("components", "desengine", "project", "ProjectOverviewScreen.tsx")
+    const projectWorkspacePanel = readProjectFile("components", "desengine", "project", "ProjectWorkspacePanel.tsx")
     const registryHook = readProjectFile("components", "desengine", "project", "useProjectRegistry.ts")
     const componentsHook = readProjectFile("components", "desengine", "project", "useProjectComponents.ts")
     const componentsPanel = readProjectFile("components", "desengine", "project", "ProjectComponentsPanel.tsx")
     const componentsPanelContent = readProjectFile("components", "desengine", "project", "ProjectComponentsPanelContent.tsx")
-    const componentsPanelController = readProjectFile("components", "desengine", "project", "useProjectComponentsPanelController.ts")
 
     expect(projectsScreen).toContain("Создать проект")
     expect(projectsScreen).toContain("Это первая точка входа в работу через проекты")
@@ -228,23 +216,20 @@ describe("project component registry surface", () => {
     expect(registryHook).toContain("async function createProject")
     expect(registryHook).toContain("await storage.setActiveProjectId(project.id)")
     expect(componentsHook).toContain("createBrowserProjectComponentStorage")
-    expect(componentsPanel).toContain("ComponentCreatePanel")
-    expect(componentsPanel).toContain("ComponentRegistryState")
-    expect(componentsPanel).toContain("useProjectComponentsPanelController")
-    expect(componentsPanel).toContain("Создать компонент")
+    expect(componentsPanel).toContain("Добавить компонент")
     expect(componentsPanel).toContain("Компоненты проекта")
     expect(componentsPanel).toContain("ComponentCounters")
-    expect(componentsPanel).toContain("Компоненты помогают разложить проект на отдельные рабочие части")
+    expect(componentsPanel).toContain("Компоненты больше не запускают отдельные task-runtime")
     expect(componentsPanel).toContain("Всего компонентов")
-    expect(componentsPanel).toContain("Работать над новым компонентом")
-    expect(componentsPanelContent).toContain("Работать над компонентом")
-    expect(componentsPanelContent).toContain("Продолжить работу")
+    expect(componentsPanel).toContain("Теперь его можно сделать явным фокусом всей работы")
+    expect(componentsPanelContent).toContain("Сделать фокусом проекта")
+    expect(componentsPanelContent).toContain("Текущий фокус проекта")
     expect(componentsPanelContent).toContain("Последняя активность")
     expect(componentsPanelContent).not.toContain("Открыть задачу")
-    expect(componentsPanelController).toContain("image-to-component-workflow")
-    expect(componentsPanelController).toContain("postTaskStart")
-    expect(componentsPanelController).toContain("getLabUrl")
-    expect(componentsPanelController).toContain("подходящий workflow-шаблон")
+    expect(componentsPanelContent).toContain("completeActionLabel")
+    expect(projectOverview).not.toContain("ProjectTaskBindings")
+    expect(projectOverview).not.toContain("Открыть задачу")
+    expect(projectWorkspacePanel).toContain("Работа над проектом")
   })
 
   it("сохраняет совместимость overview project model с новым component layer", () => {

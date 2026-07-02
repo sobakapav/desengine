@@ -1,20 +1,24 @@
 "use client"
 
-import type { ProjectWorkspace } from "@/lib/project/runtime"
+import { useState } from "react"
+
+import type { ProjectComponent } from "@/lib/project/component-runtime"
 import type { ProjectWorkflowReadoutSnapshot } from "@/lib/project/workflow-readout"
 
-import { type ProjectWorkflowTaskCatalogItem } from "./projectComponentWorkflow"
 import { ComponentsReadyState } from "./ProjectComponentsPanelContent"
-import { useProjectComponents } from "./useProjectComponents"
-import { useProjectComponentsPanelController } from "./useProjectComponentsPanelController"
 
 type ProjectComponentsPanelProps = {
-  project: ProjectWorkspace
-  workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
+  activeComponentId: string | null
+  components: ProjectComponent[]
+  createComponent: (title: string) => Promise<ProjectComponent>
+  markComponentCompleted: (componentId: string) => Promise<void>
+  focusComponent: (componentId: string) => Promise<void>
+  reopenComponent: (componentId: string) => Promise<void>
+  stateStatus: "loading" | "ready" | "error"
   workflowReadout: ProjectWorkflowReadoutSnapshot
 }
 
-function buildProjectComponentCounters(components: ReturnType<typeof useProjectComponents>["components"]) {
+function buildProjectComponentCounters(components: ProjectComponent[]) {
   return {
     total: components.length,
     draft: components.filter((component) => component.status === "draft").length,
@@ -27,115 +31,144 @@ function ComponentCounters({ counters }: { counters: ReturnType<typeof buildProj
   return (
     <div className="mt-5 grid gap-3 md:grid-cols-4">
       <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Всего компонентов</p><p className="mt-2 text-2xl">{counters.total}</p></article>
-      <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Черновики</p><p className="mt-2 text-2xl">{counters.draft}</p></article>
-      <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">В работе</p><p className="mt-2 text-2xl">{counters.inProgress}</p></article>
-      <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Готовы</p><p className="mt-2 text-2xl">{counters.completed}</p></article>
+      <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Ещё не включены</p><p className="mt-2 text-2xl">{counters.draft}</p></article>
+      <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">В активной работе</p><p className="mt-2 text-2xl">{counters.inProgress}</p></article>
+      <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Готовы внутри проекта</p><p className="mt-2 text-2xl">{counters.completed}</p></article>
     </div>
   )
 }
 
-function ComponentCreatePanel(args: {
-  createState: "idle" | "creating" | "created" | "error"
-  lastCreatedComponentId: string | null
+function ComponentCreateStateMessage({
+  createState,
+  message,
+}: {
+  createState: "idle" | "creating" | "error"
+  message: string
+}) {
+  if (!message) {
+    return null
+  }
+
+  return (
+    <p className={`mt-4 rounded-2xl border p-4 text-sm ${createState === "error" ? "border-red-300 bg-red-50 text-red-900" : "border-black/10 bg-white text-black/80"}`}>
+      {message}
+    </p>
+  )
+}
+
+function ProjectComponentCreatePanel({
+  createState,
+  message,
+  onCreate,
+  onTitleChange,
+  title,
+}: {
+  createState: "idle" | "creating" | "error"
   message: string
   onCreate: () => void
-  onOpenLastComponent: () => void
   onTitleChange: (value: string) => void
-  openState: "idle" | "opening" | "opened" | "error"
   title: string
 }) {
   return (
     <div className="mt-5 rounded-3xl border border-black/10 bg-[#f8f4ea] p-5">
-      <h3 className="text-2xl">Создать новый компонент</h3>
+      <h3 className="text-2xl">Добавить компонент в проект</h3>
       <p className="mt-2 text-base text-black/70">
-        Создание компонента только добавляет новую рабочую часть в проект. Сама работа начнётся
-        позже, когда вы нажмёте `Работать над компонентом`.
+        Сначала проект получает состав компонентов. Только потом работа над проектом выбирает,
+        какой из них станет текущим рабочим фокусом.
       </p>
       <div className="mt-4 flex flex-col gap-3 md:flex-row">
         <input
           className="w-full rounded-2xl border border-black/15 bg-white px-4 py-3 text-base"
           placeholder="Например, Product card"
-          value={args.title}
-          onChange={(event) => args.onTitleChange(event.target.value)}
+          value={title}
+          onChange={(event) => onTitleChange(event.target.value)}
         />
         <button
           className="rounded-full bg-black px-5 py-3 text-sm text-white disabled:cursor-not-allowed disabled:bg-black/40"
-          disabled={args.createState === "creating"}
+          disabled={createState === "creating"}
           type="button"
-          onClick={() => void args.onCreate()}
+          onClick={onCreate}
         >
-          {args.createState === "creating" ? "Создаём…" : "Создать компонент"}
+          {createState === "creating" ? "Добавляем…" : "Добавить компонент"}
         </button>
       </div>
-      {args.message ? (
-        <p className={`mt-4 rounded-2xl border p-4 text-sm ${args.createState === "error" || args.openState === "error" ? "border-red-300 bg-red-50 text-red-900" : "border-black/10 bg-white text-black/80"}`}>
-          {args.message}
-        </p>
-      ) : null}
-      {args.createState === "created" && args.lastCreatedComponentId ? (
-        <div className="mt-4 flex flex-wrap gap-3">
-          <button className="rounded-full bg-black px-4 py-2 text-sm text-white" type="button" onClick={() => void args.onOpenLastComponent()}>
-            Работать над новым компонентом
-          </button>
-          <span className="self-center text-sm text-black/65">Или оставьте компонент в списке и создайте следующий.</span>
-        </div>
-      ) : null}
+      <ComponentCreateStateMessage createState={createState} message={message} />
     </div>
   )
 }
 
-function ComponentRegistryState(args: {
-  activeComponentId: string | null
-  components: ReturnType<typeof useProjectComponents>["components"]
-  onOpenWorkflow: (componentId: string) => void
-  openState: "idle" | "opening" | "opened" | "error"
-  stateStatus: ReturnType<typeof useProjectComponents>["status"]
-  workflowReadout: ProjectWorkflowReadoutSnapshot
+function ProjectComponentsStateMessage({
+  componentCount,
+  stateStatus,
+}: {
+  componentCount: number
+  stateStatus: "loading" | "ready" | "error"
 }) {
-  if (args.stateStatus === "loading") {
-    return <p className="mt-4 text-lg text-black/70">Загружаем project-scoped registry компонентов...</p>
+  if (stateStatus === "loading") {
+    return <p className="mt-4 text-lg text-black/70">Загружаем состав проекта и текущий рабочий фокус...</p>
   }
 
-  if (args.stateStatus === "error") {
+  if (stateStatus === "error") {
     return (
       <p className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-lg text-red-900">
-        Не удалось прочитать registry компонентов этого проекта.
+        Не удалось прочитать рабочее состояние проекта.
       </p>
     )
   }
 
-  if (args.components.length === 0) {
+  if (stateStatus === "ready" && componentCount === 0) {
     return (
       <p className="mt-4 text-lg text-black/70">
-        В этом проекте ещё нет компонентов. Создайте первый компонент, чтобы перейти от проекта
-        к реальной работе.
+        В проекте ещё нет компонентов. Добавьте первый компонент, чтобы работа над проектом стала
+        конкретной и наблюдаемой.
       </p>
     )
   }
 
-  return (
-    <ComponentsReadyState
-      activeComponentId={args.activeComponentId}
-      components={args.components}
-      openState={args.openState}
-      onOpenWorkflow={args.onOpenWorkflow}
-      workflowReadout={args.workflowReadout}
-    />
-  )
+  return null
 }
 
 function ProjectComponentsPanel({
-  project,
-  workflowTaskCatalog,
+  activeComponentId,
+  components,
+  createComponent,
+  focusComponent,
+  markComponentCompleted,
+  reopenComponent,
+  stateStatus,
   workflowReadout,
 }: ProjectComponentsPanelProps) {
-  const controller = useProjectComponentsPanelController({
-    project,
-    workflowReadout,
-    workflowTaskCatalog,
-  })
-  const { state } = controller
-  const counters = buildProjectComponentCounters(state.components)
+  const [title, setTitle] = useState("")
+  const [message, setMessage] = useState("")
+  const [createState, setCreateState] = useState<"idle" | "creating" | "error">("idle")
+  const counters = buildProjectComponentCounters(components)
+
+  async function handleCreate() {
+    if (!title.trim()) {
+      setCreateState("error")
+      setMessage("Введите имя компонента, чтобы добавить новую рабочую часть в проект.")
+      return
+    }
+
+    setCreateState("creating")
+    setMessage("")
+
+    try {
+      const component = await createComponent(title)
+      setTitle("")
+      setCreateState("idle")
+      setMessage(`Компонент «${component.title}» добавлен в проект. Теперь его можно сделать явным фокусом всей работы.`)
+    } catch (error) {
+      setCreateState("error")
+      setMessage(error instanceof Error ? error.message : "Не удалось создать компонент проекта.")
+    }
+  }
+
+  function handleTitleChange(value: string) {
+    setTitle(value)
+    setCreateState("idle")
+    setMessage("")
+  }
 
   return (
     <section className="mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-sm">
@@ -143,31 +176,32 @@ function ProjectComponentsPanel({
         <div>
           <h2 className="text-3xl">Компоненты проекта</h2>
           <p className="mt-2 max-w-4xl text-lg text-black/70">
-            Компоненты помогают разложить проект на отдельные рабочие части. Для каждой такой части
-            можно открыть свою работу и потом вернуться к ней из этого же проекта.
+            Компоненты больше не запускают отдельные task-runtime. Они входят в единую работу над
+            проектом и могут становиться текущим фокусом этого проекта.
           </p>
         </div>
       </div>
 
       <ComponentCounters counters={counters} />
-      <ComponentCreatePanel
-        createState={controller.createState}
-        lastCreatedComponentId={controller.lastCreatedComponentId}
-        message={controller.message}
-        onCreate={() => void controller.handleCreate()}
-        onOpenLastComponent={() => controller.lastCreatedComponentId ? void controller.handleOpenWorkflow(controller.lastCreatedComponentId) : undefined}
-        onTitleChange={controller.handleTitleChange}
-        openState={controller.openState}
-        title={controller.title}
+      <ProjectComponentCreatePanel
+        createState={createState}
+        message={message}
+        onCreate={() => void handleCreate()}
+        onTitleChange={handleTitleChange}
+        title={title}
       />
-      <ComponentRegistryState
-        activeComponentId={controller.activeComponentId}
-        components={state.components}
-        onOpenWorkflow={(componentId) => void controller.handleOpenWorkflow(componentId)}
-        openState={controller.openState}
-        stateStatus={state.status}
-        workflowReadout={workflowReadout}
-      />
+      <ProjectComponentsStateMessage componentCount={components.length} stateStatus={stateStatus} />
+
+      {components.length > 0 ? (
+        <ComponentsReadyState
+          activeComponentId={activeComponentId}
+          components={components}
+          onCompleteComponent={(componentId) => void markComponentCompleted(componentId)}
+          onFocusComponent={(componentId) => void focusComponent(componentId)}
+          onReopenComponent={(componentId) => void reopenComponent(componentId)}
+          workflowReadout={workflowReadout}
+        />
+      ) : null}
     </section>
   )
 }

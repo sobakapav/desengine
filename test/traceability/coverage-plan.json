@@ -41,6 +41,11 @@
       "priority": "P1",
       "reason": "Unit-слой уже покрывает coordinator step, workflow points, component-aware surfaces и project-facing continue flow, но полный пользовательский проход нескольких workflow-run внутри проекта пока не закреплён отдельным browser/e2e harness.",
       "targetStage": "project-workflow-browser-flow"
+    },
+    "task": {
+      "priority": "P1",
+      "reason": "Большая часть task capability уже закрыта unit/integration/browser evidence, но traceability всё ещё показывает неполное покрытие одного сценария после project-first перестройки task/project binding и preview-runtime контракта. Capability остаётся в coverage-plan до отдельного follow-up, который закрепит этот оставшийся пользовательский или runtime-path сценарий runnable evidence без возврата к task-centric продуктовой модели.",
+      "targetStage": "task-binding-and-preview-gap-closure"
     }
   }
 }

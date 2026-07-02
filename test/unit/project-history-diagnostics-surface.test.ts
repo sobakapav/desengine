@@ -1,7 +1,7 @@
 // @openSpec capability: projects
 // @openSpec scenarios:
 // @openSpec  - "Пользователь открывает историю проекта"
-// @openSpec  - "Пользователь видит reset след проекта"
+// @openSpec  - "Пользователь видит последнюю project-level активность"
 
 import fs from "node:fs"
 import path from "node:path"
@@ -17,88 +17,40 @@ function readProjectFile(...segments: string[]) {
 }
 
 describe("project history diagnostics surface", () => {
-  it("строит explainability-friendly model из project-scoped history snapshot", () => {
+  it("строит explainability-friendly model из project activity snapshot", () => {
     const snapshot: ProjectHistoryDiagnosticsSnapshot = {
       projectId: "project-a",
-      prompts: [
+      events: [
         {
-          taskId: "intro-card",
+          id: "event-1",
           createdAt: "2026-06-15T10:00:00.000Z",
-          levelNumber: 2,
-          textPreview: "Сделай карточку плотнее и сократи отступы.",
-          changedFileNames: ["src/App.tsx", "src/styles.css"],
-          provider: "openai",
-        },
-      ],
-      checkResults: [
-        {
-          taskId: "intro-card",
-          createdAt: "2026-06-15T10:05:00.000Z",
-          levelNumber: 2,
-          kind: "passed",
-          passed: true,
-          messagePreview: "Проверка пройдена.",
-        },
-      ],
-      resetSnapshots: [
-        {
-          taskId: "intro-card",
-          levelNumber: 2,
-          editableFileCount: 2,
-          capturedFiles: ["component", "styles"],
-        },
-      ],
-      runtimeContexts: [
-        {
-          taskId: "intro-card",
-          runtimeFileCount: 2,
-          runtimeFileNames: ["Component.tsx", "styles.css"],
-          promptCount: 1,
-          lastPromptAt: "2026-06-15T10:00:00.000Z",
-          hasCheckResult: true,
-          resetSnapshotCount: 1,
-          lastActivityAt: "2026-06-15T10:05:00.000Z",
+          componentTitle: "Hero card",
+          kind: "project-focus-set",
+          message: "Проект переведён в фокус на компонент «Hero card».",
         },
       ],
       summary: buildProjectHistoryDiagnosticsSummary({
-        prompts: [
+        activities: [
           {
-            taskId: "intro-card",
+            id: "event-1",
+            projectId: "project-a",
             createdAt: "2026-06-15T10:00:00.000Z",
-            levelNumber: 2,
-            textPreview: "Сделай карточку плотнее и сократи отступы.",
-            changedFileNames: ["src/App.tsx", "src/styles.css"],
-            provider: "openai",
+            componentId: "hero-card",
+            componentTitle: "Hero card",
+            kind: "project-focus-set",
+            message: "Проект переведён в фокус на компонент «Hero card».",
           },
         ],
-        checkResults: [
+        components: [
           {
-            taskId: "intro-card",
-            createdAt: "2026-06-15T10:05:00.000Z",
-            levelNumber: 2,
-            kind: "passed",
-            passed: true,
-            messagePreview: "Проверка пройдена.",
-          },
-        ],
-        resetSnapshots: [
-          {
-            taskId: "intro-card",
-            levelNumber: 2,
-            editableFileCount: 2,
-            capturedFiles: ["component", "styles"],
-          },
-        ],
-        runtimeContexts: [
-          {
-            taskId: "intro-card",
-            runtimeFileCount: 2,
-            runtimeFileNames: ["Component.tsx", "styles.css"],
-            promptCount: 1,
-            lastPromptAt: "2026-06-15T10:00:00.000Z",
-            hasCheckResult: true,
-            resetSnapshotCount: 1,
-            lastActivityAt: "2026-06-15T10:05:00.000Z",
+            id: "hero-card",
+            projectId: "project-a",
+            title: "Hero card",
+            workflowKind: "image-to-component-workflow",
+            status: "in_progress",
+            createdAt: "2026-06-15T09:00:00.000Z",
+            updatedAt: "2026-06-15T10:00:00.000Z",
+            taskId: null,
           },
         ],
       }),
@@ -107,25 +59,19 @@ describe("project history diagnostics surface", () => {
     const model = buildProjectHistoryDiagnosticsModel(snapshot)
 
     expect(model.summary).toMatchObject({
-      taskCountLabel: "1 задача",
-      promptCountLabel: "1 prompt",
-      checkResultCountLabel: "1 check-result",
-      resetSnapshotCountLabel: "1 reset snapshot",
-      runtimeFileCountLabel: "2 runtime-файла",
-      lastActivityLabel: "2026-06-15 10:05 UTC",
+      eventCountLabel: "1 событие",
+      focusChangeCountLabel: "1 смена фокуса",
+      createdComponentCountLabel: "0 созданных компонентов",
+      completedComponentCountLabel: "0 готовых компонентов",
+      lastActivityLabel: "2026-06-15 10:00 UTC",
     })
-    expect(model.prompts[0]).toMatchObject({
-      taskId: "intro-card",
-      levelLabel: "Уровень 2",
-      changedFilesLabel: "src/App.tsx, src/styles.css",
-      providerLabel: "openai",
+    expect(model.events[0]).toMatchObject({
+      componentLabel: "Компонент: Hero card",
+      kindLabel: "Сменился фокус проекта",
     })
-    expect(model.checkResults[0]?.statusLabel).toBe("Проверка пройдена")
-    expect(model.resetSnapshots[0]?.capturedFilesLabel).toBe("component, styles")
-    expect(model.runtimeContexts[0]?.runtimeFilesPreview).toBe("Component.tsx, styles.css")
   })
 
-  it("обрезает шумный prompt text и подключает history surface к project page", () => {
+  it("обрезает длинное сообщение и подключает history surface к project page", () => {
     expect(clipTextPreview("  Один   два   три  ", 12)).toBe("Один два три")
     expect(clipTextPreview("Очень длинный prompt для истории проекта", 16)).toBe("Очень длинный p…")
 
@@ -135,19 +81,18 @@ describe("project history diagnostics surface", () => {
     const diagnosticsAdapter = readProjectFile("lib", "project", "history-diagnostics.ts")
     const projectSpec = readProjectFile("openspec", "specs", "projects", "spec.md")
 
-    expect(projectPage).toContain("readProjectHistoryDiagnostics")
-    expect(projectPage).toContain("historyDiagnostics={historyDiagnostics}")
+    expect(projectPage).not.toContain("readProjectHistoryDiagnostics")
+    expect(projectOverview).toContain("historyDiagnostics={workspace.historyDiagnostics}")
 
     expect(projectOverview).toContain("ProjectHistoryDiagnosticsPanel")
-    expect(projectOverview).toContain("historyDiagnostics={historyDiagnostics}")
 
-    expect(diagnosticsPanel).toContain("История и диагностика проекта")
-    expect(diagnosticsPanel).toContain("Reset snapshots")
-    expect(diagnosticsPanel).toContain("Рабочий контекст проекта")
+    expect(diagnosticsPanel).toContain("История проектной работы")
+    expect(diagnosticsPanel).toContain("Смены фокуса")
+    expect(diagnosticsPanel).toContain("История проектной работы пока пуста")
 
-    expect(diagnosticsAdapter).toContain("prompt-history.json")
-    expect(diagnosticsAdapter).toContain("check-result.json")
-    expect(diagnosticsAdapter).toContain(".level-reset")
+    expect(diagnosticsAdapter).toContain("buildProjectHistoryDiagnosticsSnapshot")
+    expect(diagnosticsAdapter).toContain("createdComponentCount")
+    expect(diagnosticsAdapter).toContain("focusChangeCount")
 
     expect(projectSpec).toContain("### Requirement: Проект показывает свою историю и диагностику")
     expect(projectSpec).toContain("#### Scenario: Пользователь открывает историю проекта")

@@ -3,10 +3,7 @@
 // @openSpec  - "Пользователь открывает workflow проекта"
 // @openSpec capability: workflow
 // @openSpec scenarios:
-// @openSpec  - "Пользователь видит project-aware artifacts и bindings"
-// @openSpec capability: workbench
-// @openSpec scenarios:
-// @openSpec  - "Runtime surface показывает definition и рабочую связку"
+// @openSpec  - "Пользователь видит project-owned workflow прямо на странице проекта"
 
 import fs from "node:fs"
 import path from "node:path"
@@ -21,53 +18,42 @@ function readProjectFile(...segments: string[]) {
 }
 
 describe("project workflow readout surface", () => {
-  it("строит explainability-friendly model для project-aware workflow/artifact snapshot", () => {
+  it("строит explainability-friendly model для project-first workflow snapshot", () => {
     const snapshot: ProjectWorkflowReadoutSnapshot = {
       projectId: "project-a",
+      sessionStatus: "in_progress",
+      currentStageId: "component-delivery",
+      currentStageTitle: "Довести компонент «Hero card»",
+      lastActivityAt: "2026-06-17T10:15:00.000Z",
+      lastActivityLabel: "2026-06-17 10:15 UTC",
+      stages: [
+        {
+          id: "project-structure",
+          title: "Собрать состав проекта",
+          description: "Проект получает набор компонентов, с которыми реально можно работать дальше.",
+          status: "completed",
+        },
+        {
+          id: "component-delivery",
+          title: "Довести компонент «Hero card»",
+          description: "Компонент остаётся частью проектной работы, а не отдельной задачей.",
+          status: "in_progress",
+        },
+      ],
       entries: [
         {
           projectId: "project-a",
-          taskId: "intro-card",
-          taskTitle: "intro-card",
-          runStatus: "in_progress",
-          workflowInstanceId: "workflow:intro-card:image-to-component",
-          workflowStepId: "workflow-step:intro-card:image-to-component:run",
-          workflowStepKind: "image-to-component-workflow",
-          workflowStepTitle: "Работаем над workflow",
-          workflowStepStatus: "in_progress",
+          componentId: "hero-card",
+          componentTitle: "Hero card",
+          componentStatus: "in_progress",
+          isFocused: true,
+          stageTitle: "Проект сейчас работает через этот компонент",
+          stageStatus: "in_progress",
           lastActivityAt: "2026-06-17T10:15:00.000Z",
-          workflowPointCount: 5,
-          completedWorkflowPointCount: 2,
-          activeWorkflowPointTitle: "Storybook-сценарии",
-          totalArtifactCount: 4,
-          inputArtifactCount: 1,
-          outputArtifactCount: 3,
-          artifactKindSummary: [
-            { kind: "code-file", count: 2 },
-            { kind: "prompt-entry", count: 1 },
-            { kind: "source-image", count: 1 },
+          notes: [
+            "Компонент удерживает текущий фокус проектной работы.",
+            "Следующий пользовательский шаг должен быть виден именно на странице проекта.",
           ],
-          artifactPreview: ["Component.tsx", "styles.css", "Prompt history"],
-          workflowPoints: [
-            {
-              stepId: "workflow-step:intro-card:image-to-component:ui-kit-component",
-              kind: "ui-kit-component",
-              title: "Базовый компонент из UI kit",
-              status: "completed",
-              outputArtifactCount: 1,
-            },
-            {
-              stepId: "workflow-step:intro-card:image-to-component:storybook",
-              kind: "storybook",
-              title: "Storybook-сценарии",
-              status: "in_progress",
-              outputArtifactCount: 1,
-            },
-          ],
-          workbenchInstanceId: "workbench:intro-card",
-          workbenchDefinitionId: "lab-component-workbench",
-          workbenchDefinitionTitle: "Lab workbench",
-          workbenchProfileId: "level-lab",
         },
       ],
     }
@@ -75,24 +61,19 @@ describe("project workflow readout surface", () => {
     const model = buildProjectWorkflowReadoutModel(snapshot)
 
     expect(model.summary).toMatchObject({
-      runCountLabel: "1 работа",
-      workflowPointCountLabel: "5 шагов",
-      artifactCountLabel: "4 результата",
-      workbenchCountLabel: "1 рабочая поверхность",
+      componentCountLabel: "1 компонент",
+      focusedCountLabel: "1 фокус",
+      completedCountLabel: "0 готовых компонентов",
+      stageCountLabel: "2 этапа",
     })
     expect(model.entries[0]).toMatchObject({
-      runStatusLabel: "Работа в процессе",
-      workflowStepStatusLabel: "Этап в работе",
-      runProgressLabel: "Готово 2 из 5 шагов работы",
-      activeWorkflowPointLabel: "Сейчас: Storybook-сценарии",
-      artifactScopeLabel: "Входящих: 1, новых: 3",
-      artifactKindsLabel: "файлы кода: 2, промпты: 1, исходные изображения: 1",
-      artifactPreviewLabel: "Component.tsx, styles.css, Prompt history",
-      workbenchLabel: "Lab workbench, id: workbench:intro-card",
+      componentStatusLabel: "В активной работе проекта",
+      focusLabel: "Текущий фокус проекта",
+      stageStatusLabel: "Этап в работе",
+      stageTitle: "Проект сейчас работает через этот компонент",
     })
-    expect(model.entries[0]?.workflowPointLabels).toContain("Storybook-сценарии (в работе, результатов: 1)")
     expect(model.entries[0]?.lastActivityLabel).toBe("2026-06-17 10:15 UTC")
-    expect(model.entries[0]?.bindingLabel).toContain("Путь: проект -> задача -> этап")
+    expect(model.entries[0]?.noteLabels).toContain("Компонент удерживает текущий фокус проектной работы.")
   })
 
   it("подключает workflow readout к project page как отдельный пользовательский слой", () => {
@@ -104,24 +85,22 @@ describe("project workflow readout surface", () => {
     const projectSpec = readProjectFile("openspec", "specs", "projects", "spec.md")
     const workflowSpec = readProjectFile("openspec", "specs", "workflow", "spec.md")
 
-    expect(projectPage).toContain("readProjectWorkflowReadout")
-    expect(projectPage).toContain("workflowReadout={workflowReadout}")
+    expect(projectPage).not.toContain("readProjectWorkflowReadout")
+    expect(projectPage).toContain("<ProjectOverviewScreen projectId={projectId} />")
 
     expect(projectOverview).toContain("ProjectWorkflowReadoutPanel")
-    expect(projectOverview).toContain("workflowReadout={workflowReadout}")
+    expect(projectOverview).toContain("workflowReadout={workspace.workflowReadout}")
 
-    expect(workflowPanel).toContain("Как идёт работа по компонентам")
+    expect(workflowPanel).toContain("Как проект держит рабочий контур")
     expect(workflowPanel).toContain("WorkflowReadoutContent")
-    expect(workflowPanelContent).toContain("Работы")
-    expect(workflowPanelContent).toContain("Шаги работы")
+    expect(workflowPanelContent).toContain("Компоненты")
+    expect(workflowPanelContent).toContain("Фокусы")
     expect(workflowPanelContent).toContain("Последняя активность")
-    expect(workflowPanelContent).toContain("Где идёт работа")
+    expect(workflowPanelContent).toContain("Этап project-workflow")
 
-    expect(workflowAdapter).toContain("buildTaskWorkflowArtifactProjection")
-    expect(workflowAdapter).toContain("resolveWorkflowStepTitle")
-    expect(workflowAdapter).toContain("getTaskLabContext")
-    expect(workflowAdapter).toContain("getWorkbenchDefinition")
-    expect(workflowAdapter).toContain("workflowPointCount")
+    expect(workflowAdapter).toContain("listProjectWorkflowStages")
+    expect(workflowAdapter).toContain("componentId")
+    expect(workflowAdapter).toContain("currentStageTitle")
     expect(workflowAdapter).toContain("lastActivityAt")
 
     expect(projectSpec).toContain("### Requirement: Проект показывает workflow как наблюдаемый слой")

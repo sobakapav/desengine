@@ -74,6 +74,7 @@ describe("project user surface foundation", () => {
     const projectPage = readProjectFile("app", "projects", "[projectId]", "page.tsx")
     const projectsScreen = readProjectFile("components", "desengine", "project", "ProjectsScreen.tsx")
     const projectOverview = readProjectFile("components", "desengine", "project", "ProjectOverviewScreen.tsx")
+    const projectWorkspacePanel = readProjectFile("components", "desengine", "project", "ProjectWorkspacePanel.tsx")
     const projectRegistryHook = readProjectFile("components", "desengine", "project", "useProjectRegistry.ts")
     const projectOverviewHook = readProjectFile("components", "desengine", "project", "useProjectOverview.ts")
 
@@ -96,8 +97,8 @@ describe("project user surface foundation", () => {
     expect(projectOverview).toContain("Хранение")
     expect(projectOverview).not.toContain("ProjectArchitectureTransformPanel")
     expect(projectOverview).toContain("Все проекты")
-    expect(projectOverview).toContain("Создайте компонент в этом проекте")
-    expect(projectOverview).toContain("Продолжить работу")
+    expect(projectWorkspacePanel).toContain("Работа над проектом")
+    expect(projectOverview).toContain("Сделайте один из компонентов текущим фокусом проекта")
     expect(projectRegistryHook).toContain("createBrowserProjectStorage")
     expect(projectOverviewHook).toContain("createBrowserProjectStorage")
   })

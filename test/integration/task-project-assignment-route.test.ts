@@ -1,6 +1,3 @@
-// @openSpec capability: projects
-// @openSpec scenarios:
-// @openSpec  - "Пользователь открывает страницу проекта и видит его задачи"
 // @openSpec capability: task
 // @openSpec scenarios:
 // @openSpec  - "Пользователь видит проект задачи"

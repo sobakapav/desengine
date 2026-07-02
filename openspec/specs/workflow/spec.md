@@ -42,37 +42,24 @@
 
 ### Requirement: Project-aware workflow доступен для пользовательского readout
 
-Система SHALL давать read-only доступ к project-aware workflow/artifact surface без изменения underlying orchestration и использовать этот readout для project-facing навигации по компонентам.
+Система SHALL давать read-only доступ к project-owned workflow surface и использовать его как основной способ объяснить пользователю текущую работу над проектом.
 
-#### Scenario: Пользователь видит project-aware artifacts и bindings
+#### Scenario: Пользователь видит project-owned workflow прямо на странице проекта
 - **WHEN** система показывает workflow проекта
-- **THEN** пользователь видит project-aware artifacts и runtime bindings
-- **AND** пользователь видит workflow-run как наблюдаемую сущность с пунктами и последней активностью
-- **AND** readout не требует редактирования workflow для понимания текущего состояния
+- **THEN** пользователь видит workflow проекта как наблюдаемую сущность с этапами, текущим фокусом и последней активностью
+- **AND** readout не требует знания task runtime, чтобы понять текущее состояние
+- **AND** project page остаётся главной поверхностью наблюдения за workflow
 
-#### Scenario: Start и iterate generation управляются выбранным workflow-пунктом
-- **WHEN** runtime строит production prompt для `start` или `iterate`
-- **AND** active screen соответствует workflow-пункту
-- **THEN** selected workflow-point ограничивает primary file set этой генерации
-- **AND** supporting files остаются доступными как контекст
-
-#### Scenario: Пользователь запускает workflow из компонента проекта
+#### Scenario: Пользователь переводит проектный workflow на конкретный компонент
 - **WHEN** пользователь открывает `/projects/<projectId>`
 - **AND** у проекта есть `ProjectComponent`
-- **AND** пользователь выбирает действие `Работать над компонентом`
-- **THEN** система использует внутренний workflow-template runtime для этого workflow
-- **AND** несколько компонентов одного проекта могут использовать один и тот же workflow template без конфликта runtime-данных
-- **AND** конкретный template `taskId` не становится пользовательской привязкой самого `ProjectComponent`
-- **AND** запускает существующий `image-to-component` workflow в контексте выбранного проекта
-- **AND** переводит пользователя в рабочую workflow-сессию этого компонента
+- **AND** пользователь выбирает действие `Сделать фокусом проекта`
+- **THEN** workflow проекта начинает работать через выбранный компонент
+- **AND** project page показывает этот компонент как текущий фокус
+- **AND** пользователь не покидает project surface ради отдельной задачи
 
-#### Scenario: Пользователь продолжает workflow компонента из страницы проекта
-- **WHEN** у `ProjectComponent` уже есть открытый component-scoped runtime
-- **AND** project page показывает краткий workflow readout для этого runtime
-- **THEN** пользователь видит состояние run и последнюю активность прямо в карточке компонента
-- **AND** действие `Продолжить работу` открывает ту же workflow-сессию, а не создаёт новую
-
-#### Scenario: Пользователь видит компонент проекта внутри workflow-сессии
-- **WHEN** пользователь открывает workflow-сессию компонента проекта
-- **THEN** Workbench header явно показывает название `ProjectComponent`
-- **AND** пользователь понимает, что текущий runtime обслуживает этот компонент, не раскрывая concrete template task как основную пользовательскую сущность
+#### Scenario: Пользователь возвращает готовый компонент в активный workflow
+- **WHEN** компонент уже был отмечен как готовый внутри проекта
+- **AND** пользователь снова выбирает его как фокус проекта
+- **THEN** workflow возвращает этот компонент в активную работу проекта
+- **AND** такой возврат отражается прямо в project readout и истории работы

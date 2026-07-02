@@ -19,6 +19,7 @@ import {
   resolveTaskProject,
   resolveTaskRuntimeFilePath,
 } from "@/lib/task/project-runtime-scope"
+import { resolveTaskCatalogSourceId } from "@/lib/task/workflow-template"
 import { UserProgressStoreSchema } from "@/lib/user/schema"
 import type { UserProgressStore } from "@/lib/user/types"
 
@@ -166,7 +167,8 @@ async function writeTaskCheckResult(result: TaskCheckResult, project?: Project) 
 }
 
 async function readTaskConfig(taskId: string): Promise<TaskConfig> {
-  const configPath = getTaskCatalogFilePath(taskId, appConfig.taskConfigFile)
+  const sourceTaskId = resolveTaskCatalogSourceId(taskId)
+  const configPath = getTaskCatalogFilePath(sourceTaskId, appConfig.taskConfigFile)
   const rawTaskConfig = await readFile(configPath, "utf-8")
   const parsed = TaskConfigSchema.parse(JSON.parse(rawTaskConfig))
   return { ...parsed, maxLevel: FORCED_TASK_MAX_LEVEL }
@@ -194,7 +196,7 @@ async function readTaskLevelTip(
 ) {
   return renderTaskHint({
     taskCatalogRoot: appConfig.taskCatalogRoot,
-    taskId,
+    taskId: resolveTaskCatalogSourceId(taskId),
     level,
     taskConfig,
     project,
@@ -210,7 +212,7 @@ async function readTaskLevelCheckContract(
 ) {
   return renderTaskCheckContract({
     taskCatalogRoot: appConfig.taskCatalogRoot,
-    taskId,
+    taskId: resolveTaskCatalogSourceId(taskId),
     level,
     taskConfig,
     project,

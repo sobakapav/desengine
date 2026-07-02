@@ -1,10 +1,9 @@
 // @openSpec capability: workflow
 // @openSpec scenarios:
-// @openSpec  - "Пользователь видит компонент проекта внутри workflow-сессии"
-// @openSpec capability: projects
+// @openSpec  - "Runtime surface может показать текущий workflow step через Workbench"
+// @openSpec capability: task
 // @openSpec scenarios:
-// @openSpec  - "Пользователь видит компонент проекта на экране задачи"
-// @openSpec  - "Пользователь видит компонент проекта в списке задач"
+// @openSpec  - "Пользователь видит проект задачи"
 
 import fs from "node:fs"
 import path from "node:path"
@@ -25,13 +24,13 @@ describe("workflow component-aware surface labels", () => {
         id: "component-a",
         projectId: "project-a",
         title: "Hero card",
-        taskId: "easy-buy-app-badge",
+        taskId: "component-workflow",
       }),
       normalizeProjectComponent({
         id: "component-b",
         projectId: "project-a",
         title: "Promo banner",
-        taskId: "easy-buy-app-badge",
+        taskId: "component-workflow",
       }),
     ]
 

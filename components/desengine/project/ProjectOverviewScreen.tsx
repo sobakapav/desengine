@@ -2,27 +2,19 @@
 
 import Link from "next/link"
 
-import type { ProjectHistoryDiagnosticsSnapshot } from "@/lib/project/history-diagnostics"
-import type { ProjectWorkflowTaskCatalogItem } from "@/components/desengine/project/projectComponentWorkflow"
-import type { ProjectWorkflowReadoutSnapshot } from "@/lib/project/workflow-readout"
 import { getProjectsRootUrl } from "@/lib/project/navigation"
-import { getProjectUrl } from "@/lib/project/navigation"
-import { getTaskUrl } from "@/lib/task/navigation"
-import { getTasksRootUrl } from "@/lib/task/navigation"
 
 import { ProjectConfigPanel } from "./ProjectConfigPanel"
 import { ProjectComponentsPanel } from "./ProjectComponentsPanel"
 import { ProjectHistoryDiagnosticsPanel } from "./ProjectHistoryDiagnosticsPanel"
 import { ProjectWorkflowReadoutPanel } from "./ProjectWorkflowReadoutPanel"
+import { ProjectWorkspacePanel } from "./ProjectWorkspacePanel"
 import { buildProjectSurfaceModel } from "./projectSurface"
 import { useProjectOverview } from "./useProjectOverview"
-import { useProjectTaskBindings } from "./useProjectTaskBindings"
+import { useProjectWorkspace } from "./useProjectWorkspace"
 
 type ProjectOverviewScreenProps = {
   projectId: string
-  historyDiagnostics: ProjectHistoryDiagnosticsSnapshot
-  workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[]
-  workflowReadout: ProjectWorkflowReadoutSnapshot
 }
 
 function ProjectOverviewLoadingState() {
@@ -103,132 +95,75 @@ function ProjectOverviewMetadata({
   )
 }
 
-function ProjectOverviewNextSteps() {
+function ProjectOverviewWorkPath() {
   return (
     <section className="mt-6 rounded-3xl border border-black/10 bg-black/[0.03] p-6">
-      <h2 className="text-3xl">Что делать дальше</h2>
+      <h2 className="text-3xl">Как теперь устроена работа</h2>
       <p className="mt-3 max-w-4xl text-lg text-black/70">
-        Если проект уже выбран, дальше путь простой: создайте компонент, откройте работу над ним и
-        возвращайтесь в проект, когда захотите продолжить ту же сессию.
+        Здесь больше нет отдельного task-входа. Пользователь работает над проектом целиком, а
+        компоненты становятся рабочими частями этого проекта и по очереди входят в фокус.
       </p>
 
-      <ol className="mt-5 grid gap-3 text-base text-black/80 md:grid-cols-3">
+      <ol className="mt-5 grid gap-3 text-base text-black/80 md:grid-cols-4">
         <li className="rounded-2xl border border-black/10 bg-white p-4">
-          1. Создайте компонент в этом проекте.
+          1. Откройте проект и запустите работу над ним.
         </li>
         <li className="rounded-2xl border border-black/10 bg-white p-4">
-          2. Нажмите `Работать над компонентом`, чтобы открыть работу.
+          2. Добавьте или уточните состав компонентов проекта.
         </li>
         <li className="rounded-2xl border border-black/10 bg-white p-4">
-          3. Возвращайтесь к карточке компонента и продолжайте ту же работу через `Продолжить работу`.
+          3. Сделайте один из компонентов текущим фокусом проекта.
+        </li>
+        <li className="rounded-2xl border border-black/10 bg-white p-4">
+          4. Отмечайте готовые компоненты, не выходя из project surface.
         </li>
       </ol>
+    </section>
+  )
+}
+
+function ProjectOverviewNextSteps() {
+  return (
+    <section className="mt-6 rounded-3xl border border-black/10 bg-[#f8f4ea] p-6">
+      <h2 className="text-3xl">Что наблюдать дальше</h2>
+      <p className="mt-3 max-w-4xl text-lg text-black/70">
+        Основной критерий этой волны простой: вся ключевая работа над проектом должна читаться
+        прямо здесь, без ухода в отдельный task-слой.
+      </p>
+
+      <div className="mt-5 grid gap-3 text-base text-black/80 md:grid-cols-3">
+        <div className="rounded-2xl border border-black/10 bg-white p-4">
+          1. Кнопка запускает работу над проектом, а не переводит вас в отдельную задачу.
+        </div>
+        <div className="rounded-2xl border border-black/10 bg-white p-4">
+          2. Выбор фокуса меняет сам project surface, а не открывает скрытый runtime.
+        </div>
+        <div className="rounded-2xl border border-black/10 bg-white p-4">
+          3. История и workflow показывают проектную работу понятным пользователю языком.
+        </div>
+      </div>
 
       <div className="mt-5 flex flex-wrap gap-3">
         <Link className="rounded-full border border-black px-4 py-2" href={getProjectsRootUrl()}>
           Все проекты
         </Link>
-        <Link className="rounded-full border border-black px-4 py-2" href={getTasksRootUrl()}>
-          Открыть задачи
-        </Link>
       </div>
     </section>
   )
 }
 
-function ProjectOverviewWorkPath() {
-  return (
-    <section className="mt-6 rounded-3xl border border-black/10 bg-[#f8f4ea] p-6">
-      <h2 className="text-3xl">Как здесь идёт работа</h2>
-      <p className="mt-3 max-w-4xl text-lg text-black/70">
-        Проект держит общий контекст. Компонент выделяет отдельную часть работы. Задача открывает
-        саму рабочую сессию, к которой потом можно вернуться без потери контекста.
-      </p>
-
-      <ol className="mt-5 grid gap-3 text-base text-black/80 md:grid-cols-4">
-        <li className="rounded-2xl border border-black/10 bg-white p-4">
-          1. Откройте проект и проверьте его настройки.
-        </li>
-        <li className="rounded-2xl border border-black/10 bg-white p-4">
-          2. Создайте компонент, с которым хотите работать.
-        </li>
-        <li className="rounded-2xl border border-black/10 bg-white p-4">
-          3. Нажмите `Работать над компонентом`, чтобы открыть работу.
-        </li>
-        <li className="rounded-2xl border border-black/10 bg-white p-4">
-          4. Возвращайтесь в проект и продолжайте ту же работу позже.
-        </li>
-      </ol>
-    </section>
-  )
-}
-
-function ProjectOverviewTaskBindings({ projectId }: { projectId: string }) {
-  const state = useProjectTaskBindings(projectId)
-
-  return (
-    <section className="mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-3xl">Связанные задачи</h2>
-        <Link className="rounded-full border border-black px-4 py-2" href={getTasksRootUrl()}>
-          Все задачи
-        </Link>
-      </div>
-
-      {state.status === "loading" ? (
-        <p className="mt-4 text-lg text-black/70">Загружаем связи проекта с задачами из runtime...</p>
-      ) : null}
-
-      {state.status === "error" ? (
-        <p className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-lg text-red-900">
-          Не удалось прочитать список связанных задач для этого проекта.
-        </p>
-      ) : null}
-
-      {state.status === "ready" && state.bindings.length === 0 ? (
-        <p className="mt-4 text-lg text-black/70">
-          У этого проекта пока нет задач с уже зафиксированным runtime-binding. Как только задача
-          будет запущена или продолжена в этом проекте, она появится здесь.
-        </p>
-      ) : null}
-
-      {state.bindings.length > 0 ? (
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          {state.bindings.map((binding) => (
-            <article key={`${binding.projectId}:${binding.taskId}`} className="rounded-2xl border border-black/10 bg-black/[0.02] p-4">
-              <h3 className="text-2xl">{binding.taskTitle}</h3>
-              <p className="mt-2 text-sm text-black/60">
-                Источник связи: <code>{binding.source}</code>
-              </p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Link className="rounded-full border border-black px-4 py-2" href={getTaskUrl(binding.taskId)}>
-                  Открыть задачу
-                </Link>
-                <Link className="rounded-full border border-black px-4 py-2" href={getProjectUrl(binding.projectId)}>
-                  Этот проект
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : null}
-    </section>
-  )
-}
-
-function ProjectOverviewReadyState({
-  projectId,
-  historyDiagnostics,
-  workflowTaskCatalog,
-  workflowReadout,
-}: ProjectOverviewScreenProps) {
+function ProjectOverviewReadyState({ projectId }: ProjectOverviewScreenProps) {
   const state = useProjectOverview(projectId)
+  const workspace = useProjectWorkspace(projectId)
 
   if (state.status === "loading") return <ProjectOverviewLoadingState />
   if (state.status === "error") return <ProjectOverviewErrorState />
   if (state.status === "missing" || !state.project) return <ProjectOverviewMissingState projectId={projectId} />
 
   const project = buildProjectSurfaceModel(state.project, state.project.id === state.activeProjectId)
+  const activeComponent = workspace.session?.activeComponentId
+    ? workspace.components.find((component) => component.id === workspace.session?.activeComponentId) ?? null
+    : null
 
   return (
     <main className="px-5 py-5">
@@ -240,11 +175,20 @@ function ProjectOverviewReadyState({
       </div>
 
       <p className="max-w-4xl text-xl text-black/70">
-        Проект здесь работает как главная точка входа: сначала вы собираете нужные компоненты,
-        потом открываете работу над ними и возвращаетесь сюда, чтобы не терять общий контекст.
+        Проект здесь стал главной рабочей поверхностью. Компоненты, текущий фокус и история работы
+        принадлежат проекту и больше не маскируются под отдельные задачи.
       </p>
 
       <ProjectOverviewWorkPath />
+      <ProjectWorkspacePanel
+        activeComponent={activeComponent}
+        clearFocus={() => void workspace.clearFocus()}
+        completedComponentCount={workspace.components.filter((component) => component.status === "completed").length}
+        componentCount={workspace.components.length}
+        session={workspace.session}
+        startProjectWork={() => void workspace.startProjectWork()}
+        workflowReadout={workspace.workflowReadout}
+      />
       <ProjectOverviewMetadata
         createdAtLabel={project.createdAtLabel}
         id={project.id}
@@ -255,32 +199,24 @@ function ProjectOverviewReadyState({
       />
       <ProjectConfigPanel project={state.project} onProjectSaved={state.replaceProject} />
       <ProjectComponentsPanel
-        project={state.project}
-        workflowTaskCatalog={workflowTaskCatalog}
-        workflowReadout={workflowReadout}
+        activeComponentId={workspace.session?.activeComponentId ?? null}
+        components={workspace.components}
+        createComponent={workspace.createComponent}
+        focusComponent={workspace.focusComponent}
+        markComponentCompleted={workspace.markComponentCompleted}
+        reopenComponent={workspace.reopenComponent}
+        stateStatus={workspace.status}
+        workflowReadout={workspace.workflowReadout}
       />
-      <ProjectHistoryDiagnosticsPanel historyDiagnostics={historyDiagnostics} />
-      <ProjectWorkflowReadoutPanel workflowReadout={workflowReadout} />
-      <ProjectOverviewTaskBindings projectId={project.id} />
+      <ProjectWorkflowReadoutPanel workflowReadout={workspace.workflowReadout} />
+      <ProjectHistoryDiagnosticsPanel historyDiagnostics={workspace.historyDiagnostics} />
       <ProjectOverviewNextSteps />
     </main>
   )
 }
 
-function ProjectOverviewScreen({
-  projectId,
-  historyDiagnostics,
-  workflowTaskCatalog,
-  workflowReadout,
-}: ProjectOverviewScreenProps) {
-  return (
-    <ProjectOverviewReadyState
-      historyDiagnostics={historyDiagnostics}
-      projectId={projectId}
-      workflowTaskCatalog={workflowTaskCatalog}
-      workflowReadout={workflowReadout}
-    />
-  )
+function ProjectOverviewScreen({ projectId }: ProjectOverviewScreenProps) {
+  return <ProjectOverviewReadyState projectId={projectId} />
 }
 
 export { ProjectOverviewScreen }

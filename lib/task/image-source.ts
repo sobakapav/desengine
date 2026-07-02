@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises"
 import path from "node:path"
 
 import { appConfig } from "@/lib/system/config/server"
+import { resolveTaskCatalogSourceId } from "@/lib/task/workflow-template"
 import { getTaskCatalogFilePath } from "@/lib/user/server"
 
 type ResolvedTaskImageAsset = {
@@ -43,8 +44,10 @@ function getContentType(fileName: string): ResolvedTaskImageAsset["contentType"]
 }
 
 async function resolveTaskImageAsset(taskId: string, imageId: string): Promise<ResolvedTaskImageAsset | null> {
+  const sourceTaskId = resolveTaskCatalogSourceId(taskId)
+
   for (const fileName of getImageFileCandidates(imageId)) {
-    const filePath = getTaskCatalogFilePath(taskId, fileName)
+    const filePath = getTaskCatalogFilePath(sourceTaskId, fileName)
 
     try {
       await readFile(filePath)

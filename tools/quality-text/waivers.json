@@ -26,12 +26,6 @@
       "reason": "Project runtime сейчас держит canonical model, normalization и migration-adjacent helpers в одном файле. Выделение подмодулей нужно делать отдельным domain refactor после стабилизации project-wave контрактов.",
       "targetStage": "architecture-followup-project-runtime-modularization"
     },
-    "lib/project/storage.ts": {
-      "rules": ["function-length"],
-      "owner": "team-desengine",
-      "reason": "Storage boundary объединяет persistence schema, migration fallback и hydration glue. Разбиение на smaller readers/writers стоит делать отдельным storage refactor, чтобы не вносить риск в active project persistence прямо сейчас.",
-      "targetStage": "architecture-followup-project-storage-split"
-    },
     "lib/task/actions/check.ts": {
       "rules": ["file-length", "function-length"],
       "owner": "team-desengine",

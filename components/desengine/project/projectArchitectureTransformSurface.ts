@@ -25,21 +25,24 @@ function buildProjectSignalSummary(args: {
   historyDiagnostics: ProjectHistoryDiagnosticsSnapshot
   workflowReadout: ProjectWorkflowReadoutSnapshot
 }) {
-  const taskCount = args.historyDiagnostics.summary.taskCount
-  const workflowTaskCount = args.workflowReadout.entries.length
-  const runtimeFileCount = args.historyDiagnostics.summary.runtimeFileCount
+  const eventCount = args.historyDiagnostics.summary.eventCount
+  const createdComponentCount = args.historyDiagnostics.summary.createdComponentCount
+  const completedComponentCount = args.historyDiagnostics.summary.completedComponentCount
+  const workflowComponentCount = args.workflowReadout.entries.length
 
   return {
-    code: runtimeFileCount > 0
-      ? `Проект уже держит ${runtimeFileCount} runtime-файл(ов) в project-scoped контуре.`
-      : "Кодовой контур ещё не накопил project-scoped runtime-файлы, но boundary уже выделен.",
-    llm: taskCount > 0
-      ? `LLM- и prompt-след уже виден по ${taskCount} связанным task-контекстам.`
+    code: createdComponentCount > 0
+      ? `Проект уже проявил ${createdComponentCount} компонент(ов) как code-facing сущности внутри project-scoped контура.`
+      : "Кодовой контур ещё не накопил project-scoped компоненты, но boundary уже выделен.",
+    llm: eventCount > 0
+      ? `LLM- и prompt-след уже читается через ${eventCount} project-level событий рабочей истории.`
       : "LLM-контур ещё не накопил историю, но project boundary уже готов принять prompt/runtime след.",
-    budget: workflowTaskCount > 0
-      ? `Workflow readout уже даёт наблюдаемость нагрузки и объёма artifacts для ${workflowTaskCount} task-контекстов.`
+    budget: workflowComponentCount > 0
+      ? `Workflow readout уже даёт наблюдаемость нагрузки и объёма delivery-контуров для ${workflowComponentCount} компонентов проекта.`
       : "Бюджетный и artifact-контур пока описан рамкой линии и ждёт следующего operational насыщения.",
-    design: args.isActive
+    design: args.isActive && completedComponentCount > 0
+      ? `Активный проект ${args.project.title} уже materialize'ит выбранный UI kit и собирает готовые компоненты в архитектурную поверхность.`
+      : args.isActive
       ? `Активный проект ${args.project.title} уже materialize'ит выбранный UI kit как часть архитектурной поверхности.`
       : `Проект ${args.project.title} уже читает design-контур через project settings, даже вне active статуса.`,
   }

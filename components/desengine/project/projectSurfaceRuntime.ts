@@ -12,29 +12,27 @@ import {
 function resolveProjectComponentWorkflowLabel(component: ProjectComponent) {
   switch (component.workflowKind) {
     case "image-to-component-workflow":
-      return "Компонент по картинке"
+      return "Компонент внутри проектного workflow"
     default:
       return component.workflowKind
   }
 }
 
-function resolveProjectComponentStatusLabel(component: ProjectComponent) {
-  switch (component.status) {
+function resolveProjectComponentStatusLabel(status: ProjectComponent["status"]) {
+  switch (status) {
     case "in_progress":
-      return "В работе"
+      return "В активной работе проекта"
     case "completed":
-      return "Готов"
+      return "Готов внутри проекта"
     default:
-      return "Черновик"
+      return "Ещё не включён в работу"
   }
 }
 
-function resolveWorkflowStepStatusLabel(status: ProjectWorkflowReadoutSnapshot["entries"][number]["workflowStepStatus"]) {
+function resolveWorkflowStageStatusLabel(status: ProjectWorkflowReadoutSnapshot["entries"][number]["stageStatus"]) {
   switch (status) {
     case "completed":
       return "Этап завершён"
-    case "failed":
-      return "Этап требует внимания"
     case "in_progress":
       return "Этап в работе"
     default:
@@ -42,29 +40,20 @@ function resolveWorkflowStepStatusLabel(status: ProjectWorkflowReadoutSnapshot["
   }
 }
 
-function resolveWorkflowRunStatusLabel(status: ProjectWorkflowReadoutSnapshot["entries"][number]["runStatus"]) {
-  switch (status) {
-    case "completed":
-      return "Работа завершена"
-    case "blocked":
-      return "Работа требует внимания"
-    case "in_progress":
-      return "Работа в процессе"
-    default:
-      return "Работа ещё не начата"
-  }
-}
-
-function resolveArtifactKindLabel(kind: ProjectWorkflowReadoutSnapshot["entries"][number]["artifactKindSummary"][number]["kind"]) {
+function resolveProjectHistoryEventKindLabel(kind: ProjectHistoryDiagnosticsSnapshot["events"][number]["kind"]) {
   switch (kind) {
-    case "code-file":
-      return "файлы кода"
-    case "prompt-entry":
-      return "промпты"
-    case "check-result":
-      return "проверки"
-    case "source-image":
-      return "исходные изображения"
+    case "project-session-started":
+      return "Старт project-work"
+    case "project-component-created":
+      return "Добавлен компонент"
+    case "project-focus-set":
+      return "Сменился фокус проекта"
+    case "project-focus-cleared":
+      return "Фокус снят"
+    case "project-component-completed":
+      return "Компонент завершён"
+    case "project-component-reopened":
+      return "Компонент возвращён в работу"
     default:
       return kind
   }
@@ -77,37 +66,47 @@ function buildProjectComponentSurfaceModel(
   },
 ): ProjectComponentSurfaceModel {
   const workflowEntry = options?.workflowEntry ?? null
+  const focusStatusLabel = workflowEntry?.isFocused
+    ? "Текущий фокус проекта"
+    : workflowEntry
+      ? "Компонент уже присутствует в проектной работе"
+      : null
 
   return {
     id: component.id,
     title: component.title,
     workflowLabel: resolveProjectComponentWorkflowLabel(component),
-    statusLabel: resolveProjectComponentStatusLabel(component),
-    sessionStatusLabel: workflowEntry
-      ? resolveWorkflowRunStatusLabel(workflowEntry.runStatus)
+    statusLabel: resolveProjectComponentStatusLabel(component.status),
+    sessionStatusLabel: focusStatusLabel
+      ? focusStatusLabel
       : component.status !== "draft"
-        ? "Работа уже открывалась для этого компонента"
-        : "Работа ещё не запускалась",
-    sessionActionLabel: component.status !== "draft"
-      ? "Продолжить работу"
-      : "Работать над компонентом",
+        ? "Компонент уже присутствует в проектной работе"
+        : "Компонент ещё не включён в активную работу проекта",
+    sessionActionLabel: workflowEntry?.isFocused
+      ? "Текущий фокус проекта"
+      : component.status === "completed"
+        ? "Вернуть в фокус проекта"
+        : "Сделать фокусом проекта",
     workflowProgressLabel: workflowEntry
-      ? `Готово ${workflowEntry.completedWorkflowPointCount} из ${workflowEntry.workflowPointCount} шагов работы`
+      ? workflowEntry.stageTitle
       : component.status !== "draft"
-        ? "Работа уже открывалась, но прогресс пока не проявился"
-        : "Работа ещё не запускалась из этой карточки",
-    activeWorkflowPointLabel: workflowEntry?.activeWorkflowPointTitle
-      ? `Сейчас: ${workflowEntry.activeWorkflowPointTitle}`
+        ? "Компонент уже входит в рабочий контур проекта"
+        : "Проект ещё не выбрал этот компонент как явный фокус",
+    activeWorkflowPointLabel: workflowEntry?.isFocused
+      ? "Сейчас проект работает через этот компонент"
       : workflowEntry
-        ? `Текущий этап: ${workflowEntry.workflowStepTitle}`
+        ? "Компонент можно снова сделать активным фокусом проекта"
         : component.status !== "draft"
-          ? "Текущий шаг пока не определён"
-          : "Работа начнётся после первого запуска",
+          ? "Компонент можно снова сделать активным фокусом проекта"
+          : "Работа через этот компонент начнётся после выбора фокуса",
     lastActivityLabel: workflowEntry?.lastActivityAt
       ? formatProjectSurfaceTimestamp(workflowEntry.lastActivityAt)
       : component.status !== "draft"
-        ? "Последняя активность пока не зафиксирована"
-        : "Работа ещё не запускалась",
+        ? formatProjectSurfaceTimestamp(component.updatedAt)
+        : "Активность по компоненту ещё не зафиксирована",
+    completeActionLabel: component.status === "completed"
+      ? "Вернуть в активную работу"
+      : "Отметить как готовый",
     createdAtLabel: formatProjectSurfaceTimestamp(component.createdAt),
     updatedAtLabel: formatProjectSurfaceTimestamp(component.updatedAt),
   }
@@ -116,96 +115,46 @@ function buildProjectComponentSurfaceModel(
 function buildProjectHistoryDiagnosticsModel(snapshot: ProjectHistoryDiagnosticsSnapshot): ProjectHistoryDiagnosticsModel {
   return {
     summary: {
-      taskCountLabel: formatProjectSurfaceCount(snapshot.summary.taskCount, "задача", "задачи", "задач"),
-      promptCountLabel: formatProjectSurfaceCount(snapshot.summary.promptCount, "prompt", "prompt'а", "prompt'ов"),
-      checkResultCountLabel: formatProjectSurfaceCount(snapshot.summary.checkResultCount, "check-result", "check-result'а", "check-result'ов"),
-      resetSnapshotCountLabel: formatProjectSurfaceCount(snapshot.summary.resetSnapshotCount, "reset snapshot", "reset snapshot'а", "reset snapshot'ов"),
-      runtimeFileCountLabel: formatProjectSurfaceCount(snapshot.summary.runtimeFileCount, "runtime-файл", "runtime-файла", "runtime-файлов"),
+      eventCountLabel: formatProjectSurfaceCount(snapshot.summary.eventCount, "событие", "события", "событий"),
+      focusChangeCountLabel: formatProjectSurfaceCount(snapshot.summary.focusChangeCount, "смена фокуса", "смены фокуса", "смен фокуса"),
+      createdComponentCountLabel: formatProjectSurfaceCount(snapshot.summary.createdComponentCount, "созданный компонент", "созданных компонента", "созданных компонентов"),
+      completedComponentCountLabel: formatProjectSurfaceCount(snapshot.summary.completedComponentCount, "готовый компонент", "готовых компонента", "готовых компонентов"),
       lastActivityLabel: snapshot.summary.lastActivityAt
         ? formatProjectSurfaceTimestamp(snapshot.summary.lastActivityAt)
-        : "Следа активности пока нет",
+        : "След активности пока не проявлен",
     },
-    prompts: snapshot.prompts.map((prompt) => ({
-      taskId: prompt.taskId,
-      createdAtLabel: formatProjectSurfaceTimestamp(prompt.createdAt),
-      levelLabel: prompt.levelNumber ? `Уровень ${prompt.levelNumber}` : "Уровень не зафиксирован",
-      textPreview: prompt.textPreview,
-      changedFilesLabel: prompt.changedFileNames.length > 0
-        ? prompt.changedFileNames.join(", ")
-        : "Без явного changed-file следа",
-      providerLabel: prompt.provider ?? "provider не сохранён",
-    })),
-    checkResults: snapshot.checkResults.map((checkResult) => ({
-      taskId: checkResult.taskId,
-      createdAtLabel: formatProjectSurfaceTimestamp(checkResult.createdAt),
-      levelLabel: `Уровень ${checkResult.levelNumber}`,
-      statusLabel: checkResult.passed ? "Проверка пройдена" : `Проверка завершилась как ${checkResult.kind}`,
-      messagePreview: checkResult.messagePreview,
-    })),
-    resetSnapshots: snapshot.resetSnapshots.map((snapshotItem) => ({
-      taskId: snapshotItem.taskId,
-      levelLabel: `Уровень ${snapshotItem.levelNumber}`,
-      editableFilesLabel: formatProjectSurfaceCount(snapshotItem.editableFileCount, "editable file", "editable file", "editable files"),
-      capturedFilesLabel: snapshotItem.capturedFiles.length > 0
-        ? snapshotItem.capturedFiles.join(", ")
-        : "Снимок сохранён без file-id списка",
-    })),
-    runtimeContexts: snapshot.runtimeContexts.map((context) => ({
-      taskId: context.taskId,
-      promptCountLabel: formatProjectSurfaceCount(context.promptCount, "prompt", "prompt'а", "prompt'ов"),
-      checkResultLabel: context.hasCheckResult ? "Есть check-result след" : "check-result следа пока нет",
-      resetSnapshotLabel: formatProjectSurfaceCount(context.resetSnapshotCount, "reset snapshot", "reset snapshot'а", "reset snapshot'ов"),
-      runtimeFilesLabel: formatProjectSurfaceCount(context.runtimeFileCount, "runtime-файл", "runtime-файла", "runtime-файлов"),
-      runtimeFilesPreview: context.runtimeFileNames.length > 0
-        ? context.runtimeFileNames.join(", ")
-        : "Файлы пока не проявлены отдельно от history/meta JSON",
-      lastActivityLabel: context.lastActivityAt
-        ? formatProjectSurfaceTimestamp(context.lastActivityAt)
-        : "Последняя активность ещё не зафиксирована",
+    events: snapshot.events.map((event) => ({
+      id: event.id,
+      createdAtLabel: formatProjectSurfaceTimestamp(event.createdAt),
+      componentLabel: event.componentTitle ? `Компонент: ${event.componentTitle}` : "Событие уровня проекта",
+      kindLabel: resolveProjectHistoryEventKindLabel(event.kind),
+      message: event.message,
     })),
   }
 }
 
 function buildProjectWorkflowReadoutModel(snapshot: ProjectWorkflowReadoutSnapshot): ProjectWorkflowReadoutModel {
-  const artifactCount = snapshot.entries.reduce((total, entry) => total + entry.totalArtifactCount, 0)
-  const workbenchCount = snapshot.entries.filter((entry) => entry.workbenchInstanceId).length
-  const workflowPointCount = snapshot.entries.reduce((total, entry) => total + entry.workflowPointCount, 0)
+  const focusedCount = snapshot.entries.filter((entry) => entry.isFocused).length
+  const completedCount = snapshot.entries.filter((entry) => entry.componentStatus === "completed").length
 
   return {
     summary: {
-      runCountLabel: formatProjectSurfaceCount(snapshot.entries.length, "работа", "работы", "работ"),
-      workflowPointCountLabel: formatProjectSurfaceCount(workflowPointCount, "шаг", "шага", "шагов"),
-      artifactCountLabel: formatProjectSurfaceCount(artifactCount, "результат", "результата", "результатов"),
-      workbenchCountLabel: formatProjectSurfaceCount(workbenchCount, "рабочая поверхность", "рабочие поверхности", "рабочих поверхностей"),
+      componentCountLabel: formatProjectSurfaceCount(snapshot.entries.length, "компонент", "компонента", "компонентов"),
+      focusedCountLabel: formatProjectSurfaceCount(focusedCount, "фокус", "фокуса", "фокусов"),
+      completedCountLabel: formatProjectSurfaceCount(completedCount, "готовый компонент", "готовых компонента", "готовых компонентов"),
+      stageCountLabel: formatProjectSurfaceCount(snapshot.stages.length, "этап", "этапа", "этапов"),
     },
     entries: snapshot.entries.map((entry) => ({
-      taskId: entry.taskId,
-      taskTitle: entry.taskTitle,
-      runStatusLabel: resolveWorkflowRunStatusLabel(entry.runStatus),
-      workflowStepTitle: entry.workflowStepTitle,
-      workflowStepStatusLabel: resolveWorkflowStepStatusLabel(entry.workflowStepStatus),
-      runProgressLabel: `Готово ${entry.completedWorkflowPointCount} из ${entry.workflowPointCount} шагов работы`,
-      activeWorkflowPointLabel: entry.activeWorkflowPointTitle
-        ? `Сейчас: ${entry.activeWorkflowPointTitle}`
-        : "Текущий шаг ещё не выделился отдельно",
+      componentId: entry.componentId,
+      componentTitle: entry.componentTitle,
+      componentStatusLabel: resolveProjectComponentStatusLabel(entry.componentStatus),
+      focusLabel: entry.isFocused ? "Текущий фокус проекта" : "Не является текущим фокусом",
+      stageTitle: entry.stageTitle,
+      stageStatusLabel: resolveWorkflowStageStatusLabel(entry.stageStatus),
       lastActivityLabel: entry.lastActivityAt
         ? formatProjectSurfaceTimestamp(entry.lastActivityAt)
-        : "Последняя активность ещё не зафиксирована",
-      artifactScopeLabel: `Входящих: ${entry.inputArtifactCount}, новых: ${entry.outputArtifactCount}`,
-      artifactKindsLabel: entry.artifactKindSummary.length > 0
-        ? entry.artifactKindSummary.map((artifact) => `${resolveArtifactKindLabel(artifact.kind)}: ${artifact.count}`).join(", ")
-        : "Пока нет заметных результатов",
-      artifactPreviewLabel: entry.artifactPreview.length > 0
-        ? entry.artifactPreview.join(", ")
-        : "Предпросмотр результатов пока не виден",
-      workflowPointLabels: entry.workflowPoints.map((point) => {
-        const statusLabel = resolveWorkflowStepStatusLabel(point.status).replace("Этап ", "")
-        return `${point.title} (${statusLabel}, результатов: ${point.outputArtifactCount})`
-      }),
-      workbenchLabel: entry.workbenchDefinitionTitle
-        ? `${entry.workbenchDefinitionTitle}${entry.workbenchInstanceId ? `, id: ${entry.workbenchInstanceId}` : ""}`
-        : "Рабочая поверхность пока не определена",
-      bindingLabel: `Путь: проект -> задача -> этап «${entry.workflowStepTitle}» -> ${entry.workbenchDefinitionTitle ?? "рабочая поверхность"}`,
+        : "Активность ещё не зафиксирована",
+      noteLabels: entry.notes,
     })),
   }
 }

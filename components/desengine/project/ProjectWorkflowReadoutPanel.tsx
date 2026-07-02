@@ -14,10 +14,10 @@ function ProjectWorkflowReadoutPanel({
     <section className="mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-3xl">Как идёт работа по компонентам</h2>
+          <h2 className="text-3xl">Как проект держит рабочий контур</h2>
           <p className="mt-2 max-w-4xl text-lg text-black/70">
-            Этот блок помогает быстро понять, какие работы уже запущены внутри проекта, на каком
-            они шаге и к каким задачам привязаны.
+            Этот слой показывает не задачи и не скрытый runtime, а реальную проектную работу:
+            компоненты, текущий фокус и положение каждой рабочей части внутри project-workflow.
           </p>
         </div>
       </div>

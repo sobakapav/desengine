@@ -1,241 +1,169 @@
-import "server-only"
-
-import { appConfig } from "@/lib/system/config/server"
+import type { ProjectComponent } from "@/lib/project/component-runtime"
 import {
-  getBaseProjectId,
-  getProjectComponentId,
-  listStoredTaskProjects,
-} from "@/lib/task/project-runtime-scope"
-import { buildTaskWorkflowArtifactProjection, resolveWorkflowStepTitle } from "@/lib/task/projection"
-import { getTaskCheckResult, getTaskLabContext, getTasks } from "@/lib/task/server"
-import type { ArtifactKind, TaskInstanceStatus, WorkflowStepInstanceStatus } from "@/lib/task/model"
-import { buildCurrentTaskScreenData } from "@/lib/task/task-screen-data"
-import { getWorkbenchDefinition, labWorkbenchRegistry } from "@/lib/workbench"
-
-type ProjectWorkflowArtifactKindSummary = {
-  kind: ArtifactKind
-  count: number
-}
+  listProjectWorkflowStages,
+  type ProjectSession,
+  type ProjectSessionStatus,
+  type ProjectWorkflowStage,
+  type ProjectWorkspaceActivity,
+} from "@/lib/project/workspace-session"
 
 type ProjectWorkflowReadoutEntry = {
   projectId: string
-  taskId: string
-  taskTitle: string
-  componentId: string | null
-  runStatus: TaskInstanceStatus
-  workflowInstanceId: string
-  workflowStepId: string
-  workflowStepKind: string
-  workflowStepTitle: string
-  workflowStepStatus: WorkflowStepInstanceStatus
+  componentId: string
+  componentTitle: string
+  componentStatus: ProjectComponent["status"]
+  isFocused: boolean
+  stageTitle: string
+  stageStatus: ProjectWorkflowStage["status"]
   lastActivityAt: string | null
-  workflowPointCount: number
-  completedWorkflowPointCount: number
-  activeWorkflowPointTitle: string | null
-  totalArtifactCount: number
-  inputArtifactCount: number
-  outputArtifactCount: number
-  artifactKindSummary: ProjectWorkflowArtifactKindSummary[]
-  artifactPreview: string[]
-  workflowPoints: Array<{
-    stepId: string
-    kind: string
-    title: string
-    status: WorkflowStepInstanceStatus
-    outputArtifactCount: number
-  }>
-  workbenchInstanceId: string | null
-  workbenchDefinitionId: string | null
-  workbenchDefinitionTitle: string | null
-  workbenchProfileId: string | null
+  notes: string[]
 }
 
 type ProjectWorkflowReadoutSnapshot = {
   projectId: string
+  sessionStatus: ProjectSessionStatus
+  currentStageId: ProjectWorkflowStage["id"]
+  currentStageTitle: string
+  lastActivityAt: string | null
+  lastActivityLabel: string
+  stages: ProjectWorkflowStage[]
   entries: ProjectWorkflowReadoutEntry[]
 }
 
-function summarizeArtifactKinds(kinds: ArtifactKind[]): ProjectWorkflowArtifactKindSummary[] {
-  const counts = new Map<ArtifactKind, number>()
-
-  for (const kind of kinds) {
-    counts.set(kind, (counts.get(kind) ?? 0) + 1)
+function formatWorkflowTimestamp(value: string | null) {
+  if (!value) {
+    return "ещё не зафиксирована"
   }
 
-  return [...counts.entries()]
-    .map(([kind, count]) => ({ kind, count }))
-    .sort((left, right) => {
-      if (right.count !== left.count) {
-        return right.count - left.count
-      }
+  const timestamp = new Date(value)
+  if (Number.isNaN(timestamp.getTime())) {
+    return "ещё не зафиксирована"
+  }
 
-      return left.kind.localeCompare(right.kind)
-    })
+  return `${timestamp.toISOString().slice(0, 16).replace("T", " ")} UTC`
 }
 
-function resolveArtifactPreviewLabel(taskId: string, artifact: {
-  kind: ArtifactKind
-  uri?: string
-  data?: unknown
-}) {
-  if (artifact.kind === "code-file" && artifact.uri?.startsWith(`task-file://${taskId}/`)) {
-    return artifact.uri.slice(`task-file://${taskId}/`.length)
-  }
-
-  if (artifact.kind === "source-image" && artifact.uri) {
-    return artifact.uri
-  }
-
-  if (artifact.kind === "prompt-entry") {
-    return "Prompt history"
-  }
-
-  if (artifact.kind === "check-result") {
-    return "Check-result"
-  }
-
-  return artifact.kind
+function resolveCurrentStage(stages: ProjectWorkflowStage[]) {
+  return stages.find((stage) => stage.status === "in_progress")
+    ?? stages.find((stage) => stage.status === "not_started")
+    ?? stages.at(-1)
+    ?? {
+      id: "project-structure",
+      title: "Собрать состав проекта",
+      description: "Проектная работа ещё не началась.",
+      status: "not_started",
+    }
 }
 
-async function readProjectWorkflowReadout(projectId: string): Promise<ProjectWorkflowReadoutSnapshot> {
-  const tasks = await getTasks()
-
-  const entries = await Promise.all(tasks.map(async (taskItem) => {
-    const projects = await listStoredTaskProjects(taskItem.id)
-    const matchingProjects = projects.filter((project) => getBaseProjectId(project.id) === projectId)
-
-    return Promise.all(matchingProjects.map(async (project) => {
-      const [labContext, checkResult] = await Promise.all([
-        getTaskLabContext(taskItem),
-        getTaskCheckResult(taskItem.id),
-      ])
-      const { taskData } = await buildCurrentTaskScreenData({
-        taskId: taskItem.id,
-        taskItem,
-        labContext,
-        project,
-      })
-
-      const projection = buildTaskWorkflowArtifactProjection({
-        taskData,
-        taskItem,
-        projectId,
-        title: taskItem.id,
-        checkResult,
-        workbenchFiles: appConfig.taskWorkbenchFiles,
-      })
-      const workflowStep = projection.workflow.stepInstances.find(
-        (step) => step.id === projection.workflow.currentStepId,
-      ) ?? projection.workflow.stepInstances[0]
-
-      if (!workflowStep) {
-        return null
-      }
-
-      const workflowPoints = projection.workflow.stepInstances
-        .filter((step) => step.id !== projection.workflow.currentStepId)
-        .map((step) => ({
-          stepId: step.id,
-          kind: step.kind,
-          title: resolveWorkflowStepTitle({
-            taskId: projection.task.id,
-            stepId: step.id,
-            stepKind: step.kind,
-            taskData,
-            taskItem,
-          }),
-          status: step.status,
-          outputArtifactCount: step.outputArtifactIds.length,
-        }))
-      const lastActivityCandidates = [
-        ...taskData.promptHistory.map((entry) => entry.createdAt).filter(Boolean),
-        checkResult?.createdAt ?? null,
-      ].filter((value): value is string => Boolean(value))
-      const lastActivityAt = lastActivityCandidates.sort().at(-1) ?? null
-
-      const workbenchInstanceId = workflowStep.runtimeBindings?.primaryWorkbenchInstanceId
-        ?? workflowStep.runtimeBindings?.workbenchInstanceIds[0]
-        ?? projection.workbenchInstances[0]?.id
-        ?? null
-      const workbenchInstance = workbenchInstanceId
-        ? projection.workbenchInstances.find((instance) => instance.id === workbenchInstanceId) ?? null
-        : null
-      const workbenchDefinition = workbenchInstance
-        ? getWorkbenchDefinition(labWorkbenchRegistry, workbenchInstance.definitionId)
-        : null
-
-      const artifactById = new Map(projection.artifacts.map((artifact) => [artifact.id, artifact] as const))
-      const inputArtifacts = workflowStep.inputArtifactIds
-        .map((artifactId) => artifactById.get(artifactId))
-        .filter((artifact): artifact is NonNullable<typeof artifact> => artifact !== undefined)
-      const outputArtifacts = workflowStep.outputArtifactIds
-        .map((artifactId) => artifactById.get(artifactId))
-        .filter((artifact): artifact is NonNullable<typeof artifact> => artifact !== undefined)
-
-      return {
-        projectId,
-        taskId: projection.task.id,
-        taskTitle: projection.task.title,
-        componentId: getProjectComponentId(project.id),
-        runStatus: projection.task.status,
-        workflowInstanceId: projection.workflow.id,
-        workflowStepId: workflowStep.id,
-        workflowStepKind: workflowStep.kind,
-        workflowStepTitle: resolveWorkflowStepTitle({
-          taskId: projection.task.id,
-          stepId: workflowStep.id,
-          stepKind: workflowStep.kind,
-          taskData,
-          taskItem,
-        }),
-        workflowStepStatus: workflowStep.status,
-        lastActivityAt,
-        workflowPointCount: workflowPoints.length,
-        completedWorkflowPointCount: workflowPoints.filter((point) => point.status === "completed").length,
-        activeWorkflowPointTitle: workflowPoints.find((point) => point.status === "in_progress")?.title ?? null,
-        totalArtifactCount: projection.artifacts.length,
-        inputArtifactCount: inputArtifacts.length,
-        outputArtifactCount: outputArtifacts.length,
-        artifactKindSummary: summarizeArtifactKinds(projection.artifacts.map((artifact) => artifact.kind)),
-        artifactPreview: projection.artifacts.slice(0, 4).map((artifact) => resolveArtifactPreviewLabel(projection.task.id, artifact)),
-        workflowPoints,
-        workbenchInstanceId,
-        workbenchDefinitionId: workbenchDefinition?.id ?? workbenchInstance?.definitionId ?? null,
-        workbenchDefinitionTitle: workbenchDefinition?.title ?? null,
-        workbenchProfileId: workbenchDefinition?.profileId ?? null,
-      } satisfies ProjectWorkflowReadoutEntry
-    }))
-  }))
-
-  const resolvedEntries: ProjectWorkflowReadoutEntry[] = []
-
-  for (const group of entries) {
-    for (const entry of group) {
-      if (entry) {
-        resolvedEntries.push(entry)
-      }
+function resolveComponentStage(component: ProjectComponent, isFocused: boolean) {
+  if (component.status === "completed") {
+    return {
+      title: "Компонент вошёл в согласованный слой проекта",
+      status: "completed" as const,
+      notes: [
+        "Компонент уже отмечен как готовый внутри проекта.",
+      ],
     }
   }
 
-  resolvedEntries.sort((left, right) => {
-    const componentCompare = (left.componentId ?? "").localeCompare(right.componentId ?? "")
-    if (componentCompare !== 0) {
-      return componentCompare
+  if (isFocused) {
+    return {
+      title: "Проект сейчас работает через этот компонент",
+      status: "in_progress" as const,
+      notes: [
+        "Компонент удерживает текущий фокус проектной работы.",
+        "Следующий пользовательский шаг должен быть виден именно на странице проекта.",
+      ],
     }
+  }
 
-    return left.taskId.localeCompare(right.taskId)
-  })
+  if (component.status === "in_progress") {
+    return {
+      title: "Компонент уже входил в активную работу проекта",
+      status: "in_progress" as const,
+      notes: [
+        "Компонент можно снова вернуть в фокус проекта без перехода к отдельной задаче.",
+      ],
+    }
+  }
 
   return {
-    projectId,
-    entries: resolvedEntries,
+    title: "Компонент ещё не включён в активную работу проекта",
+    status: "not_started" as const,
+    notes: [
+      "Компонент существует в составе проекта, но ещё не выбран как текущий фокус.",
+    ],
   }
 }
 
-export { readProjectWorkflowReadout }
+function buildProjectWorkflowReadoutSnapshot(args: {
+  projectId: string
+  activities: ProjectWorkspaceActivity[]
+  components: ProjectComponent[]
+  session: ProjectSession | null
+}): ProjectWorkflowReadoutSnapshot {
+  const activeComponent = args.session?.activeComponentId
+    ? args.components.find((component) => component.id === args.session?.activeComponentId) ?? null
+    : null
+  const completedComponentCount = args.components.filter((component) => component.status === "completed").length
+  const stages = listProjectWorkflowStages({
+    activeComponent,
+    componentCount: args.components.length,
+    completedComponentCount,
+    sessionStatus: args.session?.status ?? "idle",
+  })
+  const currentStage = resolveCurrentStage(stages)
+
+  const lastActivityAt = [
+    args.session?.lastActivityAt ?? null,
+    ...args.activities.map((activity) => activity.createdAt),
+    ...args.components.map((component) => component.updatedAt),
+  ]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .sort((left, right) => right.localeCompare(left))[0] ?? null
+
+  const entries = [...args.components]
+    .sort((left, right) => {
+      if (left.id === args.session?.activeComponentId && right.id !== args.session?.activeComponentId) {
+        return -1
+      }
+      if (right.id === args.session?.activeComponentId && left.id !== args.session?.activeComponentId) {
+        return 1
+      }
+      return right.updatedAt.localeCompare(left.updatedAt)
+    })
+    .map((component) => {
+      const activity = args.activities.find((entry) => entry.componentId === component.id) ?? null
+      const stage = resolveComponentStage(component, component.id === args.session?.activeComponentId)
+
+      return {
+        projectId: args.projectId,
+        componentId: component.id,
+        componentTitle: component.title,
+        componentStatus: component.status,
+        isFocused: component.id === args.session?.activeComponentId,
+        stageTitle: stage.title,
+        stageStatus: stage.status,
+        lastActivityAt: activity?.createdAt ?? component.updatedAt,
+        notes: stage.notes,
+      } satisfies ProjectWorkflowReadoutEntry
+    })
+
+  return {
+    projectId: args.projectId,
+    sessionStatus: args.session?.status ?? "idle",
+    currentStageId: currentStage.id,
+    currentStageTitle: currentStage.title,
+    lastActivityAt,
+    lastActivityLabel: formatWorkflowTimestamp(lastActivityAt),
+    stages,
+    entries,
+  }
+}
+
+export { buildProjectWorkflowReadoutSnapshot }
 
 export type {
-  ProjectWorkflowArtifactKindSummary,
   ProjectWorkflowReadoutEntry,
   ProjectWorkflowReadoutSnapshot,
 }

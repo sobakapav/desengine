@@ -1,31 +1,18 @@
 import type { ProjectComponent } from "@/lib/project/component-runtime"
+import { resolveWorkflowSessionTaskId, resolveWorkflowTemplateTaskIdByKind } from "@/lib/task/workflow-template"
 
 type ProjectWorkflowTaskCatalogItem = {
   taskId: string
   taskTitle: string
 }
 
-const workflowTemplateTaskIdsByKind = {
-  "image-to-component-workflow": [
-    "easy-buy-app-badge",
-  ],
-} as const
-
 function resolveWorkflowTemplateTaskId(
   workflowKind: ProjectComponent["workflowKind"],
   workflowTaskCatalog: ProjectWorkflowTaskCatalogItem[],
 ) {
-  const preferredTaskIds = workflowTemplateTaskIdsByKind[workflowKind] ?? []
-
-  for (const preferredTaskId of preferredTaskIds) {
-    const matchedTask = workflowTaskCatalog.find((task) => task.taskId === preferredTaskId)
-
-    if (matchedTask) {
-      return matchedTask.taskId
-    }
-  }
-
-  return null
+  const templateTaskId = resolveWorkflowTemplateTaskIdByKind(workflowKind)
+  const matchedTask = workflowTaskCatalog.find((task) => task.taskId === templateTaskId)
+  return matchedTask ? resolveWorkflowSessionTaskId(workflowKind) : null
 }
 
 /**
