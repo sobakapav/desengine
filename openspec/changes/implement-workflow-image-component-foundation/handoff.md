@@ -1,6 +1,6 @@
 ## Миссия
 
-- Что должен изменить этот change: Ввести канонический workflow типа создания React-компонента по картинке: пункты workflow вместо уровней, общий iteration loop и legacy-bridge для текущих task/level данных.
+- Что должен изменить этот change: Ввести канонический workflow типа создания React-компонента по картинке: пункты workflow вместо уровней, общий iteration loop и legacy-bridge для текущих runtime/level данных.
 - Этот change меняет код только на уровне implement/fix и не пересматривает решения родительских changes.
 
 ## Унаследованный контекст
@@ -11,7 +11,7 @@
 - producer_ref: (не задан)
 - Что из родительского change уже решено:
   - workflow должен заменить уровни как модель исполнения, а не просто скрыть их;
-  - пользовательская задача типа «сделать компонент по картинке» рассматривается как единый workflow;
+  - пользовательская работа типа «сделать компонент по картинке» рассматривается как единый workflow;
   - результат workflow — это набор артефактов компонента, а не один файл;
   - шаги workflow могут быть параллельными по смыслу и по генерации артефактов;
   - Storybook-файл является одной из ключевых частей результата.
@@ -28,21 +28,17 @@
 - Какие ещё файлы и спецификации обязательны к чтению для implement-workflow-image-component-foundation:
   - openspec/specs/workflow/spec.md
   - openspec/specs/level-labs/spec.md
-  - openspec/specs/task/spec.md
-  - lib/task/model.ts
-  - lib/task/projection.ts
-  - lib/task/prompt-context.ts
   - lib/project/workflow-readout.ts
   - components/desengine/lab/Workbench/workbenchSurface.ts
   - lib/workbench/lab-profile.ts
-  - test/unit/task-workflow-artifact-projection.test.ts
+  - test/unit/workflow-image-component-foundation.test.ts
   - test/unit/workbench-platform-registry.test.ts
   - test/unit/project-workflow-readout-surface.test.ts
 
 ## Границы исполнения
 
 - Что входит в этот change:
-  - каноническая workflow-проекция для image-to-component задачи;
+  - каноническая workflow-проекция для image-to-component workflow;
   - coordinator step `Работаем над workflow`;
   - catalog of workflow points для базового набора артефактов;
   - legacy-bridge от текущего level progress к point statuses;
@@ -64,7 +60,7 @@
 - verification_level: unit
 - verification_command: npm run test:unit
 - Что именно должен доказать результат проверки:
-  - task projection больше не сводит workflow к одному `level-lab` шагу;
+  - runtime projection больше не сводит workflow к одному `level-lab` шагу;
   - current runtime связывается с coordinator step `Работаем над workflow`;
   - workflow points отражают базовый набор артефактов компонента;
   - workbench/readout/prompt-adjacent contracts не расходятся с новой моделью;

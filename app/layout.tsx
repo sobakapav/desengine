@@ -35,7 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={inter.variable} suppressHydrationWarning>
-      <body className="bg-background text-foreground">
+      <body className="desengine-shell bg-background text-foreground">
         <TooltipProvider>
           <div className="min-h-screen">
             <Navigation />

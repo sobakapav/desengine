@@ -2,10 +2,10 @@
 
 После фиксации `producer-workbench` нужен tactical owner, который удержит Workbench как живую operating line и не даст следующей волне снова раствориться в лабораторной модели.
 
-Сейчас в системе есть один «зародыш» верстака (лабораторный workbench) под конкретный сценарий. Но верстаки неизбежно будут размножаться:
+Сейчас в системе есть один «зародыш» верстака под конкретный сценарий. Но верстаки неизбежно будут размножаться:
 
-- под разные типы задач;
-- под разные этапы workflow одной и той же задачи/проекта;
+- под разные предметы работы;
+- под разные этапы workflow одного и того же проекта;
 - под разные наборы инструментов и артефактов.
 
 Если не выделить сущность «верстак» отдельно, мы быстро получим:
@@ -18,7 +18,7 @@
 
 ## Зависимости
 
-Этот change зависит от `idea-task-and-workflow-restructuring`, потому что верстак привязывается к задаче и (часто) к шагу workflow.
+Этот change зависит от общей project/workflow-линии, потому что верстак привязывается к проекту, workflow и предмету работы.
 
 ## What Changes
 
@@ -31,8 +31,8 @@
 Результат change:
 
 - определение сущности **Workbench** (верстак) и её жизненного цикла;
-- связь Workbench ↔ Task ↔ WorkflowStep:
-  - какой верстак открывается для шага;
+- связь Workbench ↔ Project ↔ Workflow ↔ Subject:
+  - какой верстак открывается для текущего workflow и предмета работы;
   - как верстак получает входные артефакты;
   - как верстак производит выходные артефакты;
 - контракт «инструментов верстака» (tools) и их реестр:
@@ -49,7 +49,7 @@
   - image tools как обычные workbench-инструменты, а не как отдельная параллельная сущность;
   - интеграция inspector-state и tool-state в общий workbench registry.
 - план навигации:
-  - открытие верстака по задаче/шагу;
+  - открытие верстака по project/workflow/subject;
   - переключение между этапами workflow без потери контекста;
   - сохранение прогресса.
 - roadmap на отдельные changes: инфраструктура + первые 2–3 новых верстака/инструмента.
@@ -65,18 +65,18 @@
 - `workbench`: capability уже существует в active specs; этот dispatcher задаёт её дальнейший продуктовый и workflow-контур.
 - `workbench-tools`: capability реестра и контракта инструментов закрепляется как часть общей workbench-линии.
 - `workflow`: шаги workflow привязываются к верстакам.
-- `level-labs` (если остаётся): текущий лабораторный верстак должен стать частным случаем общей сущности.
+- текущая ранняя materialization workbench должна стать частным случаем общей сущности.
 
 ## Impact
 
 - Для OpenSpec-дерева: появляется явный зонтичный dispatcher, через который должны проходить downstream changes по Workbench.
 - Для product topology: layout/space и image inspector больше не трактуются как кандидаты в отдельные параллельные dispatcher-линии.
-- Producer и dispatcher не конфликтуют: стратегический смысл Workbench как главной рабочей поверхности задаёт `producer-workbench`, tactical ownership product/runtime backlog держит `dispatcher-workbench`.
+- Producer и dispatcher не конфликтуют: стратегический смысл Workbench как materialized и пока locked рабочей поверхности задаёт `producer-workbench`, tactical ownership product/runtime backlog держит `dispatcher-workbench`.
 - Для тестового слоя: будущие behavior-change changes в контуре Workbench обязаны ссылаться на capability/scenarios и указывать уровень проверки, команды запуска, mock/fixture и traceability.
 
 ## Acceptance Criteria
 
-- Зафиксирован контракт Workbench и связь с Task/WorkflowStep.
+- Зафиксирован контракт Workbench и связь с Project/Workflow/Subject.
 - Зафиксирован контракт инструментов и реестр (как добавлять новый tool без хака).
 - Layout/space workbench зафиксирован не отдельным параллельным dispatcher, а как часть общей workbench-линии с собственным roadmap-контуром.
 - Image inspector зафиксирован как частный инструментальный контур внутри workbench-линии, а не как отдельные producer/dispatcher changes.

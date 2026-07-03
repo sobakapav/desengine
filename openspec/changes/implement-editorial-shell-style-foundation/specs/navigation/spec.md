@@ -1,8 +1,8 @@
 ## MODIFIED Requirements
 
-### Requirement: Navigation использует editorial surface вместо компактного чёрного бара
+### Requirement: Navigation использует монохромную outlined surface вместо компактного чёрного бара
 
-Система SHALL рендерить `Navigation` как editorial navigation surface с outlined items и inversion-based active-state вместо компактного сплошного чёрного бара.
+Система SHALL рендерить `Navigation` как монохромную navigation surface с outlined items и inversion-based active-state вместо компактного сплошного чёрного бара.
 
 #### Scenario: Пользователь видит глобальную навигацию продукта
 - **WHEN** product-shell страница отрисована

@@ -10,7 +10,7 @@
 - release_ref: (не задан)
 - producer_ref: (не задан)
 - Что из родительского change уже решено:
-  - Workbench считается главной рабочей поверхностью продукта;
+  - Workbench материализован как наблюдаемая рабочая поверхность продукта, но ещё не открыт как полноценный основной контур работы;
   - `level-labs` не являются долгосрочной целевой моделью;
   - workflow должен materialize через Workbench, а не через изолированный rename;
   - image/preview/layout направления живут внутри общей workbench-линии.
@@ -47,7 +47,7 @@
   - новые server/runtime mutations;
   - отдельная навигация по point-ам workflow;
   - отказ от legacy level storage;
-  - переписывание task page, level page и общесистемных task contract экранов.
+  - переписывание legacy page-слоя и общесистемных legacy contract экранов.
 - Какие решения уже принадлежат parent change / strategy_root и не должны переоткрываться:
   - Workbench остаётся целевой рабочей поверхностью;
   - controlled transition away from `level-labs` идёт через Workbench;

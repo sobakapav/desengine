@@ -42,6 +42,11 @@
       "reason": "LLM capability остаётся в активном контракте, но после удаления legacy-слоя нужен обновлённый runnable набор на project-first LLM flow.",
       "targetStage": "llm-project-first-harness"
     },
+    "llm-endpoint": {
+      "priority": "P2",
+      "reason": "Capability локального LLM endpoint уже покрыт частично unit-слоем, но отдельного полного runnable набора на все сценарии отказа и диагностики пока нет.",
+      "targetStage": "llm-endpoint-harness"
+    },
     "prompt-context": {
       "priority": "P2",
       "reason": "Prompt context ещё не получил отдельный полный traceability harness после зачистки legacy prompt-слоя.",
@@ -49,7 +54,7 @@
     },
     "ui-foundation": {
       "priority": "P2",
-      "reason": "Покрыты shell Navigation и boundary/fallback подход; нужен browser/component follow-up на визуальный контракт Navigation, включая подчёркнутые белые ссылки и минимальную высоту.",
+      "reason": "Покрыты shell Navigation и boundary/fallback подход; нужен browser/component follow-up на монохромный visual contract product-shell: outlined navigation surface, инверсию active-state, отсутствие скруглений и пунктирные secondary blocks.",
       "targetStage": "5.4"
     },
     "code-readability": {
@@ -64,7 +69,7 @@
     },
     "architecture-transform": {
       "priority": "P1",
-      "reason": "Сейчас runnable evidence закрывает 6 из 9 scenarios capability: producer-level аттракторы, AI-рамку, ограничения рабочей модели, boundary evidence и отсутствие обязательной architecture-панели на project page. Отдельного runnable harness пока нет для user-facing обещаний про понятность рабочего пути `проект -> компонент -> workflow -> работа`, для вычищения внутренней инженерной лексики из обычного project-facing слоя и для общего proof, что downstream architecture change приносит именно пользовательское улучшение, а не только refactor-эффект.",
+      "reason": "Сейчас runnable evidence закрывает 6 из 9 scenarios capability: producer-level аттракторы, AI-рамку, ограничения рабочей модели, boundary evidence и отсутствие обязательной architecture-панели на project page. Отдельного runnable harness пока нет для user-facing обещаний про понятность рабочего пути `проект -> компоненты -> workflow -> работа`, для вычищения внутренней инженерной лексики из обычного project-facing слоя и для общего proof, что downstream architecture change приносит именно пользовательское улучшение, а не только refactor-эффект.",
       "targetStage": "architecture-transform-user-facing-harness"
     },
     "projects": {
@@ -86,6 +91,11 @@
       "priority": "P2",
       "reason": "Tooling вокруг workbench осталось без полного runnable coverage после вырезания старого product path.",
       "targetStage": "workbench-tools-harness"
+    },
+    "workbench": {
+      "priority": "P1",
+      "reason": "Новый project-aware workbench shell уже покрыт unit/source-contract слоем для materialization и locked preview, но capability пока не закрыт полностью browser/e2e-наблюдением и не имеет runnable проверки на все generic shell scenarios.",
+      "targetStage": "project-workbench-browser-flow"
     },
     "workflow": {
       "priority": "P1",

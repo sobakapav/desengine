@@ -8,13 +8,12 @@ import type { ProjectWorkflowReadoutSnapshot } from "@/lib/project/workflow-read
 import { ComponentsReadyState } from "./ProjectComponentsPanelContent"
 
 type ProjectComponentsPanelProps = {
-  activeComponentId: string | null
   components: ProjectComponent[]
   createComponent: (title: string) => Promise<ProjectComponent>
   markComponentCompleted: (componentId: string) => Promise<void>
-  focusComponent: (componentId: string) => Promise<void>
   reopenComponent: (componentId: string) => Promise<void>
   stateStatus: "loading" | "ready" | "error"
+  startComponentWork: (componentId: string) => Promise<void>
   workflowReadout: ProjectWorkflowReadoutSnapshot
 }
 
@@ -30,10 +29,10 @@ function buildProjectComponentCounters(components: ProjectComponent[]) {
 function ComponentCounters({ counters }: { counters: ReturnType<typeof buildProjectComponentCounters> }) {
   return (
     <div className="mt-5 grid gap-3 md:grid-cols-4">
-      <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Всего компонентов</p><p className="mt-2 text-2xl">{counters.total}</p></article>
-      <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Ещё не включены</p><p className="mt-2 text-2xl">{counters.draft}</p></article>
-      <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">В активной работе</p><p className="mt-2 text-2xl">{counters.inProgress}</p></article>
-      <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4"><p className="text-sm uppercase tracking-wide text-black/50">Готовы внутри проекта</p><p className="mt-2 text-2xl">{counters.completed}</p></article>
+      <article className="shell-card-muted"><p className="shell-eyebrow">Всего компонентов</p><p className="mt-2 text-2xl">{counters.total}</p></article>
+      <article className="shell-card-muted"><p className="shell-eyebrow">Ещё не включены</p><p className="mt-2 text-2xl">{counters.draft}</p></article>
+      <article className="shell-card-muted"><p className="shell-eyebrow">В активной работе</p><p className="mt-2 text-2xl">{counters.inProgress}</p></article>
+      <article className="shell-card-muted"><p className="shell-eyebrow">Готовы внутри проекта</p><p className="mt-2 text-2xl">{counters.completed}</p></article>
     </div>
   )
 }
@@ -50,7 +49,7 @@ function ComponentCreateStateMessage({
   }
 
   return (
-    <p className={`mt-4 rounded-2xl border p-4 text-sm ${createState === "error" ? "border-red-300 bg-red-50 text-red-900" : "border-black/10 bg-white text-black/80"}`}>
+    <p className="shell-callout mt-4 text-sm">
       {message}
     </p>
   )
@@ -70,21 +69,21 @@ function ProjectComponentCreatePanel({
   title: string
 }) {
   return (
-    <div className="mt-5 rounded-3xl border border-black/10 bg-[#f8f4ea] p-5">
+    <div className="shell-section-muted mt-5">
       <h3 className="text-2xl">Добавить компонент в проект</h3>
-      <p className="mt-2 text-base text-black/70">
-        Сначала проект получает состав компонентов. Только потом работа над проектом выбирает,
-        какой из них станет текущим рабочим фокусом.
+      <p className="mt-2 text-base shell-prose-muted">
+        Сначала проект получает состав компонентов. Затем пользователь может запускать работу по
+        одному или нескольким компонентам параллельно.
       </p>
       <div className="mt-4 flex flex-col gap-3 md:flex-row">
         <input
-          className="w-full rounded-2xl border border-black/15 bg-white px-4 py-3 text-base"
+          className="shell-field"
           placeholder="Например, Product card"
           value={title}
           onChange={(event) => onTitleChange(event.target.value)}
         />
         <button
-          className="rounded-full bg-black px-5 py-3 text-sm text-white disabled:cursor-not-allowed disabled:bg-black/40"
+          className="shell-button disabled:cursor-not-allowed"
           disabled={createState === "creating"}
           type="button"
           onClick={onCreate}
@@ -105,12 +104,12 @@ function ProjectComponentsStateMessage({
   stateStatus: "loading" | "ready" | "error"
 }) {
   if (stateStatus === "loading") {
-    return <p className="mt-4 text-lg text-black/70">Загружаем состав проекта и текущий рабочий фокус...</p>
+    return <p className="mt-4 text-lg text-black/70">Загружаем состав проекта и активные линии работы...</p>
   }
 
   if (stateStatus === "error") {
     return (
-      <p className="mt-4 rounded-2xl border border-red-300 bg-red-50 p-4 text-lg text-red-900">
+      <p className="shell-callout mt-4 text-lg">
         Не удалось прочитать рабочее состояние проекта.
       </p>
     )
@@ -129,13 +128,12 @@ function ProjectComponentsStateMessage({
 }
 
 function ProjectComponentsPanel({
-  activeComponentId,
   components,
   createComponent,
-  focusComponent,
   markComponentCompleted,
   reopenComponent,
   stateStatus,
+  startComponentWork,
   workflowReadout,
 }: ProjectComponentsPanelProps) {
   const [title, setTitle] = useState("")
@@ -157,7 +155,7 @@ function ProjectComponentsPanel({
       const component = await createComponent(title)
       setTitle("")
       setCreateState("idle")
-      setMessage(`Компонент «${component.title}» добавлен в проект. Теперь его можно сделать явным фокусом всей работы.`)
+      setMessage(`Компонент «${component.title}» добавлен в проект. Теперь по нему можно запустить рабочую линию.`)
     } catch (error) {
       setCreateState("error")
       setMessage(error instanceof Error ? error.message : "Не удалось создать компонент проекта.")
@@ -171,13 +169,14 @@ function ProjectComponentsPanel({
   }
 
   return (
-    <section className="mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-sm">
+    <section className="shell-section mt-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-3xl">Компоненты проекта</h2>
-          <p className="mt-2 max-w-4xl text-lg text-black/70">
+          <p className="shell-eyebrow">Project components</p>
+          <h2 className="shell-subtitle mt-3">Компоненты проекта</h2>
+          <p className="mt-2 max-w-4xl text-lg shell-prose-muted">
             Компоненты больше не запускают отдельные runtime-сессии. Они входят в единую работу над
-            проектом и могут становиться текущим фокусом этого проекта.
+            проектом и могут развиваться параллельно внутри одного проектного контура.
           </p>
         </div>
       </div>
@@ -194,11 +193,10 @@ function ProjectComponentsPanel({
 
       {components.length > 0 ? (
         <ComponentsReadyState
-          activeComponentId={activeComponentId}
           components={components}
           onCompleteComponent={(componentId) => void markComponentCompleted(componentId)}
-          onFocusComponent={(componentId) => void focusComponent(componentId)}
           onReopenComponent={(componentId) => void reopenComponent(componentId)}
+          onStartComponentWork={(componentId) => void startComponentWork(componentId)}
           workflowReadout={workflowReadout}
         />
       ) : null}

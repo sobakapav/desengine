@@ -2,7 +2,7 @@
 
 ## Текущий фокус реализации
 
-- Dispatcher-workflow удерживает только process-часть основной цепочки `проект -> workflow -> проверка/чеклист -> результат`.
+- Dispatcher-workflow удерживает только process-часть основной цепочки `проект -> компоненты -> workflow -> работа`.
 - Ветки вне этой цепочки не считаются текущим приоритетом.
 
 - [ ] 1. Зафиксировать `dispatcher-workflow` как tactical owner workflow-линии.
@@ -11,7 +11,7 @@
   - [ ] 3.1 definition/instance model;
   - [ ] 3.2 step/fase manifestation;
   - [ ] 3.3 transitions;
-  - [ ] 3.4 связи workflow с task, artifacts и Workbench.
+  - [ ] 3.4 связи workflow с subject, artifacts и Workbench.
 - [ ] 4. Подготовить dispatcher к маршрутизации downstream changes:
   - [ ] 4.1 foundation workflow model;
   - [ ] 4.2 transition away from level-driven model;

@@ -23,7 +23,7 @@
 ## Границы исполнения
 
 - Что входит в этот change: tactical ownership project boundary, карта downstream project-wave и требования к verification/traceability child changes.
-- Что сознательно не входит в этот change: runtime-реализация `ProjectWorkspace`, task binding, workflow binding, workbench binding и progress invalidation.
+- Что сознательно не входит в этот change: runtime-реализация `ProjectWorkspace`, component runtime actions, workflow engine, workbench tools и progress invalidation.
 - Какие решения уже принадлежат parent dispatcher / strategy_root и не должны переоткрываться: `focus-domain` уже задаёт доменную topology; `producer-project` уже определил первую волну внедрения сущности `Project` и запретил включать `Project Roadmap` в первую волну.
 
 ## Проверка результата
@@ -34,4 +34,4 @@
 
 ## Открытые вопросы
 
-- Какие первые implementation-level changes должны брать на себя minimal create/select UX проекта и какие task-layer surfaces обязаны стать project-aware сразу после foundation.
+- Какие первые implementation-level changes должны брать на себя minimal create/select UX проекта и какие component/workflow surfaces обязаны стать project-aware сразу после foundation.

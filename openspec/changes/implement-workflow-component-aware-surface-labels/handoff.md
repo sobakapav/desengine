@@ -1,6 +1,6 @@
 ## Миссия
 
-- Что должен изменить этот change: Сделать Lab и task surfaces component-aware: показывать, над каким ProjectComponent идёт workflow-сессия, и не сводить пользовательский контекст только к taskId.
+- Что должен изменить этот change: Сделать workflow/workbench surfaces component-aware: показывать, над каким `ProjectComponent` идёт workflow-сессия, и не сводить пользовательский контекст только к внутреннему id сессии.
 - Этот change меняет код только на уровне implement/fix и не пересматривает решения родительских changes.
 
 ## Унаследованный контекст
@@ -10,9 +10,9 @@
 - release_ref: (не задан)
 - producer_ref: (не задан)
 - Что из родительского change уже решено:
-  - workflow already runs from `ProjectComponent` through a backing task;
+  - workflow already runs from `ProjectComponent` as project-owned work;
   - project page already acts as a real entrypoint into workflow work;
-  - component/task bridge already persists `taskId` inside `ProjectComponent`.
+  - component/workflow bridge уже удерживает project-facing смысл поверх browser-local component registry.
 - Кто отвечает за стратегию, тактику и приёмку результата:
   - стратегия принадлежит workflow-line;
   - этот implement change отвечает только за component-aware labels и user understanding inside downstream surfaces;
@@ -28,24 +28,23 @@
   - openspec/specs/projects/spec.md
   - openspec/changes/implement-project-component-workflow-entrypoint/handoff.md
   - components/desengine/lab/Workbench/WorkbenchHeader.tsx
-  - components/desengine/task/TaskScreen.tsx
-  - components/desengine/task/TaskCard.tsx
+  - components/desengine/project/ProjectWorkbenchScreen.tsx
+  - components/desengine/project/ProjectWorkbenchPanel.tsx
   - lib/project/component-runtime.ts
   - lib/project/component-storage.ts
 
 ## Границы исполнения
 
 - Что входит в этот change:
-  - client-side resolve `taskId -> ProjectComponent`;
+  - client-side resolve `workflow-session -> ProjectComponent`;
   - component-aware labels в Workbench header;
-  - component-aware labels в task screen и task cards.
+  - component-aware labels в workflow/workbench summaries.
 - Что сознательно не входит в этот change:
   - новая server-side persistence-модель компонентов;
   - новый workflow/runtime engine;
-  - изменение component/task allocation logic.
+  - изменение component/workflow allocation logic.
 - Какие решения уже принадлежат parent change / strategy_root и не должны переоткрываться:
   - `ProjectComponent` уже является точкой входа в workflow;
-  - backing task bridge уже принят как рабочая модель текущей волны;
   - project page остаётся canonical user entrypoint.
 
 ## Проверка результата
@@ -53,13 +52,13 @@
 - verification_level: unit
 - verification_command: npm run test:unit
 - Что именно должен доказать результат проверки:
-  - component-aware resolver находит нужный `ProjectComponent` по `taskId`;
-  - Workbench/task surfaces больше не сводят контекст только к `taskId`;
+  - component-aware resolver находит нужный `ProjectComponent` по workflow/workbench context;
+  - workflow/workbench surfaces больше не сводят контекст только к внутреннему id;
   - деградация без найденного компонента остаётся безопасной.
 
 ## Открытые вопросы
 
 - Какие вопросы исполнитель должен закрыть по ходу работы:
-  - как провести component-aware context в server-heavy task surfaces без новой persistence-модели;
+  - как провести component-aware context в workflow/workbench surfaces без новой persistence-модели;
   - какие labels нужны пользователю прежде всего;
   - какие unit-контракты достаточно явно защитят эту смысловую связку.

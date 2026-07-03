@@ -19,11 +19,11 @@ function SupportPanelSection({
   summary: string
 }) {
   return (
-    <details className="rounded-3xl border border-black/10 bg-white">
+    <details className="shell-section border border-black bg-white">
       <summary className="cursor-pointer list-none px-6 py-5 text-lg font-medium marker:content-none">
         {summary}
       </summary>
-      <div className="border-t border-black/10 px-1 pb-1">{children}</div>
+      <div className="shell-divider px-1 pb-1">{children}</div>
     </details>
   )
 }
@@ -37,7 +37,7 @@ function ProjectOverviewMetadata({
   >
 }) {
   return (
-    <section className="rounded-3xl bg-white p-5">
+    <section className="shell-card border border-black bg-white p-5">
       <dl className="grid gap-4 md:grid-cols-2">
         <div>
           <dt className="text-sm uppercase tracking-wide text-black/50">Идентификатор проекта</dt>
@@ -98,10 +98,11 @@ function ProjectOverviewSupportPanels({
   return (
     <section className="mt-6 space-y-4">
       <div>
-        <h2 className="text-3xl">Поддерживающий слой проекта</h2>
-        <p className="mt-2 max-w-4xl text-lg text-black/70">
+        <p className="shell-eyebrow text-xs uppercase tracking-[0.22em]">Support layer</p>
+        <h2 className="shell-subtitle mt-3 text-[clamp(2.2rem,4vw,3.5rem)]">Поддерживающий слой проекта</h2>
+        <p className="mt-2 max-w-4xl text-lg text-black/72">
           Здесь остаются настройка, история и подробное чтение workflow. Главный путь работы выше:
-          проект, компоненты и текущий фокус.
+          проект, компоненты и активные линии работы.
         </p>
       </div>
 

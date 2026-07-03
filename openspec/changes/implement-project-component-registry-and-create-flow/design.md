@@ -7,7 +7,7 @@
 ## Решение
 
 1. Ввести простую canonical сущность `ProjectComponent`.
-   Она живёт внутри `ProjectWorkspace`, хранится отдельно от task runtime и пока описывает только то, что нужно для пользовательского production path:
+   Она живёт внутри `ProjectWorkspace`, хранится отдельно от workflow/runtime состояния и пока описывает только то, что нужно для пользовательского production path:
    - `id`;
    - `projectId`;
    - `title`;
@@ -21,7 +21,7 @@
    - `/projects` отвечает за создание и список проектов;
    - `/projects/<projectId>` отвечает за создание и список компонентов проекта.
 
-3. Не связывать компонент сразу с task/workbench runtime.
+3. Не связывать компонент сразу с активной workflow-сессией или workbench.
    Этот change подготавливает пользовательскую точку входа и canonical container для следующих workflow-изменений, но не переоткрывает model execution целиком.
 
 4. Добавить user-facing surfaces:

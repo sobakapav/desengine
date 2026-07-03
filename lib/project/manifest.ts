@@ -84,7 +84,7 @@ function resolveProjectWorkflowTemplate(project: ProjectWorkspace): ProjectManif
   return {
     id: project.settings.workflowTemplateId,
     title: "Project design workflow",
-    summary: "Проект проходит через сбор состава, выбор фокуса, delivery компонента и согласование результата.",
+    summary: "Проект проходит через сбор состава, запуск линий работы по компонентам и согласование результата.",
   }
 }
 

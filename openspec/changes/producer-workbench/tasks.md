@@ -2,15 +2,15 @@
 
 ## Текущий фокус реализации
 
-- Producer-workbench временно сужен до поддержки основной цепочки `проект -> workflow -> проверка/чеклист -> результат`.
+- Producer-workbench временно сужен до поддержки основной цепочки `проект -> компоненты -> workflow -> работа`.
 - Всё, что относится к новым tool families, layout/space как отдельной теме и image-inspector как самостоятельной волне, считается отложенным.
 
 - [ ] 1. Зафиксировать `producer-workbench` под `focus-domain`.
-- [ ] 2. Закрепить Workbench как главную рабочую поверхность продукта.
+- [ ] 2. Закрепить Workbench как materialized, но пока locked рабочую поверхность продукта.
 - [ ] 3. Описать схему следующего контура:
   - [ ] 3.1 `project` задаёт контекст;
-  - [ ] 3.2 `task` задаёт цель и артефакты;
-  - [ ] 3.3 `workflow` задаёт путь выполнения;
+  - [ ] 3.2 `workflow` задаёт путь выполнения;
+  - [ ] 3.3 `subject` задаёт предмет работы;
   - [ ] 3.4 `workbench` materializes шаг или фазу работы.
 - [ ] 4. Зафиксировать, что `level-labs` не являются долгосрочной целевой моделью.
 - [ ] 5. Передать tactical ownership существующему `dispatcher-workbench`.
@@ -32,7 +32,7 @@
 ## Детали проверки
 
 - Затронутые OpenSpec capability/scenarios:
-  - `workbench`: новая producer-рамка закрепляет Workbench как главную рабочую поверхность;
+  - `workbench`: новая producer-рамка закрепляет Workbench как materialized и пока locked рабочую поверхность;
   - `workflow`: Workbench связывается с materialization workflow step;
   - `level-labs`: producer фиксирует legacy-статус лабораторной модели;
   - `projects`: Workbench должен открываться внутри project context.

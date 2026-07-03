@@ -1,40 +1,43 @@
 "use client"
 
-import type { ProjectWorkflowReadoutSnapshot } from "@/lib/project/workflow-readout"
 import type { ProjectComponent } from "@/lib/project/component-runtime"
+import type { ProjectWorkflowReadoutSnapshot } from "@/lib/project/workflow-readout"
+
 import { buildProjectComponentSurfaceModel } from "./projectSurface"
 
-const FOCUS_COMPONENT_LABEL = "Сделать фокусом проекта"
-const ACTIVE_FOCUS_LABEL = "Текущий фокус проекта"
+const START_COMPONENT_WORK_LABEL = "Взять в работу"
+const COMPONENT_IN_PROGRESS_LABEL = "Компонент уже в работе"
 
 type ComponentCardProps = {
-  activeComponentId: string | null
   component: ProjectComponent
   onCompleteComponent: (componentId: string) => void
-  onFocusComponent: (componentId: string) => void
   onReopenComponent: (componentId: string) => void
+  onStartComponentWork: (componentId: string) => void
   workflowReadout: ProjectWorkflowReadoutSnapshot
 }
 
 function ComponentCard({
-  activeComponentId,
   component,
   onCompleteComponent,
-  onFocusComponent,
   onReopenComponent,
+  onStartComponentWork,
   workflowReadout,
 }: ComponentCardProps) {
   const workflowEntry = workflowReadout.entries.find((entry) => entry.componentId === component.id) ?? null
   const model = buildProjectComponentSurfaceModel(component, {
     workflowEntry,
   })
-  const focusActionLabel = workflowEntry?.isFocused ? ACTIVE_FOCUS_LABEL : FOCUS_COMPONENT_LABEL
+  const sessionActionLabel = component.status === "in_progress"
+    ? COMPONENT_IN_PROGRESS_LABEL
+    : component.status === "draft"
+      ? START_COMPONENT_WORK_LABEL
+      : model.sessionActionLabel
 
   return (
-    <article className="rounded-2xl border border-black/10 bg-black/[0.02] p-4">
+    <article className="shell-card-muted">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-2xl">{model.title}</h3>
-        <span className="rounded-full border border-black/10 px-3 py-1 text-sm">
+        <span className="shell-badge">
           {model.statusLabel}
         </span>
       </div>
@@ -52,15 +55,15 @@ function ComponentCard({
       </dl>
       <div className="mt-4 flex flex-wrap gap-3">
         <button
-          className="rounded-full bg-black px-4 py-2 text-sm text-white disabled:cursor-default disabled:bg-black/30"
-          disabled={activeComponentId === component.id}
+          className="shell-button disabled:cursor-default disabled:opacity-45"
+          disabled={component.status === "in_progress"}
           type="button"
-          onClick={() => void onFocusComponent(component.id)}
+          onClick={() => void onStartComponentWork(component.id)}
         >
-          {activeComponentId === component.id ? ACTIVE_FOCUS_LABEL : focusActionLabel}
+          {sessionActionLabel}
         </button>
         <button
-          className="rounded-full border border-black px-4 py-2 text-sm"
+          className="shell-button-secondary"
           type="button"
           onClick={() => void (component.status === "completed"
             ? onReopenComponent(component.id)
@@ -74,20 +77,18 @@ function ComponentCard({
 }
 
 type ComponentsReadyStateProps = {
-  activeComponentId: string | null
   components: ProjectComponent[]
   onCompleteComponent: (componentId: string) => void
-  onFocusComponent: (componentId: string) => void
   onReopenComponent: (componentId: string) => void
+  onStartComponentWork: (componentId: string) => void
   workflowReadout: ProjectWorkflowReadoutSnapshot
 }
 
 function ComponentsReadyState({
-  activeComponentId,
   components,
   onCompleteComponent,
-  onFocusComponent,
   onReopenComponent,
+  onStartComponentWork,
   workflowReadout,
 }: ComponentsReadyStateProps) {
   return (
@@ -95,11 +96,10 @@ function ComponentsReadyState({
       {components.map((component) => (
         <ComponentCard
           key={component.id}
-          activeComponentId={activeComponentId}
           component={component}
           onCompleteComponent={onCompleteComponent}
-          onFocusComponent={onFocusComponent}
           onReopenComponent={onReopenComponent}
+          onStartComponentWork={onStartComponentWork}
           workflowReadout={workflowReadout}
         />
       ))}

@@ -107,7 +107,7 @@ describe("project user surface foundation", () => {
     expect(projectWorkspacePanel).toContain("Работа над проектом")
     expect(projectPrimaryFlow).toContain("Сейчас важно")
     expect(projectPrimaryFlow).toContain("Добавьте первый компонент")
-    expect(projectPrimaryFlow).toContain("Сделать фокусом проекта")
+    expect(projectPrimaryFlow).toContain("Взять в работу")
     expect(projectSupportPanels).toContain("Поддерживающий слой проекта")
     expect(projectSupportPanels).toContain("Паспорт проекта")
     expect(projectSupportPanels).toContain("Идентификатор проекта")

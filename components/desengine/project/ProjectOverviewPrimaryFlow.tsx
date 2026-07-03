@@ -2,13 +2,12 @@
 
 import Link from "next/link"
 
-import type { ProjectComponent } from "@/lib/project/component-runtime"
 import type { ProjectSession } from "@/lib/project/workspace-session"
 import { getProjectsRootUrl } from "@/lib/project/navigation"
 
 function buildPrimaryFlowModel(args: {
-  activeComponent: ProjectComponent | null
   componentCount: number
+  inProgressComponentCount: number
   session: ProjectSession | null
 }) {
   if (args.componentCount === 0) {
@@ -18,19 +17,19 @@ function buildPrimaryFlowModel(args: {
       description: "Проект уже открыт. Следующее полезное действие одно: добавить первую рабочую часть, с которой проект сможет реально работать дальше.",
       bullets: [
         "Нажмите «Добавить компонент» ниже.",
-        "После создания сразу сделайте его фокусом проекта.",
+        "После создания запустите по нему первую рабочую линию.",
       ],
     }
   }
 
-  if (!args.activeComponent) {
+  if (args.inProgressComponentCount === 0) {
     return {
       stepLabel: "Сейчас важно",
-      title: "Выберите рабочий фокус",
-      description: "Компоненты уже есть, но проект ещё не работает через один конкретный компонент. Зафиксируйте текущий фокус, чтобы работа стала однозначной.",
+      title: "Запустите первую линию работы",
+      description: "Компоненты уже есть, но проект ещё не ведёт ни один из них в активной работе. Запустите первую линию прямо из карточки компонента.",
       bullets: [
         "Найдите нужный компонент в списке.",
-        "Нажмите «Сделать фокусом проекта».",
+        "Нажмите «Взять в работу».",
       ],
     }
   }
@@ -38,21 +37,21 @@ function buildPrimaryFlowModel(args: {
   if (args.session?.status === "completed") {
     return {
       stepLabel: "Текущее состояние",
-      title: `Проект собран вокруг «${args.activeComponent.title}»`,
-      description: "Главный маршрут уже пройден: у проекта есть состав компонентов и текущий рабочий фокус. Теперь можно отмечать готовые части и переключать фокус по мере развития проекта.",
+      title: "Проект собран в согласованную систему",
+      description: "Главный маршрут уже пройден: у проекта есть состав компонентов и рабочие линии. Теперь можно отмечать готовые части и при необходимости возвращать их в работу.",
       bullets: [
         "Отмечайте готовые компоненты прямо в списке.",
-        "Если нужно, переведите проект на другой компонент без ухода со страницы.",
+        "Если нужно, возвращайте нужные компоненты в работу без ухода со страницы.",
       ],
     }
   }
 
   return {
     stepLabel: "Сейчас важно",
-    title: `Продолжайте работу через «${args.activeComponent.title}»`,
-    description: "Проект уже перешёл в рабочий режим. Дальше всё должно происходить прямо на этой странице: фокус, статус компонентов и наблюдение за workflow.",
+    title: "Продолжайте активные линии работы",
+    description: "Проект уже перешёл в рабочий режим. Дальше всё должно происходить прямо на этой странице: статусы компонентов, запуск новых линий и наблюдение за workflow.",
     bullets: [
-      "Продолжайте работу над текущим компонентом.",
+      "Продолжайте работу над нужными компонентами.",
       "Когда компонент готов, отметьте его как готовый в проекте.",
     ],
   }
@@ -62,44 +61,44 @@ function buildPrimaryFlowModel(args: {
  * @example
  * ```tsx
  * <ProjectOverviewPrimaryFlow
- *   activeComponent={null}
  *   componentCount={0}
+ *   inProgressComponentCount={0}
  *   session={null}
  * />
  * ```
  */
 function ProjectOverviewPrimaryFlow({
-  activeComponent,
   componentCount,
+  inProgressComponentCount,
   session,
 }: {
-  activeComponent: ProjectComponent | null
   componentCount: number
+  inProgressComponentCount: number
   session: ProjectSession | null
 }) {
   const model = buildPrimaryFlowModel({
-    activeComponent,
     componentCount,
+    inProgressComponentCount,
     session,
   })
 
   return (
-    <section className="mt-6 rounded-[2rem] border border-black/10 bg-[linear-gradient(135deg,#f6efe4_0%,#fffdf8_55%,#f0f4ea_100%)] p-6 shadow-sm">
+    <section className="shell-section mt-6 border border-black bg-white p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-4xl">
-          <p className="text-sm uppercase tracking-[0.18em] text-black/45">{model.stepLabel}</p>
-          <h2 className="mt-3 text-4xl">{model.title}</h2>
-          <p className="mt-4 text-lg text-black/70">{model.description}</p>
+          <p className="shell-eyebrow text-xs uppercase tracking-[0.22em]">{model.stepLabel}</p>
+          <h2 className="shell-subtitle mt-3 text-[clamp(2.2rem,4vw,3.5rem)]">{model.title}</h2>
+          <p className="mt-4 text-lg text-black/72">{model.description}</p>
         </div>
 
-        <Link className="rounded-full border border-black/15 bg-white px-4 py-2 text-sm" href={getProjectsRootUrl()}>
+        <Link className="shell-button-secondary inline-flex items-center border border-black bg-white px-4 py-2 no-underline" href={getProjectsRootUrl()}>
           Все проекты
         </Link>
       </div>
 
       <div className="mt-6 grid gap-3 md:grid-cols-2">
         {model.bullets.map((bullet) => (
-          <div key={bullet} className="rounded-2xl border border-black/10 bg-white/80 p-4 text-base text-black/80">
+          <div key={bullet} className="shell-callout border border-dashed border-black bg-white p-4 text-base text-black/80">
             {bullet}
           </div>
         ))}

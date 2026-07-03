@@ -8,7 +8,7 @@
 - **THEN** в левой части `Navigation` видны ссылки `home`, `уровни`, `проекты`, `config`, `help`
 - **AND** каждая ссылка ведёт на соответствующий канонический top-level маршрут
 
-### Requirement: Legacy task и lab index routes перенаправляют в проекты
+### Requirement: Legacy pre-project index routes перенаправляют в проекты
 Система SHALL перенаправлять старые index-входы `/tasks` и `/lab` в раздел проектов, чтобы project surface оставался главным входом в работу.
 
 #### Scenario: Пользователь открывает `/tasks` или `/lab`

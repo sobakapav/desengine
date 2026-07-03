@@ -5,15 +5,15 @@ import { Slot } from "@radix-ui/react-slot"
 import { cn } from "@/lib/system/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center self-start justify-self-start rounded-sm border-0 font-medium whitespace-nowrap transition-all duration-150 outline-none select-none focus-visible:ring-2 focus-visible:ring-black/15 active:not-aria-[haspopup]:translate-y-px active:not-aria-[haspopup]:scale-95 disabled:pointer-events-none disabled:bg-neutral-300 disabled:text-white/90 disabled:shadow-none aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
+  "group/button inline-flex shrink-0 items-center justify-center self-start justify-self-start border border-black font-medium whitespace-nowrap transition-colors duration-150 outline-none select-none disabled:pointer-events-none disabled:opacity-45",
   {
     variants: {
       variant: {
-        default: "bg-black !text-white shadow-xl shadow-black/30 hover:bg-black/90 hover:!text-white hover:shadow-2xl hover:shadow-black/35 active:shadow-md active:shadow-black/20 [&>a]:!text-white [&>span]:!text-white",
-        outline: "bg-black !text-white shadow-xl shadow-black/30 hover:bg-black/90 hover:!text-white hover:shadow-2xl hover:shadow-black/35 active:shadow-md active:shadow-black/20 aria-expanded:bg-black aria-expanded:text-white [&>a]:!text-white [&>span]:!text-white",
-        secondary: "bg-black !text-white shadow-xl shadow-black/30 hover:bg-black/90 hover:!text-white hover:shadow-2xl hover:shadow-black/35 active:shadow-md active:shadow-black/20 aria-expanded:bg-black aria-expanded:text-white [&>a]:!text-white [&>span]:!text-white",
-        ghost: "bg-black !text-white shadow-xl shadow-black/30 hover:bg-black/90 hover:!text-white hover:shadow-2xl hover:shadow-black/35 active:shadow-md active:shadow-black/20 aria-expanded:bg-black aria-expanded:text-white [&>a]:!text-white [&>span]:!text-white",
-        destructive: "bg-black !text-white shadow-xl shadow-black/30 hover:bg-black/90 hover:!text-white hover:shadow-2xl hover:shadow-black/35 active:shadow-md active:shadow-black/20 [&>a]:!text-white [&>span]:!text-white",
+        default: "bg-black !text-white hover:bg-neutral-900 [&>a]:!text-white [&>span]:!text-white",
+        outline: "bg-white !text-black hover:bg-neutral-100 aria-expanded:bg-black aria-expanded:!text-white [&>a]:!text-black [&>span]:!text-black",
+        secondary: "bg-white !text-black hover:bg-neutral-100 aria-expanded:bg-black aria-expanded:!text-white [&>a]:!text-black [&>span]:!text-black",
+        ghost: "bg-white !text-black hover:bg-neutral-100 aria-expanded:bg-black aria-expanded:!text-white [&>a]:!text-black [&>span]:!text-black",
+        destructive: "bg-black !text-white hover:bg-neutral-900 [&>a]:!text-white [&>span]:!text-white",
         link: "text-black underline underline-offset-4 hover:text-black/80",
       },
       size: {

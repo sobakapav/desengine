@@ -9,11 +9,11 @@
 
 Из-за этого даже правильно реализованные пользовательские слои выглядят как набор соседних экранов, а не как единый продукт. Для релизной подготовки нужен не локальный cosmetic-polish, а общий visual contract, который быстро делает архитектурную волну читаемой для пользователя.
 
-Референс задаёт понятное направление: paper-like фон, монохромный контраст, тонкие рамки, крупная serif-типографика, воздушный ритм, outlined tabs/surfaces и инвертированный active-state.
+Референс задаёт понятное направление: чёрно-белый paper-like фон, тонкие рамки, крупная serif-типографика, прямые линии, пунктирные secondary blocks, outlined tabs/surfaces и инвертированный active-state.
 
 ## What Changes
 
-- Зафиксировать единый editorial visual language для product-shell интерфейса.
+- Зафиксировать единый монохромный visual language для product-shell интерфейса.
 - Ввести канонический набор shell-паттернов:
   - page frame;
   - section frame;
@@ -21,7 +21,7 @@
   - display title;
   - outlined tab/button rows;
   - inset/callout block;
-  - primary action с инверсией active-state.
+  - primary action с инверсией active-state и без скруглений.
 - Перевести на этот контракт ключевые product-shell поверхности:
   - `Navigation`;
   - project pages;
@@ -34,8 +34,8 @@
 ## Capabilities
 
 ### Modified Capabilities
-- `ui-foundation`: product-shell интерфейс получает единый editorial visual contract вместо смешанных локальных паттернов.
-- `navigation`: глобальная навигация переходит от компактного чёрного бара к editorial navigation surface с outlined items и inversion-based active-state.
+- `ui-foundation`: product-shell интерфейс получает единый монохромный visual contract вместо смешанных локальных паттернов.
+- `navigation`: глобальная навигация переходит от компактного чёрного бара к outlined surface с inversion-based active-state.
 
 ## Impact
 

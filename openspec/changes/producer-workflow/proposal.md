@@ -4,7 +4,7 @@
 
 - workflow пока слишком сильно завязан на представление “lab level как workflow step”;
 - процесс пользователя ещё не проявлен как самостоятельная product-facing сущность;
-- непонятно, как workflow соотносится с Workbench, Task и будущими vertical slices.
+- непонятно, как workflow соотносится с Workbench, project component lines и будущими vertical slices.
 
 Нужен отдельный producer, который закрепит workflow не как техническую проекцию старого контура, а как видимый производственный процесс внутри продукта.
 
@@ -17,7 +17,7 @@
   - workflow materializes шаги через Workbench и артефакты.
 - Producer задаёт схему следующего контура:
   - `project` удерживает долгоживущий контекст;
-  - `task` удерживает цель и набор артефактов;
+  - `subject` удерживает конкретный предмет работы и набор артефактов;
   - `workflow` задаёт исполняемый путь;
   - `workbench` materializes конкретный шаг workflow.
 - Producer создаёт tactical owner `dispatcher-workflow`.
@@ -38,21 +38,20 @@
 ### Potentially Modified Capabilities
 - `workflow`
 - `workbench`
-- `task`
 - `level-labs`
 - `projects`
 
 ## Impact
 
 - `focus-domain` получает отдельную producer-линию workflow как product-facing процесса.
-- Workflow перестаёт растворяться между task, лабораторными уровнями и workbench-экраном.
+- Workflow перестаёт растворяться между project component lines, лабораторными уровнями и workbench-экраном.
 - `dispatcher-workflow` получает чёткий producer-контекст для downstream backlog.
 
 ## Acceptance Criteria
 
 - В active OpenSpec есть `producer-workflow` под `focus-domain`.
 - В producer зафиксировано, что workflow — это видимый и управляемый процесс продукта.
-- В producer описана связь `project -> task -> workflow -> workbench`.
+- В producer описана связь `project -> subject -> workflow -> workbench`.
 - В producer зафиксировано, что workflow не должен оставаться скрытой проекцией `level-labs`.
 - В producer описаны критерии readiness для следующих behavior-change waves.
 
@@ -61,7 +60,6 @@
 - Затронутые OpenSpec capability/scenarios:
   - capability: `workflow`
   - capability: `workbench`
-  - capability: `task`
   - capability: `level-labs`
   - scenario: producer закрепляет workflow как видимый производственный процесс и задаёт переход от level-driven модели к workflow-driven контуру.
 - Уровень проверки: `static/contract`.

@@ -25,8 +25,8 @@ describe("project history diagnostics surface", () => {
           id: "event-1",
           createdAt: "2026-06-15T10:00:00.000Z",
           componentTitle: "Hero card",
-          kind: "project-focus-set",
-          message: "Проект переведён в фокус на компонент «Hero card».",
+          kind: "project-component-started",
+          message: "По компоненту «Hero card» запущена активная линия работы проекта.",
         },
       ],
       summary: buildProjectHistoryDiagnosticsSummary({
@@ -37,8 +37,8 @@ describe("project history diagnostics surface", () => {
             createdAt: "2026-06-15T10:00:00.000Z",
             componentId: "hero-card",
             componentTitle: "Hero card",
-            kind: "project-focus-set",
-            message: "Проект переведён в фокус на компонент «Hero card».",
+            kind: "project-component-started",
+            message: "По компоненту «Hero card» запущена активная линия работы проекта.",
           },
         ],
         components: [
@@ -59,14 +59,14 @@ describe("project history diagnostics surface", () => {
 
     expect(model.summary).toMatchObject({
       eventCountLabel: "1 событие",
-      focusChangeCountLabel: "1 смена фокуса",
+      startedComponentCountLabel: "1 запущенная линия",
       createdComponentCountLabel: "0 созданных компонентов",
       completedComponentCountLabel: "0 готовых компонентов",
       lastActivityLabel: "2026-06-15 10:00 UTC",
     })
     expect(model.events[0]).toMatchObject({
       componentLabel: "Компонент: Hero card",
-      kindLabel: "Сменился фокус проекта",
+      kindLabel: "Компонент взят в работу",
     })
   })
 
@@ -87,12 +87,12 @@ describe("project history diagnostics surface", () => {
     expect(projectSupportPanels).toContain("historyDiagnostics={historyDiagnostics}")
 
     expect(diagnosticsPanel).toContain("История проектной работы")
-    expect(diagnosticsPanel).toContain("Смены фокуса")
+    expect(diagnosticsPanel).toContain("Запуски линий")
     expect(diagnosticsPanel).toContain("История проектной работы пока пуста")
 
     expect(diagnosticsAdapter).toContain("buildProjectHistoryDiagnosticsSnapshot")
     expect(diagnosticsAdapter).toContain("createdComponentCount")
-    expect(diagnosticsAdapter).toContain("focusChangeCount")
+    expect(diagnosticsAdapter).toContain("startedComponentCount")
 
     expect(projectSpec).toContain("### Requirement: Проект показывает свою историю и диагностику")
     expect(projectSpec).toContain("#### Scenario: Пользователь открывает историю проекта")

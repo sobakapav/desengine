@@ -12,7 +12,7 @@
 - Что из родительского change уже решено:
   - `Project` считается верхним контекстом пользовательской работы;
   - project page является главной рабочей поверхностью;
-  - workflow принадлежит проекту, а не task/runtime слою.
+  - workflow принадлежит проекту, а не отдельному legacy runtime-слою.
 - Кто отвечает за стратегию, тактику и приёмку результата:
   - стратегия: `producer-project` и связанные producer-level product decisions;
   - тактика: `dispatcher-project`;
@@ -52,7 +52,7 @@
   - новая install-critical инфраструктура.
 - Какие решения уже принадлежат parent change / strategy_root и не должны переоткрываться:
   - `Project` как главный scope;
-  - отказ от legacy task/level/onboarding paths;
+  - отказ от legacy pre-project paths;
   - workflow ownership у проекта.
 
 ## Проверка результата

@@ -14,15 +14,15 @@
 
 Затронутые OpenSpec capability/scenarios:
 - `workflow`: "Пользователь видит компонент проекта внутри workflow-сессии"
-- `projects`: "Пользователь видит компонент проекта на экране задачи"
-- `projects`: "Пользователь видит компонент проекта в списке задач"
+- `projects`: "Пользователь видит компонент проекта внутри workbench summary"
+- `projects`: "Пользователь видит компонент проекта в списке workflow-сессий"
 
 Уровень проверки:
 - unit
 
 Команда проверки:
-- `npx vitest run --project unit test/unit/workflow-component-aware-surface-labels.test.ts test/unit/project-component-registry-surface.test.ts test/unit/workbench-workflow-session-surface.test.ts test/unit/project-task-assignment-surface.test.ts`
+- `npx vitest run --project unit test/unit/workflow-component-aware-surface-labels.test.ts test/unit/project-component-registry-surface.test.ts test/unit/workbench-workflow-session-surface.test.ts`
 
 Mock/fixture-данные и live credentials:
-- Достаточно unit-level фикстур для resolver-а `taskId -> ProjectComponent` и source-contract проверок surface-текстов.
+- Достаточно unit-level фикстур для resolver-а `workflow-session -> ProjectComponent` и source-contract проверок surface-текстов.
 - Live credentials не требуются.

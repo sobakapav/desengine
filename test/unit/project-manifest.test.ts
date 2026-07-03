@@ -41,8 +41,8 @@ describe("project manifest", () => {
     })
     const session = createProjectSession(project.id)
     const activity = createProjectWorkspaceActivity({
-      kind: "project-focus-set",
-      message: "Проект переведён в фокус на компонент «Hero card».",
+      kind: "project-component-started",
+      message: "По компоненту «Hero card» запущена активная линия работы проекта.",
       projectId: project.id,
       componentId: component.id,
       componentTitle: component.title,

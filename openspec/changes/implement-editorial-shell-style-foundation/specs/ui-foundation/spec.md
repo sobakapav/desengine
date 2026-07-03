@@ -1,10 +1,10 @@
 ## MODIFIED Requirements
 
-### Requirement: Product-shell интерфейс использует единый editorial visual contract
+### Requirement: Product-shell интерфейс использует единый монохромный visual contract
 
-Система SHALL рендерить product-shell интерфейс в едином editorial visual language вместо смешения локальных page-level паттернов.
+Система SHALL рендерить product-shell интерфейс в едином монохромном visual language вместо смешения локальных page-level паттернов.
 
-Под этим контрактом понимаются светлый paper-like фон, тонкие тёмные границы, крупная serif-типографика для display-ролей, uppercase eyebrow labels и inversion-based active-state для выбора и primary action.
+Под этим контрактом понимаются светлый paper-like фон, тонкие тёмные границы, крупная serif-типографика для display-ролей, uppercase eyebrow labels, прямые линии без скруглений, пунктирные secondary callout-блоки и inversion-based active-state для выбора и primary action.
 
 #### Scenario: Команда добавляет новый product-shell экран
 - **WHEN** экран относится к `app/**` или к shell-компонентам `components/desengine/**`

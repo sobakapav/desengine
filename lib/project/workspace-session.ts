@@ -1,13 +1,11 @@
 import type {
   ProjectComponent,
-  ProjectComponentStatus,
 } from "@/lib/project/component-runtime"
 
 type ProjectSessionStatus = "idle" | "in_progress" | "completed"
 type ProjectWorkflowStageStatus = "not_started" | "in_progress" | "completed"
 type ProjectWorkflowStageId =
   | "project-structure"
-  | "project-focus"
   | "component-delivery"
   | "project-review"
 
@@ -15,7 +13,6 @@ type ProjectSession = {
   projectId: string
   workflowKind: "project-design-workflow"
   status: ProjectSessionStatus
-  activeComponentId: string | null
   createdAt: string
   updatedAt: string
   lastActivityAt: string | null
@@ -26,8 +23,7 @@ type RawProjectSession = Partial<ProjectSession> | null | undefined
 type ProjectActivityKind =
   | "project-session-started"
   | "project-component-created"
-  | "project-focus-set"
-  | "project-focus-cleared"
+  | "project-component-started"
   | "project-component-completed"
   | "project-component-reopened"
 
@@ -75,7 +71,6 @@ function createProjectSession(projectId: string): ProjectSession {
     projectId: projectId.trim(),
     workflowKind: "project-design-workflow",
     status: "idle",
-    activeComponentId: null,
     createdAt: now,
     updatedAt: now,
     lastActivityAt: null,
@@ -93,9 +88,6 @@ function normalizeProjectSession(rawSession: RawProjectSession, projectId: strin
     status: rawSession?.status === "in_progress" || rawSession?.status === "completed"
       ? rawSession.status
       : "idle",
-    activeComponentId: typeof rawSession?.activeComponentId === "string" && rawSession.activeComponentId.trim()
-      ? rawSession.activeComponentId.trim()
-      : null,
     createdAt: normalizeTimestamp(rawSession?.createdAt, fallback.createdAt),
     updatedAt: normalizeTimestamp(rawSession?.updatedAt, fallback.updatedAt),
     lastActivityAt: normalizeOptionalTimestamp(rawSession?.lastActivityAt),
@@ -155,8 +147,7 @@ function normalizeProjectWorkspaceActivity(
     projectId,
     kind: rawActivity.kind === "project-session-started"
       || rawActivity.kind === "project-component-created"
-      || rawActivity.kind === "project-focus-set"
-      || rawActivity.kind === "project-focus-cleared"
+      || rawActivity.kind === "project-component-started"
       || rawActivity.kind === "project-component-completed"
       || rawActivity.kind === "project-component-reopened"
       ? rawActivity.kind
@@ -173,9 +164,9 @@ function normalizeProjectWorkspaceActivity(
 }
 
 function listProjectWorkflowStages(args: {
-  activeComponent: ProjectComponent | null
   componentCount: number
   completedComponentCount: number
+  inProgressComponentCount: number
   sessionStatus: ProjectSessionStatus
 }) {
   const structureStatus: ProjectWorkflowStageStatus =
@@ -185,21 +176,12 @@ function listProjectWorkflowStages(args: {
         ? "not_started"
         : "in_progress"
 
-  const focusStatus: ProjectWorkflowStageStatus =
-    args.activeComponent
-      ? "completed"
-      : args.componentCount > 0
-        ? "in_progress"
-        : "not_started"
-
   const deliveryStatus: ProjectWorkflowStageStatus =
     args.completedComponentCount > 0
       ? "completed"
-      : args.activeComponent
+      : args.inProgressComponentCount > 0 || args.componentCount > 0
         ? "in_progress"
-        : args.componentCount > 0
-          ? "in_progress"
-          : "not_started"
+        : "not_started"
 
   const reviewStatus: ProjectWorkflowStageStatus =
     args.componentCount > 0 && args.completedComponentCount === args.componentCount
@@ -216,17 +198,11 @@ function listProjectWorkflowStages(args: {
       status: structureStatus,
     },
     {
-      id: "project-focus",
-      title: "Выбрать текущий фокус проекта",
-      description: "Проект удерживает один явный рабочий фокус, вместо разрозненных переходов по задачам.",
-      status: focusStatus,
-    },
-    {
       id: "component-delivery",
-      title: args.activeComponent
-        ? `Довести компонент «${args.activeComponent.title}»`
-        : "Довести текущий компонент",
-      description: "Компонент остаётся частью проектной работы, а не отдельной изолированной сущностью.",
+      title: args.inProgressComponentCount > 0
+        ? "Вести компоненты в активной работе"
+        : "Запустить первую рабочую линию",
+      description: "Проект работает через один или несколько компонентов одновременно, не сводя всю работу к одной линии.",
       status: deliveryStatus,
     },
     {
@@ -241,14 +217,14 @@ function listProjectWorkflowStages(args: {
 function resolveProjectSessionStatus(args: {
   componentCount: number
   completedComponentCount: number
-  activeComponentStatus: ProjectComponentStatus | null
+  inProgressComponentCount: number
   storedStatus: ProjectSessionStatus
 }) {
   if (args.componentCount > 0 && args.completedComponentCount === args.componentCount) {
     return "completed" satisfies ProjectSessionStatus
   }
 
-  if (args.storedStatus === "in_progress" || args.componentCount > 0 || args.activeComponentStatus === "in_progress") {
+  if (args.storedStatus === "in_progress" || args.componentCount > 0 || args.inProgressComponentCount > 0) {
     return "in_progress" satisfies ProjectSessionStatus
   }
 

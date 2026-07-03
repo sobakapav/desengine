@@ -24,7 +24,7 @@ describe("project workflow readout surface", () => {
       projectId: "project-a",
       sessionStatus: "in_progress",
       currentStageId: "component-delivery",
-      currentStageTitle: "Довести компонент «Hero card»",
+      currentStageTitle: "Вести компоненты в активной работе",
       lastActivityAt: "2026-06-17T10:15:00.000Z",
       lastActivityLabel: "2026-06-17 10:15 UTC",
       stages: [
@@ -47,13 +47,12 @@ describe("project workflow readout surface", () => {
           componentId: "hero-card",
           componentTitle: "Hero card",
           componentStatus: "in_progress",
-          isFocused: true,
-          stageTitle: "Проект сейчас работает через этот компонент",
+          stageTitle: "Компонент находится в активной работе проекта",
           stageStatus: "in_progress",
           lastActivityAt: "2026-06-17T10:15:00.000Z",
           notes: [
-            "Компонент удерживает текущий фокус проектной работы.",
-            "Следующий пользовательский шаг должен быть виден именно на странице проекта.",
+            "Проект может вести несколько компонентных линий параллельно.",
+            "Следующий пользовательский шаг должен оставаться видимым на странице проекта.",
           ],
         },
       ],
@@ -63,18 +62,18 @@ describe("project workflow readout surface", () => {
 
     expect(model.summary).toMatchObject({
       componentCountLabel: "1 компонент",
-      focusedCountLabel: "1 фокус",
+      inProgressCountLabel: "1 линия в работе",
       completedCountLabel: "0 готовых компонентов",
       stageCountLabel: "2 шага workflow",
     })
     expect(model.entries[0]).toMatchObject({
       componentStatusLabel: "В активной работе проекта",
-      focusLabel: "Текущий фокус проекта",
+      workstreamLabel: "По компоненту идёт активная линия работы",
       stageStatusLabel: "Шаг в работе",
-      stageTitle: "Проект сейчас работает через этот компонент",
+      stageTitle: "Компонент находится в активной работе проекта",
     })
     expect(model.entries[0]?.lastActivityLabel).toBe("2026-06-17 10:15 UTC")
-    expect(model.entries[0]?.noteLabels).toContain("Компонент удерживает текущий фокус проектной работы.")
+    expect(model.entries[0]?.noteLabels).toContain("Проект может вести несколько компонентных линий параллельно.")
   })
 
   it("подключает workflow readout к project page как отдельный пользовательский слой", () => {
@@ -103,7 +102,7 @@ describe("project workflow readout surface", () => {
     expect(workflowPanel).toContain("Как проект держит рабочий контур")
     expect(workflowPanel).toContain("WorkflowReadoutContent")
     expect(workflowPanelContent).toContain("Компоненты")
-    expect(workflowPanelContent).toContain("Фокусы")
+    expect(workflowPanelContent).toContain("Линии в работе")
     expect(workflowPanelContent).toContain("Последняя активность")
     expect(workflowPanelContent).toContain("Шаг workflow")
 

@@ -4,7 +4,7 @@
 
 ## What Changes
 
-- Реализовать: Сделать Lab и task surfaces component-aware: показывать, над каким ProjectComponent идёт workflow-сессия, и не сводить пользовательский контекст только к taskId.
+- Реализовать: Сделать project/workbench workflow surfaces component-aware: показывать, над каким `ProjectComponent` идёт workflow-сессия, и не сводить пользовательский контекст только к внутреннему id сессии.
 
 ## Impact
 

@@ -12,7 +12,6 @@ type ProjectWorkflowReadoutEntry = {
   componentId: string
   componentTitle: string
   componentStatus: ProjectComponent["status"]
-  isFocused: boolean
   stageTitle: string
   stageStatus: ProjectWorkflowStage["status"]
   lastActivityAt: string | null
@@ -55,7 +54,7 @@ function resolveCurrentStage(stages: ProjectWorkflowStage[]) {
     }
 }
 
-function resolveComponentStage(component: ProjectComponent, isFocused: boolean) {
+function resolveComponentStage(component: ProjectComponent) {
   if (component.status === "completed") {
     return {
       title: "Компонент вошёл в согласованный слой проекта",
@@ -66,23 +65,13 @@ function resolveComponentStage(component: ProjectComponent, isFocused: boolean) 
     }
   }
 
-  if (isFocused) {
-    return {
-      title: "Проект сейчас работает через этот компонент",
-      status: "in_progress" as const,
-      notes: [
-        "Компонент удерживает текущий фокус проектной работы.",
-        "Следующий пользовательский шаг должен быть виден именно на странице проекта.",
-      ],
-    }
-  }
-
   if (component.status === "in_progress") {
     return {
-      title: "Компонент уже входил в активную работу проекта",
+      title: "Компонент находится в активной работе проекта",
       status: "in_progress" as const,
       notes: [
-        "Компонент можно снова вернуть в фокус проекта без перехода к отдельной задаче.",
+        "Проект может вести несколько компонентных линий параллельно.",
+        "Следующий пользовательский шаг должен оставаться видимым на странице проекта.",
       ],
     }
   }
@@ -91,7 +80,7 @@ function resolveComponentStage(component: ProjectComponent, isFocused: boolean) 
     title: "Компонент ещё не включён в активную работу проекта",
     status: "not_started" as const,
     notes: [
-      "Компонент существует в составе проекта, но ещё не выбран как текущий фокус.",
+      "Компонент уже принадлежит проекту, но его рабочая линия ещё не запущена.",
     ],
   }
 }
@@ -102,14 +91,12 @@ function buildProjectWorkflowReadoutSnapshot(args: {
   components: ProjectComponent[]
   session: ProjectSession | null
 }): ProjectWorkflowReadoutSnapshot {
-  const activeComponent = args.session?.activeComponentId
-    ? args.components.find((component) => component.id === args.session?.activeComponentId) ?? null
-    : null
   const completedComponentCount = args.components.filter((component) => component.status === "completed").length
+  const inProgressComponentCount = args.components.filter((component) => component.status === "in_progress").length
   const stages = listProjectWorkflowStages({
-    activeComponent,
     componentCount: args.components.length,
     completedComponentCount,
+    inProgressComponentCount,
     sessionStatus: args.session?.status ?? "idle",
   })
   const currentStage = resolveCurrentStage(stages)
@@ -123,25 +110,16 @@ function buildProjectWorkflowReadoutSnapshot(args: {
     .sort((left, right) => right.localeCompare(left))[0] ?? null
 
   const entries = [...args.components]
-    .sort((left, right) => {
-      if (left.id === args.session?.activeComponentId && right.id !== args.session?.activeComponentId) {
-        return -1
-      }
-      if (right.id === args.session?.activeComponentId && left.id !== args.session?.activeComponentId) {
-        return 1
-      }
-      return right.updatedAt.localeCompare(left.updatedAt)
-    })
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
     .map((component) => {
       const activity = args.activities.find((entry) => entry.componentId === component.id) ?? null
-      const stage = resolveComponentStage(component, component.id === args.session?.activeComponentId)
+      const stage = resolveComponentStage(component)
 
       return {
         projectId: args.projectId,
         componentId: component.id,
         componentTitle: component.title,
         componentStatus: component.status,
-        isFocused: component.id === args.session?.activeComponentId,
         stageTitle: stage.title,
         stageStatus: stage.status,
         lastActivityAt: activity?.createdAt ?? component.updatedAt,

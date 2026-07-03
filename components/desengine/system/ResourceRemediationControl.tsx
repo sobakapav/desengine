@@ -24,7 +24,7 @@ type ResourceRemediationControlProps = {
 
 function ResourceMarkdown({ detail }: { detail: string }) {
   return (
-    <div className="mt-1 text-base leading-relaxed text-slate-600">
+    <div className="mt-1 text-base leading-relaxed shell-prose-muted">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         allowedElements={["p", "a", "code", "em", "strong", "ul", "ol", "li", "text"]}
@@ -37,7 +37,7 @@ function ResourceMarkdown({ detail }: { detail: string }) {
             </a>
           ),
           code: ({ children }) => (
-            <code className="rounded bg-slate-100 px-1 py-0.5 text-sm text-slate-800">
+            <code className="border border-black bg-white px-1 py-0.5 text-sm text-black">
               {children}
             </code>
           ),
@@ -55,24 +55,24 @@ function DefaultResourceRemediation({
 }: Pick<ResourceRemediationControlProps, "helpHref" | "resource">) {
   return (
     <div className="max-w-xl">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+      <p className="shell-eyebrow">
         Нужно исправить
       </p>
 
-      <h2 className="mt-5 text-4xl font-bold leading-tight text-slate-900">
+      <h2 className="shell-subtitle mt-5">
         {resource.label}
       </h2>
 
-      <p className="mt-2 text-lg font-semibold leading-snug text-slate-800">
+      <p className="mt-2 text-lg font-semibold leading-snug text-black">
         {resource.summary}
       </p>
 
-      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-5">
+      <div className="shell-callout mt-4">
         <ResourceMarkdown detail={resource.detail} />
         {helpHref && resource.state === "blocked" ? (
           <a
             href={helpHref}
-            className="mt-6 inline-flex text-sm font-medium text-slate-900 underline underline-offset-2"
+            className="mt-6 inline-flex text-sm font-medium text-black underline underline-offset-2"
           >
             Открыть справку
           </a>

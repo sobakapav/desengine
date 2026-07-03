@@ -55,7 +55,7 @@ describe("project manifest product surfaces", () => {
       projectId: "project-a",
       sessionStatus: "in_progress",
       currentStageId: "component-delivery",
-      currentStageTitle: "Довести компонент «Hero card»",
+      currentStageTitle: "Вести компоненты в активной работе",
       lastActivityAt: "2026-07-02T10:10:00.000Z",
       lastActivityLabel: "2026-07-02 10:10 UTC",
       stages: [
@@ -72,11 +72,10 @@ describe("project manifest product surfaces", () => {
           componentId: "component-hero",
           componentTitle: "Hero card",
           componentStatus: "in_progress",
-          isFocused: true,
-          stageTitle: "Проект сейчас работает через этот компонент",
+          stageTitle: "Компонент находится в активной работе проекта",
           stageStatus: "in_progress",
           lastActivityAt: "2026-07-02T10:10:00.000Z",
-          notes: ["Компонент удерживает текущий фокус проектной работы."],
+          notes: ["Проект может вести несколько компонентных линий параллельно."],
         },
       ],
     }

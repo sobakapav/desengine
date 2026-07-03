@@ -16,7 +16,7 @@
 // @openSpec capability: llm-endpoint
 // @openSpec scenarios:
 // @openSpec  - "Оператор пытается настроить локальный endpoint"
-// @openSpec  - "Пользователь открывает лабораторию"
+// @openSpec  - "Система проверяет готовность LLM-конфигурации"
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { applyDeepSeekEnv, resetLlmTestEnv, restoreLlmTestEnv } from "./llm.server.test-utils"

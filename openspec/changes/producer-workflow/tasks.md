@@ -2,12 +2,12 @@
 
 ## Текущий фокус реализации
 
-- Producer-workflow сейчас работает только на выравнивание цепочки `проект -> workflow -> проверка/чеклист -> результат`.
+- Producer-workflow сейчас работает только на выравнивание цепочки `проект -> компоненты -> workflow -> работа`.
 - Любые вертикальные расширения workflow вне этой цепочки считаются отложенными.
 
 - [ ] 1. Зафиксировать `producer-workflow` под `focus-domain`.
 - [ ] 2. Закрепить workflow как видимый и управляемый процесс продукта.
-- [ ] 3. Описать схему `project -> task -> workflow -> workbench`.
+- [ ] 3. Описать схему `project -> subject -> workflow -> workbench`.
 - [ ] 4. Зафиксировать, что `level-labs` являются legacy-проекцией workflow, а не целевой моделью.
 - [ ] 5. Создать и привязать `dispatcher-workflow` как tactical owner workflow-линии.
 - [ ] 6. Зафиксировать критерии readiness для следующих waves:
@@ -30,7 +30,7 @@
 - Затронутые OpenSpec capability/scenarios:
   - `workflow`: producer закрепляет workflow как процесс продукта;
   - `workbench`: workflow materializes шаги через Workbench;
-  - `task`: workflow связывается с задачей и артефактами;
+  - `projects`: workflow связывается с предметом работы и артефактами внутри проекта;
   - `level-labs`: producer фиксирует legacy-статус level-driven модели.
 - Уровень проверки: static / traceability для producer-change.
 - Команда запуска:

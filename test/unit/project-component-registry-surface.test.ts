@@ -3,12 +3,12 @@
 // @openSpec  - "Пользователь создаёт новый проект из project registry"
 // @openSpec  - "Пользователь видит список компонентов проекта"
 // @openSpec  - "Пользователь создаёт компонент внутри проекта"
-// @openSpec  - "Пользователь делает компонент текущим фокусом проекта"
+// @openSpec  - "Пользователь запускает работу по компоненту проекта"
 // @openSpec  - "Компонент не открывает отдельную runtime-сессию"
 // @openSpec  - "Пользователь видит положение компонента внутри project-workflow"
 // @openSpec capability: workflow
 // @openSpec scenarios:
-// @openSpec  - "Пользователь переводит проектный workflow на конкретный компонент"
+// @openSpec  - "Пользователь запускает проектный workflow по конкретному компоненту"
 // @openSpec  - "Пользователь возвращает готовый компонент в активный workflow"
 
 import fs from "node:fs"
@@ -47,9 +47,9 @@ describe("project component registry surface", () => {
       workflowLabel: "Компонент внутри проектного workflow",
       statusLabel: "Ещё не включён в работу",
       sessionStatusLabel: "Компонент ещё не включён в активную работу проекта",
-      sessionActionLabel: "Сделать фокусом проекта",
-      workflowProgressLabel: "Проект ещё не выбрал этот компонент как явный фокус",
-      activeWorkflowPointLabel: "Работа через этот компонент начнётся после выбора фокуса",
+      sessionActionLabel: "Взять в работу",
+      workflowProgressLabel: "Рабочая линия по этому компоненту ещё не запущена",
+      activeWorkflowPointLabel: "Работа через этот компонент начнётся после запуска линии",
       lastActivityLabel: "Активность по компоненту ещё не зафиксирована",
       completeActionLabel: "Отметить как готовый",
       createdAtLabel: "2026-06-17 09:10 UTC",
@@ -74,17 +74,16 @@ describe("project component registry surface", () => {
         componentId: "component-card",
         componentTitle: "Product card",
         componentStatus: "in_progress",
-        isFocused: true,
-        stageTitle: "Проект сейчас работает через этот компонент",
+        stageTitle: "Компонент находится в активной работе проекта",
         stageStatus: "in_progress",
         lastActivityAt: "2026-06-17T12:34:00.000Z",
         notes: [],
       },
     })).toMatchObject({
-      sessionStatusLabel: "Текущий фокус проекта",
-      sessionActionLabel: "Текущий фокус проекта",
-      workflowProgressLabel: "Проект сейчас работает через этот компонент",
-      activeWorkflowPointLabel: "Сейчас проект работает через этот компонент",
+      sessionStatusLabel: "Компонент уже присутствует в проектной работе",
+      sessionActionLabel: "Компонент уже в работе",
+      workflowProgressLabel: "Компонент находится в активной работе проекта",
+      activeWorkflowPointLabel: "Проект ведёт активную работу по этому компоненту",
       lastActivityLabel: "2026-06-17 12:34 UTC",
       completeActionLabel: "Отметить как готовый",
     })
@@ -218,9 +217,9 @@ describe("project component registry surface", () => {
     expect(componentsPanel).toContain("ComponentCounters")
     expect(componentsPanel).toContain("Компоненты больше не запускают отдельные runtime-сессии")
     expect(componentsPanel).toContain("Всего компонентов")
-    expect(componentsPanel).toContain("Теперь его можно сделать явным фокусом всей работы")
-    expect(componentsPanelContent).toContain("Сделать фокусом проекта")
-    expect(componentsPanelContent).toContain("Текущий фокус проекта")
+    expect(componentsPanel).toContain("Теперь по нему можно запустить рабочую линию")
+    expect(componentsPanelContent).toContain("Взять в работу")
+    expect(componentsPanelContent).toContain("Компонент уже в работе")
     expect(componentsPanelContent).toContain("Последняя активность")
     expect(componentsPanelContent).not.toContain("Открыть задачу")
     expect(componentsPanelContent).toContain("completeActionLabel")

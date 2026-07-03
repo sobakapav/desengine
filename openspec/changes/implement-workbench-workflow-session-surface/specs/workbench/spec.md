@@ -3,7 +3,7 @@
 ### Requirement: Runtime surface может показать текущий workflow step через Workbench
 
 #### Scenario: Пользователь видит Workbench как workflow-session surface
-- **WHEN** пользователь открывает рабочую поверхность image-to-component задачи
+- **WHEN** пользователь открывает рабочую поверхность image-to-component workflow
 - **THEN** Workbench показывает coordinator step `Работаем над workflow` как главный режим работы
 - **AND** surface больше не описывает текущую работу только через язык одного уровня
 

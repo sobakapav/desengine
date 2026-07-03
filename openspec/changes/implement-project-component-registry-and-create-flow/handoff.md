@@ -12,7 +12,7 @@
 - Что из родительского change уже решено:
   - `ProjectWorkspace` уже зафиксирован как canonical project boundary;
   - в продукте уже существуют routes `/projects` и `/projects/<projectId>`;
-  - project page уже показывает config, diagnostics, workflow readout и связанные задачи;
+  - project page уже показывает config, diagnostics, workflow readout и связанные компонентные линии;
   - project-линия должна проявляться в пользовательском мире отдельными project-facing slices, а не оставаться скрытой внутри Workbench.
 - Кто отвечает за стратегию, тактику и приёмку результата:
   - стратегия и product pressure принадлежат project-линии под `dispatcher-project`;
@@ -43,7 +43,7 @@
   - создание нового компонента проекта с workflow `image-to-component-workflow`.
 - Что сознательно не входит в этот change:
   - запуск workflow-run из компонента;
-  - привязка компонента к task/workbench runtime;
+  - привязка компонента к реальной workflow-сессии или workbench runtime;
   - server-side persistence и синхронизация между браузерами;
   - детальный editor/shell для компонента.
 - Какие решения уже принадлежат parent change / strategy_root и не должны переоткрываться:
@@ -56,13 +56,13 @@
 - verification_level: unit
 - verification_command: npm run test:unit
 - Что именно должен доказать результат проверки:
-  - пользовательский surface умеет создавать проект без захода в task/workbench flow;
+  - пользовательский surface умеет создавать проект без захода в старый legacy flow;
   - пользовательский surface умеет создавать project component внутри проекта;
   - новый component registry не ломает existing project overview contracts.
 
 ## Открытые вопросы
 
 - Какие вопросы исполнитель должен закрыть по ходу работы:
-  - как назвать и хранить минимальную project-component сущность без преждевременной привязки к task runtime;
+  - как назвать и хранить минимальную project-component сущность без преждевременной привязки к workflow runtime;
   - как встроить create/list flows в существующие project screens без тяжёлого UI-redesign;
   - какие unit-контракты лучше всего докажут новый пользовательский путь.

@@ -63,14 +63,14 @@ function buildDefaultProjectPromptBrief(args: {
   workflowReadout: ProjectWorkflowReadoutSnapshot
 }) {
   const uiKitTitle = projectUiKitsConfig[args.project.settings.uiKitId].title
-  const activeEntry = args.workflowReadout.entries.find((entry) => entry.isFocused) ?? null
+  const activeEntries = args.workflowReadout.entries.filter((entry) => entry.componentStatus === "in_progress")
   const completedComponents = args.components.filter((component) => component.status === "completed")
 
   return [
     `Собрать проект «${args.project.title}» как согласованную систему на ${uiKitTitle}.`,
-    activeEntry
-      ? `Сейчас главный фокус: компонент «${activeEntry.componentTitle}».`
-      : "Сейчас нужен явный фокус проекта, чтобы workflow не распадался на разрозненные шаги.",
+    activeEntries.length > 0
+      ? `Сейчас в активной работе ${activeEntries.length} компонент(а/ов): ${activeEntries.map((entry) => `«${entry.componentTitle}»`).join(", ")}.`
+      : "Сейчас нужно запустить хотя бы одну рабочую линию по компоненту, чтобы workflow стал предметным.",
     `Текущий recipe-этап: ${args.workflowReadout.currentStageTitle}.`,
     completedComponents.length > 0
       ? `Уже готовы ${completedComponents.length} компонент(а/ов), их нужно удержать в общей логике проекта.`
@@ -96,7 +96,7 @@ function buildProjectWorkflowTemplateModel(args: {
     templateId: "project-design-workflow",
     title: "Project design workflow",
     summary: args.componentCount > 0
-      ? "Этот template работает как повторяемый recipe: собрать проект, выбрать фокус, довести компонент и вернуть его в общую систему."
+      ? "Этот template работает как повторяемый recipe: собрать проект, запустить линии работы по компонентам и собрать их в согласованную систему."
       : "Template уже готов, даже если проект ещё пуст: он задаёт порядок, в котором пользователь переводит идею в наблюдаемую проектную систему.",
     currentStageTitle: args.workflowReadout.currentStageTitle,
     lastActivityLabel: args.workflowReadout.lastActivityLabel,
@@ -166,14 +166,14 @@ function buildProjectPromptBriefModel(args: {
   promptBrief: string
   workflowReadout: ProjectWorkflowReadoutSnapshot
 }) {
-  const activeEntry = args.workflowReadout.entries.find((entry) => entry.isFocused) ?? null
+  const inProgressCount = args.workflowReadout.entries.filter((entry) => entry.componentStatus === "in_progress").length
 
   return {
     text: args.promptBrief,
     sourceLabels: [
       `Проект: ${args.project.title}`,
       `UI kit: ${projectUiKitsConfig[args.project.settings.uiKitId].title}`,
-      activeEntry ? `Текущий фокус: ${activeEntry.componentTitle}` : "Фокус проекта ещё не выбран",
+      inProgressCount > 0 ? `Линий в работе: ${inProgressCount}` : "Активные линии проекта ещё не запущены",
       `Компонентов в проекте: ${args.components.length}`,
     ],
   } satisfies ProjectPromptBriefModel

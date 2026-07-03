@@ -20,17 +20,16 @@
 - `openspec/specs/projects/spec.md`
 - `openspec/specs/workflow/spec.md`
 - `openspec/specs/workbench/spec.md`
-- `lib/task/projection.ts`
 - `lib/project/workflow-readout.ts`
-- `components/desengine/lab/Workbench/workbenchSurface.ts`
-- `components/desengine/lab/Workbench/WorkbenchSurfaceSummary.tsx`
+- `lib/project/workbench.ts`
+- `components/desengine/project/projectWorkbenchSurface.ts`
 - `components/desengine/project/ProjectWorkflowReadoutPanel.tsx`
 
 ## Границы исполнения
 
 - Что входит в этот change: read-only workflow/readout проекта, artifacts и bindings surface на пользовательском уровне.
 - Что сознательно не входит в этот change: редактирование workflow, изменение orchestration, новый workflow engine и project history/config editor.
-- Какие решения уже принадлежат parent change / strategy_root и не должны переоткрываться: project-aware workflow runtime, task/workbench bindings и canonical project boundary уже заданы существующими project-wave changes.
+- Какие решения уже принадлежат parent change / strategy_root и не должны переоткрываться: project-aware workflow runtime, component/workbench bindings и canonical project boundary уже заданы существующими project-wave changes.
 
 ## Проверка результата
 

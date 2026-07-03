@@ -1,7 +1,7 @@
 ## Контекст
 
 Сейчас в системе уже есть:
-- project-aware task runtime;
+- project-aware workflow runtime bridge;
 - workflow/artifact projection;
 - Workbench как materialization workflow step;
 - проектный readout workflow/artifacts.
@@ -12,7 +12,7 @@
 - workbench surface и project readout читают именно `уровень`, а не workflow;
 - пользовательская модель `работаем над workflow` отсутствует.
 
-При этом переписывать storage и task actions сейчас рано: они уже несут полезный legacy-прогресс, который можно переиспользовать как bridge.
+При этом переписывать storage и runtime actions сейчас рано: они уже несут полезный legacy-прогресс, который можно переиспользовать как bridge.
 
 ## Решение
 
@@ -49,23 +49,23 @@ Workflow points не получают собственный Workbench и не �
 ### 3. Legacy-bridge без миграции storage
 
 Источником истины для текущей реализации остаются:
-- `taskItem.progress.currentLevel`;
-- `taskItem.progress.isCompleted`;
-- `taskData.labContext.levelNumber`;
+- legacy progress текущей workflow-сессии;
+- legacy completion/state markers;
+- lab-context bridge для старого runtime;
 - наличие рабочих файлов/artifacts.
 
 Bridge работает так:
-- coordinator step status строится из текущего task/check состояния, как и раньше;
+- coordinator step status строится из текущего legacy runtime state, как и раньше;
 - point status оценивается по сочетанию legacy-level progress и связанных artifacts;
 - storage не меняется;
-- task actions не переписываются под новый orchestrator.
+- runtime actions не переписываются под новый orchestrator.
 
 ### 4. Граница этого change
 
 В этот change входит:
 - новая workflow-проекция;
 - новые подписи/labels для workflow surface;
-- обновление workbench definition под новый task/workflow kind;
+- обновление workbench definition под новый workflow kind;
 - unit/source-contract покрытие;
 - OpenSpec delta.
 
@@ -79,7 +79,7 @@ Bridge работает так:
 
 ### Почему не делаем сразу полноценный workflow engine
 
-Потому что сейчас важнее быстро получить реальную замену модели исполнения, которую можно нарастить пользовательским слоем, чем зависнуть на полном перепроектировании task/storage.
+Потому что сейчас важнее быстро получить реальную замену модели исполнения, которую можно нарастить пользовательским слоем, чем зависнуть на полном перепроектировании legacy runtime/storage.
 
 ### Почему coordinator step один
 

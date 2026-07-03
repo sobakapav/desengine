@@ -19,11 +19,10 @@
 - openspec/changes/archive/2026-06-09-idea-project-mode/design.md
 - openspec/changes/producer-ui-kit/proposal.md
 - openspec/specs/projects/spec.md
-- openspec/specs/task/spec.md
 - openspec/specs/workflow/spec.md
 - openspec/specs/workbench/spec.md
 - openspec/specs/level-labs/spec.md
-- Какие ещё файлы и спецификации обязательны к чтению для producer-project: active changes и спецификации, связанные с `task`, `workflow`, `workbench`, `level-labs`, а также downstream изменения по project-scoped runtime и storage boundary из архива.
+- Какие ещё файлы и спецификации обязательны к чтению для producer-project: active changes и спецификации, связанные с `projects`, `workflow`, `workbench`, `level-labs`, а также downstream изменения по project-scoped runtime и storage boundary из архива.
 
 ## Границы исполнения
 
@@ -40,7 +39,7 @@
   - поднять `project.settings.uiKitId` и `project.settings.uiMode` как единый источник project preview contract;
   - дать runtime и preview читать project contract без ad-hoc shapes.
 - Этот change не должен:
-  - одновременно делать полную project-scoped миграцию `task`;
+  - одновременно делать полную project-scoped миграцию legacy runtime/state;
   - одновременно забирать workflow ownership;
   - одновременно решать progress invalidation при смене `UI kit`;
   - включать project-level `LLM`, `Figma` или `Git/GitHub`.
@@ -53,4 +52,4 @@
 
 ## Открытые вопросы
 
-- Какие вопросы исполнитель должен закрыть по ходу работы: какой минимальный UX нужен первой волне; как именно после foundation-слоя разделить task binding, workflow binding, workbench binding и progress invalidation; когда project-level `LLM`, `Figma` и `Git/GitHub` становятся продуктово оправданными.
+- Какие вопросы исполнитель должен закрыть по ходу работы: какой минимальный UX нужен первой волне; как именно после foundation-слоя разделить component entrypoint, workflow binding, workbench binding и progress invalidation; когда project-level `LLM`, `Figma` и `Git/GitHub` становятся продуктово оправданными.

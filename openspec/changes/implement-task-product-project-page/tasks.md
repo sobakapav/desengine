@@ -21,7 +21,7 @@
 - `workflow`
   - `Project-aware workflow доступен для пользовательского readout`
 - `navigation`
-  - `Legacy task и lab index routes перенаправляют в проекты`
+  - `Legacy pre-project routes перенаправляют в проекты`
 
 Уровень проверки:
 - `static/contract`

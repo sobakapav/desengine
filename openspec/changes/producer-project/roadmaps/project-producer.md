@@ -19,7 +19,7 @@
 
 ## Вторая волна
 
-- onboarding/task integration;
+- component/workflow integration;
 - workflow integration как отдельный процесс решения;
 - `workbench` / preview binding к project contract;
 - отдельное решение для progress invalidation при смене `UI kit`.
@@ -30,7 +30,7 @@
   - отдельный раздел `Проекты` в глобальной навигации;
   - отдельная страница списка проектов;
   - отдельная страница конкретного проекта;
-  - явная project/task привязка в обе стороны;
+  - явная project/component/workflow привязка в пользовательском контуре;
   - project-level config surface и `UI kit` contract в пользовательском мире;
 - project-scoped история и диагностика;
 - read-only workflow/artifact surface проекта;
@@ -44,4 +44,4 @@
 
 - допускается;
 - требует отдельного UX и downstream-проверок;
-- может откатывать часть project progress и выполненных задач.
+- может откатывать часть project progress и выполненной проектной работы.

@@ -4,7 +4,7 @@
 
 - должен ли Workbench стать главной рабочей поверхностью продукта;
 - как он заменяет лабораторный UX, а не сосуществует с ним бесконечно;
-- как в Workbench проявляются `project`, `task`, `workflow` и артефакты;
+- как в Workbench проявляются `project`, `workflow`, `subject` и артефакты;
 - какие downstream changes являются foundation, а какие — только частными UI/runtime-улучшениями.
 
 Без этого `dispatcher-workbench` рискует остаться тактическим backlog-слоем вокруг lab-экрана, а не owner-линией следующего рабочего контура системы.
@@ -12,20 +12,20 @@
 ## What Changes
 
 - Создаётся `producer-workbench` под `focus-domain`.
-- Producer фиксирует Workbench как целевую главную рабочую поверхность продукта:
-  - Workbench открывает и удерживает работу пользователя;
-  - Workbench принимает на себя роль текущего лабораторного экрана;
-  - Workbench должен быть связан с `project`, `task`, `workflow` и артефактами как с first-class сущностями.
+- Producer фиксирует Workbench как materialized, но пока locked рабочую поверхность продукта:
+  - Workbench уже должен прощупываться внутри project surface;
+  - Workbench пока не принимает на себя роль главного места пользовательской работы;
+  - Workbench должен быть связан с `project`, `workflow`, `subject` и артефактами как с first-class сущностями.
 - Producer описывает схему следующего контура:
   - `project` задаёт рабочий контекст;
-  - `task` задаёт цель и набор артефактов;
   - `workflow` задаёт путь выполнения;
+  - `subject` задаёт конкретный предмет текущей работы;
   - `workbench` materializes конкретный шаг или рабочую фазу этого пути.
 - Producer явно закрепляет, что отказ от `level-labs` должен идти через новый workbench-контур, а не через косметический rename.
 - Producer передаёт tactical ownership существующему `dispatcher-workbench`.
 - Producer задаёт критерии readiness для следующих implementation waves:
   - понятен целевой user-facing смысл Workbench;
-  - понятна связь Workbench ↔ Workflow ↔ Task ↔ Project;
+  - понятна связь Workbench ↔ Workflow ↔ Subject ↔ Project;
   - понятны границы между foundation, runtime и UX waves;
   - `level-labs` больше не считаются долгосрочной целевой моделью.
 
@@ -57,8 +57,8 @@
 ## Acceptance Criteria
 
 - В active OpenSpec есть `producer-workbench` под `focus-domain`.
-- В producer закреплено, что Workbench является целевой главной рабочей поверхностью продукта.
-- В producer описана схема `project -> task -> workflow -> workbench`.
+- В producer закреплено, что Workbench уже materialized, но пользовательская работа на нём пока не открыта.
+- В producer описана схема `project -> workflow -> workbench` с явным `subject`.
 - В producer зафиксировано, что `level-labs` не являются долгосрочной целевой моделью.
 - В producer заданы критерии readiness для следующих behavior-change waves.
 

@@ -11,7 +11,7 @@ type ProjectHistoryEvent = {
 
 type ProjectHistoryDiagnosticsSummary = {
   eventCount: number
-  focusChangeCount: number
+  startedComponentCount: number
   createdComponentCount: number
   completedComponentCount: number
   lastActivityAt: string | null
@@ -49,7 +49,7 @@ function buildProjectHistoryDiagnosticsSummary(args: {
 
   return {
     eventCount: args.activities.length,
-    focusChangeCount: args.activities.filter((activity) => activity.kind === "project-focus-set" || activity.kind === "project-focus-cleared").length,
+    startedComponentCount: args.activities.filter((activity) => activity.kind === "project-component-started").length,
     createdComponentCount: args.activities.filter((activity) => activity.kind === "project-component-created").length,
     completedComponentCount: args.components.filter((component) => component.status === "completed").length,
     lastActivityAt,

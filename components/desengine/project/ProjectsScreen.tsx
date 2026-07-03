@@ -21,7 +21,7 @@ function ProjectsSummary({
   activeProjectId: string | null
 }) {
   return (
-    <section className="mt-6 rounded-3xl border border-black/10 bg-black/[0.03] p-5">
+    <section className="shell-section mt-6 border border-black bg-white p-6">
       <p className="text-lg">
         Всего проектов: <strong>{projectCount}</strong>
       </p>
@@ -42,7 +42,7 @@ function ProjectsStateNotice({ status }: { status: "loading" | "ready" | "error"
 
   if (status === "error") {
     return (
-      <p className="mt-6 rounded-2xl border border-red-300 bg-red-50 p-4 text-lg text-red-900">
+      <p className="shell-callout mt-6 border border-dashed border-black bg-white p-4 text-lg">
         Не удалось прочитать локальный реестр проектов. Проверьте локальное хранилище текущего workspace.
       </p>
     )
@@ -53,7 +53,7 @@ function ProjectsStateNotice({ status }: { status: "loading" | "ready" | "error"
 
 function ProjectsEmptyState() {
   return (
-    <section className="mt-6 rounded-3xl border border-dashed border-black/20 p-6">
+    <section className="shell-callout mt-6 border border-dashed border-black bg-white p-6">
       <h2 className="text-3xl">Проекты пока не созданы</h2>
       <p className="mt-3 text-lg text-black/70">
         Локальный реестр пока пуст. Создайте первый проект прямо на этой странице, и он сразу
@@ -75,7 +75,7 @@ function CreatedProjectActions({
   return (
     <div className="mt-4 flex flex-wrap gap-3">
       <button
-        className="rounded-full bg-black px-5 py-3 text-sm text-white"
+        className="shell-button inline-flex items-center border border-black bg-black px-5 py-3 text-white"
         type="button"
         onClick={() => router.push(getProjectUrl(createdProjectId))}
       >
@@ -98,10 +98,7 @@ function CreateProjectFeedback({
   if (!message) return null
 
   return (
-    <p className={`mt-4 rounded-2xl border p-4 text-sm ${createState === "error"
-      ? "border-red-300 bg-red-50 text-red-900"
-      : "border-black/10 bg-white text-black/80"}`}
-    >
+    <p className="shell-callout mt-4 border border-dashed border-black bg-white p-4 text-sm">
       {message}
     </p>
   )
@@ -192,8 +189,8 @@ function CreateProjectPanel({
   } = useCreateProjectPanelState(createProject)
 
   return (
-    <section className="mt-6 rounded-3xl border border-black/10 bg-[#f8f4ea] p-6">
-      <h2 className="text-3xl">Создать проект</h2>
+    <section className="shell-section mt-6 border border-black bg-white p-6">
+      <h2 className="shell-subtitle mt-0 text-3xl">Создать проект</h2>
       <p className="mt-3 max-w-4xl text-lg text-black/70">
         Это первая точка входа в работу через проекты: создайте отдельный проект, затем откройте
         его страницу и начните собирать в нём отдельные компоненты.
@@ -201,19 +198,19 @@ function CreateProjectPanel({
 
       <div className="mt-5 flex flex-col gap-3 md:flex-row">
         <input
-          className="w-full rounded-2xl border border-black/15 bg-white px-4 py-3 text-base"
+          className="shell-field w-full border border-black bg-white px-4 py-3"
           placeholder="Например, Marketing site"
           value={title}
           onChange={(event) => setTitle(event.target.value)}
         />
         <input
-          className="w-full rounded-2xl border border-black/15 bg-white px-4 py-3 text-base"
+          className="shell-field w-full border border-black bg-white px-4 py-3"
           placeholder="Идентификатор проекта, например marketing-site"
           value={projectId}
           onChange={(event) => setProjectId(event.target.value)}
         />
         <button
-          className="rounded-full bg-black px-5 py-3 text-sm text-white disabled:cursor-not-allowed disabled:bg-black/40"
+          className="shell-button inline-flex items-center border border-black bg-black px-5 py-3 text-white disabled:cursor-not-allowed disabled:opacity-45"
           disabled={createState === "creating" || status === "loading"}
           type="button"
           onClick={() => void handleCreate()}
@@ -269,9 +266,10 @@ function ProjectsScreen() {
   const state = useProjectRegistry()
 
   return (
-    <main className="px-5 py-5">
-      <h1 className="py-2 text-8xl">Проекты</h1>
-      <p className="max-w-4xl py-2 text-xl text-black/70">
+    <main className="shell-page px-6 py-6">
+      <p className="shell-eyebrow text-xs uppercase tracking-[0.22em]">Project registry</p>
+      <h1 className="shell-title py-2 text-[clamp(3.25rem,6vw,6.25rem)]">Проекты</h1>
+      <p className="shell-lead py-2 max-w-4xl text-[1.55rem] leading-[1.35] text-black/72">
         Здесь виден канонический реестр проектов: активный проект, доступные рабочие пространства
         и отдельная точка входа в каждый проект без обходных legacy-сценариев.
       </p>

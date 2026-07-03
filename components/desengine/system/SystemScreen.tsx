@@ -77,10 +77,11 @@ export function SystemScreen({
   }
 
 return (
-  <main className="min-h-screen bg-background text-foreground">
-    <div className="flex justify-center">
-      <section className="grid min-h-screen grid-cols-[220px_36rem] gap-8 py-24">
-        <aside>
+  <main className="shell-page min-h-screen">
+    <section className="shell-section grid gap-8 py-10 xl:grid-cols-[220px_minmax(0,1fr)]">
+        <aside className="shell-card-muted">
+          <p className="shell-eyebrow">System map</p>
+          <h1 className="shell-subtitle mt-3">Система</h1>
           <SystemNavigationLinks />
         </aside>
 
@@ -91,7 +92,6 @@ return (
           />
         </div>
       </section>
-    </div>
   </main>
 )
 }

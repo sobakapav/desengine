@@ -8,12 +8,12 @@
 - первым должен появиться сам `Project`;
 - новый проект в MVP создаётся минимум с именем и обязательным базовым `UI kit`;
 - `UI kit` становится не локальной настройкой, а жёстким глобальным контрактом проекта;
-- workflow является не задачей и не верстаком, а отдельным процессом решения внутри проекта;
-- смена project-level `UI kit` допустима, но является сложной миграцией и может откатить часть уже выполненных задач в невыполненные;
+- workflow является не компонентом и не верстаком, а отдельным процессом решения внутри проекта;
+- смена project-level `UI kit` допустима, но является сложной миграцией и может откатить часть уже выполненной проектной работы в неподтверждённое состояние;
 - первым implementation-срезом не должна становиться полная project-mode миграция; сначала нужен отдельный foundation-change, который вводит `ProjectWorkspace`, active project boundary и `project.settings`;
-- дальнейшая project-scoped миграция идёт очень постепенно: onboarding/task-слой, затем workflow как отдельный процессный слой, затем `workbench`, затем тяжёлая `UI kit` migration, а уже после этого `LLM`, `Figma` и `Git/GitHub`.
+- дальнейшая project-scoped миграция идёт очень постепенно: component/workflow-слой, затем `workbench`, затем тяжёлая `UI kit` migration, а уже после этого `LLM`, `Figma` и `Git/GitHub`.
 
-Текущий practical focus этой линии сужен: сначала нужно выровнять основную цепочку `проект -> workflow -> проверка/чеклист -> результат`, а все интеграционные ветки после `workbench` считаются отложенными.
+Текущий practical focus этой линии сужен: сначала нужно выровнять основную цепочку `проект -> компоненты -> workflow -> работа`, а все интеграционные ветки после `workbench` считаются отложенными.
 
 Поэтому нужен не новый `idea`, а `producer`, который переведёт эту гипотезу в первую delivery-рамку feature-уровня.
 
@@ -27,7 +27,7 @@
 - Делегировать ближайший implementation-шаг в отдельный downstream change `project entity and storage boundary`.
 - Зафиксировать, что project-level `UI kit` становится контрактом для уже существующих сущностей.
 - Подготовить downstream map для постепенного переноса существующих частей продукта под `Project`.
-- Зафиксировать, что workflow является отдельным process-слоем решения и не должен смешиваться ни с задачей, ни с верстаком.
+- Зафиксировать, что workflow является отдельным process-слоем решения и не должен смешиваться ни с компонентом, ни с верстаком.
 
 ## Non-goals
 
@@ -44,7 +44,7 @@ MVP должен ввести не просто ещё одну сущность
 
 Это означает:
 
-- задача существует не абстрактно, а внутри проекта;
+- компонентная линия работы существует не абстрактно, а внутри проекта;
 - workflow существует внутри проекта как отдельный процесс решения;
 - workbench и preview работают в рамках project contract, но не подменяют workflow;
 - артефакты и прогресс со временем тоже начинают оцениваться относительно проекта.
@@ -64,7 +64,7 @@ MVP должен ввести не просто ещё одну сущность
 
 Этот change не должен в той же волне:
 
-- массово перепривязывать task state к project progress;
+- массово перепривязывать legacy runtime state к project progress;
 - вводить workflow ownership внутрь foundation-слоя;
 - вводить invalidation прогресса при смене `UI kit`;
 - переносить `LLM`, `Figma` или `Git/GitHub` в project scope.
@@ -78,15 +78,15 @@ MVP должен ввести не просто ещё одну сущность
 
 `UI kit` становится project-level contract:
 
-- все задачи проекта должны использовать один и тот же базовый visual/runtime контекст;
+- все компоненты и workflow проекта должны использовать один и тот же базовый visual/runtime контекст;
 - workflow и workbench должны опираться на один и тот же project contract;
-- downstream changes не должны трактовать kit как локальную, легко изолируемую настройку отдельной задачи.
+- downstream changes не должны трактовать kit как локальную, легко изолируемую настройку отдельной компонентной линии.
 
 ### 3. Workflow является отдельным процессным слоем
 
-Workflow не равен ни задаче, ни верстаку. Для первой project-wave это значит:
+Workflow не равен ни компоненту, ни верстаку. Для первой project-wave это значит:
 
-- task layer отвечает за открытие и ведение задачи в проекте;
+- component layer отвечает за запуск и ведение работы по компонентам в проекте;
 - workflow layer отвечает за процесс решения внутри project context;
 - workbench layer отвечает за рабочий контур и preview semantics;
 - между этими слоями нельзя терять `projectId`, но нельзя и склеивать их в одну сущность ради упрощения первой реализации.
@@ -97,12 +97,12 @@ Producer заранее фиксирует важное продуктовое �
 
 - `UI kit` проекта можно сменить;
 - но это не обычный toggle;
-- часть уже пройденных задач и их прогресса может перестать считаться валидной и откатиться.
+- часть уже выполненной работы и её статусов может перестать считаться валидной и откатиться.
 
 Это решение критично для всех downstream веток, потому что оно меняет смысл:
 
 - прогресса;
-- task validity;
+- валидности уже выполненной проектной работы;
 - workflow continuity;
 - workbench compatibility;
 - fixture expectations для тестов.
@@ -113,10 +113,10 @@ Producer задаёт не только общий порядок, но и то�
 
 1. `implement-project-workspace-mvp` (`implement`)
    - scope: `ProjectWorkspace`, active project boundary, `project.settings.uiKitId`, `project.settings.uiMode`;
-   - не включает task/workflow/workbench migration и progress invalidation.
-2. `implement-project-task-onboarding-binding` (`implement`)
-   - scope: project-aware task onboarding, open/start/check/save/reset boundaries;
-   - не включает workflow ownership и `UI kit` invalidation semantics.
+   - не включает migration legacy runtime/state, `workflow`, `workbench` и progress invalidation.
+2. `implement-project-component-workflow-entrypoint` (`implement`)
+   - scope: project-aware запуск component/workflow линий работы;
+   - не включает unlocked workbench и `UI kit` invalidation semantics.
 3. `implement-project-workflow-binding` (`implement`)
    - scope: project-aware workflow artifacts, process-layer bindings и runtime boundary для workflow;
    - не включает workbench-preview contract и migration notices.
@@ -125,7 +125,7 @@ Producer задаёт не только общий порядок, но и то�
    - не включает progress invalidation semantics.
 5. `fix-project-ui-kit-migration-invalidation` (`fix`)
    - scope: смена project `UI kit` как отдельная migration-операция, invalidation правил, notices и verification вокруг migration path;
-   - не переоткрывает foundation/task/workflow decomposition.
+   - не переоткрывает foundation/component/workflow decomposition.
 6. Последующие product waves
    - project-level `LLM` binding;
    - `Figma` binding;
@@ -140,8 +140,8 @@ Producer фиксирует decomposition на уровне behavior-changes, а
 Это означает:
 
 - downstream waves могут быть собраны под release-level или dispatcher-level orchestration;
-- но состав MVP-wave и границы между foundation/task/workflow/workbench/migration остаются фиксированными;
-- запрещено сливать `workflow binding` в `task binding` или `progress invalidation` в foundation-wave без нового producer-level решения.
+- но состав MVP-wave и границы между foundation/component/workflow/workbench/migration остаются фиксированными;
+- запрещено сливать `workflow binding` в `component entrypoint` или `progress invalidation` в foundation-wave без нового producer-level решения.
 
 ### 5.2. Нормативная verification-рамка downstream волн
 
@@ -158,17 +158,16 @@ Producer заранее фиксирует минимально допустим
   - active project selection fixture;
   - project settings fixture c `uiKitId` и `uiMode`.
 
-#### Task: `implement-project-task-onboarding-binding`
+#### Component: `implement-project-component-workflow-entrypoint`
 
-- уровни проверки: `static/contract`, `unit`, `integration`;
+- уровни проверки: `static/contract`, `unit`;
 - обязательные команды:
   - `npm run test:traceability`
-  - `npm run test:unit -- <task-project-boundary-tests>`
-  - `npm run test:integration -- <task-route-tests>`
+  - `npm run test:unit -- <project-component-workflow-entrypoint-tests>`
 - обязательные fixtures/mocks:
-  - task fixture, привязанный к `projectId`;
-  - project-aware request payloads для open/start/check/save/reset;
-  - task route fixture c active project context.
+  - component fixture, привязанный к `projectId`;
+  - project-aware workflow entrypoint fixture;
+  - project page fixture c active project context.
 
 #### Workflow: `implement-project-workflow-binding`
 
@@ -178,7 +177,7 @@ Producer заранее фиксирует минимально допустим
   - `npm run test:unit -- <workflow-project-binding-tests>`
 - обязательные fixtures/mocks:
   - workflow artifact fixture c `projectId`;
-  - runtime fixture для process-layer boundary между task/workflow/workbench.
+- runtime fixture для process-layer boundary между component/workflow/workbench.
 
 #### Workbench: `implement-project-workbench-preview-binding`
 
@@ -201,7 +200,7 @@ Producer заранее фиксирует минимально допустим
   - `DESENGINE_E2E_FIXTURE_ACCESS=1 node tools/testing/run-browser-verification-runtime.mjs <migration-specs>`
 - обязательные fixtures/mocks:
   - project `UI kit` switch fixture;
-  - invalidation fixture для completed/in-progress task state;
+  - invalidation fixture для completed/in-progress project work state;
   - browser/runtime fixture для migration notice и project-aware preview after switch.
 
 ### 5.3. Обязательное правило coverage-plan при отсрочке
@@ -217,9 +216,9 @@ Producer заранее фиксирует минимально допустим
 ## Риски и компромиссы
 
 - Если producer опишет `Project` слишком абстрактно, downstream changes начнут трактовать его по-разному и породят несовместимые boundaries.
-- Если первым change попробовать одновременно ввести project entity, task binding, workflow binding и progress invalidation, первая волна расползётся и потеряет проверяемость.
+- Если первым change попробовать одновременно ввести project entity, component entrypoint, workflow binding и progress invalidation, первая волна расползётся и потеряет проверяемость.
 - Если producer попытается сразу включить roadmap, `LLM`, `Figma` и `Git/GitHub`, MVP расползётся и перестанет быть первой волной.
-- Если не зафиксировать жёсткий статус `UI kit`, downstream задачи могут продолжить жить в старой логике локальных переключений и сломают проектный контракт.
+- Если не зафиксировать жёсткий статус `UI kit`, downstream changes могут продолжить жить в старой логике локальных переключений и сломают проектный контракт.
 - Если растворить workflow внутри `workbench`, проектный процесс решения не получит собственной границы и ownership.
 
 ## Открытые вопросы

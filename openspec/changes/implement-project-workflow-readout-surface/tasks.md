@@ -4,7 +4,7 @@
 - [x] 2. Реализовать project workflow readout:
   - [x] 2.1 показать current workflow step;
   - [x] 2.2 показать project-aware artifacts;
-  - [x] 2.3 показать bindings между project, task, workflow step и Workbench.
+  - [x] 2.3 показать bindings между project, component workstream, workflow step и Workbench.
 - [x] 3. Обновить OpenSpec delta для capability `projects` и `workflow`.
 - [x] 4. Подготовить change к внешней проверке без самостоятельной финальной верификации исполнителем.
 
@@ -28,5 +28,5 @@
 - `npm run test:unit -- <project-workflow-readout-tests>`
 
 Mock/fixture-данные и credentials:
-- fixtures должны включать task/workflow/artifact/workbench projection для одного проекта;
+- fixtures должны включать component/workflow/artifact/workbench projection для одного проекта;
 - live credentials не нужны.

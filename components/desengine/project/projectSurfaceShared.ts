@@ -2,6 +2,7 @@ import type { ProjectComponent } from "@/lib/project/component-runtime"
 import type { ProjectHistoryDiagnosticsSnapshot } from "@/lib/project/history-diagnostics"
 import type { ProjectWorkflowReadoutSnapshot } from "@/lib/project/workflow-readout"
 import type { ProjectWorkspace } from "@/lib/project/runtime"
+import type { ProjectWorkbenchSession } from "@/lib/project/workbench"
 
 type ProjectSurfaceModel = {
   id: string
@@ -27,7 +28,7 @@ type ProjectConfigContractModel = {
 type ProjectHistoryDiagnosticsModel = {
   summary: {
     eventCountLabel: string
-    focusChangeCountLabel: string
+    startedComponentCountLabel: string
     createdComponentCountLabel: string
     completedComponentCountLabel: string
     lastActivityLabel: string
@@ -44,7 +45,7 @@ type ProjectHistoryDiagnosticsModel = {
 type ProjectWorkflowReadoutModel = {
   summary: {
     componentCountLabel: string
-    focusedCountLabel: string
+    inProgressCountLabel: string
     completedCountLabel: string
     stageCountLabel: string
   }
@@ -52,7 +53,7 @@ type ProjectWorkflowReadoutModel = {
     componentId: string
     componentTitle: string
     componentStatusLabel: string
-    focusLabel: string
+    workstreamLabel: string
     stageTitle: string
     stageStatusLabel: string
     lastActivityLabel: string
@@ -73,6 +74,20 @@ type ProjectComponentSurfaceModel = {
   completeActionLabel: string
   createdAtLabel: string
   updatedAtLabel: string
+}
+
+type ProjectWorkbenchSurfaceModel = {
+  id: string
+  title: string
+  summary: string
+  statusLabel: string
+  lockReason: string
+  subjectLabel: string
+  workflowLabel: string
+  projectLabel: string
+  linkageLabel: string
+  lastActivityLabel: string
+  routeLabel: string
 }
 
 function formatProjectSurfaceTimestamp(value: string) {
@@ -112,6 +127,8 @@ export type {
   ProjectHistoryDiagnosticsSnapshot,
   ProjectSurfaceModel,
   ProjectUiKitOption,
+  ProjectWorkbenchSession,
+  ProjectWorkbenchSurfaceModel,
   ProjectWorkflowReadoutModel,
   ProjectWorkflowReadoutSnapshot,
   ProjectWorkspace,

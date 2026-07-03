@@ -46,10 +46,8 @@ function resolveProjectHistoryEventKindLabel(kind: ProjectHistoryDiagnosticsSnap
       return "Старт project-work"
     case "project-component-created":
       return "Добавлен компонент"
-    case "project-focus-set":
-      return "Сменился фокус проекта"
-    case "project-focus-cleared":
-      return "Фокус снят"
+    case "project-component-started":
+      return "Компонент взят в работу"
     case "project-component-completed":
       return "Компонент завершён"
     case "project-component-reopened":
@@ -66,39 +64,30 @@ function buildProjectComponentSurfaceModel(
   },
 ): ProjectComponentSurfaceModel {
   const workflowEntry = options?.workflowEntry ?? null
-  const focusStatusLabel = workflowEntry?.isFocused
-    ? "Текущий фокус проекта"
-    : workflowEntry
-      ? "Компонент уже присутствует в проектной работе"
-      : null
 
   return {
     id: component.id,
     title: component.title,
     workflowLabel: resolveProjectComponentWorkflowLabel(component),
     statusLabel: resolveProjectComponentStatusLabel(component.status),
-    sessionStatusLabel: focusStatusLabel
-      ? focusStatusLabel
-      : component.status !== "draft"
-        ? "Компонент уже присутствует в проектной работе"
-        : "Компонент ещё не включён в активную работу проекта",
-    sessionActionLabel: workflowEntry?.isFocused
-      ? "Текущий фокус проекта"
-      : component.status === "completed"
-        ? "Вернуть в фокус проекта"
-        : "Сделать фокусом проекта",
+    sessionStatusLabel: component.status !== "draft"
+      ? "Компонент уже присутствует в проектной работе"
+      : "Компонент ещё не включён в активную работу проекта",
+    sessionActionLabel: component.status === "completed"
+      ? "Вернуть в работу"
+      : component.status === "in_progress"
+        ? "Компонент уже в работе"
+        : "Взять в работу",
     workflowProgressLabel: workflowEntry
       ? workflowEntry.stageTitle
       : component.status !== "draft"
         ? "Компонент уже входит в рабочий контур проекта"
-        : "Проект ещё не выбрал этот компонент как явный фокус",
-    activeWorkflowPointLabel: workflowEntry?.isFocused
-      ? "Сейчас проект работает через этот компонент"
-      : workflowEntry
-        ? "Компонент можно снова сделать активным фокусом проекта"
-        : component.status !== "draft"
-          ? "Компонент можно снова сделать активным фокусом проекта"
-          : "Работа через этот компонент начнётся после выбора фокуса",
+        : "Рабочая линия по этому компоненту ещё не запущена",
+    activeWorkflowPointLabel: component.status === "in_progress"
+      ? "Проект ведёт активную работу по этому компоненту"
+      : component.status === "completed"
+        ? "Компонент уже встроен в текущую проектную систему"
+        : "Работа через этот компонент начнётся после запуска линии",
     lastActivityLabel: workflowEntry?.lastActivityAt
       ? formatProjectSurfaceTimestamp(workflowEntry.lastActivityAt)
       : component.status !== "draft"
@@ -116,7 +105,7 @@ function buildProjectHistoryDiagnosticsModel(snapshot: ProjectHistoryDiagnostics
   return {
     summary: {
       eventCountLabel: formatProjectSurfaceCount(snapshot.summary.eventCount, "событие", "события", "событий"),
-      focusChangeCountLabel: formatProjectSurfaceCount(snapshot.summary.focusChangeCount, "смена фокуса", "смены фокуса", "смен фокуса"),
+      startedComponentCountLabel: formatProjectSurfaceCount(snapshot.summary.startedComponentCount, "запущенная линия", "запущенные линии", "запущенных линий"),
       createdComponentCountLabel: formatProjectSurfaceCount(snapshot.summary.createdComponentCount, "созданный компонент", "созданных компонента", "созданных компонентов"),
       completedComponentCountLabel: formatProjectSurfaceCount(snapshot.summary.completedComponentCount, "готовый компонент", "готовых компонента", "готовых компонентов"),
       lastActivityLabel: snapshot.summary.lastActivityAt
@@ -134,13 +123,13 @@ function buildProjectHistoryDiagnosticsModel(snapshot: ProjectHistoryDiagnostics
 }
 
 function buildProjectWorkflowReadoutModel(snapshot: ProjectWorkflowReadoutSnapshot): ProjectWorkflowReadoutModel {
-  const focusedCount = snapshot.entries.filter((entry) => entry.isFocused).length
+  const inProgressCount = snapshot.entries.filter((entry) => entry.componentStatus === "in_progress").length
   const completedCount = snapshot.entries.filter((entry) => entry.componentStatus === "completed").length
 
   return {
     summary: {
       componentCountLabel: formatProjectSurfaceCount(snapshot.entries.length, "компонент", "компонента", "компонентов"),
-      focusedCountLabel: formatProjectSurfaceCount(focusedCount, "фокус", "фокуса", "фокусов"),
+      inProgressCountLabel: formatProjectSurfaceCount(inProgressCount, "линия в работе", "линии в работе", "линий в работе"),
       completedCountLabel: formatProjectSurfaceCount(completedCount, "готовый компонент", "готовых компонента", "готовых компонентов"),
       stageCountLabel: formatProjectSurfaceCount(snapshot.stages.length, "шаг workflow", "шага workflow", "шагов workflow"),
     },
@@ -148,7 +137,11 @@ function buildProjectWorkflowReadoutModel(snapshot: ProjectWorkflowReadoutSnapsh
       componentId: entry.componentId,
       componentTitle: entry.componentTitle,
       componentStatusLabel: resolveProjectComponentStatusLabel(entry.componentStatus),
-      focusLabel: entry.isFocused ? "Текущий фокус проекта" : "Не является текущим фокусом",
+      workstreamLabel: entry.componentStatus === "in_progress"
+        ? "По компоненту идёт активная линия работы"
+        : entry.componentStatus === "completed"
+          ? "Компонент уже собран в проектный слой"
+          : "Линия работы по компоненту ещё не стартовала",
       stageTitle: entry.stageTitle,
       stageStatusLabel: resolveWorkflowStageStatusLabel(entry.stageStatus),
       lastActivityLabel: entry.lastActivityAt

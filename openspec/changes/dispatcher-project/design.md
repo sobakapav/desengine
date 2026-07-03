@@ -8,7 +8,7 @@
 Без отдельного dispatcher project-линия снова рискует разойтись на частные ветки:
 
 - preview/UI kit будет развивать свой локальный `Project`;
-- task, workflow и workbench начнут по-разному трактовать project context;
+- component layer, workflow и workbench начнут по-разному трактовать project context;
 - прогресс и миграция `UI kit` останутся неявным follow-up без ответственного tactical owner.
 
 ## Goals
@@ -29,19 +29,19 @@
 
 2. Внутри dispatcher линия разделяется как минимум на пять delivery-срезов:
    - canonical `ProjectWorkspace` и active project context;
-   - onboarding/task layer внутри project context;
-   - workflow layer внутри project context как процесс решения;
-   - отдельный `workbench` / preview binding;
+   - component layer внутри project context;
+   - workflow layer внутри project context как процесс проектной работы;
+   - отдельный locked `workbench` / preview shell;
    - тяжёлая migration-операция при смене project `UI kit`.
 
 3. После foundation/runtime-волн project-линия должна быть проявлена в пользовательском мире отдельными project-facing slices, а не оставаться скрытой внутри Workbench:
    - navigation/page foundation для раздела `Проекты`;
-   - project/task assignment visibility;
+   - project/component work visibility;
    - project config и `UI kit` contract surface;
    - project history/diagnostics surface;
    - read-only workflow/artifact readout.
 
-   Пока текущим приоритетом считаются только navigation/page foundation, project/task assignment visibility и read-only workflow/artifact readout, потому что именно они помогают удержать основную цепочку `проект -> workflow -> проверка/чеклист -> результат`. Project config и history/diagnostics остаются следующей волной.
+   Пока текущим приоритетом считаются navigation/page foundation, component work visibility и read-only workflow/artifact readout, потому что именно они помогают удержать основную цепочку `проект -> компоненты -> workflow -> работа`. Project config и history/diagnostics остаются следующей волной.
 
 4. Dispatcher обязан сверяться с `producer-architecture-transform`.
    Это значит:
@@ -50,7 +50,7 @@
    - downstream changes должны оставлять после себя читаемый contract и test traceability.
 
 5. До отдельного producer-level решения dispatcher держит жёсткий текущий приоритет:
-   - `проект -> workflow -> проверка/чеклист -> результат`;
+   - `проект -> компоненты -> workflow -> работа`;
    - всё, что не помогает выровнять эту цепочку прямо сейчас, считается отложенным.
 
 ## Risks / Trade-offs

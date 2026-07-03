@@ -11,8 +11,8 @@
 - producer_ref: (не задан)
 - Что из родительского change уже решено:
   - проект является самостоятельным user-facing контейнером;
-  - project page уже показывает config, diagnostics, task bindings и базовый workflow readout;
-  - workflow внутри проекта должен читаться как часть общего project boundary, а не как скрытый task-local runtime.
+  - project page уже показывает config, diagnostics, component/workbench bindings и базовый workflow readout;
+  - workflow внутри проекта должен читаться как часть общего project boundary, а не как скрытый legacy runtime.
 - Кто отвечает за стратегию, тактику и приёмку результата:
   - стратегия и product pressure принадлежат project-line и domain-line;
   - этот implement change отвечает только за кодовое проявление workflow-run observability;
@@ -54,7 +54,7 @@
 - Что именно должен доказать результат проверки:
   - project workflow surface показывает run-observability, а не только current step;
   - пользовательская модель читает пункты workflow и последнюю активность;
-  - page wiring остаётся project-facing и не уводит пользователя в task/workbench flow.
+  - page wiring остаётся project-facing и не уводит пользователя в legacy flow.
 
 ## Открытые вопросы
 

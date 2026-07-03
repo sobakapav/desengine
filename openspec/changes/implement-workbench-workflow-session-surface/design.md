@@ -1,7 +1,7 @@
 ## Контекст
 
 Техническая основа уже появилась в `implement-workflow-image-component-foundation`:
-- task projection публикует coordinator step `Работаем над workflow`;
+- runtime projection публикует coordinator step `Работаем над workflow`;
 - runtime держит catalog of workflow points;
 - Workbench и project readout умеют читать новый workflow step.
 
@@ -22,7 +22,7 @@
 Главные элементы новой поверхности:
 - headline `Работаем над workflow`;
 - краткое объяснение outcome этой сессии;
-- панель с coordinator context (`project`, `task`, `workflow`, `workbench`);
+- панель с coordinator context (`project`, `component line`, `workflow`, `workbench`);
 - каталог workflow-пунктов;
 - preview как главный рендер-центр результата.
 
@@ -50,7 +50,7 @@ Preview-блок должен быть подан как главный резу
 Изменение сознательно не трогает:
 - storage progress по уровням;
 - route/action contract (`start`, `iterate`, `check`, `reset current level`);
-- task hint/runtime data model.
+- legacy hint/runtime data model.
 
 Мы меняем только surface language и surface composition.
 

@@ -1,6 +1,6 @@
 ## Миссия
 
-- Что должен изменить этот change: Сделать ProjectComponent реальной точкой входа в workflow: назначать backing task, запускать image-to-component flow из страницы проекта и давать пользователю действие 'Работать над компонентом'.
+- Что должен изменить этот change: Сделать ProjectComponent реальной точкой входа в workflow: запускать project-owned работу по компоненту со страницы проекта и давать пользователю действие `Взять в работу`.
 - Этот change меняет код только на уровне implement/fix и не пересматривает решения родительских changes.
 
 ## Унаследованный контекст
@@ -31,25 +31,22 @@
   - openspec/changes/implement-workflow-image-component-foundation/design.md
   - openspec/changes/implement-workflow-point-session-control/design.md
   - components/desengine/project/ProjectComponentsPanel.tsx
-  - components/desengine/project/useProjectComponents.ts
+  - components/desengine/project/useProjectWorkspace.ts
   - lib/project/component-runtime.ts
   - lib/project/component-storage.ts
-  - lib/task/actions/start.ts
-  - lib/task/project-runtime-scope.ts
-  - lib/task/server.ts
+  - lib/project/workflow-readout.ts
+  - lib/project/workspace-session.ts
 
 ## Границы исполнения
 
 - Что входит в этот change:
-  - назначение `backing taskId` для `ProjectComponent`;
-  - project-facing действие `Работать над компонентом`;
+  - project-facing действие `Взять в работу`;
   - запуск существующего `image-to-component` flow из project page;
-  - возврат в ту же workflow-сессию компонента по сохранённому backing task.
+  - перевод компонента в активную проектную работу без отдельного runtime bridge.
 - Что сознательно не входит в этот change:
-  - новый task engine;
   - server-side component catalog;
   - полная component-scoped orchestration model;
-  - замена существующего Lab/Workbench runtime.
+  - открытие полноценного unlocked Workbench.
 - Какие решения уже принадлежат parent change / strategy_root и не должны переоткрываться:
   - workflow остаётся основной моделью исполнения;
   - Workbench остаётся materialization workflow session;
@@ -61,13 +58,12 @@
 - verification_level: unit
 - verification_command: npm run test:unit
 - Что именно должен доказать результат проверки:
-  - `ProjectComponent` может получить и сохранить backing task;
-  - пользовательский surface показывает и использует действие `Работать над компонентом`;
-  - повторный вход в компонент использует ту же workflow-сессию, а не создаёт новую случайно.
+  - пользовательский surface показывает и использует действие `Взять в работу`;
+  - запуск работы по компоненту отражается в project-owned workflow и history;
+  - пользователь не уходит в отдельный legacy runtime-маршрут.
 
 ## Открытые вопросы
 
 - Какие вопросы исполнитель должен закрыть по ходу работы:
-  - где и как выбирать backing task без тяжёлой server-side миграции;
   - как встроить запуск workflow в текущий `ProjectComponentsPanel` без лишнего UI-шума;
-  - какие unit-контракты достаточно явно докажут bridge между `ProjectComponent` и workflow runtime.
+  - какие unit-контракты достаточно явно докажут bridge между `ProjectComponent` и project-owned workflow runtime.

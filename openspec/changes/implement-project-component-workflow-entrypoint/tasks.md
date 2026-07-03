@@ -14,7 +14,6 @@
 
 Затронутые OpenSpec capability/scenarios:
 - `projects`: "Пользователь начинает работу над компонентом проекта"
-- `projects`: "Компонент проекта сохраняет связь с backing task"
 - `workflow`: "Пользователь запускает workflow из компонента проекта"
 
 Уровень проверки:
@@ -24,5 +23,5 @@
 - `npx vitest run --project unit test/unit/project-component-registry-surface.test.ts test/unit/project-user-surface-foundation.test.ts test/unit/project-config-and-ui-kit-contract.test.ts`
 
 Mock/fixture-данные и live credentials:
-- Достаточно unit-level фикстур для component/task allocation и project-facing workflow entrypoint.
+- Достаточно unit-level фикстур для project-facing component workflow entrypoint.
 - Live credentials не требуются.

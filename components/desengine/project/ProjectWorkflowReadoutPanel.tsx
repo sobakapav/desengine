@@ -11,13 +11,14 @@ function ProjectWorkflowReadoutPanel({
   workflowReadout,
 }: ProjectWorkflowReadoutPanelProps) {
   return (
-    <section className="mt-6 rounded-3xl border border-black/10 bg-white p-6 shadow-sm">
+    <section className="shell-section mt-6 border border-black bg-white p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-3xl">Как проект держит рабочий контур</h2>
-          <p className="mt-2 max-w-4xl text-lg text-black/70">
+          <p className="shell-eyebrow text-xs uppercase tracking-[0.22em]">Workflow readout</p>
+          <h2 className="shell-subtitle mt-3 text-[clamp(2.2rem,4vw,3.5rem)]">Как проект держит рабочий контур</h2>
+          <p className="mt-2 max-w-4xl text-lg text-black/72">
             Этот слой показывает не задачи и не скрытый runtime, а реальную проектную работу:
-            компоненты, текущий фокус и положение каждой рабочей части внутри project-workflow.
+            компоненты, активные линии и положение каждой рабочей части внутри project-workflow.
           </p>
         </div>
       </div>

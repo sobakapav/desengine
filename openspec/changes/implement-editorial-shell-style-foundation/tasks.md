@@ -19,7 +19,7 @@
 
 Затронутые OpenSpec capability/scenarios:
 - `ui-foundation`: единый editorial visual contract product-shell интерфейса.
-- `navigation`: editorial navigation surface и inversion-based active-state.
+- `navigation`: монохромный outlined navigation surface и inversion-based active-state.
 - `projects`: project pages должны выглядеть как часть общего shell, а не отдельный локальный UI.
 - `workflow`: workflow/workbench shell должен визуально продолжать project path.
 

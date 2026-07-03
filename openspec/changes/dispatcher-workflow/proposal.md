@@ -8,7 +8,7 @@
 - развивает definition/instance модель;
 - удерживает user-facing проявление шагов, фаз и переходов;
 - маршрутизирует downstream `implement-*` / `fix-*` changes;
-- не даёт workflow снова раствориться в `level-labs` или ad-hoc task screens.
+- не даёт workflow снова раствориться в `level-labs` или ad-hoc component screens.
 
 ## What Changes
 
@@ -17,7 +17,7 @@
   - `WorkflowDefinition`, `WorkflowInstance`, `WorkflowStep`;
   - sequencing и переходы;
   - user-facing language шагов и фаз;
-  - связь workflow с task, artifacts и Workbench;
+  - связь workflow с subject, artifacts и Workbench;
   - routing downstream implementation changes.
 - Dispatcher работает в той же focus-линии, что и `producer-workflow`, и использует producer-контекст как содержательный pressure, а не как parentage.
 
@@ -33,7 +33,7 @@
 
 - `workflow`: появляется tactical dispatcher workflow-линии.
 - `workbench`: workflow step materialization получает отдельный operational owner.
-- `task`: связь задачи с workflow получает tactical ownership.
+- `projects`: связь subject с workflow получает tactical ownership.
 - `level-labs`: переход away from level-driven model получает operational tracking.
 
 ## Impact

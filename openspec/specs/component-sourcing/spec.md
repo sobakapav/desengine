@@ -13,4 +13,4 @@
 #### Scenario: Готовая библиотека не должна протекать в домен
 - **WHEN** готовый component или runtime используется внутри domain-sensitive слоя
 - **THEN** он закрывается adapter/facade boundary
-- **AND** доменные сущности Project/Task/Workflow/Artifact/Event не зависят напрямую от API библиотеки
+- **AND** доменные сущности Project/Workflow/Workbench/Artifact/Event не зависят напрямую от API библиотеки

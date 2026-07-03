@@ -1,6 +1,6 @@
 ## Миссия
 
-- Что должен изменить этот change: закрепить Workbench как главную рабочую поверхность продукта, описать схему `project -> task -> workflow -> workbench` и передать tactical ownership существующему `dispatcher-workbench`.
+- Что должен изменить этот change: закрепить Workbench как materialized, но пока locked рабочую поверхность продукта, описать схему `project -> workflow -> workbench` с явным `subject` и передать tactical ownership существующему `dispatcher-workbench`.
 - Этот change не меняет код напрямую и не подменяет downstream dispatcher/implement ветки.
 
 ## Унаследованный контекст
@@ -20,7 +20,6 @@
 - openspec/changes/dispatcher-workbench/design.md
 - openspec/specs/workbench/spec.md
 - openspec/specs/workflow/spec.md
-- openspec/specs/task/spec.md
 - openspec/specs/projects/spec.md
 - openspec/specs/level-labs/spec.md
 
@@ -32,8 +31,8 @@
 
 ## Критерии перехода к реализации
 
-- Workbench описан как самостоятельная главная рабочая поверхность.
-- Описана связь Workbench с `project`, `task` и `workflow`.
+- Workbench описан как самостоятельная materialized поверхность, доступная пока только в locked-режиме.
+- Описана связь Workbench с `project`, `workflow` и `subject`.
 - Понятно, какие downstream changes являются foundation, а какие — vertical workflow slices.
 - Зафиксировано, что `level-labs` не являются долгосрочной целевой моделью.
 
