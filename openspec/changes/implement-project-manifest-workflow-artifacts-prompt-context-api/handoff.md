@@ -33,7 +33,7 @@
 - components/desengine/project/ProjectOverviewScreen.tsx
 - components/desengine/project/ProjectConfigPanel.tsx
 - lib/project/runtime.ts
-- lib/project/storage.ts
+- lib/project/storage-disk.ts
 - lib/project/workflow-readout.ts
 - lib/project/history-diagnostics.ts
 - lib/prompt/render/server.ts
@@ -42,7 +42,7 @@
 
 - Что входит в этот change:
   - OpenSpec delta specs для product-facing капитализации архитектурных модулей;
-  - project manifest contract и первая browser-local import/export реализация;
+  - project manifest contract и disk-backed import/export реализация;
   - project API foundation;
   - первые project-facing surfaces для manifest, artifacts, workflow template и prompt brief.
 - Что сознательно не входит в этот change:

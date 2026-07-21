@@ -1,6 +1,7 @@
 "use client"
 
 import type { ProjectConfigDraft } from "@/lib/project/config-surface"
+import type { ProjectSurfaceSummary } from "@/lib/project/client"
 import type { ProjectWorkspace } from "@/lib/project/runtime"
 
 import {
@@ -9,21 +10,19 @@ import {
 } from "./projectSurface"
 
 type ProjectConfigEditorProps = {
-  draft: ProjectConfigDraft
+  draft: ProjectConfigDraft & { code: string }
   message: string
   saveState: "idle" | "saving" | "saved" | "error"
-  uiKitOptions: ReturnType<typeof listProjectUiKitOptions>
   validationMessage: string
   validationOk: boolean
   onReset: () => void
   onSave: () => void
-  onUpdate: (patch: Partial<ProjectConfigDraft>) => void
+  onUpdate: (patch: Partial<ProjectConfigDraft & { code: string }>) => void
 }
 
 function ProjectConfigFields(args: {
-  draft: ProjectConfigDraft
-  uiKitOptions: ReturnType<typeof listProjectUiKitOptions>
-  onUpdate: (patch: Partial<ProjectConfigDraft>) => void
+  draft: ProjectConfigDraft & { code: string }
+  onUpdate: (patch: Partial<ProjectConfigDraft & { code: string }>) => void
 }) {
   return (
     <>
@@ -37,6 +36,15 @@ function ProjectConfigFields(args: {
       </label>
 
       <label className="block">
+        <span className="shell-eyebrow text-xs uppercase tracking-[0.22em]">Код проекта</span>
+        <input
+          className="shell-field mt-2 w-full border border-black bg-white px-4 py-3 font-mono"
+          value={args.draft.code}
+          onChange={(event) => args.onUpdate({ code: event.target.value })}
+        />
+      </label>
+
+      <label className="block">
         <span className="shell-eyebrow text-xs uppercase tracking-[0.22em]">Идентификатор проекта</span>
         <input
           className="shell-field mt-2 w-full border border-black bg-white px-4 py-3 font-mono"
@@ -45,20 +53,13 @@ function ProjectConfigFields(args: {
         />
       </label>
 
-      <label className="block">
-        <span className="shell-eyebrow text-xs uppercase tracking-[0.22em]">Выбранный UI kit</span>
-        <select
-          className="shell-field mt-2 w-full border border-black bg-white px-4 py-3"
-          value={args.draft.uiKitId}
-          onChange={(event) => args.onUpdate({ uiKitId: event.target.value as ProjectWorkspace["settings"]["uiKitId"] })}
-        >
-          {args.uiKitOptions.map((kit) => (
-            <option key={kit.id} value={kit.id}>
-              {kit.title} ({kit.id})
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="border border-dashed border-black bg-neutral-50 p-4 text-sm text-black/75">
+        <p>UI kit проекта теперь выбирается в верхнем слое страницы проекта.</p>
+        <p className="mt-2">
+          Здесь остаются название, код и идентификатор, а выбор встроенного UI kit выполняется
+          отдельно как часть главного рабочего контура проекта.
+        </p>
+      </div>
     </>
   )
 }
@@ -76,7 +77,7 @@ function ProjectConfigActions(args: {
         type="button"
         onClick={args.onSave}
       >
-        {args.saveState === "saving" ? "Сохраняем…" : "Сохранить проект"}
+        {args.saveState === "saving" ? "Сохраняем…" : "Сохранить сейчас"}
       </button>
       <button
         className="shell-button-secondary inline-flex items-center border border-black bg-white px-5 py-3"
@@ -90,7 +91,7 @@ function ProjectConfigActions(args: {
 }
 
 function ProjectConfigFeedback(args: {
-  draft: ProjectConfigDraft
+  draft: ProjectConfigDraft & { code: string }
   message: string
   validationMessage: string
   validationOk: boolean
@@ -99,8 +100,12 @@ function ProjectConfigFeedback(args: {
     <>
       <p className="shell-callout border border-dashed border-black bg-white p-4 text-sm">
         {args.validationOk
-          ? `Данные проекта готовы к сохранению: id=${args.draft.id}, title=${args.draft.title}, uiKitId=${args.draft.uiKitId}.`
+          ? `Данные проекта готовы к сохранению: title=${args.draft.title}, code=${args.draft.code}, id=${args.draft.id}, uiKitId=${args.draft.uiKitId}.`
           : `Проверьте поля проекта: ${args.validationMessage}`}
+      </p>
+
+      <p className="text-sm text-black/60">
+        Изменения также сохраняются автоматически на диск после правок.
       </p>
 
       {args.message ? (
@@ -117,7 +122,6 @@ function ProjectConfigEditor(args: ProjectConfigEditorProps) {
     <div className="space-y-4">
       <ProjectConfigFields
         draft={args.draft}
-        uiKitOptions={args.uiKitOptions}
         onUpdate={args.onUpdate}
       />
       <ProjectConfigActions
@@ -138,6 +142,8 @@ function ProjectConfigEditor(args: ProjectConfigEditorProps) {
 function ProjectConfigSidebar(args: {
   contract: ReturnType<typeof buildProjectConfigContractModel>
   draftProject: ProjectWorkspace
+  projectSurface: ProjectSurfaceSummary | null
+  rootPath?: string | null
   uiKitOptions: ReturnType<typeof listProjectUiKitOptions>
 }) {
   return (
@@ -154,12 +160,20 @@ function ProjectConfigSidebar(args: {
             <dd><code>{args.draftProject.id}</code></dd>
           </div>
           <div>
+            <dt className="text-black/60">Код проекта</dt>
+            <dd><code>{args.contract.code}</code></dd>
+          </div>
+          <div>
             <dt className="text-black/60">Выбранный kit</dt>
             <dd>{args.contract.selectedUiKitTitle} ({args.contract.selectedUiKitId})</dd>
           </div>
           <div>
             <dt className="text-black/60">Хранение</dt>
-            <dd>Локально в браузере</dd>
+            <dd>На диске сервера</dd>
+          </div>
+          <div>
+            <dt className="text-black/60">Server path</dt>
+            <dd><code>{args.rootPath?.trim() || "путь на сервере пока не прочитан"}</code></dd>
           </div>
         </dl>
       </div>
@@ -181,12 +195,34 @@ function ProjectConfigSidebar(args: {
       <div className="shell-section-muted border border-black bg-neutral-50 p-5">
         <h3 className="text-2xl">Связь с подсказками и предпросмотром</h3>
         <p className="mt-3 text-sm text-black/75">
-          `project.uiKitId`, `project.uiKitTitle`, `user.designSystemId` и
+          `project.code`, `project.uiKitId`, `project.uiKitTitle`, `user.designSystemId` и
           `user.designSystemName` читаются из одного источника настроек проекта.
         </p>
         <pre className="shell-card mt-4 overflow-x-auto border border-black bg-white p-4 text-xs leading-6 text-black/80">
           {args.contract.promptPreviewContractJson}
         </pre>
+      </div>
+
+      <div className="shell-card-muted border border-black bg-neutral-50 p-5">
+        <h3 className="text-2xl">Sources foundation</h3>
+        <dl className="mt-4 grid gap-3 text-base">
+          <div>
+            <dt className="text-black/60">Figma-файлы</dt>
+            <dd>{args.projectSurface?.figmaFiles.length ?? 0}</dd>
+          </div>
+          <div>
+            <dt className="text-black/60">Граф компонентов</dt>
+            <dd>{args.projectSurface?.componentGraph.nodeCount ?? 0} узл. / {args.projectSurface?.componentGraph.edgeCount ?? 0} связей</dd>
+          </div>
+          <div>
+            <dt className="text-black/60">Граф экранов</dt>
+            <dd>{args.projectSurface?.screenGraph.nodeCount ?? 0} узл. / {args.projectSurface?.screenGraph.edgeCount ?? 0} связей</dd>
+          </div>
+          <div>
+            <dt className="text-black/60">Группы архива</dt>
+            <dd>{args.projectSurface?.archiveGroups.length ?? 0}</dd>
+          </div>
+        </dl>
       </div>
     </div>
   )

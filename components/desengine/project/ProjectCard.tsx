@@ -28,12 +28,36 @@ function ProjectCard({ project }: ProjectCardProps) {
 
       <dl className="mt-4 grid gap-2 text-base">
         <div>
+          <dt className="text-black/60">Код проекта</dt>
+          <dd><code>{project.code}</code></dd>
+        </div>
+        <div>
           <dt className="text-black/60">UI kit</dt>
           <dd>{project.uiKitTitle}</dd>
         </div>
         <div>
+          <dt className="text-black/60">Figma-файлы</dt>
+          <dd>{project.figmaFilesCountLabel}</dd>
+        </div>
+        <div>
+          <dt className="text-black/60">Граф компонентов</dt>
+          <dd>{project.componentGraphLabel}</dd>
+        </div>
+        <div>
+          <dt className="text-black/60">Граф экранов</dt>
+          <dd>{project.screenGraphLabel}</dd>
+        </div>
+        <div>
+          <dt className="text-black/60">Архив</dt>
+          <dd>{project.archiveSummaryLabel}</dd>
+        </div>
+        <div>
           <dt className="text-black/60">Хранение</dt>
           <dd>{project.storageLabel}</dd>
+        </div>
+        <div>
+          <dt className="text-black/60">Server path</dt>
+          <dd className="font-mono text-sm">{project.rootPathLabel}</dd>
         </div>
         <div>
           <dt className="text-black/60">Обновлён</dt>

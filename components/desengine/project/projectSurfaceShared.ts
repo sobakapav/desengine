@@ -1,4 +1,5 @@
 import type { ProjectComponent } from "@/lib/project/component-runtime"
+import type { ProjectSurfaceSummary } from "@/lib/project/client"
 import type { ProjectHistoryDiagnosticsSnapshot } from "@/lib/project/history-diagnostics"
 import type { ProjectWorkflowReadoutSnapshot } from "@/lib/project/workflow-readout"
 import type { ProjectWorkspace } from "@/lib/project/runtime"
@@ -7,11 +8,17 @@ import type { ProjectWorkbenchSession } from "@/lib/project/workbench"
 type ProjectSurfaceModel = {
   id: string
   title: string
+  code: string
   isActive: boolean
   uiKitTitle: string
   storageLabel: string
+  rootPathLabel: string
   createdAtLabel: string
   updatedAtLabel: string
+  figmaFilesCountLabel: string
+  componentGraphLabel: string
+  screenGraphLabel: string
+  archiveSummaryLabel: string
 }
 
 type ProjectUiKitOption = {
@@ -20,6 +27,7 @@ type ProjectUiKitOption = {
 }
 
 type ProjectConfigContractModel = {
+  code: string
   selectedUiKitId: ProjectWorkspace["settings"]["uiKitId"]
   selectedUiKitTitle: string
   promptPreviewContractJson: string
@@ -125,6 +133,7 @@ export type {
   ProjectConfigContractModel,
   ProjectHistoryDiagnosticsModel,
   ProjectHistoryDiagnosticsSnapshot,
+  ProjectSurfaceSummary,
   ProjectSurfaceModel,
   ProjectUiKitOption,
   ProjectWorkbenchSession,

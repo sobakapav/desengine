@@ -18,7 +18,7 @@ const PRODUCT_SURFACE_LABELS = [
   "Prompt brief",
   "Экспортировать manifest",
   "Импортировать manifest",
-  "createBrowserProjectStorage",
+  "disk-backed project storage",
   "window.location.assign(getProjectUrl(imported.project.id))",
 ] as const
 

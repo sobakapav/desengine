@@ -13,16 +13,4 @@ type ProjectStorage = {
   importProjectManifest(manifest: RawProjectManifest): Promise<ProjectManifest>
 }
 
-type BrowserProjectStorageOptions = {
-  storage: Storage
-}
-
-const PROJECT_REGISTRY_STORAGE_KEY = "desengine:project-workspaces"
-const ACTIVE_PROJECT_ID_STORAGE_KEY = "desengine:active-project-id"
-
-export {
-  ACTIVE_PROJECT_ID_STORAGE_KEY,
-  PROJECT_REGISTRY_STORAGE_KEY,
-  type BrowserProjectStorageOptions,
-  type ProjectStorage,
-}
+export type { ProjectStorage }

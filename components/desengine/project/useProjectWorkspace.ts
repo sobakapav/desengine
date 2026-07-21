@@ -2,15 +2,14 @@
 
 import { useEffect, useState } from "react"
 
+import { fetchProjectWorkspace, runProjectWorkspaceActionOnServer } from "@/lib/project/client"
 import type { ProjectComponent } from "@/lib/project/component-runtime"
 import type { ProjectWorkspace } from "@/lib/project/runtime"
 
-import { createProjectWorkspaceActions } from "./projectWorkspaceActions"
 import {
   buildEmptyProjectWorkspaceState,
   buildProjectWorkspaceErrorState,
   buildProjectWorkspaceReadyState,
-  readProjectWorkspaceSnapshot,
   type ProjectWorkspaceState,
 } from "./projectWorkspaceState"
 
@@ -37,7 +36,10 @@ function useProjectWorkspace(project: ProjectWorkspace | null) {
         return
       }
 
-      const snapshot = await readProjectWorkspaceSnapshot(project)
+      const { snapshot } = await fetchProjectWorkspace(project.id)
+      if (!snapshot) {
+        throw new Error("Не удалось получить workspace snapshot проекта.")
+      }
       if (!cancelled) {
         setState(buildProjectWorkspaceReadyState(snapshot))
       }
@@ -55,18 +57,45 @@ function useProjectWorkspace(project: ProjectWorkspace | null) {
     }
   }, [project, projectId])
 
-  async function refresh() {
-    if (!project) {
-      setState(buildEmptyProjectWorkspaceState(projectId))
-      return
+  async function runAction(
+    action:
+      | { type: "start-project-work" }
+      | { type: "create-component"; title: string }
+      | { type: "start-component-work"; componentId: string }
+      | { type: "complete-component"; componentId: string }
+      | { type: "reopen-component"; componentId: string },
+  ) {
+    const { snapshot } = await runProjectWorkspaceActionOnServer(projectId, action)
+    if (!snapshot) {
+      throw new Error("Не удалось обновить рабочее состояние проекта.")
     }
 
-    setState(buildProjectWorkspaceReadyState(await readProjectWorkspaceSnapshot(project)))
+    setState(buildProjectWorkspaceReadyState(snapshot))
+    return snapshot
   }
 
   return {
     ...state,
-    ...createProjectWorkspaceActions({ projectId, refresh }),
+    createComponent: async (title: string) => {
+      const snapshot = await runAction({ type: "create-component", title })
+      const latestComponent = snapshot.components[0] ?? null
+      if (!latestComponent) {
+        throw new Error("Не удалось прочитать только что созданный компонент.")
+      }
+      return latestComponent
+    },
+    markComponentCompleted: async (componentId: string) => {
+      await runAction({ type: "complete-component", componentId })
+    },
+    reopenComponent: async (componentId: string) => {
+      await runAction({ type: "reopen-component", componentId })
+    },
+    startComponentWork: async (componentId: string) => {
+      await runAction({ type: "start-component-work", componentId })
+    },
+    startProjectWork: async () => {
+      await runAction({ type: "start-project-work" })
+    },
   } satisfies ProjectWorkspaceController
 }
 

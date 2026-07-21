@@ -17,7 +17,7 @@
    - `updatedAt`.
 
 2. Поднять отдельный project-component registry.
-   Для текущей волны достаточно browser storage рядом с project registry:
+   Для текущей волны достаточно canonical project storage рядом с project registry:
    - `/projects` отвечает за создание и список проектов;
    - `/projects/<projectId>` отвечает за создание и список компонентов проекта.
 
@@ -30,7 +30,7 @@
 
 ## Компромиссы
 
-- Пока registry компонентов живёт в browser storage, а не в server-side project runtime.
-  Это допустимо, потому что change закрывает пользовательский path и готовит boundary, а не финальную persistence-модель.
+- Компонентный registry в этой волне остаётся простым и не открывает отдельную multi-user модель поверх server-side project runtime.
+  Это допустимо, потому что change закрывает пользовательский path и готовит boundary, а не полную coordination-модель.
 - Пока у компонента только один workflow kind.
   Это сознательное ограничение текущей волны: нужно дать реальную production-точку входа, а не проектировать полную матрицу workflow-типов.

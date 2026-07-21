@@ -8,7 +8,7 @@
 ## 2. Первая пользовательская волна
 
 - [x] 2.1 Реализовать manifest-модель проекта и сериализацию в `lib/project/**`.
-- [x] 2.2 Реализовать browser-local export/import project manifest без смены install-critical стека.
+- [x] 2.2 Реализовать disk-backed export/import project manifest без смены install-critical стека.
 - [x] 2.3 Добавить project API foundation для чтения и записи manifest.
 - [x] 2.4 Показать manifest/import-export на project surface как явный пользовательский инструмент.
 
@@ -33,7 +33,7 @@
 - `workflow`: workflow становится reusable recipe/template.
 - `artifacts`: проект показывает явную библиотеку рабочих материалов.
 - `prompt-context`: prompt brief входит в canonical context boundary.
-- `storage-adapter`: import/export не зависят от прямого browser-local чтения как единственного контракта.
+- `storage-adapter`: import/export не зависят от старого browser-local чтения как контракта.
 
 Уровни проверки:
 - static/contract: обязателен.

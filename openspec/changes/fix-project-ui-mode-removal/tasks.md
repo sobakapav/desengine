@@ -16,7 +16,7 @@
 
 Затронутые OpenSpec capability/scenarios:
 - `projects`: project config и project overview больше не показывают `uiMode`.
-- `task`: task/runtime routes больше не принимают и не прокидывают `uiMode`.
+- `storage-adapter`: project storage и project-facing runtime больше не принимают и не прокидывают `uiMode`.
 - `workflow`: project-aware workflow/prompt context больше не содержит mode-ветвления.
 
 Уровни проверки:
@@ -29,9 +29,9 @@
 
 Команды запуска:
 - `npm run test:traceability`
-- `npm run test:unit -- project-ui-kit-switching project-config-and-ui-kit-contract project-user-surface-foundation task-project-client-boundary task-actions-boundary`
+- `npm run test:unit -- project-ui-kit-switching project-config-and-ui-kit-contract project-user-surface-foundation`
 
 Mock/fixture-данные и credentials:
-- используются существующие project/task fixtures с `uiKitId`;
+- используются существующие project fixtures с `uiKitId`;
 - `uiMode` удаляется из fixture payloads;
 - live credentials не нужны.

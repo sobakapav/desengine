@@ -207,11 +207,13 @@ describe("project component registry surface", () => {
     const componentsPanelContent = readProjectFile("components", "desengine", "project", "ProjectComponentsPanelContent.tsx")
 
     expect(projectsScreen).toContain("Создать проект")
-    expect(projectsScreen).toContain("Это первая точка входа в работу через проекты")
+    expect(projectsScreen).toContain("Создайте отдельный проект")
+    expect(projectsScreen).toContain("Подключить проект с диска")
     expect(projectOverview).toContain("ProjectComponentsPanel")
     expect(registryHook).toContain("async function createProject")
-    expect(registryHook).toContain("await storage.setActiveProjectId(project.id)")
-    expect(componentsHook).toContain("createBrowserProjectComponentStorage")
+    expect(registryHook).toContain("connectProjectOnServer")
+    expect(registryHook).toContain("createProjectOnServer")
+    expect(componentsHook).toContain("runProjectWorkspaceActionOnServer")
     expect(componentsPanel).toContain("Добавить компонент")
     expect(componentsPanel).toContain("Компоненты проекта")
     expect(componentsPanel).toContain("ComponentCounters")
@@ -239,11 +241,12 @@ describe("project component registry surface", () => {
       },
     })
 
-    expect(buildProjectSurfaceModel(project, false)).toMatchObject({
+    expect(buildProjectSurfaceModel(project, false, "/srv/desengine/projects/project-a")).toMatchObject({
       id: "project-a",
       title: "Alpha",
       isActive: false,
       uiKitTitle: "Ant Design",
+      rootPathLabel: "/srv/desengine/projects/project-a",
     })
   })
 })

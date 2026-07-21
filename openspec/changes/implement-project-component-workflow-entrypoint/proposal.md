@@ -1,6 +1,6 @@
 ## Why
 
-Нужен исполнительский change для реализации задачи parent owner.
+Нужен исполнительский change для реализации постановки parent owner.
 
 ## What Changes
 

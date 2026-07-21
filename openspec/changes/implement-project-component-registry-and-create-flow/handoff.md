@@ -31,20 +31,20 @@
   - components/desengine/project/useProjectRegistry.ts
   - components/desengine/project/useProjectOverview.ts
   - lib/project/runtime.ts
-  - lib/project/storage.ts
+  - lib/project/storage-disk.ts
 
 ## Границы исполнения
 
 - Что входит в этот change:
   - создание нового проекта прямо из `/projects`;
   - введение canonical project-scoped сущности компонента;
-  - локальный registry компонентов проекта;
+  - canonical registry компонентов проекта;
   - пользовательский список компонентов на странице проекта;
   - создание нового компонента проекта с workflow `image-to-component-workflow`.
 - Что сознательно не входит в этот change:
   - запуск workflow-run из компонента;
   - привязка компонента к реальной workflow-сессии или workbench runtime;
-  - server-side persistence и синхронизация между браузерами;
+  - multi-user sync;
   - детальный editor/shell для компонента.
 - Какие решения уже принадлежат parent change / strategy_root и не должны переоткрываться:
   - `Project` остаётся верхним контейнером product/runtime topology;

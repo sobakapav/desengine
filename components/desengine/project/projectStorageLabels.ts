@@ -1,3 +1,3 @@
-const PROJECT_STORAGE_LABEL = "Локально в браузере"
+const PROJECT_STORAGE_LABEL = "На диске сервера"
 
 export { PROJECT_STORAGE_LABEL }

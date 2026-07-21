@@ -11,7 +11,7 @@
 - Перевести `artifacts` из скрытого архитектурного слова в явную проектную библиотеку рабочих материалов.
 - Перевести `workflow` из explainability/readout слоя в слой шаблонов и рецептов проектной работы.
 - Перевести `prompt context` в редактируемый рабочий бриф, который пользователь может читать и сохранять.
-- Изменить `projects` и `storage-adapter`, чтобы они обслуживали эти внешние контракты, а не только browser-local внутреннее состояние.
+- Изменить `projects` и `storage-adapter`, чтобы они обслуживали эти внешние контракты, а не только внутреннее storage-состояние.
 - Реализацию разбить на волны, начиная с самой дешёвой и наблюдаемой: manifest/import-export, project API foundation и первые project-facing поверхности для brief/artifacts/workflow template.
 
 ## Capabilities
@@ -27,7 +27,7 @@
 - `workflow`: workflow может жить как reusable recipe/template, а не только как readout состояния.
 - `artifacts`: artifacts становятся явным пользовательским слоем проекта.
 - `prompt-context`: prompt context получает редактируемый и наблюдаемый brief-слой.
-- `storage-adapter`: storage boundary обслуживает import/export и portable project contract, а не только browser-local persistence.
+- `storage-adapter`: storage boundary обслуживает import/export и portable project contract, а не только внутренний persistence-слой.
 
 ## Impact
 

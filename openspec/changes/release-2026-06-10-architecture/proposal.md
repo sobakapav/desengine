@@ -16,12 +16,12 @@
   - `dispatcher-architecture`, `dispatcher-runtime` и `dispatcher-project` как tactical owners.
 - В сам релизный состав как в delivery-матрицу включены только исполнительские changes:
   - `implement-project-workspace-mvp`
-  - `implement-project-task-onboarding-binding`
+  - `implement-project-entry-surface`
   - `implement-project-workflow-binding`
   - `implement-project-workbench-preview-binding`
   - `fix-project-ui-kit-migration-invalidation`
   - `implement-project-user-surface-foundation`
-  - `implement-project-task-assignment-surface`
+  - `implement-project-component-assignment-surface`
   - `implement-project-config-and-ui-kit-contract`
   - `implement-project-history-diagnostics-surface`
   - `implement-project-workflow-readout-surface`
@@ -41,7 +41,7 @@
   - у линии есть стратегический owner и первые tactical owners;
   - foundation-направления начинают оформляться как отдельные управляемые lanes;
   - `Project` начинает оформляться как новый верхний контекст продукта через отдельную domain-wave, а не как частный preview-state;
-  - workflow внутри project-wave оформляется как самостоятельный process-layer, а не как придаток task или workbench.
+  - workflow внутри project-wave оформляется как самостоятельный process-layer, а не как придаток служебного runtime или workbench.
   - после foundation-wave проект начинает проявляться в пользовательском мире как отдельный раздел, а не только как скрытый runtime context.
   - следующая user-facing волна расширяет путь до `project -> component -> workflow -> workbench -> preview`, а не останавливается на одном project overview.
   - visual language релиза должен помогать читать этот путь как один продуктовый маршрут, а не как набор несвязанных внутренних экранов.

@@ -7,12 +7,12 @@
 ### Базовая project-wave
 
 - `implement-project-workspace-mvp`
-- `implement-project-task-onboarding-binding`
+- `implement-project-entry-surface`
 - `implement-project-workflow-binding`
 - `implement-project-workbench-preview-binding`
 - `fix-project-ui-kit-migration-invalidation`
 - `implement-project-user-surface-foundation`
-- `implement-project-task-assignment-surface`
+- `implement-project-component-assignment-surface`
 - `implement-project-config-and-ui-kit-contract`
 - `implement-project-history-diagnostics-surface`
 - `implement-project-workflow-readout-surface`
@@ -62,7 +62,7 @@
 ### 2. Component как рабочая сущность проекта
 
 - Пользователь может создавать компоненты из project-side surface и видеть их список в проекте.
-- Компонент становится реальной точкой входа в workflow: его можно назначить на backing task и открыть в работу.
+- Компонент становится реальной точкой входа в workflow: его можно включить в активную линию проекта и открыть в работу.
 
 Проверка:
 - вручную создать компонент из страницы проекта;
@@ -86,7 +86,7 @@
 
 Проверка:
 - открыть рабочую сессию из project/component path;
-- убедиться, что surface говорит на языке workflow и компонента, а не только task/level;
+- убедиться, что surface говорит на языке workflow и компонента, а не на языке старых служебных маршрутов;
 - переключить рабочий фокус и проверить, что preview остаётся в том же project-scoped контуре.
 
 ### 5. Editorial visual language как релизный shell

@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from "react"
 
 import { buildProjectManifestFileName, serializeProjectManifest, type ProjectManifest } from "@/lib/project/manifest"
+import { importProjectManifestOnServer, saveProjectOnServer, type ProjectSurfaceSummary } from "@/lib/project/client"
 import { getProjectUrl } from "@/lib/project/navigation"
 import type { ProjectHistoryDiagnosticsSnapshot } from "@/lib/project/history-diagnostics"
 import type { ProjectWorkspace } from "@/lib/project/runtime"
-import { createBrowserProjectStorage } from "@/lib/project/storage"
 import type { ProjectWorkflowReadoutSnapshot } from "@/lib/project/workflow-readout"
 import type { ProjectSession } from "@/lib/project/workspace-session"
 import type { ProjectComponent } from "@/lib/project/component-runtime"
@@ -23,7 +23,13 @@ import {
 type ProjectProductSurfacesPanelProps = {
   components: ProjectComponent[]
   historyDiagnostics: ProjectHistoryDiagnosticsSnapshot
-  onProjectSaved: (project: ProjectWorkspace) => void
+  onProjectSaved: (
+    project: ProjectWorkspace,
+    options?: {
+      rootPath?: string | null
+      surface?: ProjectSurfaceSummary | null
+    },
+  ) => void
   project: ProjectWorkspace
   session: ProjectSession | null
   workflowReadout: ProjectWorkflowReadoutSnapshot
@@ -65,14 +71,22 @@ function downloadManifest(manifest: ProjectManifest) {
 }
 
 async function persistPromptBrief(args: {
-  onProjectSaved: (project: ProjectWorkspace) => void
+  onProjectSaved: (
+    project: ProjectWorkspace,
+    options?: {
+      rootPath?: string | null
+      surface?: ProjectSurfaceSummary | null
+    },
+  ) => void
   project: ProjectWorkspace
   promptBriefDraft: string
 }) {
-  const storage = createBrowserProjectStorage({ storage: window.localStorage })
   const nextProject = buildProjectWithPromptBrief(args.project, args.promptBriefDraft)
-  await storage.saveProject(nextProject)
-  args.onProjectSaved(nextProject)
+  const response = await saveProjectOnServer({ project: nextProject })
+  args.onProjectSaved(response.project, {
+    rootPath: response.rootPath,
+    surface: response.surface,
+  })
 }
 
 async function importManifestFile(args: {
@@ -91,10 +105,9 @@ async function importManifestFile(args: {
     return
   }
 
-  const storage = createBrowserProjectStorage({ storage: window.localStorage })
-  const imported = await storage.importProjectManifest(parsedManifest.manifest)
+  const imported = await importProjectManifestOnServer(parsedManifest.manifest)
   args.setManifestMessage(
-    "Manifest импортирован в локальный реестр проекта. Открываю проект через новый canonical contract.",
+    "Manifest импортирован в disk-backed registry проекта. Открываю проект через новый canonical contract.",
   )
   args.event.target.value = ""
   window.location.assign(getProjectUrl(imported.project.id))
@@ -140,6 +153,7 @@ function useProjectProductSurfaceState(args: ProjectProductSurfacesPanelProps): 
   const [promptBriefDraft, setPromptBriefDraft] = useState("")
   const [briefMessage, setBriefMessage] = useState("")
   const [manifestMessage, setManifestMessage] = useState("")
+  const [hasUserEditedBrief, setHasUserEditedBrief] = useState(false)
 
   useEffect(() => {
     setPromptBriefDraft(readProjectPromptBrief({
@@ -149,6 +163,7 @@ function useProjectProductSurfaceState(args: ProjectProductSurfacesPanelProps): 
     }))
     setBriefMessage("")
     setManifestMessage("")
+    setHasUserEditedBrief(false)
   }, [args.components, args.project, args.workflowReadout])
 
   const models = useMemo(() => buildProjectProductSurfaceModels(args, promptBriefDraft), [args, promptBriefDraft])
@@ -156,6 +171,7 @@ function useProjectProductSurfaceState(args: ProjectProductSurfacesPanelProps): 
   function handleBriefChange(value: string) {
     setPromptBriefDraft(value)
     setBriefMessage("")
+    setHasUserEditedBrief(true)
   }
 
   function handleExportManifest() {
@@ -170,11 +186,28 @@ function useProjectProductSurfaceState(args: ProjectProductSurfacesPanelProps): 
       promptBriefDraft,
     })
     setBriefMessage("Prompt brief сохранён в canonical project settings и войдёт в manifest.")
+    setHasUserEditedBrief(false)
   }
 
   function handleImportManifest(event: ChangeEvent<HTMLInputElement>) {
     void importManifestFile({ event, setManifestMessage })
   }
+
+  useEffect(() => {
+    if (!hasUserEditedBrief) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void handleSaveBrief().catch((error) => {
+        setBriefMessage(error instanceof Error ? error.message : "Не удалось автоматически сохранить prompt brief.")
+      })
+    }, 500)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [args.onProjectSaved, args.project, hasUserEditedBrief, promptBriefDraft])
 
   return {
     artifactLibrary: models.artifactLibrary,

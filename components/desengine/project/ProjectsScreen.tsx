@@ -8,16 +8,21 @@ import { getProjectUrl } from "@/lib/project/navigation"
 
 import {
   buildProjectSurfaceModel,
+  listProjectUiKitOptions,
   sortProjectsForSurface,
 } from "./projectSurface"
 import { PROJECT_STORAGE_LABEL } from "./projectStorageLabels"
 import { useProjectRegistry } from "./useProjectRegistry"
 
 function ProjectsSummary({
+  archiveFileCount,
   projectCount,
+  figmaFileCount,
   activeProjectId,
 }: {
+  archiveFileCount: number
   projectCount: number
+  figmaFileCount: number
   activeProjectId: string | null
 }) {
   return (
@@ -29,7 +34,10 @@ function ProjectsSummary({
         Активный проект: <strong>{activeProjectId ?? "ещё не выбран"}</strong>
       </p>
       <p className="mt-2 text-base text-black/70">
-        Хранение: <strong>{PROJECT_STORAGE_LABEL}</strong> — проект пока хранится локально в браузере.
+        Хранение: <strong>{PROJECT_STORAGE_LABEL}</strong> — canonical project state хранится на диске машины сервера, а не в браузере.
+      </p>
+      <p className="mt-2 text-base text-black/70">
+        Видимые источники: <strong>{figmaFileCount}</strong> Figma-файл(ов) и <strong>{archiveFileCount}</strong> файл(ов) архива в текущем registry.
       </p>
     </section>
   )
@@ -43,7 +51,7 @@ function ProjectsStateNotice({ status }: { status: "loading" | "ready" | "error"
   if (status === "error") {
     return (
       <p className="shell-callout mt-6 border border-dashed border-black bg-white p-4 text-lg">
-        Не удалось прочитать локальный реестр проектов. Проверьте локальное хранилище текущего workspace.
+        Не удалось прочитать disk-backed реестр проектов. Проверьте server path и файловый доступ.
       </p>
     )
   }
@@ -56,8 +64,8 @@ function ProjectsEmptyState() {
     <section className="shell-callout mt-6 border border-dashed border-black bg-white p-6">
       <h2 className="text-3xl">Проекты пока не созданы</h2>
       <p className="mt-3 text-lg text-black/70">
-        Локальный реестр пока пуст. Создайте первый проект прямо на этой странице, и он сразу
-        появится в canonical списке.
+        Реестр проектов пока пуст. Создайте первый проект с явным server path или подключите уже
+        существующий проект с диска.
       </p>
     </section>
   )
@@ -106,7 +114,10 @@ function CreateProjectFeedback({
 
 function useCreateProjectPanelState(createProject: ReturnType<typeof useProjectRegistry>["createProject"]) {
   const [title, setTitleValue] = useState("")
+  const [code, setCodeValue] = useState("")
   const [projectId, setProjectIdValue] = useState("")
+  const [rootPath, setRootPathValue] = useState("")
+  const [uiKitId, setUiKitIdValue] = useState("ant")
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null)
   const [createdProjectTitle, setCreatedProjectTitle] = useState<string | null>(null)
   const [createState, setCreateState] = useState<"idle" | "creating" | "created" | "error">("idle")
@@ -122,8 +133,23 @@ function useCreateProjectPanelState(createProject: ReturnType<typeof useProjectR
     resetDraftState()
   }
 
+  function setCode(value: string) {
+    setCodeValue(value)
+    resetDraftState()
+  }
+
   function setProjectId(value: string) {
     setProjectIdValue(value)
+    resetDraftState()
+  }
+
+  function setRootPath(value: string) {
+    setRootPathValue(value)
+    resetDraftState()
+  }
+
+  function setUiKitId(value: string) {
+    setUiKitIdValue(value)
     resetDraftState()
   }
 
@@ -134,6 +160,18 @@ function useCreateProjectPanelState(createProject: ReturnType<typeof useProjectR
       return
     }
 
+    if (!rootPath.trim()) {
+      setCreateState("error")
+      setMessage("Укажите абсолютный server path, где должен храниться проект.")
+      return
+    }
+
+    if (!code.trim()) {
+      setCreateState("error")
+      setMessage("Укажите короткий код проекта. Он хранится отдельно от технического id.")
+      return
+    }
+
     setCreateState("creating")
     setMessage("")
     setCreatedProjectId(null)
@@ -141,15 +179,21 @@ function useCreateProjectPanelState(createProject: ReturnType<typeof useProjectR
 
     try {
       const project = await createProject({
+        code,
         id: projectId.trim() || undefined,
+        rootPath,
         title,
+        uiKitId,
       })
       setTitleValue("")
+      setCodeValue("")
       setProjectIdValue("")
+      setRootPathValue("")
+      setUiKitIdValue("ant")
       setCreateState("created")
       setCreatedProjectId(project.id)
       setCreatedProjectTitle(project.title)
-      setMessage(`Проект «${project.title}» создан и выбран активным. Теперь можно открыть проект и создавать в нём компоненты.`)
+      setMessage(`Проект «${project.title}» создан на диске сервера и выбран активным. Теперь можно открыть проект и создавать в нём компоненты.`)
     } catch (error) {
       setCreateState("error")
       setMessage(error instanceof Error ? error.message : "Не удалось создать проект.")
@@ -157,15 +201,21 @@ function useCreateProjectPanelState(createProject: ReturnType<typeof useProjectR
   }
 
   return {
+    code,
     createState,
     createdProjectId,
     createdProjectTitle,
     handleCreate,
     message,
     projectId,
+    rootPath,
+    setCode,
     setProjectId,
+    setRootPath,
     setTitle,
+    setUiKitId,
     title,
+    uiKitId,
   }
 }
 
@@ -177,26 +227,33 @@ function CreateProjectPanel({
   status: ReturnType<typeof useProjectRegistry>["status"]
 }) {
   const {
+    code,
     createState,
     createdProjectId,
     createdProjectTitle,
     handleCreate,
     message,
     projectId,
+    rootPath,
+    setCode,
     setProjectId,
+    setRootPath,
     setTitle,
+    setUiKitId,
     title,
+    uiKitId,
   } = useCreateProjectPanelState(createProject)
+  const uiKitOptions = listProjectUiKitOptions()
 
   return (
     <section className="shell-section mt-6 border border-black bg-white p-6">
       <h2 className="shell-subtitle mt-0 text-3xl">Создать проект</h2>
       <p className="mt-3 max-w-4xl text-lg text-black/70">
-        Это первая точка входа в работу через проекты: создайте отдельный проект, затем откройте
-        его страницу и начните собирать в нём отдельные компоненты.
+        Создайте отдельный проект и сразу укажите, где именно он будет жить на машине сервера.
+        После создания этот путь станет canonical storage для проекта и его autosave-состояния.
       </p>
 
-      <div className="mt-5 flex flex-col gap-3 md:flex-row">
+      <div className="mt-5 grid gap-3">
         <input
           className="shell-field w-full border border-black bg-white px-4 py-3"
           placeholder="Например, Marketing site"
@@ -205,9 +262,32 @@ function CreateProjectPanel({
         />
         <input
           className="shell-field w-full border border-black bg-white px-4 py-3"
-          placeholder="Идентификатор проекта, например marketing-site"
+          placeholder="Код проекта, например marketing-site"
+          value={code}
+          onChange={(event) => setCode(event.target.value)}
+        />
+        <input
+          className="shell-field w-full border border-black bg-white px-4 py-3"
+          placeholder="Технический id проекта, если нужен отдельно"
           value={projectId}
           onChange={(event) => setProjectId(event.target.value)}
+        />
+        <select
+          className="shell-field w-full border border-black bg-white px-4 py-3"
+          value={uiKitId}
+          onChange={(event) => setUiKitId(event.target.value)}
+        >
+          {uiKitOptions.map((kit) => (
+            <option key={kit.id} value={kit.id}>
+              {kit.title} ({kit.id})
+            </option>
+          ))}
+        </select>
+        <input
+          className="shell-field w-full border border-black bg-white px-4 py-3 font-mono"
+          placeholder="/srv/desengine/projects/marketing-site"
+          value={rootPath}
+          onChange={(event) => setRootPath(event.target.value)}
         />
         <button
           className="shell-button inline-flex items-center border border-black bg-black px-5 py-3 text-white disabled:cursor-not-allowed disabled:opacity-45"
@@ -226,6 +306,88 @@ function CreateProjectPanel({
           createdProjectId={createdProjectId}
           createdProjectTitle={createdProjectTitle}
         />
+      ) : null}
+    </section>
+  )
+}
+
+function ConnectProjectPanel({
+  connectProject,
+  status,
+}: {
+  connectProject: ReturnType<typeof useProjectRegistry>["connectProject"]
+  status: ReturnType<typeof useProjectRegistry>["status"]
+}) {
+  const [rootPath, setRootPath] = useState("")
+  const [message, setMessage] = useState("")
+  const [connectState, setConnectState] = useState<"idle" | "connecting" | "connected" | "error">("idle")
+  const [connectedProjectId, setConnectedProjectId] = useState<string | null>(null)
+  const router = useRouter()
+
+  async function handleConnect() {
+    if (!rootPath.trim()) {
+      setConnectState("error")
+      setMessage("Укажите абсолютный server path существующего проекта.")
+      return
+    }
+
+    setConnectState("connecting")
+    setMessage("")
+    setConnectedProjectId(null)
+
+    try {
+      const project = await connectProject(rootPath)
+      setConnectState("connected")
+      setMessage(`Проект «${project.title}» подключён с диска и добавлен в canonical registry.`)
+      setConnectedProjectId(project.id)
+      setRootPath("")
+    } catch (error) {
+      setConnectState("error")
+      setMessage(error instanceof Error ? error.message : "Не удалось подключить проект.")
+    }
+  }
+
+  return (
+    <section className="shell-section mt-6 border border-black bg-white p-6">
+      <h2 className="shell-subtitle mt-0 text-3xl">Подключить проект с диска</h2>
+      <p className="mt-3 max-w-4xl text-lg text-black/70">
+        Если проект уже лежит на машине сервера, укажите его корневой путь. Система прочитает
+        `project.json`, подключит его к registry и откроет как обычный project surface.
+      </p>
+
+      <div className="mt-5 grid gap-3">
+        <input
+          className="shell-field w-full border border-black bg-white px-4 py-3 font-mono"
+          placeholder="/srv/desengine/projects/external-project"
+          value={rootPath}
+          onChange={(event) => {
+            setRootPath(event.target.value)
+            setConnectState("idle")
+            setMessage("")
+          }}
+        />
+        <button
+          className="shell-button inline-flex items-center border border-black bg-black px-5 py-3 text-white disabled:cursor-not-allowed disabled:opacity-45"
+          disabled={connectState === "connecting" || status === "loading"}
+          type="button"
+          onClick={() => void handleConnect()}
+        >
+          {connectState === "connecting" ? "Подключаем…" : "Подключить проект"}
+        </button>
+      </div>
+
+      <CreateProjectFeedback createState={connectState === "error" ? "error" : "idle"} message={message} />
+
+      {connectState === "connected" && connectedProjectId ? (
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button
+            className="shell-button inline-flex items-center border border-black bg-black px-5 py-3 text-white"
+            type="button"
+            onClick={() => router.push(getProjectUrl(connectedProjectId))}
+          >
+            Открыть проект
+          </button>
+        </div>
       ) : null}
     </section>
   )
@@ -252,10 +414,15 @@ function ProjectsGrid({
 
   return (
     <section className="mt-6 grid gap-4 md:grid-cols-2">
-      {orderedProjects.map((project) => (
+      {orderedProjects.map((entry) => (
         <ProjectCard
-          key={project.id}
-          project={buildProjectSurfaceModel(project, project.id === activeProjectId)}
+          key={entry.project.id}
+          project={buildProjectSurfaceModel(
+            entry.project,
+            entry.project.id === activeProjectId,
+            entry.rootPath,
+            entry.surface,
+          )}
         />
       ))}
     </section>
@@ -264,6 +431,11 @@ function ProjectsGrid({
 
 function ProjectsScreen() {
   const state = useProjectRegistry()
+  const figmaFileCount = state.projects.reduce((sum, item) => sum + (item.surface?.figmaFiles.length ?? 0), 0)
+  const archiveFileCount = state.projects.reduce(
+    (sum, item) => sum + (item.surface?.archiveGroups.reduce((groupSum, group) => groupSum + group.fileCount, 0) ?? 0),
+    0,
+  )
 
   return (
     <main className="shell-page px-6 py-6">
@@ -276,9 +448,12 @@ function ProjectsScreen() {
 
       <ProjectsSummary
         activeProjectId={state.activeProjectId}
+        archiveFileCount={archiveFileCount}
+        figmaFileCount={figmaFileCount}
         projectCount={state.projects.length}
       />
       <CreateProjectPanel createProject={state.createProject} status={state.status} />
+      <ConnectProjectPanel connectProject={state.connectProject} status={state.status} />
       <ProjectsStateNotice status={state.status} />
       <ProjectsGrid
         activeProjectId={state.activeProjectId}

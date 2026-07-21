@@ -12,12 +12,6 @@ type ProjectComponentStorage = {
   saveComponent(component: ProjectComponent): Promise<void>
 }
 
-const PROJECT_COMPONENTS_STORAGE_KEY = "desengine:project-components"
-
-function getProjectComponentsStorageKey(projectId: string) {
-  return `${PROJECT_COMPONENTS_STORAGE_KEY}:${projectId}`
-}
-
 function normalizeProjectComponentList(rawList: unknown): ProjectComponent[] {
   if (!Array.isArray(rawList)) {
     return []
@@ -41,53 +35,6 @@ function mergeProjectComponent(components: ProjectComponent[], component: Projec
 
 function sortProjectComponents(components: ProjectComponent[]) {
   return [...components].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-}
-
-function readStorageJson(storage: Storage, key: string): unknown {
-  const raw = storage.getItem(key)
-  if (!raw) return null
-
-  try {
-    return JSON.parse(raw) as unknown
-  } catch {
-    return null
-  }
-}
-
-function createBrowserProjectComponentStorage(storage: Storage): ProjectComponentStorage {
-  function readComponents(projectId: string) {
-    return normalizeProjectComponentList(readStorageJson(storage, getProjectComponentsStorageKey(projectId)))
-  }
-
-  function writeComponents(projectId: string, components: ProjectComponent[]) {
-    storage.setItem(
-      getProjectComponentsStorageKey(projectId),
-      JSON.stringify(sortProjectComponents(components)),
-    )
-  }
-
-  return {
-    async listComponents(projectId: string) {
-      return sortProjectComponents(readComponents(projectId))
-    },
-    async getComponent(projectId: string, componentId: string) {
-      return readComponents(projectId).find((component) => component.id === componentId) ?? null
-    },
-    async createComponent(input: CreateProjectComponentInput) {
-      const component = createProjectComponent(input)
-      const components = readComponents(component.projectId)
-      writeComponents(component.projectId, mergeProjectComponent(components, component))
-      return component
-    },
-    async saveComponent(component: ProjectComponent) {
-      const normalized = normalizeProjectComponent({
-        ...component,
-        updatedAt: new Date().toISOString(),
-      })
-      const components = readComponents(normalized.projectId)
-      writeComponents(normalized.projectId, mergeProjectComponent(components, normalized))
-    },
-  }
 }
 
 function createMemoryProjectComponentStorage(
@@ -125,10 +72,7 @@ function createMemoryProjectComponentStorage(
 }
 
 export {
-  PROJECT_COMPONENTS_STORAGE_KEY,
-  createBrowserProjectComponentStorage,
   createMemoryProjectComponentStorage,
-  getProjectComponentsStorageKey,
 }
 
 export type { ProjectComponentStorage }

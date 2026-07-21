@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 
+import { fetchProjectWorkspace, runProjectWorkspaceActionOnServer } from "@/lib/project/client"
 import type { CreateProjectComponentInput, ProjectComponent } from "@/lib/project/component-runtime"
-import { createBrowserProjectComponentStorage } from "@/lib/project/component-storage"
 
 type ProjectComponentsState = {
   status: "loading" | "ready" | "error"
@@ -33,8 +33,8 @@ function useProjectComponents(projectId: string) {
     let cancelled = false
 
     async function loadComponents() {
-      const storage = createBrowserProjectComponentStorage(window.localStorage)
-      const components = await storage.listComponents(projectId)
+      const { snapshot } = await fetchProjectWorkspace(projectId)
+      const components = snapshot?.components ?? []
 
       if (!cancelled) {
         setState({
@@ -59,32 +59,33 @@ function useProjectComponents(projectId: string) {
   }, [projectId])
 
   async function createComponent(input: Omit<CreateProjectComponentInput, "projectId">) {
-    const storage = createBrowserProjectComponentStorage(window.localStorage)
-    const component = await storage.createComponent({
-      ...input,
-      projectId,
+    const { snapshot } = await runProjectWorkspaceActionOnServer(projectId, {
+      type: "create-component",
+      title: input.title,
     })
+    const component = snapshot?.components[0] ?? null
+    if (!component) {
+      throw new Error("Не удалось создать компонент проекта.")
+    }
 
     setState((currentState) => ({
       status: "ready",
-      components: [component, ...currentState.components.filter((item) => item.id !== component.id)],
+      components: snapshot?.components ?? currentState.components,
     }))
 
     return component
   }
 
   async function saveComponent(component: ProjectComponent) {
-    const storage = createBrowserProjectComponentStorage(window.localStorage)
-    await storage.saveComponent(component)
-
-    const savedComponent = {
-      ...component,
-      updatedAt: new Date().toISOString(),
-    }
+    const action = component.status === "completed"
+      ? { type: "complete-component", componentId: component.id } as const
+      : { type: "reopen-component", componentId: component.id } as const
+    const { snapshot } = await runProjectWorkspaceActionOnServer(projectId, action)
+    const savedComponent = snapshot?.components.find((item) => item.id === component.id) ?? component
 
     setState((currentState) => ({
       status: "ready",
-      components: [savedComponent, ...currentState.components.filter((item) => item.id !== savedComponent.id)],
+      components: snapshot?.components ?? currentState.components,
     }))
 
     return savedComponent

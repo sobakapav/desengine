@@ -15,6 +15,12 @@ import {
   normalizeOptionalProjectTimestamp,
   normalizeProjectTimestamp,
 } from "@/lib/project/runtime-helpers"
+import {
+  createEmptyProjectMetadata,
+  normalizeProjectMetadata,
+  type ProjectMetadata,
+  type RawProjectMetadata,
+} from "@/lib/project/metadata-contract"
 
 export type ProjectSettings = {
   uiKitId: ProjectUiKitId
@@ -43,13 +49,17 @@ export type ProjectWorkspace = {
   updatedAt: string
   settings: ProjectSettings
   migration: ProjectMigrationStatus
+  metadata: ProjectMetadata
 }
 
 export type Project = ProjectWorkspace
 
 export type CreateProjectWorkspaceInput = {
+  code?: string | null
   id?: string | null
+  rootPath?: string | null
   title?: string | null
+  metadata?: RawProjectMetadata
   settings?: {
     promptBrief?: string | null
     uiKitId?: string | null
@@ -73,6 +83,7 @@ export type RawProject = {
   title?: string | null
   createdAt?: string | null
   updatedAt?: string | null
+  metadata?: RawProjectMetadata
   settings?: {
     promptBrief?: string | null
     uiKitId?: string | null
@@ -91,6 +102,21 @@ export type RawProject = {
     startedAt?: string | null
     finishedAt?: string | null
   } | null
+}
+
+function buildProjectMetadata(rawProject: RawProject | null | undefined, fallback: Project) {
+  const metadata = normalizeProjectMetadata(rawProject?.metadata, {
+    code: rawProject?.metadata?.code ?? rawProject?.id ?? fallback.id,
+    title: rawProject?.metadata?.title ?? rawProject?.title ?? fallback.title,
+    uiKitId: rawProject?.metadata?.uiKitId ?? rawProject?.settings?.uiKitId ?? rawProject?.uiKitId ?? fallback.settings.uiKitId,
+  })
+
+  return {
+    ...metadata,
+    title: typeof rawProject?.title === "string" && rawProject.title.trim() ? rawProject.title.trim() : metadata.title,
+    code: metadata.code || (typeof rawProject?.id === "string" && rawProject.id.trim() ? rawProject.id.trim() : fallback.id),
+    uiKitId: normalizeProjectUiKitId(rawProject?.settings?.uiKitId ?? rawProject?.uiKitId ?? metadata.uiKitId),
+  }
 }
 
 function createIdleProjectMigrationStatus(settings: ProjectSettings): ProjectMigrationStatus {
@@ -121,6 +147,7 @@ function createDefaultProject(id = "project-local-workspace"): Project {
     updatedAt: now,
     settings,
     migration: createIdleProjectMigrationStatus(settings),
+    metadata: createEmptyProjectMetadata(),
   }
 }
 
@@ -182,6 +209,7 @@ function normalizeProject(rawProject: RawProject | null | undefined): Project {
     updatedAt: normalizeProjectTimestamp(rawProject?.updatedAt, createdAt),
     settings,
     migration: normalizeProjectMigrationStatus(rawProject?.migration, settings),
+    metadata: buildProjectMetadata(rawProject, fallback),
   }
 }
 
@@ -192,10 +220,24 @@ function createProjectWorkspace(input: CreateProjectWorkspaceInput = {}): Projec
     : "Новый проект"
 
   return normalizeProject({
-    id: typeof input.id === "string" && input.id.trim() ? input.id.trim() : createProjectWorkspaceId(),
+    id: typeof input.id === "string" && input.id.trim()
+      ? input.id.trim()
+      : typeof input.code === "string" && input.code.trim()
+        ? input.code.trim()
+        : createProjectWorkspaceId(),
     title,
     createdAt: now,
     updatedAt: now,
+    metadata: {
+      ...input.metadata,
+      code: typeof input.code === "string" && input.code.trim()
+        ? input.code.trim()
+        : typeof input.id === "string" && input.id.trim()
+          ? input.id.trim()
+          : input.metadata?.code,
+      title,
+      uiKitId: input.settings?.uiKitId ?? input.uiKitId ?? input.metadata?.uiKitId,
+    },
     settings: input.settings,
     promptBrief: input.promptBrief,
     uiKitId: input.uiKitId,
@@ -205,10 +247,6 @@ function createProjectWorkspace(input: CreateProjectWorkspaceInput = {}): Projec
 
 function serializeProjectWorkspace(project: RawProject | ProjectWorkspace): ProjectWorkspace {
   return normalizeProject(project)
-}
-
-function getProjectStorageKey(projectId: string) {
-  return `desengine:project:${projectId}`
 }
 
 function getProjectMigrationTarget(nextUiKitId: ProjectUiKitId): ProjectMigrationTarget {
@@ -307,7 +345,6 @@ function failProjectUiKitMigration(
 export {
   createProjectWorkspace,
   createDefaultProject,
-  getProjectStorageKey,
   getProjectMigrationTarget,
   normalizeProject,
   normalizeProjectMigrationTarget,

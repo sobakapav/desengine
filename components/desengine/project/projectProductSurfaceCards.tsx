@@ -191,10 +191,10 @@ function PromptBriefSurfaceCard(args: {
           type="button"
           onClick={args.onSave}
         >
-          Сохранить brief
+          Сохранить brief сейчас
         </button>
         <span className="text-sm text-black/60">
-          Canonical prompt context будет брать этот brief как проектный вход.
+          Canonical prompt context будет брать этот brief как проектный вход. Изменения также autosave'ятся на диск.
         </span>
       </div>
       {args.briefMessage ? (

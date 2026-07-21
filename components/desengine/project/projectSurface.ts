@@ -1,4 +1,5 @@
 import { projectUiKitsConfig } from "@/lib/project/ui-kit-config"
+import type { ProjectSurfaceSummary } from "@/lib/project/client"
 import type { ProjectWorkspace } from "@/lib/project/runtime"
 import { PROJECT_STORAGE_LABEL } from "./projectStorageLabels"
 import {
@@ -27,19 +28,23 @@ function listProjectUiKitOptions(): ProjectUiKitOption[] {
   }))
 }
 
-function buildProjectConfigContractModel(project: ProjectWorkspace): ProjectConfigContractModel {
+function buildProjectConfigContractModel(project: ProjectWorkspace, code?: string): ProjectConfigContractModel {
   const selectedUiKit = projectUiKitsConfig[project.settings.uiKitId]
+  const projectCode = code?.trim() || project.metadata.code || project.id
 
   return {
+    code: projectCode,
     selectedUiKitId: selectedUiKit.id,
     selectedUiKitTitle: selectedUiKit.title,
     promptPreviewContractJson: JSON.stringify({
       project: {
+        code: projectCode,
         uiKitId: project.settings.uiKitId,
         uiKitTitle: selectedUiKit.title,
       },
       promptTemplates: {
         projectFields: [
+          "project.code",
           "project.uiKitId",
           "project.uiKitTitle",
         ],
@@ -55,29 +60,66 @@ function buildProjectConfigContractModel(project: ProjectWorkspace): ProjectConf
   }
 }
 
-function buildProjectSurfaceModel(project: ProjectWorkspace, isActive: boolean): ProjectSurfaceModel {
+function buildProjectSourcesSummaryLabels(surface: ProjectSurfaceSummary | null) {
+  const figmaCount = surface?.figmaFiles.length ?? 0
+  const archiveFileCount = surface?.archiveGroups.reduce((sum, group) => sum + group.fileCount, 0) ?? 0
+
   return {
-    id: project.id,
-    title: project.title,
-    isActive,
-    uiKitTitle: resolveProjectUiKitTitle(project),
-    storageLabel: PROJECT_STORAGE_LABEL,
-    createdAtLabel: formatProjectSurfaceTimestamp(project.createdAt),
-    updatedAtLabel: formatProjectSurfaceTimestamp(project.updatedAt),
+    code: surface?.metadata.code ?? "",
+    figmaFilesCountLabel: figmaCount > 0
+      ? formatProjectSurfaceCount(figmaCount, "Figma-файл", "Figma-файла", "Figma-файлов")
+      : "Figma-файлы не привязаны",
+    componentGraphLabel: surface?.componentGraph.storagePath
+      ? `${surface.componentGraph.nodeCount} узл. / ${surface.componentGraph.edgeCount} связей`
+      : "граф компонентов ещё не зафиксирован",
+    screenGraphLabel: surface?.screenGraph.storagePath
+      ? `${surface.screenGraph.nodeCount} узл. / ${surface.screenGraph.edgeCount} связей`
+      : "граф экранов ещё не зафиксирован",
+    archiveSummaryLabel: archiveFileCount > 0
+      ? formatProjectSurfaceCount(archiveFileCount, "файл архива", "файла архива", "файлов архива")
+      : "архив пока пуст",
   }
 }
 
-function sortProjectsForSurface(projects: ProjectWorkspace[], activeProjectId: string | null) {
+function buildProjectSurfaceModel(
+  project: ProjectWorkspace,
+  isActive: boolean,
+  rootPath?: string | null,
+  surface?: ProjectSurfaceSummary | null,
+): ProjectSurfaceModel {
+  const sourceLabels = buildProjectSourcesSummaryLabels(surface ?? null)
+
+  return {
+    id: project.id,
+    title: project.title,
+    code: sourceLabels.code || project.metadata.code || project.id,
+    isActive,
+    uiKitTitle: resolveProjectUiKitTitle(project),
+    storageLabel: PROJECT_STORAGE_LABEL,
+    rootPathLabel: rootPath?.trim() || "server path пока не прочитан",
+    createdAtLabel: formatProjectSurfaceTimestamp(project.createdAt),
+    updatedAtLabel: formatProjectSurfaceTimestamp(project.updatedAt),
+    figmaFilesCountLabel: sourceLabels.figmaFilesCountLabel,
+    componentGraphLabel: sourceLabels.componentGraphLabel,
+    screenGraphLabel: sourceLabels.screenGraphLabel,
+    archiveSummaryLabel: sourceLabels.archiveSummaryLabel,
+  }
+}
+
+function sortProjectsForSurface(
+  projects: Array<{ project: ProjectWorkspace; rootPath: string }>,
+  activeProjectId: string | null,
+) {
   return [...projects].sort((left, right) => {
-    if (left.id === activeProjectId && right.id !== activeProjectId) {
+    if (left.project.id === activeProjectId && right.project.id !== activeProjectId) {
       return -1
     }
 
-    if (right.id === activeProjectId && left.id !== activeProjectId) {
+    if (right.project.id === activeProjectId && left.project.id !== activeProjectId) {
       return 1
     }
 
-    return right.updatedAt.localeCompare(left.updatedAt)
+    return right.project.updatedAt.localeCompare(left.project.updatedAt)
   })
 }
 

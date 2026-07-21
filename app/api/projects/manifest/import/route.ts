@@ -1,5 +1,5 @@
 import { requireAccessOrUnauthorizedResponse } from "@/lib/auth/server"
-import { createProjectManifestWriteResponse } from "@/lib/project/api"
+import { createServerProjectStorage } from "@/lib/project/storage-disk"
 import type { RawProjectManifest } from "@/lib/project/manifest"
 
 /**
@@ -24,5 +24,17 @@ export async function POST(request: Request) {
     )
   }
 
-  return Response.json(createProjectManifestWriteResponse(body))
+  try {
+    const storage = createServerProjectStorage()
+    const manifest = await storage.importProjectManifest(body)
+    return Response.json({ ok: true, manifest })
+  } catch (error) {
+    return Response.json(
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : "Не удалось импортировать manifest проекта на диск.",
+      },
+      { status: 400 },
+    )
+  }
 }

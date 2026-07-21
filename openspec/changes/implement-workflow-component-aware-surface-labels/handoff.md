@@ -12,7 +12,7 @@
 - Что из родительского change уже решено:
   - workflow already runs from `ProjectComponent` as project-owned work;
   - project page already acts as a real entrypoint into workflow work;
-  - component/workflow bridge уже удерживает project-facing смысл поверх browser-local component registry.
+  - component/workflow bridge уже удерживает project-facing смысл поверх canonical project component registry.
 - Кто отвечает за стратегию, тактику и приёмку результата:
   - стратегия принадлежит workflow-line;
   - этот implement change отвечает только за component-aware labels и user understanding inside downstream surfaces;

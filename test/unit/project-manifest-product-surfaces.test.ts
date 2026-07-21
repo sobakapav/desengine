@@ -104,6 +104,11 @@ describe("project manifest product surfaces", () => {
         uiKitId: "ant",
       },
     })
+    expect(manifest.metadata).toMatchObject({
+      code: "project-a",
+      title: "Альфа",
+      uiKitId: "ant",
+    })
     expect(manifest.workflowTemplate.title).toBe("Project design workflow")
     expect(manifest.components[0]).toMatchObject({
       id: "component-hero",
@@ -127,7 +132,7 @@ describe("project manifest product surfaces", () => {
     expect(productSurfaces).toContain("Prompt brief")
     expect(productSurfaces).toContain("Экспортировать manifest")
     expect(productSurfaces).toContain("Импортировать manifest")
-    expect(productSurfaces).toContain("createBrowserProjectStorage")
+    expect(productSurfaces).toContain("disk-backed project storage")
     expect(productSurfaces).toContain("window.location.assign(getProjectUrl(imported.project.id))")
 
     expect(productSurfaceModel).toContain("PROJECT_MANIFEST_VERSION")

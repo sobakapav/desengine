@@ -1,6 +1,7 @@
 import { normalizeProject, serializeProjectWorkspace, type ProjectWorkspace } from "@/lib/project/runtime"
 
 type ProjectConfigDraft = {
+  code: string
   id: string
   promptBrief: string
   title: string
@@ -19,6 +20,7 @@ type ValidateProjectConfigDraftResult =
 
 function buildProjectConfigDraft(project: ProjectWorkspace): ProjectConfigDraft {
   return {
+    code: project.metadata.code || project.id,
     id: project.id,
     promptBrief: project.settings.promptBrief,
     title: project.title,
@@ -29,6 +31,11 @@ function buildProjectConfigDraft(project: ProjectWorkspace): ProjectConfigDraft 
 function validateProjectConfigDraft(draft: ProjectConfigDraft): ValidateProjectConfigDraftResult {
   const normalized = normalizeProject({
     id: draft.id,
+    metadata: {
+      code: draft.code,
+      title: draft.title,
+      uiKitId: draft.uiKitId,
+    },
     promptBrief: draft.promptBrief,
     title: draft.title,
     settings: {
@@ -51,6 +58,13 @@ function validateProjectConfigDraft(draft: ProjectConfigDraft): ValidateProjectC
     }
   }
 
+  if (!draft.code.trim()) {
+    return {
+      ok: false,
+      message: "Код проекта не должен быть пустым.",
+    }
+  }
+
   return {
     ok: true,
     draft: buildProjectConfigDraft(normalized),
@@ -67,6 +81,12 @@ function applyProjectConfigDraft(project: ProjectWorkspace, draft: ProjectConfig
   return serializeProjectWorkspace({
     ...project,
     id: validation.draft.id,
+    metadata: {
+      ...project.metadata,
+      code: validation.draft.code,
+      title: validation.draft.title,
+      uiKitId: validation.draft.uiKitId,
+    },
     title: validation.draft.title,
     updatedAt: new Date().toISOString(),
     settings: {

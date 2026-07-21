@@ -68,6 +68,11 @@ describe("project manifest foundation", () => {
     expect(manifest).toMatchObject({
       kind: "desengine-project-manifest",
       version: "1",
+      metadata: {
+        code: "alpha-project",
+        title: "Альфа",
+        uiKitId: "ant",
+      },
       project: {
         id: "alpha-project",
         title: "Альфа",
@@ -89,7 +94,7 @@ describe("project manifest foundation", () => {
     })
   })
 
-  it("сериализует и разбирает manifest без утечки browser-local ключей", () => {
+  it("сериализует и разбирает manifest без утечки внутренних storage keys", () => {
     const serialized = serializeProjectManifest({
       project: {
         id: "beta-project",
@@ -106,11 +111,12 @@ describe("project manifest foundation", () => {
     const parsed = parseProjectManifest(serialized)
 
     expect(parsed.project.id).toBe("beta-project")
+    expect(parsed.metadata.code).toBe("beta-project")
     expect(parsed.promptBrief).toBe("Подготовить reusable project package.")
     expect(serialized).not.toContain("desengine:project-workspaces")
   })
 
-  it("держит browser-local import/export helper внутри project storage foundation", async () => {
+  it("держит import/export helper внутри project storage foundation", async () => {
     const storage = createMemoryProjectStorage([
       normalizeProject({
         id: "gamma-project",

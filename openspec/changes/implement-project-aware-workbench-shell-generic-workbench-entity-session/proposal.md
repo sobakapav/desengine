@@ -24,7 +24,7 @@
   - `WorkbenchSession`, привязанную к `project`, `workflow` и `subject`;
   - locked-режим без допуска к редактированию, запуску инструментов и выпуску результатов.
 - Закрепить, что project surface может материализовать и открывать workbench shell как часть работы над проектом.
-- Закрепить, что workflow может публиковать workbench shell для project-owned subject, не возвращая task-модель в пользовательский путь.
+- Закрепить, что workflow может публиковать workbench shell для project-owned subject, не возвращая старую служебную модель в пользовательский путь.
 - Не вводить реальные tool flows, типы верстаков и рабочие сценарии внутри workbench в этой волне.
 
 ## Impact

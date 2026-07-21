@@ -36,14 +36,20 @@ describe("project user surface foundation", () => {
       },
     })
 
-    expect(buildProjectSurfaceModel(project, true)).toEqual({
+    expect(buildProjectSurfaceModel(project, true, "/srv/desengine/projects/project-a")).toEqual({
       id: "project-a",
       title: "Альфа",
+      code: "project-a",
       isActive: true,
       uiKitTitle: "Ant Design",
-      storageLabel: "Локально в браузере",
+      storageLabel: "На диске сервера",
+      rootPathLabel: "/srv/desengine/projects/project-a",
       createdAtLabel: "2026-06-11 09:10 UTC",
       updatedAtLabel: "2026-06-11 10:20 UTC",
+      figmaFilesCountLabel: "Figma-файлы не привязаны",
+      componentGraphLabel: "граф компонентов ещё не зафиксирован",
+      screenGraphLabel: "граф экранов ещё не зафиксирован",
+      archiveSummaryLabel: "архив пока пуст",
     })
   })
 
@@ -65,7 +71,11 @@ describe("project user surface foundation", () => {
     })
 
     expect(
-      sortProjectsForSurface([olderProject, activeProject, newerProject], "project-b").map((project) => project.id),
+      sortProjectsForSurface([
+        { project: olderProject, rootPath: "/srv/desengine/projects/project-a" },
+        { project: activeProject, rootPath: "/srv/desengine/projects/project-b" },
+        { project: newerProject, rootPath: "/srv/desengine/projects/project-c" },
+      ], "project-b").map((entry) => entry.project.id),
     ).toEqual(["project-b", "project-c", "project-a"])
   })
 
@@ -94,13 +104,18 @@ describe("project user surface foundation", () => {
 
     expect(projectsScreen).toContain("useProjectRegistry")
     expect(projectsScreen).toContain("Активный проект")
-    expect(projectsScreen).toContain("локально в браузере")
+    expect(projectsScreen).toContain("на диске машины сервера")
+    expect(projectsScreen).toContain("Подключить проект с диска")
     expect(projectsScreen).toContain("Открыть проект")
     expect(projectsScreen).toContain("Следующий шаг")
     expect(projectOverview).not.toContain("ProjectArchitectureTransformPanel")
     expect(projectOverview).toContain("ProjectOverviewPrimaryFlow")
     expect(projectOverview).toContain("ProjectProductSurfacesPanel")
     expect(projectOverview).toContain("ProjectOverviewSupportPanels")
+    expect(projectOverview).toContain("Управление UI kit")
+    expect(projectOverview).toContain("UI kit проекта")
+    expect(projectOverview).toContain("Выбрать UI kit")
+    expect(projectOverview).toContain("встроенными адаптерами")
     expect(projectProductSurfaces).toContain("Продуктовые объекты проекта")
     expect(projectProductSurfaces).toContain("manifest")
     expect(projectProductSurfaces).toContain("Artifact library")
@@ -109,9 +124,13 @@ describe("project user surface foundation", () => {
     expect(projectPrimaryFlow).toContain("Добавьте первый компонент")
     expect(projectPrimaryFlow).toContain("Взять в работу")
     expect(projectSupportPanels).toContain("Поддерживающий слой проекта")
+    expect(projectSupportPanels).toContain("Метаданные и источники проекта")
     expect(projectSupportPanels).toContain("Паспорт проекта")
+    expect(projectSupportPanels).toContain("Код проекта")
     expect(projectSupportPanels).toContain("Идентификатор проекта")
-    expect(projectRegistryHook).toContain("createBrowserProjectStorage")
-    expect(projectOverviewHook).toContain("createBrowserProjectStorage")
+    expect(projectSupportPanels).toContain("ProjectSourcesPanel")
+    expect(projectRegistryHook).toContain("fetchProjectRegistry")
+    expect(projectRegistryHook).toContain("createProjectOnServer")
+    expect(projectOverviewHook).toContain("fetchProjectOverview")
   })
 })

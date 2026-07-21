@@ -2,7 +2,7 @@
 
 `dispatcher-project` уже удерживает `Project` как основную product boundary, а текущая project wave довела продукт до цепочки `проект -> компоненты -> workflow -> работа`. Но архитектурные подмодули всё ещё мало капитализируются как часть продукта:
 
-- `storage-adapter` остаётся browser-local технической границей;
+- `storage-adapter` остаётся технической границей disk-backed project storage;
 - `workflow` в основном существует как readout и объясняющий слой;
 - `artifacts` описаны в архитектуре, но ещё не ощущаются как first-class объекты работы;
 - `prompt-context` существует как внутренний contract LLM-слоя;
@@ -32,7 +32,7 @@
 1. В change вводятся два новых внешних контракта: `project-manifest` и `project-api`.
 
 Почему:
-- без отдельного manifest project остаётся browser-local состоянием приложения;
+- без отдельного manifest project остаётся внутренним состоянием приложения;
 - без отдельного API route handlers останутся внутренним транспортом без пользовательской ценности.
 
 Альтернатива:
@@ -96,7 +96,7 @@
 ## Migration Plan
 
 1. Добавить OpenSpec delta specs для новых и изменённых capability.
-2. Реализовать manifest contract и browser-local import/export без смены install-critical стека.
+2. Реализовать manifest contract и disk-backed import/export без смены install-critical стека.
 3. Поверх manifest ввести user-facing API foundation.
 4. Подключить manifest/brief/artifacts/template к project page как наблюдаемые объекты.
 5. Обновить traceability и unit/source contracts.
@@ -104,7 +104,7 @@
 Rollback:
 
 - если product-facing layer окажется неготовым, routes и UI можно откатить, сохранив внутренние helper-слои;
-- manifest format должен быть additive-friendly и не ломать текущие browser-local проекты.
+- manifest format должен быть additive-friendly и не ломать текущие disk-backed проекты.
 
 ## Open Questions
 

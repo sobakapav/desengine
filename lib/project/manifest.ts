@@ -9,6 +9,11 @@ import {
   type ProjectWorkspaceActivity,
 } from "@/lib/project/workspace-session"
 import {
+  normalizeProjectMetadata,
+  type ProjectMetadata,
+  type RawProjectMetadata,
+} from "@/lib/project/metadata-contract"
+import {
   normalizeProject,
   serializeProjectWorkspace,
   type ProjectWorkspace,
@@ -41,6 +46,7 @@ type ProjectManifest = {
   kind: ProjectManifestKind
   version: ProjectManifestVersion
   exportedAt: string
+  metadata: ProjectMetadata
   project: ProjectWorkspace
   components: ProjectComponent[]
   workflow: ProjectManifestWorkflow
@@ -54,6 +60,7 @@ type RawProjectManifest = {
   kind?: string | null
   version?: string | null
   exportedAt?: string | null
+  metadata?: RawProjectMetadata
   project?: RawProject | null
   components?: ProjectComponent[] | null
   workflow?: Partial<ProjectManifestWorkflow> | null
@@ -161,6 +168,7 @@ function exportProjectManifest(args: {
     kind: "desengine-project-manifest",
     version: "1",
     exportedAt: new Date().toISOString(),
+    metadata: project.metadata,
     project,
     components,
     workflow: {
@@ -177,6 +185,7 @@ function exportProjectManifest(args: {
 function importProjectManifest(rawManifest: RawProjectManifest): ProjectManifest {
   const project = serializeProjectWorkspace(normalizeProject({
     ...rawManifest?.project,
+    metadata: rawManifest?.metadata ?? rawManifest?.project?.metadata,
     promptBrief: rawManifest?.promptBrief ?? rawManifest?.workflow?.promptBrief,
     settings: {
       ...(rawManifest?.project?.settings ?? null),
@@ -227,6 +236,7 @@ function importProjectManifest(rawManifest: RawProjectManifest): ProjectManifest
     kind: rawManifest?.kind === "desengine-project-manifest" ? rawManifest.kind : "desengine-project-manifest",
     version: rawManifest?.version === "1" ? "1" : "1",
     exportedAt: normalizeManifestTimestamp(rawManifest?.exportedAt),
+    metadata: normalizeProjectMetadata(rawManifest?.metadata ?? hydratedProject.metadata),
     project: hydratedProject,
     components,
     workflow,

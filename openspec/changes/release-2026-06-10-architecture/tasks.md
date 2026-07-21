@@ -4,12 +4,12 @@
 - [x] 2. Зафиксировать архитектурный стратегический и tactical контекст релиза без включения этих changes в физический состав поставки.
 - [x] 3. Добавить в релиз первую domain-wave `Project` как исполнительский состав:
   - [x] 3.1 `implement-project-workspace-mvp`;
-  - [x] 3.2 `implement-project-task-onboarding-binding`;
+  - [x] 3.2 `implement-project-entry-surface`;
   - [x] 3.3 `implement-project-workflow-binding`;
   - [x] 3.4 `implement-project-workbench-preview-binding`;
   - [x] 3.5 `fix-project-ui-kit-migration-invalidation`.
 - [x] 3.6 `implement-project-user-surface-foundation`.
-- [x] 3.7 `implement-project-task-assignment-surface`.
+- [x] 3.7 `implement-project-component-assignment-surface`.
 - [x] 3.8 `implement-project-config-and-ui-kit-contract`.
 - [x] 3.9 `implement-project-history-diagnostics-surface`.
 - [x] 3.10 `implement-project-workflow-readout-surface`.

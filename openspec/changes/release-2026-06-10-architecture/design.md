@@ -40,12 +40,12 @@
 
 4. Старт project-wave внутри релиза ограничивается следующими исполнительскими changes:
    - `implement-project-workspace-mvp`;
-   - `implement-project-task-onboarding-binding`;
+   - `implement-project-entry-surface`;
    - `implement-project-workflow-binding`;
    - `implement-project-workbench-preview-binding`;
    - `fix-project-ui-kit-migration-invalidation`;
    - `implement-project-user-surface-foundation`;
-   - `implement-project-task-assignment-surface`;
+   - `implement-project-component-assignment-surface`;
    - `implement-project-config-and-ui-kit-contract`;
    - `implement-project-history-diagnostics-surface`;
    - `implement-project-workflow-readout-surface`.
@@ -55,7 +55,7 @@
 6. Следующая project-wave внутри того же релиза должна не только строить внутренний runtime contract, но и проявлять проект как пользовательскую сущность:
    - отдельный раздел `Проекты`;
    - отдельную страницу проекта;
-   - видимую связь проекта и задач;
+   - видимую связь проекта и его компонентных линий;
    - project-level config и `UI kit` contract;
    - project-scoped историю и диагностику;
    - read-only workflow/artifact surface проекта.

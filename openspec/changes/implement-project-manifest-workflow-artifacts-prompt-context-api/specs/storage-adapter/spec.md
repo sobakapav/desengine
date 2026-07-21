@@ -7,7 +7,7 @@
 #### Scenario: Runtime экспортирует manifest через adapter boundary
 - **WHEN** система формирует project manifest
 - **THEN** она читает project-owned данные через storage adapter
-- **AND** внешний manifest не зависит от знания browser-local storage keys
+- **AND** внешний manifest не зависит от знания legacy storage keys
 
 #### Scenario: Runtime импортирует manifest через adapter boundary
 - **WHEN** пользователь загружает manifest проекта

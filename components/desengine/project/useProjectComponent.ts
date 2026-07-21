@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react"
 
+import { fetchProjectRegistry, fetchProjectWorkspace } from "@/lib/project/client"
 import type { ProjectComponent } from "@/lib/project/component-runtime"
-import { createBrowserProjectComponentStorage } from "@/lib/project/component-storage"
-import { createBrowserProjectStorage } from "@/lib/project/storage"
 
 type ProjectComponentContextState = {
   status: "loading" | "ready" | "error"
@@ -43,8 +42,8 @@ function useProjectComponent(preferredProjectId?: string | null, preferredCompon
     let cancelled = false
 
     async function loadComponent() {
-      const projectStorage = createBrowserProjectStorage({ storage: window.localStorage })
-      const projectId = preferredProjectId?.trim() || await projectStorage.getActiveProjectId()
+      const registry = await fetchProjectRegistry()
+      const projectId = preferredProjectId?.trim() || registry.activeProjectId
       const componentId = preferredComponentId?.trim() || null
 
       if (!projectId) {
@@ -58,8 +57,8 @@ function useProjectComponent(preferredProjectId?: string | null, preferredCompon
         return
       }
 
-      const componentStorage = createBrowserProjectComponentStorage(window.localStorage)
-      const components = await componentStorage.listComponents(projectId)
+      const workspace = await fetchProjectWorkspace(projectId)
+      const components = workspace.snapshot?.components ?? []
       const component = findProjectComponentById(components, componentId)
 
       if (!cancelled) {

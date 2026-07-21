@@ -9,7 +9,7 @@
 - strategy_root: focus-domain
 - release_ref: (не задан)
 - producer_ref: (не задан)
-- Что из родительского change уже решено: project boundary, project registry, task/workflow/workbench binding и project-facing surfaces уже существуют; этот fix только упрощает contract, убирая `uiMode` и оставляя единственный `uiKitId`.
+- Что из родительского change уже решено: project boundary, project registry, workflow/workbench binding и project-facing surfaces уже существуют; этот fix только упрощает contract, убирая `uiMode` и оставляя единственный `uiKitId`.
 - Кто отвечает за стратегию, тактику и приёмку результата: стратегию держит `producer-project`, тактическую рамку этой волны держит `dispatcher-project`, финальную приёмку и verification выполняет внешний проверяющий агент.
 
 ## Обязательные источники
@@ -17,7 +17,7 @@
 - openspec/changes/dispatcher-project/proposal.md
 - openspec/changes/dispatcher-project/design.md
 - openspec/changes/dispatcher-project/tasks.md
-- Какие ещё файлы и спецификации обязательны к чтению для fix-project-ui-mode-removal: `lib/project/runtime.ts`, `lib/project/config-surface.ts`, `lib/task/prompt-context.ts`, `lib/lab/sandpack-preview.ts`, `app/api/tasks/[taskId]/route.ts`, `app/api/tasks/[taskId]/sandpack/route.ts`, `components/desengine/project/projectSurface.ts`, `components/desengine/project/ProjectConfigPanel.tsx`, `openspec/specs/projects/spec.md`, `openspec/specs/task/spec.md`, `test/unit/project-ui-kit-switching.test.ts`, `test/unit/project-config-and-ui-kit-contract.test.ts`.
+- Какие ещё файлы и спецификации обязательны к чтению для fix-project-ui-mode-removal: `lib/project/runtime.ts`, `lib/project/config-surface.ts`, `components/desengine/project/projectSurface.ts`, `components/desengine/project/ProjectConfigPanel.tsx`, `openspec/specs/projects/spec.md`, `openspec/specs/storage-adapter/spec.md`, `test/unit/project-ui-kit-switching.test.ts`, `test/unit/project-config-and-ui-kit-contract.test.ts`.
 
 ## Границы исполнения
 
@@ -28,8 +28,8 @@
 ## Проверка результата
 
 - verification_level: static/contract + unit
-- verification_command: `npm run test:traceability && npm run test:unit -- project-ui-kit-switching project-config-and-ui-kit-contract project-user-surface-foundation task-project-client-boundary`
-- Что именно должен доказать результат проверки: в активном коде и контрактах больше нет рабочего branch по отдельному runtime-режиму; project runtime всегда работает только через `uiKitId`, а project/task surfaces не читают и не записывают удалённый параметр.
+- verification_command: `npm run test:traceability && npm run test:unit -- project-ui-kit-switching project-config-and-ui-kit-contract project-user-surface-foundation`
+- Что именно должен доказать результат проверки: в активном коде и контрактах больше нет рабочего branch по отдельному runtime-режиму; project runtime всегда работает только через `uiKitId`, а project-facing surfaces не читают и не записывают удалённый параметр.
 
 ## Открытые вопросы
 

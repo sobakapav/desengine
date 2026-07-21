@@ -5,22 +5,6 @@ import {
   type RawProject,
 } from "@/lib/project/runtime"
 
-import {
-  ACTIVE_PROJECT_ID_STORAGE_KEY,
-  PROJECT_REGISTRY_STORAGE_KEY,
-} from "./storage-types"
-
-function readStorageJson(storage: Storage, key: string): unknown {
-  const raw = storage.getItem(key)
-  if (!raw) return null
-
-  try {
-    return JSON.parse(raw) as unknown
-  } catch {
-    return null
-  }
-}
-
 function normalizeProjectList(rawList: unknown): ProjectWorkspace[] {
   if (!Array.isArray(rawList)) return []
   return rawList.map((item) => serializeProjectWorkspace(normalizeProject(item as RawProject)))
@@ -47,30 +31,6 @@ function removeProject(projects: ProjectWorkspace[], projectId: string | null | 
 function hasProject(projects: ProjectWorkspace[], projectId: string | null | undefined) {
   if (!projectId?.trim()) return false
   return projects.some((project) => project.id === projectId)
-}
-
-function readBrowserStoredProjects(storage: Storage) {
-  return normalizeProjectList(readStorageJson(storage, PROJECT_REGISTRY_STORAGE_KEY))
-}
-
-function readBrowserStoredProject(storage: Storage, projectId: string) {
-  return readBrowserStoredProjects(storage)
-    .find((project) => project.id === projectId) ?? null
-}
-
-function readBrowserStoredActiveProjectId(
-  storage: Storage,
-  projectsOrLegacyValue?: string | ProjectWorkspace[],
-  maybeProjects?: ProjectWorkspace[],
-) {
-  const projects = Array.isArray(projectsOrLegacyValue)
-    ? projectsOrLegacyValue
-    : Array.isArray(maybeProjects)
-      ? maybeProjects
-      : readBrowserStoredProjects(storage)
-  const activeProjectId = storage.getItem(ACTIVE_PROJECT_ID_STORAGE_KEY)
-  if (hasProject(projects, activeProjectId)) return activeProjectId ?? null
-  return projects[0]?.id ?? null
 }
 
 function normalizeSavedProject(project: ProjectWorkspace) {
@@ -105,10 +65,6 @@ export {
   hasProject,
   mergeProject,
   normalizeSavedProject,
-  readBrowserStoredActiveProjectId,
-  readBrowserStoredProject,
-  readBrowserStoredProjects,
-  readStorageJson,
   removeProject,
   resolvePreviousProjectId,
   updateRenamedActiveProjectId,
