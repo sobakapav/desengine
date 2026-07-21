@@ -4,7 +4,7 @@
 
 На старте desengine строится как локальное desktop-приложение с отдельным Figma plugin.
 
-Базовый стек:
+Базовый стек, принятый как направление:
 
 - Electron Forge
 - Webpack
@@ -21,6 +21,10 @@
 - shared protocol package
 - `desengine://` для запуска и pairing
 - local endpoint для передачи данных
+
+Уже установлены Electron, React, Zustand, Motion, lucide-icons, `@xyflow/react`, `elkjs`, TypeScript и `zod`.
+
+Tailwind CSS и shadcn/ui пока не подключены. Их стоит добавлять после минимального React renderer baseline, чтобы не смешивать проверку desktop/workspace-инфраструктуры с настройкой визуального слоя.
 
 ## Desktop shell
 
