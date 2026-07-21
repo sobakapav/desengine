@@ -1,0 +1,24 @@
+{
+  "name": "desengine",
+  "version": "0.0.1",
+  "description": "Design in code toolbox",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sobakapav/desengine.git"
+  },
+  "author": "Sobaka Pavlova",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sobakapav/desengine/issues"
+  },
+  "homepage": "https://github.com/sobakapav/desengine#readme"
+}

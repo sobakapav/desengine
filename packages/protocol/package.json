@@ -1,0 +1,21 @@
+{
+  "name": "@desengine/protocol",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Shared protocol contracts for desengine apps",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "author": "Sobaka Pavlova",
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
