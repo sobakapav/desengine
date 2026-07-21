@@ -9,7 +9,9 @@
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "build": "npm run build --workspaces --if-present"
+    "build": "npm run build --workspace @desengine/protocol",
+    "package:desktop": "npm run package --workspace @desengine/desktop",
+    "make:desktop": "npm run make --workspace @desengine/desktop"
   },
   "repository": {
     "type": "git",
