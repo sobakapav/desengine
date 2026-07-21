@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Design in code toolbox",
   "private": true,
+  "packageManager": "npm@11.13.0",
   "workspaces": [
     "apps/*",
     "packages/*"
