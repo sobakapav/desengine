@@ -1,4 +1,0 @@
-- [x] 1. Локализовать точку разрыва в текущем Sandpack preview CSS/Tailwind pipeline и зафиксировать root cause в handoff.
-- [x] 2. Исправить runtime так, чтобы preview применял CSS/Tailwind к probe-элементу и пользовательскому компоненту в живом iframe.
-- [x] 3. Уточнить browser-level verification для styled preview, чтобы она падала на реальном `unstyled-dom`, а не принимала диагностический fallback за успех.
-- [x] 4. Обновить handoff итоговой конкретикой: symptom, root cause, runtime contract и ограничения решения.

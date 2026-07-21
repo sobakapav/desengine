@@ -3,12 +3,10 @@ schema: spec-driven
 context: |
   Репозиторий: desengine.
   Все артефакты OpenSpec, документация и пользовательские тексты ведутся на русском языке.
-  Проект использует TypeScript.
   При изменении поведения системы нужно обновлять `openspec/specs/` и/или changes с дельта-спеками.
-  Новые changes в этом репозитории создаются через `npm run openspec:new -- <name>`.
+  Новые changes в этом репозитории создаются согласованным для текущего стека способом.
   В `.openspec.yaml` каждого change должно быть краткое поле `short`.
-  Без явного указания нельзя менять install-critical стек: Node.js, Next.js, Turbopack и другие критичные части запуска/сборки.
-  Все кастомные UI-компоненты живут в `/components/desengine`.
+  Без явного указания нельзя менять install-critical стек: runtime, package manager, сборщик и другие критичные части запуска/сборки.
 
 rules:
   proposal:

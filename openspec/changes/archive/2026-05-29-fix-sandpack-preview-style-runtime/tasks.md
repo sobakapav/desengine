@@ -1,4 +1,0 @@
-- [ ] 1. Классифицировать пользовательские preview-сбои на unstyled DOM, sandbox runtime error и incompatibility error.
-- [ ] 2. Стабилизировать CSS/Tailwind application contract в живом Sandpack runtime.
-- [ ] 3. Добавить browser-level проверку styled preview и диагностических fallback-состояний.
-- [ ] 4. Подготовить handoff с кейсами из жалоб: “невидимый рендер”, периодический render failure и несовместимость библиотечного компонента.
