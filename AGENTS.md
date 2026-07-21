@@ -1,5 +1,12 @@
 Все работы в этом репозитории ведутся на русском языке: OpenSpec, документация, пользовательские тексты и комментарии в коде.
 
+Перед изменением технического стека, Electron/Figma-интеграции, security boundary или Codex toolbox сверяйся с базовыми документами:
+- `docs/engineering/stack.md`;
+- `docs/engineering/figma-integration.md`;
+- `docs/engineering/hygiene.md`;
+- `docs/engineering/codex-toolbox.md`;
+- `docs/architecture/decisions/0001-initial-stack.md`.
+
 Любые изменения поведения системы нужно фиксировать в OpenSpec на русском языке:
 - обновлять `openspec/specs/**`, если меняется действующий контракт;
 - создавать новый change согласованным для текущего стека способом, если меняется или добавляется отдельная возможность;
