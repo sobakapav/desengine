@@ -24,6 +24,12 @@ export function App() {
   const [lastPing, setLastPing] = useState<FigmaSelectionPing | undefined>();
 
   useEffect(() => {
+    window.desengine?.getLastFigmaSelectionPing().then((ping) => {
+      if (ping) {
+        setLastPing(ping);
+      }
+    });
+
     return window.desengine?.onFigmaSelectionPing(setLastPing);
   }, []);
 

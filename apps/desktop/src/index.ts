@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 
 import {
@@ -16,6 +16,7 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
 let mainWindow: BrowserWindow | undefined;
 let handoffServer: http.Server | undefined;
+let lastFigmaSelectionPing: FigmaSelectionPing | undefined;
 
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -62,7 +63,13 @@ async function handleSelectionPing(request: IncomingMessage, response: ServerRes
       return;
     }
 
-    mainWindow?.webContents.send('figma-selection-ping', parsed.data satisfies FigmaSelectionPing);
+    lastFigmaSelectionPing = parsed.data;
+
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (!window.isDestroyed()) {
+        window.webContents.send('figma-selection-ping', lastFigmaSelectionPing);
+      }
+    }
 
     sendJson(response, 200, {
       protocolVersion: DESENGINE_PROTOCOL_VERSION,
@@ -152,6 +159,7 @@ const createWindow = (): void => {
 };
 
 app.on('ready', () => {
+  ipcMain.handle('figma-selection-ping:get-last', () => lastFigmaSelectionPing);
   startDevHandoffEndpoint();
   createWindow();
 });
