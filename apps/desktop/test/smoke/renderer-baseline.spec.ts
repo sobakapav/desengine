@@ -22,16 +22,33 @@ test('dev handoff связан с Figma plugin и loopback endpoint', async () =
     path.join(process.cwd(), '../figma-plugin/src/code.ts'),
     'utf8',
   );
+  const visualSnapshotSource = await fs.readFile(
+    path.join(process.cwd(), '../figma-plugin/src/visual-snapshot.ts'),
+    'utf8',
+  );
   const pluginManifest = await fs.readFile(
     path.join(process.cwd(), '../figma-plugin/manifest.json'),
     'utf8',
   );
+  const protocolSource = await fs.readFile(
+    path.join(process.cwd(), '../../packages/protocol/src/index.ts'),
+    'utf8',
+  );
 
   expect(mainSource).toContain('127.0.0.1');
-  expect(mainSource).toContain('/figma/selection');
-  expect(mainSource).toContain('/figma/selection/latest');
-  expect(mainSource).toContain('/figma/visual-snapshot');
-  expect(mainSource).toContain('/figma/visual-snapshot/latest');
+  expect(protocolSource).toContain("DESENGINE_SELECTION_PING_ROUTE = '/figma/selection'");
+  expect(protocolSource).toContain(
+    "DESENGINE_SELECTION_PING_LATEST_ROUTE = '/figma/selection/latest'",
+  );
+  expect(protocolSource).toContain("DESENGINE_VISUAL_SNAPSHOT_ROUTE = '/figma/visual-snapshot'");
+  expect(protocolSource).toContain(
+    "DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE = '/figma/visual-snapshot/latest'",
+  );
+  expect(protocolSource).toContain('createDevHandoffUrl');
+  expect(mainSource).toContain('DESENGINE_SELECTION_PING_ROUTE');
+  expect(mainSource).toContain('DESENGINE_SELECTION_PING_LATEST_ROUTE');
+  expect(mainSource).toContain('DESENGINE_VISUAL_SNAPSHOT_ROUTE');
+  expect(mainSource).toContain('DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE');
   expect(mainSource).toContain('figmaSelectionPingSchema');
   expect(mainSource).toContain('figmaVisualSnapshotSchema');
   expect(mainSource).toContain('BrowserWindow.getAllWindows()');
@@ -42,18 +59,22 @@ test('dev handoff связан с Figma plugin и loopback endpoint', async () =
   expect(preloadSource).toContain('onFigmaVisualSnapshot');
   expect(preloadSource).toContain('getLastFigmaVisualSnapshot');
   expect(preloadSource).toContain('[desengine:preload]');
-  expect(appSource).toContain('http://localhost:37645/figma/selection/latest');
-  expect(appSource).toContain('http://localhost:37645/figma/visual-snapshot/latest');
+  expect(appSource).toContain('createDevHandoffUrl');
+  expect(appSource).toContain('DESENGINE_SELECTION_PING_LATEST_ROUTE');
+  expect(appSource).toContain('DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE');
   expect(appSource).toContain('<img');
   expect(forgeSource).toContain('devContentSecurityPolicy');
   expect(forgeSource).toContain('connect-src');
   expect(forgeSource).toContain('http://localhost:*');
   expect(appSource).toContain('[desengine:renderer]');
-  expect(pluginSource).toContain('DESENGINE_DEV_HANDOFF_PORT');
-  expect(pluginSource).toContain('http://localhost');
+  expect(pluginSource).toContain('createDevHandoffUrl');
+  expect(pluginSource).toContain('DESENGINE_SELECTION_PING_ROUTE');
+  expect(pluginSource).toContain('DESENGINE_VISUAL_SNAPSHOT_ROUTE');
+  expect(pluginSource).toContain('exportNodeAsPngVisualSnapshot');
   expect(pluginSource).toContain('[desengine:figma]');
-  expect(pluginSource).toContain('exportAsync');
-  expect(pluginSource).toContain('data:image/png;base64');
+  expect(visualSnapshotSource).toContain('exportNodeAsPngVisualSnapshot');
+  expect(visualSnapshotSource).toContain('exportAsync');
+  expect(visualSnapshotSource).toContain('data:image/png;base64');
   expect(pluginManifest).toContain('"main": "dist/code.js"');
   expect(pluginManifest).toContain('http://localhost:37645');
 });

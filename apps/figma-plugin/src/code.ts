@@ -1,42 +1,19 @@
 import {
-  DESENGINE_DEV_HANDOFF_PORT,
   DESENGINE_DEV_SESSION_TOKEN,
   DESENGINE_PROTOCOL_VERSION,
+  DESENGINE_SELECTION_PING_ROUTE,
+  DESENGINE_VISUAL_SNAPSHOT_ROUTE,
+  createDevHandoffUrl,
   type FigmaSelectionPing,
-  type FigmaVisualSnapshot,
   type ProtocolStatus,
 } from '@desengine/protocol';
 
+import { exportNodeAsPngVisualSnapshot } from './visual-snapshot';
+
 declare const __html__: string;
 
-const selectionEndpointUrl = `http://localhost:${DESENGINE_DEV_HANDOFF_PORT}/figma/selection`;
-const visualSnapshotEndpointUrl = `http://localhost:${DESENGINE_DEV_HANDOFF_PORT}/figma/visual-snapshot`;
-
-function bytesToBase64(bytes: Uint8Array) {
-  let binary = '';
-  const chunkSize = 0x8000;
-
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    const chunk = bytes.subarray(index, index + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-
-  return btoa(binary);
-}
-
-function getNodeSize(node: SceneNode) {
-  if ('width' in node && 'height' in node) {
-    return {
-      width: node.width,
-      height: node.height,
-    };
-  }
-
-  return {
-    width: 0,
-    height: 0,
-  };
-}
+const selectionEndpointUrl = createDevHandoffUrl(DESENGINE_SELECTION_PING_ROUTE);
+const visualSnapshotEndpointUrl = createDevHandoffUrl(DESENGINE_VISUAL_SNAPSHOT_ROUTE);
 
 function readSelectionPing(): FigmaSelectionPing {
   const selectedNodeNames = figma.currentPage.selection.map((node) => node.name);
@@ -54,59 +31,20 @@ function readSelectionPing(): FigmaSelectionPing {
   return ping;
 }
 
-async function readVisualSnapshot(): Promise<FigmaVisualSnapshot> {
+async function readVisualSnapshot() {
   const node = figma.currentPage.selection[0];
 
   if (!node) {
     throw new Error('selection-empty');
   }
 
-  if (!('exportAsync' in node)) {
-    throw new Error('node-not-exportable');
-  }
-
-  const scale = 2;
-  console.log('[desengine:figma] exporting selected node as PNG', {
+  console.log('[desengine:figma] selected node prepared for visual snapshot', {
     id: node.id,
     name: node.name,
     type: node.type,
-    scale,
   });
 
-  const bytes = await node.exportAsync({
-    constraint: {
-      type: 'SCALE',
-      value: scale,
-    },
-    format: 'PNG',
-  });
-  const size = getNodeSize(node);
-  const snapshot: FigmaVisualSnapshot = {
-    protocolVersion: DESENGINE_PROTOCOL_VERSION,
-    sessionToken: DESENGINE_DEV_SESSION_TOKEN,
-    nodeId: node.id,
-    nodeName: node.name,
-    nodeType: node.type,
-    width: size.width,
-    height: size.height,
-    exportedAt: new Date().toISOString(),
-    image: {
-      format: 'png',
-      dataUrl: `data:image/png;base64,${bytesToBase64(bytes)}`,
-      scale,
-    },
-  };
-
-  console.log('[desengine:figma] visual snapshot prepared', {
-    nodeId: snapshot.nodeId,
-    nodeName: snapshot.nodeName,
-    nodeType: snapshot.nodeType,
-    width: snapshot.width,
-    height: snapshot.height,
-    dataUrlLength: snapshot.image.dataUrl.length,
-  });
-
-  return snapshot;
+  return exportNodeAsPngVisualSnapshot(node);
 }
 
 function postSelectionSummary() {

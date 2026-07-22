@@ -3,6 +3,16 @@ export const DESENGINE_PROTOCOL_VERSION = '0.0.1';
 export const DESENGINE_MAX_MESSAGE_BYTES = 8_000_000;
 export const DESENGINE_DEV_HANDOFF_PORT = 37645;
 export const DESENGINE_DEV_SESSION_TOKEN = 'desengine-dev-session';
+export const DESENGINE_HEALTH_ROUTE = '/health';
+export const DESENGINE_SELECTION_PING_ROUTE = '/figma/selection';
+export const DESENGINE_SELECTION_PING_LATEST_ROUTE = '/figma/selection/latest';
+export const DESENGINE_VISUAL_SNAPSHOT_ROUTE = '/figma/visual-snapshot';
+export const DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE = '/figma/visual-snapshot/latest';
+export const DESENGINE_VISUAL_SNAPSHOT_FORMAT = 'png';
+export const DESENGINE_VISUAL_SNAPSHOT_EXPORT_SCALE = 2;
+export function createDevHandoffUrl(route, host = 'localhost') {
+    return `http://${host}:${DESENGINE_DEV_HANDOFF_PORT}${route}`;
+}
 export const protocolVersionSchema = z.literal(DESENGINE_PROTOCOL_VERSION);
 export const protocolStatusSchema = z.object({
     protocolVersion: protocolVersionSchema,
@@ -34,7 +44,7 @@ export const figmaVisualSnapshotSchema = z.object({
     height: z.number().nonnegative(),
     exportedAt: z.string().datetime(),
     image: z.object({
-        format: z.literal('png'),
+        format: z.literal(DESENGINE_VISUAL_SNAPSHOT_FORMAT),
         dataUrl: z.string().startsWith('data:image/png;base64,'),
         scale: z.number().positive(),
     }),

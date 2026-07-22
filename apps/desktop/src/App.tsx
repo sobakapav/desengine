@@ -1,10 +1,15 @@
-import { DESENGINE_PROTOCOL_VERSION } from '@desengine/protocol';
+import {
+  DESENGINE_PROTOCOL_VERSION,
+  DESENGINE_SELECTION_PING_LATEST_ROUTE,
+  DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE,
+  createDevHandoffUrl,
+} from '@desengine/protocol';
 import type { FigmaSelectionPing, FigmaVisualSnapshot } from '@desengine/protocol';
 import { Image, Radio, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-const latestFigmaPingUrl = 'http://localhost:37645/figma/selection/latest';
-const latestVisualSnapshotUrl = 'http://localhost:37645/figma/visual-snapshot/latest';
+const latestFigmaPingUrl = createDevHandoffUrl(DESENGINE_SELECTION_PING_LATEST_ROUTE);
+const latestVisualSnapshotUrl = createDevHandoffUrl(DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE);
 
 const readinessItems = [
   {

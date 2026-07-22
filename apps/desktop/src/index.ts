@@ -3,8 +3,13 @@ import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 
 import {
   DESENGINE_DEV_HANDOFF_PORT,
+  DESENGINE_HEALTH_ROUTE,
   DESENGINE_MAX_MESSAGE_BYTES,
   DESENGINE_PROTOCOL_VERSION,
+  DESENGINE_SELECTION_PING_LATEST_ROUTE,
+  DESENGINE_SELECTION_PING_ROUTE,
+  DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE,
+  DESENGINE_VISUAL_SNAPSHOT_ROUTE,
   figmaSelectionPingSchema,
   figmaVisualSnapshotSchema,
   protocolStatusSchema,
@@ -207,7 +212,7 @@ function startDevHandoffEndpoint() {
       return;
     }
 
-    if (request.method === 'GET' && request.url === '/health') {
+    if (request.method === 'GET' && request.url === DESENGINE_HEALTH_ROUTE) {
       sendJson(response, 200, {
         protocolVersion: DESENGINE_PROTOCOL_VERSION,
         ok: true,
@@ -217,7 +222,7 @@ function startDevHandoffEndpoint() {
       return;
     }
 
-    if (request.method === 'GET' && request.url === '/figma/selection/latest') {
+    if (request.method === 'GET' && request.url === DESENGINE_SELECTION_PING_LATEST_ROUTE) {
       sendRawJson(response, 200, {
         protocolVersion: DESENGINE_PROTOCOL_VERSION,
         ping: lastFigmaSelectionPing,
@@ -225,7 +230,7 @@ function startDevHandoffEndpoint() {
       return;
     }
 
-    if (request.method === 'GET' && request.url === '/figma/visual-snapshot/latest') {
+    if (request.method === 'GET' && request.url === DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE) {
       sendRawJson(response, 200, {
         protocolVersion: DESENGINE_PROTOCOL_VERSION,
         snapshot: lastFigmaVisualSnapshot,
@@ -233,12 +238,12 @@ function startDevHandoffEndpoint() {
       return;
     }
 
-    if (request.method === 'POST' && request.url === '/figma/selection') {
+    if (request.method === 'POST' && request.url === DESENGINE_SELECTION_PING_ROUTE) {
       handleSelectionPing(request, response);
       return;
     }
 
-    if (request.method === 'POST' && request.url === '/figma/visual-snapshot') {
+    if (request.method === 'POST' && request.url === DESENGINE_VISUAL_SNAPSHOT_ROUTE) {
       handleVisualSnapshot(request, response);
       return;
     }

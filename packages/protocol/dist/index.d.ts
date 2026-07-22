@@ -3,6 +3,14 @@ export declare const DESENGINE_PROTOCOL_VERSION = "0.0.1";
 export declare const DESENGINE_MAX_MESSAGE_BYTES = 8000000;
 export declare const DESENGINE_DEV_HANDOFF_PORT = 37645;
 export declare const DESENGINE_DEV_SESSION_TOKEN = "desengine-dev-session";
+export declare const DESENGINE_HEALTH_ROUTE = "/health";
+export declare const DESENGINE_SELECTION_PING_ROUTE = "/figma/selection";
+export declare const DESENGINE_SELECTION_PING_LATEST_ROUTE = "/figma/selection/latest";
+export declare const DESENGINE_VISUAL_SNAPSHOT_ROUTE = "/figma/visual-snapshot";
+export declare const DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE = "/figma/visual-snapshot/latest";
+export declare const DESENGINE_VISUAL_SNAPSHOT_FORMAT = "png";
+export declare const DESENGINE_VISUAL_SNAPSHOT_EXPORT_SCALE = 2;
+export declare function createDevHandoffUrl(route: string, host?: string): string;
 export declare const protocolVersionSchema: z.ZodLiteral<"0.0.1">;
 export declare const protocolStatusSchema: z.ZodObject<{
     protocolVersion: z.ZodLiteral<"0.0.1">;

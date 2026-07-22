@@ -106,3 +106,9 @@ Desktop UI SHALL использовать Tailwind CSS как styling layer и s
 - **AND** payload ограничен по размеру
 - **AND** payload проверяется Zod-схемой
 - **AND** фиксированный dev token не считается production pairing
+
+#### Scenario: PNG visual snapshot имеет повторно используемый handoff-контракт
+
+- **WHEN** Figma plugin или desktop app работает с PNG visual snapshot
+- **THEN** route-константы, URL helper, format, export scale, Zod-схема и TypeScript-тип берутся из `@desengine/protocol`
+- **AND** Figma plugin экспортирует PNG через отдельный helper, принимающий `SceneNode`

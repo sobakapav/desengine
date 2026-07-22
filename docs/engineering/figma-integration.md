@@ -84,6 +84,12 @@ Figma plugin должен явно декларировать сетевые д�
 
 Visual snapshot нужен только для проверки живой визуальной связи Figma plugin -> local endpoint -> desktop renderer. Это не semantic model компонента. В development manifest используется `http://localhost:37645`, потому что Figma валидирует local dev domains в формате `localhost`.
 
+PNG visual snapshot оформлен как повторно используемый handoff-слой:
+
+- `@desengine/protocol` хранит route-константы, URL helper, формат PNG, export scale, Zod-схему и TypeScript-тип `FigmaVisualSnapshot`;
+- Figma plugin использует `exportNodeAsPngVisualSnapshot(node)` для экспорта любого переданного `SceneNode` в PNG snapshot;
+- desktop endpoint и renderer используют общие route-константы вместо ручного дублирования URL.
+
 Пример состава:
 
 - protocolVersion;
