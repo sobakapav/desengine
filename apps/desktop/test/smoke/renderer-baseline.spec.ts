@@ -88,6 +88,13 @@ test('dev handoff связан с Figma plugin и loopback endpoint', async () =
   expect(appSource).toContain('DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE');
   expect(appSource).toContain('DESENGINE_EXPLODED_FRAME_LATEST_ROUTE');
   expect(appSource).toContain('ExplodedFrameView');
+  expect(appSource).toContain('getExplodedCellImageClassName');
+  expect(appSource).toContain("cell.stopReason === 'instance'");
+  expect(appSource).toContain('border-violet-500');
+  expect(appSource).toContain('h-screen w-screen overflow-hidden');
+  expect(appSource).toContain('lg:grid-cols-[minmax(0,1fr)_320px]');
+  expect(appSource).toContain('overflow-auto rounded border border-border bg-card');
+  expect(appSource).toContain('min-h-max min-w-max');
   expect(appSource).toContain('<img');
   expect(forgeSource).toContain('devContentSecurityPolicy');
   expect(forgeSource).toContain('connect-src');

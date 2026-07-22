@@ -124,6 +124,8 @@ Desktop UI SHALL использовать Tailwind CSS как styling layer и s
 - **AND** payload содержит depth, parent node id, path и stop reason leaf-элемента
 - **AND** main process валидирует payload через `@desengine/protocol`
 - **AND** renderer показывает frame reference и вынесенные children как визуальную взрыв-схему
+- **AND** leaf-элементы со stop reason `instance` выделяются фиолетовой рамкой
+- **AND** рабочая область результата занимает всё доступное окно и прокручивается по горизонтали и вертикали
 
 #### Scenario: Кнопка взрыв-схемы недоступна для неподходящего выбора
 

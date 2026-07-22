@@ -32,6 +32,16 @@ const readinessItems = [
   },
 ];
 
+function getExplodedCellImageClassName(
+  cell: FigmaExplodedFrameSnapshot['cells'][number],
+) {
+  if (cell.stopReason === 'instance') {
+    return 'absolute rounded border-2 border-violet-500 bg-transparent shadow-[0_0_0_2px_rgba(139,92,246,0.18)]';
+  }
+
+  return 'absolute rounded border border-border bg-transparent shadow-sm';
+}
+
 function ExplodedFrameView({ snapshot }: { snapshot: FigmaExplodedFrameSnapshot }) {
   const frameWidth = Math.max(snapshot.frame.width, 1);
   const frameHeight = Math.max(snapshot.frame.height, 1);
@@ -43,15 +53,15 @@ function ExplodedFrameView({ snapshot }: { snapshot: FigmaExplodedFrameSnapshot 
   const stageHeight = Math.max(260, maxCellBottom * scale + Math.min(snapshot.cells.length * 5, 200) + 48);
 
   return (
-    <div className="grid h-full w-full gap-6 lg:grid-cols-[0.8fr_1.2fr]">
-      <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded border border-border bg-background p-4">
+    <div className="grid min-h-max min-w-max gap-6 lg:grid-cols-[360px_auto]">
+      <div className="flex h-[440px] w-[360px] items-center justify-center overflow-hidden rounded border border-border bg-background p-4">
         <img
           alt={snapshot.frame.nodeName}
           className="max-h-full max-w-full object-contain"
           src={snapshot.frame.image.dataUrl}
         />
       </div>
-      <div className="flex min-h-[360px] items-center justify-center overflow-hidden rounded border border-border bg-background p-4">
+      <div className="flex items-start justify-start rounded border border-border bg-background p-4">
         <div
           aria-label="Взрыв-схема frame"
           className="relative"
@@ -73,7 +83,7 @@ function ExplodedFrameView({ snapshot }: { snapshot: FigmaExplodedFrameSnapshot 
             <img
               key={cell.nodeId}
               alt={cell.nodeName}
-              className="absolute rounded border border-border bg-transparent shadow-sm"
+              className={getExplodedCellImageClassName(cell)}
               src={cell.image.dataUrl}
               style={{
                 height: Math.max(cell.height * scale, 1),
@@ -225,8 +235,8 @@ export function App() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <section className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-6">
+    <main className="h-screen w-screen overflow-hidden bg-background text-foreground">
+      <section className="flex h-full w-full flex-col px-6 py-6">
         <header className="flex items-center justify-between border-b border-border pb-4">
           <div>
             <p className="text-sm text-muted-foreground">desktop player</p>
@@ -237,18 +247,20 @@ export function App() {
           </div>
         </header>
 
-        <div className="grid flex-1 gap-6 py-8 lg:grid-cols-[1.5fr_0.5fr]">
-          <section className="flex min-h-[520px] items-center justify-center overflow-hidden rounded border border-border bg-card p-6">
+        <div className="grid min-h-0 flex-1 gap-6 py-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="min-h-0 overflow-auto rounded border border-border bg-card p-6">
             {explodedFrame ? (
               <ExplodedFrameView snapshot={explodedFrame} />
             ) : visualSnapshot ? (
-              <img
-                alt={visualSnapshot.nodeName}
-                className="max-h-full max-w-full object-contain"
-                src={visualSnapshot.image.dataUrl}
-              />
+              <div className="flex min-h-full min-w-full items-center justify-center">
+                <img
+                  alt={visualSnapshot.nodeName}
+                  className="max-h-full max-w-full object-contain"
+                  src={visualSnapshot.image.dataUrl}
+                />
+              </div>
             ) : (
-              <div className="grid place-items-center gap-3 text-center text-muted-foreground">
+              <div className="grid min-h-full place-items-center gap-3 text-center text-muted-foreground">
                 <div className="flex h-16 w-16 items-center justify-center rounded border border-border bg-secondary">
                   <Image aria-hidden="true" className="h-8 w-8" />
                 </div>
@@ -260,7 +272,7 @@ export function App() {
             )}
           </section>
 
-          <aside className="space-y-3">
+          <aside className="min-h-0 space-y-3 overflow-auto">
             {readinessItems.map((item) => (
               <div key={item.title} className="rounded border border-border bg-card p-4">
                 <p className="text-sm text-muted-foreground">{item.title}</p>
