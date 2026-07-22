@@ -15,6 +15,7 @@ test('renderer baseline связан с React, Tailwind и protocol package', as
 
 test('dev handoff связан с Figma plugin и loopback endpoint', async () => {
   const appSource = await fs.readFile(path.join(process.cwd(), 'src/App.tsx'), 'utf8');
+  const forgeSource = await fs.readFile(path.join(process.cwd(), 'forge.config.ts'), 'utf8');
   const mainSource = await fs.readFile(path.join(process.cwd(), 'src/index.ts'), 'utf8');
   const preloadSource = await fs.readFile(path.join(process.cwd(), 'src/preload.ts'), 'utf8');
   const pluginSource = await fs.readFile(
@@ -37,6 +38,9 @@ test('dev handoff связан с Figma plugin и loopback endpoint', async () =
   expect(preloadSource).toContain('getLastFigmaSelectionPing');
   expect(preloadSource).toContain('[desengine:preload]');
   expect(appSource).toContain('http://localhost:37645/figma/selection/latest');
+  expect(forgeSource).toContain('devContentSecurityPolicy');
+  expect(forgeSource).toContain('connect-src');
+  expect(forgeSource).toContain('http://localhost:*');
   expect(appSource).toContain('[desengine:renderer]');
   expect(pluginSource).toContain('DESENGINE_DEV_HANDOFF_PORT');
   expect(pluginSource).toContain('http://localhost');
