@@ -82,7 +82,7 @@ Desktop UI SHALL использовать Tailwind CSS как styling layer и s
 
 ### Requirement: Dev handoff между Figma plugin и desktop должен быть живым минимальным контуром
 
-Система SHALL иметь минимальный development-only handoff, который показывает, что Figma plugin может отправить selection ping в desktop app через loopback endpoint.
+Система SHALL иметь минимальный development-only handoff, который показывает, что Figma plugin может отправить selection ping и PNG visual snapshot в desktop app через loopback endpoint.
 
 #### Scenario: Desktop принимает Figma selection ping
 
@@ -90,6 +90,14 @@ Desktop UI SHALL использовать Tailwind CSS как styling layer и s
 - **AND** Figma plugin отправляет `POST /figma/selection` на `127.0.0.1:37645`
 - **THEN** main process валидирует payload через `@desengine/protocol`
 - **AND** renderer показывает количество выбранных объектов и их имена
+
+#### Scenario: Desktop показывает PNG выбранного Figma node
+
+- **WHEN** пользователь выбирает один Figma node
+- **AND** Figma plugin экспортирует его через `exportAsync` в PNG
+- **AND** plugin отправляет `POST /figma/visual-snapshot` на `127.0.0.1:37645`
+- **THEN** main process валидирует payload через `@desengine/protocol`
+- **AND** renderer показывает PNG как основной визуальный preview
 
 #### Scenario: Handoff endpoint остаётся development-only
 

@@ -22,6 +22,7 @@
 - [x] Создать минимальный TypeScript Figma plugin skeleton для dev handoff smoke.
 - [x] Поднять dev-only loopback endpoint `127.0.0.1:37645` в Electron main process.
 - [x] Показать последний Figma selection ping в desktop renderer.
+- [x] Экспортировать выбранный Figma node в PNG и показать его в desktop renderer.
 - [x] Добавить Playwright smoke skeleton и команды запуска.
 - [ ] Обсудить первый пользовательский workflow.
 - [ ] После утверждения workflow добавить delta specs по пользовательскому поведению.

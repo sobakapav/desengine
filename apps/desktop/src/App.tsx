@@ -1,11 +1,10 @@
 import { DESENGINE_PROTOCOL_VERSION } from '@desengine/protocol';
-import type { FigmaSelectionPing } from '@desengine/protocol';
-import { GitBranch, Play, Radio, ShieldCheck } from 'lucide-react';
+import type { FigmaSelectionPing, FigmaVisualSnapshot } from '@desengine/protocol';
+import { Image, Radio, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { Button } from './components/ui/button';
-
 const latestFigmaPingUrl = 'http://localhost:37645/figma/selection/latest';
+const latestVisualSnapshotUrl = 'http://localhost:37645/figma/visual-snapshot/latest';
 
 const readinessItems = [
   {
@@ -24,6 +23,7 @@ const readinessItems = [
 
 export function App() {
   const [lastPing, setLastPing] = useState<FigmaSelectionPing | undefined>();
+  const [visualSnapshot, setVisualSnapshot] = useState<FigmaVisualSnapshot | undefined>();
   const [handoffSource, setHandoffSource] = useState<'ожидаю' | 'endpoint' | 'ipc'>('ожидаю');
 
   useEffect(() => {
@@ -40,9 +40,26 @@ export function App() {
       }
     });
 
+    window.desengine?.getLastFigmaVisualSnapshot().then((snapshot) => {
+      console.log('[desengine:renderer] last visual snapshot from IPC request', snapshot);
+
+      if (snapshot) {
+        setVisualSnapshot(snapshot);
+        setHandoffSource('ipc');
+      }
+    });
+
     const unsubscribe = window.desengine?.onFigmaSelectionPing((ping) => {
       console.log('[desengine:renderer] ping received via IPC subscription', ping);
       setLastPing(ping);
+      setHandoffSource('ipc');
+    });
+    const unsubscribeVisualSnapshot = window.desengine?.onFigmaVisualSnapshot((snapshot) => {
+      console.log('[desengine:renderer] visual snapshot received via IPC subscription', {
+        nodeId: snapshot.nodeId,
+        nodeName: snapshot.nodeName,
+      });
+      setVisualSnapshot(snapshot);
       setHandoffSource('ipc');
     });
 
@@ -62,11 +79,33 @@ export function App() {
         .catch((error) => {
           console.warn('[desengine:renderer] polling failed', error);
         });
+
+      console.log('[desengine:renderer] polling latest visual snapshot', {
+        latestVisualSnapshotUrl,
+      });
+
+      fetch(latestVisualSnapshotUrl)
+        .then((response) => response.json() as Promise<{ snapshot?: FigmaVisualSnapshot }>)
+        .then((payload) => {
+          console.log('[desengine:renderer] visual snapshot polling response', {
+            hasSnapshot: Boolean(payload.snapshot),
+            nodeName: payload.snapshot?.nodeName,
+          });
+
+          if (payload.snapshot) {
+            setVisualSnapshot(payload.snapshot);
+            setHandoffSource('endpoint');
+          }
+        })
+        .catch((error) => {
+          console.warn('[desengine:renderer] visual snapshot polling failed', error);
+        });
     }, 1000);
 
     return () => {
       console.log('[desengine:renderer] App unmounted');
       unsubscribe?.();
+      unsubscribeVisualSnapshot?.();
       window.clearInterval(poll);
     };
   }, []);
@@ -84,33 +123,25 @@ export function App() {
           </div>
         </header>
 
-        <div className="grid flex-1 gap-6 py-8 lg:grid-cols-[1.3fr_0.7fr]">
-          <section className="flex flex-col justify-between rounded border border-border bg-card p-6">
-            <div className="space-y-5">
-              <div className="flex h-12 w-12 items-center justify-center rounded border border-border bg-secondary text-secondary-foreground">
-                <Play aria-hidden="true" className="h-6 w-6" />
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-xl font-semibold tracking-normal">
-                  Минимальная основа renderer готовится к player-слою
-                </h2>
-                <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Этот экран проверяет, что Electron renderer уже работает как React-приложение
-                  и получает версию общего протокола из workspace-пакета.
+        <div className="grid flex-1 gap-6 py-8 lg:grid-cols-[1.5fr_0.5fr]">
+          <section className="flex min-h-[520px] items-center justify-center overflow-hidden rounded border border-border bg-card p-6">
+            {visualSnapshot ? (
+              <img
+                alt={visualSnapshot.nodeName}
+                className="max-h-full max-w-full object-contain"
+                src={visualSnapshot.image.dataUrl}
+              />
+            ) : (
+              <div className="grid place-items-center gap-3 text-center text-muted-foreground">
+                <div className="flex h-16 w-16 items-center justify-center rounded border border-border bg-secondary">
+                  <Image aria-hidden="true" className="h-8 w-8" />
+                </div>
+                <p className="max-w-sm text-sm leading-6">
+                  Выберите объект в Figma и отправьте его в desengine, чтобы увидеть визуальный
+                  снимок.
                 </p>
               </div>
-            </div>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button type="button">
-                <Play aria-hidden="true" className="h-4 w-4" />
-                Player baseline
-              </Button>
-              <Button type="button" variant="secondary">
-                <GitBranch aria-hidden="true" className="h-4 w-4" />
-                Схема позже
-              </Button>
-            </div>
+            )}
           </section>
 
           <aside className="space-y-3">
@@ -125,7 +156,15 @@ export function App() {
                 <Radio aria-hidden="true" className="h-4 w-4 text-primary" />
                 Figma dev handoff
               </div>
-              {lastPing ? (
+              {visualSnapshot ? (
+                <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                  <p>{visualSnapshot.nodeName}</p>
+                  <p>
+                    {Math.round(visualSnapshot.width)} x {Math.round(visualSnapshot.height)}
+                  </p>
+                  <p>Источник: {handoffSource}</p>
+                </div>
+              ) : lastPing ? (
                 <div className="mt-2 space-y-2 text-sm text-muted-foreground">
                   <p>Получено объектов: {lastPing.selectionCount}</p>
                   <p>Источник: {handoffSource}</p>

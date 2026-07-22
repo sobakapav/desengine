@@ -25,13 +25,13 @@ Tailwind CSS и shadcn/ui-compatible компоненты подключаютс
 
 Figma plugin должен отправлять JSON snapshot выбранного компонента или variant set в desktop app. Figma остаётся источником истины.
 
-До утверждения первого workflow Figma plugin содержит только development handoff smoke: TypeScript plugin читает количество и имена выбранных объектов и отправляет selection ping в desktop app. Это не полноценный snapshot и не продуктовый workflow.
+До утверждения первого workflow Figma plugin содержит только development handoff smoke: TypeScript plugin читает выбор, экспортирует первый выбранный node в PNG через `exportAsync` и отправляет selection ping + visual snapshot в desktop app. Это не полноценный semantic snapshot и не продуктовый workflow.
 
 `desengine://` используется для запуска приложения и pairing, а не как канал для больших payload.
 
 Local endpoint принимает данные только на loopback и только после pairing. Все payload проходят schema validation.
 
-Shared protocol сейчас содержит версию, минимальный status/error-контракт и dev selection ping. Snapshot-схемы добавляются позже, до реализации payload transfer, чтобы plugin и desktop не дублировали формат вручную.
+Shared protocol сейчас содержит версию, минимальный status/error-контракт, dev selection ping и visual snapshot для PNG preview. Semantic snapshot-схемы добавляются позже, до реализации payload transfer, чтобы plugin и desktop не дублировали формат вручную.
 
 Схемы поведения остаются secondary mode. Primary mode - player поведения компонента.
 

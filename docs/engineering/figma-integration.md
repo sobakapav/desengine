@@ -59,7 +59,9 @@ Figma plugin должен явно декларировать сетевые д�
 
 Первый snapshot должен быть JSON, а не кодом.
 
-Текущий dev smoke пока не отправляет snapshot. Он отправляет только selection ping:
+Текущий dev smoke отправляет два payload:
+
+1. selection ping:
 
 - protocolVersion;
 - фиксированный dev sessionToken;
@@ -67,7 +69,20 @@ Figma plugin должен явно декларировать сетевые д�
 - selectedNodeNames;
 - sentAt.
 
-Этот ping нужен только для проверки живой связи Figma plugin -> local endpoint -> desktop renderer. В development manifest используется `http://localhost:37645`, потому что Figma валидирует local dev domains в формате `localhost`.
+2. visual snapshot:
+
+- protocolVersion;
+- фиксированный dev sessionToken;
+- nodeId;
+- nodeName;
+- nodeType;
+- width;
+- height;
+- PNG `dataUrl`;
+- export scale;
+- exportedAt.
+
+Visual snapshot нужен только для проверки живой визуальной связи Figma plugin -> local endpoint -> desktop renderer. Это не semantic model компонента. В development manifest используется `http://localhost:37645`, потому что Figma валидирует local dev domains в формате `localhost`.
 
 Пример состава:
 

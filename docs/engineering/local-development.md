@@ -83,7 +83,7 @@ npm start --workspace @desengine/desktop
 4. запустить plugin `desengine`;
 5. нажать `Отправить выбор`.
 
-Если desktop app запущено, renderer покажет количество выбранных объектов и их имена. Figma manifest использует `http://localhost:37645`, а Electron endpoint слушает loopback. Этот handoff использует фиксированный dev token и не является production pairing.
+Если desktop app запущено, renderer покажет PNG выбранного объекта как основной preview. Figma manifest использует `http://localhost:37645`, а Electron endpoint слушает loopback. Этот handoff использует фиксированный dev token и не является production pairing.
 
 ## Workspace
 

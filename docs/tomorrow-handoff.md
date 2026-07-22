@@ -89,7 +89,7 @@ npm run build
 - React renderer baseline;
 - Tailwind CSS через существующий Webpack/PostCSS renderer pipeline;
 - shadcn/ui-compatible `components.json`, `cn` и первый локальный UI-компонент;
-- минимальный Zod status-контракт и dev selection ping в `@desengine/protocol`;
+- минимальный Zod status-контракт, dev selection ping и PNG visual snapshot в `@desengine/protocol`;
 - TypeScript Figma plugin skeleton для живого dev handoff;
 - Electron loopback endpoint `localhost:37645`;
 - Playwright smoke skeleton.

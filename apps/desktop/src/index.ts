@@ -6,8 +6,10 @@ import {
   DESENGINE_MAX_MESSAGE_BYTES,
   DESENGINE_PROTOCOL_VERSION,
   figmaSelectionPingSchema,
+  figmaVisualSnapshotSchema,
   protocolStatusSchema,
   type FigmaSelectionPing,
+  type FigmaVisualSnapshot,
   type ProtocolStatus,
 } from '@desengine/protocol';
 
@@ -17,6 +19,7 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 let mainWindow: BrowserWindow | undefined;
 let handoffServer: http.Server | undefined;
 let lastFigmaSelectionPing: FigmaSelectionPing | undefined;
+let lastFigmaVisualSnapshot: FigmaVisualSnapshot | undefined;
 
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -121,6 +124,68 @@ async function handleSelectionPing(request: IncomingMessage, response: ServerRes
   }
 }
 
+async function handleVisualSnapshot(request: IncomingMessage, response: ServerResponse) {
+  console.log('[desengine:desktop-endpoint] incoming visual snapshot');
+
+  try {
+    const body = await readRequestBody(request);
+    console.log('[desengine:desktop-endpoint] visual snapshot body read', {
+      bytes: Buffer.byteLength(body, 'utf8'),
+    });
+
+    const parsed = figmaVisualSnapshotSchema.safeParse(JSON.parse(body));
+
+    if (!parsed.success) {
+      console.warn('[desengine:desktop-endpoint] visual snapshot rejected', parsed.error);
+
+      sendJson(response, 400, {
+        protocolVersion: DESENGINE_PROTOCOL_VERSION,
+        ok: false,
+        code: 'invalid-payload',
+        message: 'desengine отклонил visual snapshot: payload не прошёл schema validation.',
+      });
+      return;
+    }
+
+    lastFigmaVisualSnapshot = parsed.data;
+    console.log('[desengine:desktop-endpoint] visual snapshot accepted', {
+      nodeId: lastFigmaVisualSnapshot.nodeId,
+      nodeName: lastFigmaVisualSnapshot.nodeName,
+      nodeType: lastFigmaVisualSnapshot.nodeType,
+      width: lastFigmaVisualSnapshot.width,
+      height: lastFigmaVisualSnapshot.height,
+      dataUrlLength: lastFigmaVisualSnapshot.image.dataUrl.length,
+    });
+
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (!window.isDestroyed()) {
+        console.log('[desengine:desktop-ipc] sending visual snapshot to renderer window', {
+          windowId: window.id,
+        });
+        window.webContents.send('figma-visual-snapshot', lastFigmaVisualSnapshot);
+      }
+    }
+
+    sendJson(response, 200, {
+      protocolVersion: DESENGINE_PROTOCOL_VERSION,
+      ok: true,
+      code: 'accepted',
+      message: 'desengine получил визуальный снимок из Figma.',
+    });
+  } catch (error) {
+    console.error('[desengine:desktop-endpoint] visual snapshot failed', error);
+
+    sendJson(response, error instanceof Error && error.message === 'payload-too-large' ? 413 : 400, {
+      protocolVersion: DESENGINE_PROTOCOL_VERSION,
+      ok: false,
+      code: error instanceof Error && error.message === 'payload-too-large'
+        ? 'payload-too-large'
+        : 'invalid-payload',
+      message: 'desengine не смог прочитать visual snapshot.',
+    });
+  }
+}
+
 function startDevHandoffEndpoint() {
   if (handoffServer) {
     return;
@@ -160,8 +225,21 @@ function startDevHandoffEndpoint() {
       return;
     }
 
+    if (request.method === 'GET' && request.url === '/figma/visual-snapshot/latest') {
+      sendRawJson(response, 200, {
+        protocolVersion: DESENGINE_PROTOCOL_VERSION,
+        snapshot: lastFigmaVisualSnapshot,
+      });
+      return;
+    }
+
     if (request.method === 'POST' && request.url === '/figma/selection') {
       handleSelectionPing(request, response);
+      return;
+    }
+
+    if (request.method === 'POST' && request.url === '/figma/visual-snapshot') {
+      handleVisualSnapshot(request, response);
       return;
     }
 
@@ -215,6 +293,13 @@ app.on('ready', () => {
     });
 
     return lastFigmaSelectionPing;
+  });
+  ipcMain.handle('figma-visual-snapshot:get-last', () => {
+    console.log('[desengine:desktop-ipc] renderer requested last visual snapshot', {
+      hasSnapshot: Boolean(lastFigmaVisualSnapshot),
+    });
+
+    return lastFigmaVisualSnapshot;
   });
   startDevHandoffEndpoint();
   createWindow();

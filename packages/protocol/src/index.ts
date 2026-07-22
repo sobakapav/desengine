@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const DESENGINE_PROTOCOL_VERSION = '0.0.1';
-export const DESENGINE_MAX_MESSAGE_BYTES = 2_000_000;
+export const DESENGINE_MAX_MESSAGE_BYTES = 8_000_000;
 export const DESENGINE_DEV_HANDOFF_PORT = 37645;
 export const DESENGINE_DEV_SESSION_TOKEN = 'desengine-dev-session';
 
@@ -32,3 +32,21 @@ export const figmaSelectionPingSchema = z.object({
 });
 
 export type FigmaSelectionPing = z.infer<typeof figmaSelectionPingSchema>;
+
+export const figmaVisualSnapshotSchema = z.object({
+  protocolVersion: protocolVersionSchema,
+  sessionToken: z.literal(DESENGINE_DEV_SESSION_TOKEN),
+  nodeId: z.string().min(1).max(200),
+  nodeName: z.string().min(1).max(200),
+  nodeType: z.string().min(1).max(100),
+  width: z.number().nonnegative(),
+  height: z.number().nonnegative(),
+  exportedAt: z.string().datetime(),
+  image: z.object({
+    format: z.literal('png'),
+    dataUrl: z.string().startsWith('data:image/png;base64,'),
+    scale: z.number().positive(),
+  }),
+});
+
+export type FigmaVisualSnapshot = z.infer<typeof figmaVisualSnapshotSchema>;
