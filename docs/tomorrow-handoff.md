@@ -89,14 +89,16 @@ npm run build
 - React renderer baseline;
 - Tailwind CSS через существующий Webpack/PostCSS renderer pipeline;
 - shadcn/ui-compatible `components.json`, `cn` и первый локальный UI-компонент;
-- минимальный Zod status-контракт `@desengine/protocol`;
+- минимальный Zod status-контракт и dev selection ping в `@desengine/protocol`;
+- TypeScript Figma plugin skeleton для живого dev handoff;
+- Electron loopback endpoint `127.0.0.1:37645`;
 - Playwright smoke skeleton.
 
 Дальше:
 
 1. выполнить внешнюю проверку `npm run typecheck`, `npm run build`, `npm run test:smoke`;
 2. обсудить первый пользовательский workflow;
-3. после утверждения workflow проектировать Figma plugin skeleton, Figma snapshot, behavior model, pairing и local endpoint.
+3. после утверждения workflow проектировать полноценный Figma snapshot, behavior model, pairing и production local endpoint.
 
 ## Что не делать завтра без отдельного решения
 

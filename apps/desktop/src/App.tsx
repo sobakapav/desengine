@@ -1,5 +1,7 @@
 import { DESENGINE_PROTOCOL_VERSION } from '@desengine/protocol';
-import { GitBranch, Play, ShieldCheck } from 'lucide-react';
+import type { FigmaSelectionPing } from '@desengine/protocol';
+import { GitBranch, Play, Radio, ShieldCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import { Button } from './components/ui/button';
 
@@ -19,6 +21,12 @@ const readinessItems = [
 ];
 
 export function App() {
+  const [lastPing, setLastPing] = useState<FigmaSelectionPing | undefined>();
+
+  useEffect(() => {
+    return window.desengine?.onFigmaSelectionPing(setLastPing);
+  }, []);
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="mx-auto flex min-h-screen w-full max-w-5xl flex-col px-6 py-6">
@@ -68,6 +76,26 @@ export function App() {
                 <p className="mt-1 font-medium">{item.value}</p>
               </div>
             ))}
+            <div className="rounded border border-border bg-card p-4">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Radio aria-hidden="true" className="h-4 w-4 text-primary" />
+                Figma dev handoff
+              </div>
+              {lastPing ? (
+                <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                  <p>Получено объектов: {lastPing.selectionCount}</p>
+                  <p>
+                    {lastPing.selectedNodeNames.length > 0
+                      ? lastPing.selectedNodeNames.join(', ')
+                      : 'Выбор пустой'}
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  Ожидаю ping от Figma plugin на 127.0.0.1:37645.
+                </p>
+              )}
+            </div>
             <div className="rounded border border-border bg-card p-4">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <ShieldCheck aria-hidden="true" className="h-4 w-4 text-primary" />

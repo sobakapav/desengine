@@ -25,13 +25,13 @@ Tailwind CSS и shadcn/ui-compatible компоненты подключаютс
 
 Figma plugin должен отправлять JSON snapshot выбранного компонента или variant set в desktop app. Figma остаётся источником истины.
 
-До утверждения первого workflow Figma plugin не строится даже как рабочая заготовка. Manifest, сборка plugin и payload shape добавляются отдельным шагом, когда будет понятен первый пользовательский сценарий.
+До утверждения первого workflow Figma plugin содержит только development handoff smoke: TypeScript plugin читает количество и имена выбранных объектов и отправляет selection ping в desktop app. Это не полноценный snapshot и не продуктовый workflow.
 
 `desengine://` используется для запуска приложения и pairing, а не как канал для больших payload.
 
 Local endpoint принимает данные только на loopback и только после pairing. Все payload проходят schema validation.
 
-Shared protocol сейчас содержит только версию и минимальный status/error-контракт. Snapshot-схемы добавляются позже, до реализации payload transfer, чтобы plugin и desktop не дублировали формат вручную.
+Shared protocol сейчас содержит версию, минимальный status/error-контракт и dev selection ping. Snapshot-схемы добавляются позже, до реализации payload transfer, чтобы plugin и desktop не дублировали формат вручную.
 
 Схемы поведения остаются secondary mode. Primary mode - player поведения компонента.
 
@@ -41,6 +41,7 @@ Shared protocol сейчас содержит только версию и ми�
 - Figma Desktop MCP и Figma plugin local endpoint могут иметь разные ограничения по окружению.
 - До проектирования первого workflow легко преждевременно построить лишнюю структуру приложения.
 - Playwright Electron automation остаётся отдельным smoke-слоем и может требовать packaged executable или специального тестового режима запуска.
+- Dev token в Figma handoff нужен только для smoke. Production pairing должен быть отдельным решением.
 
 ## Open Questions
 

@@ -66,7 +66,7 @@ Figma plugin отвечает за действие со стороны Figma: �
 
 Plugin и desktop-приложение должны говорить через общий typed protocol. Нельзя дублировать формат сообщений вручную в двух местах.
 
-Текущий Figma plugin слой не реализован даже как рабочая заготовка. Manifest, сборка plugin и payload shape добавляются после утверждения первого workflow.
+Текущий Figma plugin слой реализован как минимальный TypeScript dev handoff smoke. Он отправляет selection ping в desktop app на `127.0.0.1:37645`; полноценный snapshot, pairing и продуктовый workflow добавляются позже.
 
 ## Open questions
 

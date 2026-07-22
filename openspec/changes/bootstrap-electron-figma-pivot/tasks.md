@@ -19,7 +19,9 @@
 - [x] Добавить shadcn/ui-compatible заготовки: `components.json`, `cn` и первый локальный UI-компонент.
 - [x] Добавить минимальный Zod status-контракт в `@desengine/protocol`.
 - [ ] Создать workspace-заготовки `@desengine/figma-adapter` и `@desengine/behavior-model` после утверждения первого workflow.
-- [ ] Создать Figma plugin skeleton после утверждения первого workflow и решения о сборке plugin.
+- [x] Создать минимальный TypeScript Figma plugin skeleton для dev handoff smoke.
+- [x] Поднять dev-only loopback endpoint `127.0.0.1:37645` в Electron main process.
+- [x] Показать последний Figma selection ping в desktop renderer.
 - [x] Добавить Playwright smoke skeleton и команды запуска.
 - [ ] Обсудить первый пользовательский workflow.
 - [ ] После утверждения workflow добавить delta specs по пользовательскому поведению.

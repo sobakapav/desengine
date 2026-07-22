@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        margin: 0;
+        background: #f8fafc;
+        color: #1f2937;
+        font-family: Inter, sans-serif;
+      }
+
+      main {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 16px;
+      }
+
+      p {
+        margin: 0;
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      button {
+        border: 1px solid #0f766e;
+        border-radius: 6px;
+        background: #0f766e;
+        color: white;
+        padding: 7px 10px;
+        font: inherit;
+        font-size: 12px;
+      }
+
+      button.secondary {
+        border-color: #cbd5e1;
+        background: white;
+        color: #334155;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>desengine</h1>
+      <p id="selection">Выберите компонент или variant set в Figma.</p>
+      <p id="status">Готов к dev handoff на 127.0.0.1:37645.</p>
+      <div class="actions">
+        <button id="send" type="button">Отправить выбор</button>
+        <button class="secondary" id="close" type="button">Закрыть</button>
+      </div>
+    </main>
+    <script>
+      const selection = document.getElementById('selection');
+      const status = document.getElementById('status');
+
+      window.onmessage = (event) => {
+        const message = event.data.pluginMessage;
+
+        if (message?.type === 'desengine:selection-summary') {
+          selection.textContent =
+            message.selectionCount > 0
+              ? `Выбрано объектов: ${message.selectionCount}.`
+              : 'Выберите компонент или variant set в Figma.';
+        }
+
+        if (message?.type === 'desengine:send-result') {
+          status.textContent = message.message;
+        }
+      };
+
+      document.getElementById('send').addEventListener('click', () => {
+        status.textContent = 'Отправка...';
+        parent.postMessage({ pluginMessage: { type: 'desengine:send-selection' } }, '*');
+      });
+
+      document.getElementById('close').addEventListener('click', () => {
+        parent.postMessage({ pluginMessage: { type: 'desengine:close' } }, '*');
+      });
+    </script>
+  </body>
+</html>

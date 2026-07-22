@@ -1,0 +1,14 @@
+{
+  "name": "desengine",
+  "id": "desengine-dev",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "ui": "src/ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "devAllowedDomains": ["http://127.0.0.1:37645"],
+    "reasoning": "Dev smoke sends a minimal selection ping to the local desengine desktop app on loopback."
+  }
+}

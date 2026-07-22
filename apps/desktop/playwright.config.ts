@@ -10,7 +10,7 @@ export default defineConfig({
   projects: [
     {
       name: 'renderer-contract',
-      testMatch: /smoke\/renderer-baseline\.spec\.ts/,
+      testMatch: /smoke\/.*\.spec\.ts/,
     },
     {
       name: 'desktop-launch',

@@ -79,3 +79,22 @@ Desktop UI SHALL использовать Tailwind CSS как styling layer и s
 - **WHEN** внешний проверяющий запускает `DESENGINE_DESKTOP_EXECUTABLE=<path> npm run test:desktop --workspace @desengine/desktop`
 - **THEN** Playwright запускает packaged desktop app
 - **AND** проверяет наличие главного окна desengine
+
+### Requirement: Dev handoff между Figma plugin и desktop должен быть живым минимальным контуром
+
+Система SHALL иметь минимальный development-only handoff, который показывает, что Figma plugin может отправить selection ping в desktop app через loopback endpoint.
+
+#### Scenario: Desktop принимает Figma selection ping
+
+- **WHEN** Electron desktop app запущено локально
+- **AND** Figma plugin отправляет `POST /figma/selection` на `127.0.0.1:37645`
+- **THEN** main process валидирует payload через `@desengine/protocol`
+- **AND** renderer показывает количество выбранных объектов и их имена
+
+#### Scenario: Handoff endpoint остаётся development-only
+
+- **WHEN** dev endpoint принимает request
+- **THEN** endpoint слушает только `127.0.0.1`
+- **AND** payload ограничен по размеру
+- **AND** payload проверяется Zod-схемой
+- **AND** фиксированный dev token не считается production pairing

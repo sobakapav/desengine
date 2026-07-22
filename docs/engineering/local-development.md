@@ -66,6 +66,25 @@ DESENGINE_DESKTOP_EXECUTABLE=<path> npm run test:desktop --workspace @desengine/
 
 Этот smoke использует Playwright Electron automation и не считается базовой SSH-friendly проверкой.
 
+## Figma dev handoff
+
+Минимальная локальная проверка связи Figma и desktop:
+
+```bash
+npm run build
+npm start --workspace @desengine/desktop
+```
+
+В Figma Desktop App:
+
+1. открыть `Plugins -> Development -> Import plugin from manifest...`;
+2. выбрать `apps/figma-plugin/manifest.json`;
+3. выбрать один или несколько объектов на странице;
+4. запустить plugin `desengine`;
+5. нажать `Отправить выбор`.
+
+Если desktop app запущено, renderer покажет количество выбранных объектов и их имена. Этот handoff использует фиксированный dev token и не является production pairing.
+
 ## Workspace
 
 Корневой `package.json` использует npm workspaces:

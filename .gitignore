@@ -15,6 +15,7 @@
 /dist
 /out
 /coverage
+apps/*/dist
 
 # Локальные рабочие файлы
 *.code-workspace

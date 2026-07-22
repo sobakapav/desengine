@@ -23,7 +23,7 @@
 
 Следующие рабочие шаги:
 
-1. выполнить внешнюю проверку React/Tailwind/protocol baseline;
+1. выполнить внешнюю проверку React/Tailwind/protocol/Figma dev handoff baseline;
 2. обсудить первый пользовательский workflow;
 3. после утверждения workflow добавить delta specs по пользовательскому поведению;
 4. расширять Figma snapshot, behavior model и local endpoint только от утверждённого workflow.
