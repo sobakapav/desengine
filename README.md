@@ -15,19 +15,18 @@
 - `desengine://` как механизм запуска и pairing;
 - React UI в renderer;
 - схемы поведения через `@xyflow/react` и `elkjs`;
-- минималистичный UI на Tailwind CSS, shadcn/ui и lucide-icons.
+- минималистичный UI на Tailwind CSS, shadcn/ui-compatible локальных компонентах и lucide-icons.
 
 Главная продуктовая гипотеза: пользователь работает не с "редактором автоматов", а с player поведения компонента. Figma остаётся источником истины, а схемы поведения являются вспомогательным режимом для проверки веток и переходов.
 
 ## С чего продолжать
 
-Первый следующий рабочий шаг:
+Следующие рабочие шаги:
 
-1. перевести Electron renderer на React;
-2. подключить `@desengine/protocol` к desktop UI;
-3. показать минимальный экран desengine с текущей версией протокола;
-4. проверить локально `npm run typecheck` и `npm run build`;
-5. после этого переходить к первому пользовательскому workflow.
+1. выполнить внешнюю проверку React/Tailwind/protocol baseline;
+2. обсудить первый пользовательский workflow;
+3. после утверждения workflow добавить delta specs по пользовательскому поведению;
+4. расширять Figma snapshot, behavior model и local endpoint только от утверждённого workflow.
 
 Подробный handoff: [docs/tomorrow-handoff.md](docs/tomorrow-handoff.md).
 
@@ -36,6 +35,7 @@
 ```bash
 npm run typecheck
 npm run build
+npm run test:smoke
 npm run package:desktop
 npm run make:desktop
 ```

@@ -22,9 +22,9 @@
 - `desengine://` для запуска и pairing
 - local endpoint для передачи данных
 
-Уже установлены Electron, React, Zustand, Motion, lucide-icons, `@xyflow/react`, `elkjs`, TypeScript и `zod`.
+Уже установлены Electron, React, Zustand, Motion, lucide-icons, `@xyflow/react`, `elkjs`, TypeScript, `zod`, Tailwind CSS, shadcn/ui CLI-зависимости, Playwright и базовые React typings.
 
-Tailwind CSS и shadcn/ui пока не подключены. Их стоит добавлять после минимального React renderer baseline, чтобы не смешивать проверку desktop/workspace-инфраструктуры с настройкой визуального слоя.
+Tailwind CSS подключён к существующему Webpack renderer через PostCSS. shadcn/ui используется как compatible source-layer: `components.json`, `cn` helper и локальные компоненты живут внутри `apps/desktop`, без смены Electron Forge/Webpack рамки.
 
 ## Desktop shell
 
@@ -37,6 +37,8 @@ Webpack + TypeScript выбран как более консервативный
 ## UI
 
 React отвечает за renderer-интерфейс.
+
+Минимальный desktop renderer baseline показывает рабочий экран `desengine` и версию `@desengine/protocol`. Полная структура пользовательского workflow пока не строится.
 
 Tailwind CSS используется как низкоуровневый styling layer.
 
@@ -63,6 +65,8 @@ D3.js пока не входит в базовый стек. Его стоит �
 Figma plugin отвечает за действие со стороны Figma: пользователь выбирает компонент или variant set и отправляет нужный snapshot в desktop-приложение.
 
 Plugin и desktop-приложение должны говорить через общий typed protocol. Нельзя дублировать формат сообщений вручную в двух местах.
+
+Текущий Figma plugin слой не реализован даже как рабочая заготовка. Manifest, сборка plugin и payload shape добавляются после утверждения первого workflow.
 
 ## Open questions
 

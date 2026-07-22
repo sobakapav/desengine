@@ -12,8 +12,15 @@
 - [x] Зафиксировать handoff-документацию для продолжения.
 - [x] Зафиксировать текущий уровень проверки: `npm run typecheck`, `npm run build`, `npm audit --omit=dev`, GitHub Actions `Checks`, GitHub Actions `Desktop Package`.
 - [x] Зафиксировать, что мок-данные и live credentials для текущего bootstrap-этапа не нужны.
-- [ ] Перевести Electron renderer на React.
-- [ ] Подключить `@desengine/protocol` к desktop UI.
-- [ ] Показать минимальный экран с версией протокола.
+- [x] Перевести Electron renderer на React.
+- [x] Подключить `@desengine/protocol` к desktop UI.
+- [x] Показать минимальный экран с версией протокола.
+- [x] Подключить Tailwind CSS к существующему Webpack renderer без смены сборщика.
+- [x] Добавить shadcn/ui-compatible заготовки: `components.json`, `cn` и первый локальный UI-компонент.
+- [x] Добавить минимальный Zod status-контракт в `@desengine/protocol`.
+- [ ] Создать workspace-заготовки `@desengine/figma-adapter` и `@desengine/behavior-model` после утверждения первого workflow.
+- [ ] Создать Figma plugin skeleton после утверждения первого workflow и решения о сборке plugin.
+- [x] Добавить Playwright smoke skeleton и команды запуска.
 - [ ] Обсудить первый пользовательский workflow.
 - [ ] После утверждения workflow добавить delta specs по пользовательскому поведению.
+- [ ] Выполнить внешнюю проверку нового baseline другим агентом или пользователем.

@@ -24,10 +24,11 @@
 npm ci
 npm run typecheck
 npm run build
+npm run test:smoke
 npm audit --omit=dev
 ```
 
-`Checks` уже запускался для побочной ветки и прошёл.
+`Checks` уже запускался для побочной ветки и прошёл до появления Playwright smoke skeleton. После обновления workflow `test:smoke` должен стать частью обычной проверки.
 
 ### Desktop Package
 

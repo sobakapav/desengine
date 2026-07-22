@@ -9,6 +9,7 @@
 ```bash
 npm run typecheck
 npm run build
+npm run test:smoke
 ```
 
 `npm run build` в корне не должен собирать Electron package. Он собирает кодовые пакеты, которые должны работать без GUI и без desktop packaging.
@@ -42,6 +43,29 @@ npm run build --workspace @desengine/protocol
 
 Этот пакет должен оставаться общим источником контрактов для Figma plugin и desktop app. Форматы сообщений нельзя дублировать вручную в разных приложениях.
 
+## UI baseline
+
+Desktop renderer использует React, Tailwind CSS и локальные shadcn/ui-compatible компоненты внутри `apps/desktop`.
+
+Команды:
+
+```bash
+npm run test:smoke
+npm run test:smoke --workspace @desengine/desktop
+```
+
+`test:smoke` сейчас проверяет renderer contract: связь React entrypoint, Tailwind CSS и `@desengine/protocol`. Это не заменяет desktop launch smoke.
+
+## Desktop smoke
+
+Packaged desktop smoke запускается отдельно, когда есть готовый executable:
+
+```bash
+DESENGINE_DESKTOP_EXECUTABLE=<path> npm run test:desktop --workspace @desengine/desktop
+```
+
+Этот smoke использует Playwright Electron automation и не считается базовой SSH-friendly проверкой.
+
 ## Workspace
 
 Корневой `package.json` использует npm workspaces:
@@ -65,5 +89,6 @@ npm install @desengine/protocol@0.0.1 --workspace @desengine/desktop
 
 - `npm run typecheck` проходит;
 - `npm run build` проходит;
+- `npm run test:smoke` проходит, если изменение затрагивает renderer baseline;
 - изменения отражены в документации или OpenSpec, если поменялось поведение системы;
 - `git status --short` показывает ожидаемые изменения.

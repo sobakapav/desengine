@@ -82,15 +82,21 @@ npm run build
 
 ## Следующий шаг
 
-Начать не с Figma plugin и не с полноценной структуры приложения, а с минимального renderer baseline:
+Обновление 2026-07-22: минимальный renderer baseline и инфраструктурные заготовки уже добавлены. Следующий шаг теперь не в создании экрана, а во внешней проверке и обсуждении первого пользовательского workflow.
 
-1. перевести renderer на React;
-2. импортировать `DESENGINE_PROTOCOL_VERSION` из `@desengine/protocol`;
-3. показать простой рабочий экран desengine;
-4. убедиться, что workspace package реально связан с desktop app;
-5. обновить документацию, если появятся новые команды или ограничения.
+Добавлено:
 
-После этого обсуждать первый пользовательский workflow и только затем проектировать структуру приложения.
+- React renderer baseline;
+- Tailwind CSS через существующий Webpack/PostCSS renderer pipeline;
+- shadcn/ui-compatible `components.json`, `cn` и первый локальный UI-компонент;
+- минимальный Zod status-контракт `@desengine/protocol`;
+- Playwright smoke skeleton.
+
+Дальше:
+
+1. выполнить внешнюю проверку `npm run typecheck`, `npm run build`, `npm run test:smoke`;
+2. обсудить первый пользовательский workflow;
+3. после утверждения workflow проектировать Figma plugin skeleton, Figma snapshot, behavior model, pairing и local endpoint.
 
 ## Что не делать завтра без отдельного решения
 
