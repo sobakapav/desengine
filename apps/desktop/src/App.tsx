@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 
 import { Button } from './components/ui/button';
 
+const latestFigmaPingUrl = 'http://localhost:37645/figma/selection/latest';
+
 const readinessItems = [
   {
     title: 'Renderer',
@@ -22,15 +24,51 @@ const readinessItems = [
 
 export function App() {
   const [lastPing, setLastPing] = useState<FigmaSelectionPing | undefined>();
+  const [handoffSource, setHandoffSource] = useState<'ожидаю' | 'endpoint' | 'ipc'>('ожидаю');
 
   useEffect(() => {
+    console.log('[desengine:renderer] App mounted', {
+      hasDesktopApi: Boolean(window.desengine),
+    });
+
     window.desengine?.getLastFigmaSelectionPing().then((ping) => {
+      console.log('[desengine:renderer] last ping from IPC request', ping);
+
       if (ping) {
         setLastPing(ping);
+        setHandoffSource('ipc');
       }
     });
 
-    return window.desengine?.onFigmaSelectionPing(setLastPing);
+    const unsubscribe = window.desengine?.onFigmaSelectionPing((ping) => {
+      console.log('[desengine:renderer] ping received via IPC subscription', ping);
+      setLastPing(ping);
+      setHandoffSource('ipc');
+    });
+
+    const poll = window.setInterval(() => {
+      console.log('[desengine:renderer] polling latest ping', { latestFigmaPingUrl });
+
+      fetch(latestFigmaPingUrl)
+        .then((response) => response.json() as Promise<{ ping?: FigmaSelectionPing }>)
+        .then((payload) => {
+          console.log('[desengine:renderer] polling response', payload);
+
+          if (payload.ping) {
+            setLastPing(payload.ping);
+            setHandoffSource('endpoint');
+          }
+        })
+        .catch((error) => {
+          console.warn('[desengine:renderer] polling failed', error);
+        });
+    }, 1000);
+
+    return () => {
+      console.log('[desengine:renderer] App unmounted');
+      unsubscribe?.();
+      window.clearInterval(poll);
+    };
   }, []);
 
   return (
@@ -90,6 +128,7 @@ export function App() {
               {lastPing ? (
                 <div className="mt-2 space-y-2 text-sm text-muted-foreground">
                   <p>Получено объектов: {lastPing.selectionCount}</p>
+                  <p>Источник: {handoffSource}</p>
                   <p>
                     {lastPing.selectedNodeNames.length > 0
                       ? lastPing.selectedNodeNames.join(', ')

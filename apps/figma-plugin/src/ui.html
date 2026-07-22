@@ -80,11 +80,13 @@
       };
 
       document.getElementById('send').addEventListener('click', () => {
+        console.log('[desengine:figma-ui] send button clicked');
         status.textContent = 'Отправка...';
         parent.postMessage({ pluginMessage: { type: 'desengine:send-selection' } }, '*');
       });
 
       document.getElementById('close').addEventListener('click', () => {
+        console.log('[desengine:figma-ui] close button clicked');
         parent.postMessage({ pluginMessage: { type: 'desengine:close' } }, '*');
       });
     </script>

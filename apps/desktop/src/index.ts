@@ -23,11 +23,29 @@ if (require('electron-squirrel-startup')) {
 }
 
 function sendJson(response: ServerResponse, statusCode: number, payload: ProtocolStatus) {
+  console.log('[desengine:desktop-endpoint] response', {
+    statusCode,
+    payload,
+  });
+
   response.writeHead(statusCode, {
     'access-control-allow-origin': '*',
     'content-type': 'application/json; charset=utf-8',
   });
   response.end(JSON.stringify(protocolStatusSchema.parse(payload)));
+}
+
+function sendRawJson(response: ServerResponse, statusCode: number, payload: unknown) {
+  console.log('[desengine:desktop-endpoint] raw response', {
+    statusCode,
+    payload,
+  });
+
+  response.writeHead(statusCode, {
+    'access-control-allow-origin': '*',
+    'content-type': 'application/json; charset=utf-8',
+  });
+  response.end(JSON.stringify(payload));
 }
 
 function readRequestBody(request: IncomingMessage): Promise<string> {
@@ -49,11 +67,19 @@ function readRequestBody(request: IncomingMessage): Promise<string> {
 }
 
 async function handleSelectionPing(request: IncomingMessage, response: ServerResponse) {
+  console.log('[desengine:desktop-endpoint] incoming selection ping');
+
   try {
     const body = await readRequestBody(request);
+    console.log('[desengine:desktop-endpoint] request body read', {
+      bytes: Buffer.byteLength(body, 'utf8'),
+    });
+
     const parsed = figmaSelectionPingSchema.safeParse(JSON.parse(body));
 
     if (!parsed.success) {
+      console.warn('[desengine:desktop-endpoint] selection ping rejected', parsed.error);
+
       sendJson(response, 400, {
         protocolVersion: DESENGINE_PROTOCOL_VERSION,
         ok: false,
@@ -64,9 +90,13 @@ async function handleSelectionPing(request: IncomingMessage, response: ServerRes
     }
 
     lastFigmaSelectionPing = parsed.data;
+    console.log('[desengine:desktop-endpoint] selection ping accepted', lastFigmaSelectionPing);
 
     for (const window of BrowserWindow.getAllWindows()) {
       if (!window.isDestroyed()) {
+        console.log('[desengine:desktop-ipc] sending ping to renderer window', {
+          windowId: window.id,
+        });
         window.webContents.send('figma-selection-ping', lastFigmaSelectionPing);
       }
     }
@@ -78,6 +108,8 @@ async function handleSelectionPing(request: IncomingMessage, response: ServerRes
       message: 'desengine получил Figma selection ping.',
     });
   } catch (error) {
+    console.error('[desengine:desktop-endpoint] selection ping failed', error);
+
     sendJson(response, error instanceof Error && error.message === 'payload-too-large' ? 413 : 400, {
       protocolVersion: DESENGINE_PROTOCOL_VERSION,
       ok: false,
@@ -95,6 +127,11 @@ function startDevHandoffEndpoint() {
   }
 
   handoffServer = http.createServer((request, response) => {
+    console.log('[desengine:desktop-endpoint] request', {
+      method: request.method,
+      url: request.url,
+    });
+
     response.setHeader('access-control-allow-origin', '*');
     response.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS');
     response.setHeader('access-control-allow-headers', 'content-type');
@@ -115,6 +152,14 @@ function startDevHandoffEndpoint() {
       return;
     }
 
+    if (request.method === 'GET' && request.url === '/figma/selection/latest') {
+      sendRawJson(response, 200, {
+        protocolVersion: DESENGINE_PROTOCOL_VERSION,
+        ping: lastFigmaSelectionPing,
+      });
+      return;
+    }
+
     if (request.method === 'POST' && request.url === '/figma/selection') {
       handleSelectionPing(request, response);
       return;
@@ -128,7 +173,12 @@ function startDevHandoffEndpoint() {
     });
   });
 
-  handoffServer.listen(DESENGINE_DEV_HANDOFF_PORT, '127.0.0.1');
+  handoffServer.listen(DESENGINE_DEV_HANDOFF_PORT, '127.0.0.1', () => {
+    console.log('[desengine:desktop-endpoint] listening', {
+      host: '127.0.0.1',
+      port: DESENGINE_DEV_HANDOFF_PORT,
+    });
+  });
 }
 
 const createWindow = (): void => {
@@ -159,7 +209,13 @@ const createWindow = (): void => {
 };
 
 app.on('ready', () => {
-  ipcMain.handle('figma-selection-ping:get-last', () => lastFigmaSelectionPing);
+  ipcMain.handle('figma-selection-ping:get-last', () => {
+    console.log('[desengine:desktop-ipc] renderer requested last ping', {
+      hasPing: Boolean(lastFigmaSelectionPing),
+    });
+
+    return lastFigmaSelectionPing;
+  });
   startDevHandoffEndpoint();
   createWindow();
 });
