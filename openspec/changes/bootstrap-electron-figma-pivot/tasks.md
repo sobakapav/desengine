@@ -25,7 +25,11 @@
 - [x] Экспортировать выбранный Figma node в PNG и показать его в desktop renderer.
 - [x] Оформить PNG visual snapshot как повторно используемый handoff-слой через `@desengine/protocol` и Figma helper.
 - [x] Добавить MVP взрыв-схемы auto-layout Frame на основе рекурсивного PNG-сбора leaf-элементов.
+- [x] Расширить рабочую область desktop renderer для просмотра больших взрыв-схем.
+- [x] Выделить instance leaf-элементы фиолетовой рамкой через отдельную функцию стилизации.
 - [x] Добавить Playwright smoke skeleton и команды запуска.
-- [ ] Обсудить первый пользовательский workflow.
+- [x] Обсудить первый пользовательский workflow: визуальная взрыв-схема Figma auto-layout Frame.
+- [ ] Спроектировать source binding между Figma node и desengine object.
+- [ ] Спроектировать обратный запрос Figma plugin -> desengine для JSON-данных и генерации вариантов.
 - [ ] После утверждения workflow добавить delta specs по пользовательскому поведению.
 - [ ] Выполнить внешнюю проверку нового baseline другим агентом или пользователем.

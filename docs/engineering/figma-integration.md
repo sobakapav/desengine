@@ -102,6 +102,20 @@ PNG visual snapshot оформлен как повторно используе�
 
 MVP не мутирует Figma-документ и не пытается извлекать semantic layout beyond recursive auto-layout structure.
 
+## Следующие архитектурные вопросы
+
+### Source binding
+
+desengine должен уметь связывать собственный объект с Figma-источником, чтобы повторный Figma snapshot обновлял дизайн-данные, но не стирал локальные свойства desengine: положение на холсте, стиль отображения, пометки, grouping и overrides.
+
+Минимальная связь для MVP: `fileKey + nodeId`. Дальше нужен fallback matching для случаев, когда Figma node был удалён и создан заново.
+
+### Обратный запрос Figma -> desengine
+
+Figma plugin может запрашивать у desengine JSON-данные для выбранного объекта. Например, plugin отправляет selected frame и получает набор вариантов текстового заполнения.
+
+desengine не должен напрямую изменять Figma-документ. Он возвращает typed JSON instructions, а Figma plugin применяет их через Figma API.
+
 Пример состава:
 
 - protocolVersion;

@@ -79,11 +79,15 @@ npm start --workspace @desengine/desktop
 
 1. открыть `Plugins -> Development -> Import plugin from manifest...`;
 2. выбрать `apps/figma-plugin/manifest.json`;
-3. выбрать один или несколько объектов на странице;
+3. выбрать auto-layout Frame на странице;
 4. запустить plugin `desengine`;
-5. нажать `Отправить выбор`.
+5. нажать `Создать взрыв-схему`.
 
-Если desktop app запущено, renderer покажет PNG выбранного объекта как основной preview. Figma manifest использует `http://localhost:37645`, а Electron endpoint слушает loopback. Этот handoff использует фиксированный dev token и не является production pairing.
+Если desktop app запущено, renderer покажет взрыв-схему выбранного Frame. Plugin рекурсивно раскрывает auto-layout Frame до глубины 4, останавливается на instance, не-auto-layout frame или не-frame node и отправляет до 100 PNG leaf-элементов с координатами относительно root frame.
+
+Кнопка `Отправить выбор` остаётся диагностическим действием: она отправляет selection ping и PNG выбранного объекта как базовую проверку handoff.
+
+Figma manifest использует `http://localhost:37645`, а Electron endpoint слушает loopback. Этот handoff использует фиксированный dev token и не является production pairing.
 
 ## Workspace
 

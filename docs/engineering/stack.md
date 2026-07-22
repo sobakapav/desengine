@@ -66,13 +66,17 @@ Figma plugin отвечает за действие со стороны Figma: �
 
 Plugin и desktop-приложение должны говорить через общий typed protocol. Нельзя дублировать формат сообщений вручную в двух местах.
 
-Текущий Figma plugin слой реализован как минимальный TypeScript dev handoff smoke. Он отправляет selection ping и PNG visual snapshot в desktop app на `127.0.0.1:37645`; полноценный semantic snapshot, pairing и продуктовый workflow добавляются позже.
+Текущий Figma plugin слой реализован как TypeScript dev handoff. Он отправляет selection ping, PNG visual snapshot и MVP exploded frame snapshot в desktop app через local endpoint `127.0.0.1:37645`.
+
+Exploded frame snapshot рекурсивно раскрывает auto-layout Frame до глубины 4, останавливается на instance, не-auto-layout frame или не-frame node и передаёт до 100 PNG leaf-элементов с координатами относительно root frame. Полноценный semantic snapshot, source binding, pairing и production workflow добавляются позже.
 
 ## Open questions
 
 - первый workflow пользователя;
 - локальная модель проекта;
-- формат Figma snapshot;
+- source binding между Figma node и desengine object;
+- обратный запрос Figma plugin -> desengine для JSON-данных и генерации вариантов;
+- формат полноценного semantic Figma snapshot;
 - формат behavior model;
 - pairing между plugin и desktop app;
 - fallback, если desktop app не установлен или недоступен;
