@@ -1,15 +1,21 @@
 import {
+  DESENGINE_EXPLODED_FRAME_LATEST_ROUTE,
   DESENGINE_PROTOCOL_VERSION,
   DESENGINE_SELECTION_PING_LATEST_ROUTE,
   DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE,
   createDevHandoffUrl,
 } from '@desengine/protocol';
-import type { FigmaSelectionPing, FigmaVisualSnapshot } from '@desengine/protocol';
+import type {
+  FigmaExplodedFrameSnapshot,
+  FigmaSelectionPing,
+  FigmaVisualSnapshot,
+} from '@desengine/protocol';
 import { Image, Radio, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const latestFigmaPingUrl = createDevHandoffUrl(DESENGINE_SELECTION_PING_LATEST_ROUTE);
 const latestVisualSnapshotUrl = createDevHandoffUrl(DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE);
+const latestExplodedFrameUrl = createDevHandoffUrl(DESENGINE_EXPLODED_FRAME_LATEST_ROUTE);
 
 const readinessItems = [
   {
@@ -22,13 +28,69 @@ const readinessItems = [
   },
   {
     title: 'Transport',
-    value: 'ожидает workflow',
+    value: 'Figma handoff',
   },
 ];
+
+function ExplodedFrameView({ snapshot }: { snapshot: FigmaExplodedFrameSnapshot }) {
+  const frameWidth = Math.max(snapshot.frame.width, 1);
+  const frameHeight = Math.max(snapshot.frame.height, 1);
+  const scale = Math.min(1, 400 / frameWidth, 440 / frameHeight);
+  const stageWidth = Math.max(260, frameWidth * scale + snapshot.cells.length * 28 + 48);
+  const stageHeight = Math.max(260, frameHeight * scale + snapshot.cells.length * 16 + 48);
+
+  return (
+    <div className="grid h-full w-full gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+      <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded border border-border bg-background p-4">
+        <img
+          alt={snapshot.frame.nodeName}
+          className="max-h-full max-w-full object-contain"
+          src={snapshot.frame.image.dataUrl}
+        />
+      </div>
+      <div className="flex min-h-[360px] items-center justify-center overflow-hidden rounded border border-border bg-background p-4">
+        <div
+          aria-label="Взрыв-схема frame"
+          className="relative"
+          style={{
+            height: stageHeight,
+            width: stageWidth,
+          }}
+        >
+          <div
+            className="absolute rounded border border-dashed border-muted-foreground/50"
+            style={{
+              height: frameHeight * scale,
+              left: 12,
+              top: 12,
+              width: frameWidth * scale,
+            }}
+          />
+          {snapshot.cells.map((cell) => (
+            <img
+              key={cell.nodeId}
+              alt={cell.nodeName}
+              className="absolute rounded border border-border bg-transparent shadow-sm"
+              src={cell.image.dataUrl}
+              style={{
+                height: Math.max(cell.height * scale, 1),
+                left: 12 + cell.x * scale + cell.index * 28,
+                top: 12 + cell.y * scale + cell.index * 16,
+                width: Math.max(cell.width * scale, 1),
+                zIndex: cell.index + 1,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function App() {
   const [lastPing, setLastPing] = useState<FigmaSelectionPing | undefined>();
   const [visualSnapshot, setVisualSnapshot] = useState<FigmaVisualSnapshot | undefined>();
+  const [explodedFrame, setExplodedFrame] = useState<FigmaExplodedFrameSnapshot | undefined>();
   const [handoffSource, setHandoffSource] = useState<'ожидаю' | 'endpoint' | 'ipc'>('ожидаю');
 
   useEffect(() => {
@@ -54,6 +116,18 @@ export function App() {
       }
     });
 
+    window.desengine?.getLastFigmaExplodedFrame().then((snapshot) => {
+      console.log('[desengine:renderer] last exploded frame from IPC request', {
+        hasSnapshot: Boolean(snapshot),
+        frameName: snapshot?.frame.nodeName,
+      });
+
+      if (snapshot) {
+        setExplodedFrame(snapshot);
+        setHandoffSource('ipc');
+      }
+    });
+
     const unsubscribe = window.desengine?.onFigmaSelectionPing((ping) => {
       console.log('[desengine:renderer] ping received via IPC subscription', ping);
       setLastPing(ping);
@@ -65,6 +139,15 @@ export function App() {
         nodeName: snapshot.nodeName,
       });
       setVisualSnapshot(snapshot);
+      setHandoffSource('ipc');
+    });
+    const unsubscribeExplodedFrame = window.desengine?.onFigmaExplodedFrame((snapshot) => {
+      console.log('[desengine:renderer] exploded frame received via IPC subscription', {
+        frameId: snapshot.frame.nodeId,
+        frameName: snapshot.frame.nodeName,
+        cellCount: snapshot.cellCount,
+      });
+      setExplodedFrame(snapshot);
       setHandoffSource('ipc');
     });
 
@@ -105,12 +188,35 @@ export function App() {
         .catch((error) => {
           console.warn('[desengine:renderer] visual snapshot polling failed', error);
         });
+
+      console.log('[desengine:renderer] polling latest exploded frame', {
+        latestExplodedFrameUrl,
+      });
+
+      fetch(latestExplodedFrameUrl)
+        .then((response) => response.json() as Promise<{ snapshot?: FigmaExplodedFrameSnapshot }>)
+        .then((payload) => {
+          console.log('[desengine:renderer] exploded frame polling response', {
+            hasSnapshot: Boolean(payload.snapshot),
+            frameName: payload.snapshot?.frame.nodeName,
+            cellCount: payload.snapshot?.cellCount,
+          });
+
+          if (payload.snapshot) {
+            setExplodedFrame(payload.snapshot);
+            setHandoffSource('endpoint');
+          }
+        })
+        .catch((error) => {
+          console.warn('[desengine:renderer] exploded frame polling failed', error);
+        });
     }, 1000);
 
     return () => {
       console.log('[desengine:renderer] App unmounted');
       unsubscribe?.();
       unsubscribeVisualSnapshot?.();
+      unsubscribeExplodedFrame?.();
       window.clearInterval(poll);
     };
   }, []);
@@ -130,7 +236,9 @@ export function App() {
 
         <div className="grid flex-1 gap-6 py-8 lg:grid-cols-[1.5fr_0.5fr]">
           <section className="flex min-h-[520px] items-center justify-center overflow-hidden rounded border border-border bg-card p-6">
-            {visualSnapshot ? (
+            {explodedFrame ? (
+              <ExplodedFrameView snapshot={explodedFrame} />
+            ) : visualSnapshot ? (
               <img
                 alt={visualSnapshot.nodeName}
                 className="max-h-full max-w-full object-contain"
@@ -161,7 +269,13 @@ export function App() {
                 <Radio aria-hidden="true" className="h-4 w-4 text-primary" />
                 Figma dev handoff
               </div>
-              {visualSnapshot ? (
+              {explodedFrame ? (
+                <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                  <p>{explodedFrame.frame.nodeName}</p>
+                  <p>Ячеек: {explodedFrame.cellCount}</p>
+                  <p>Источник: {handoffSource}</p>
+                </div>
+              ) : visualSnapshot ? (
                 <div className="mt-2 space-y-2 text-sm text-muted-foreground">
                   <p>{visualSnapshot.nodeName}</p>
                   <p>

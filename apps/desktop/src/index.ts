@@ -3,6 +3,8 @@ import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 
 import {
   DESENGINE_DEV_HANDOFF_PORT,
+  DESENGINE_EXPLODED_FRAME_LATEST_ROUTE,
+  DESENGINE_EXPLODED_FRAME_ROUTE,
   DESENGINE_HEALTH_ROUTE,
   DESENGINE_MAX_MESSAGE_BYTES,
   DESENGINE_PROTOCOL_VERSION,
@@ -10,9 +12,11 @@ import {
   DESENGINE_SELECTION_PING_ROUTE,
   DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE,
   DESENGINE_VISUAL_SNAPSHOT_ROUTE,
+  figmaExplodedFrameSnapshotSchema,
   figmaSelectionPingSchema,
   figmaVisualSnapshotSchema,
   protocolStatusSchema,
+  type FigmaExplodedFrameSnapshot,
   type FigmaSelectionPing,
   type FigmaVisualSnapshot,
   type ProtocolStatus,
@@ -25,6 +29,7 @@ let mainWindow: BrowserWindow | undefined;
 let handoffServer: http.Server | undefined;
 let lastFigmaSelectionPing: FigmaSelectionPing | undefined;
 let lastFigmaVisualSnapshot: FigmaVisualSnapshot | undefined;
+let lastFigmaExplodedFrameSnapshot: FigmaExplodedFrameSnapshot | undefined;
 
 if (require('electron-squirrel-startup')) {
   app.quit();
@@ -191,6 +196,66 @@ async function handleVisualSnapshot(request: IncomingMessage, response: ServerRe
   }
 }
 
+async function handleExplodedFrameSnapshot(request: IncomingMessage, response: ServerResponse) {
+  console.log('[desengine:desktop-endpoint] incoming exploded frame snapshot');
+
+  try {
+    const body = await readRequestBody(request);
+    console.log('[desengine:desktop-endpoint] exploded frame body read', {
+      bytes: Buffer.byteLength(body, 'utf8'),
+    });
+
+    const parsed = figmaExplodedFrameSnapshotSchema.safeParse(JSON.parse(body));
+
+    if (!parsed.success) {
+      console.warn('[desengine:desktop-endpoint] exploded frame rejected', parsed.error);
+
+      sendJson(response, 400, {
+        protocolVersion: DESENGINE_PROTOCOL_VERSION,
+        ok: false,
+        code: 'invalid-payload',
+        message: 'desengine отклонил exploded frame: payload не прошёл schema validation.',
+      });
+      return;
+    }
+
+    lastFigmaExplodedFrameSnapshot = parsed.data;
+    console.log('[desengine:desktop-endpoint] exploded frame accepted', {
+      frameId: lastFigmaExplodedFrameSnapshot.frame.nodeId,
+      frameName: lastFigmaExplodedFrameSnapshot.frame.nodeName,
+      layoutMode: lastFigmaExplodedFrameSnapshot.layoutMode,
+      cellCount: lastFigmaExplodedFrameSnapshot.cellCount,
+    });
+
+    for (const window of BrowserWindow.getAllWindows()) {
+      if (!window.isDestroyed()) {
+        console.log('[desengine:desktop-ipc] sending exploded frame to renderer window', {
+          windowId: window.id,
+        });
+        window.webContents.send('figma-exploded-frame', lastFigmaExplodedFrameSnapshot);
+      }
+    }
+
+    sendJson(response, 200, {
+      protocolVersion: DESENGINE_PROTOCOL_VERSION,
+      ok: true,
+      code: 'accepted',
+      message: 'desengine получил взрыв-схему frame из Figma.',
+    });
+  } catch (error) {
+    console.error('[desengine:desktop-endpoint] exploded frame failed', error);
+
+    sendJson(response, error instanceof Error && error.message === 'payload-too-large' ? 413 : 400, {
+      protocolVersion: DESENGINE_PROTOCOL_VERSION,
+      ok: false,
+      code: error instanceof Error && error.message === 'payload-too-large'
+        ? 'payload-too-large'
+        : 'invalid-payload',
+      message: 'desengine не смог прочитать exploded frame.',
+    });
+  }
+}
+
 function startDevHandoffEndpoint() {
   if (handoffServer) {
     return;
@@ -238,6 +303,14 @@ function startDevHandoffEndpoint() {
       return;
     }
 
+    if (request.method === 'GET' && request.url === DESENGINE_EXPLODED_FRAME_LATEST_ROUTE) {
+      sendRawJson(response, 200, {
+        protocolVersion: DESENGINE_PROTOCOL_VERSION,
+        snapshot: lastFigmaExplodedFrameSnapshot,
+      });
+      return;
+    }
+
     if (request.method === 'POST' && request.url === DESENGINE_SELECTION_PING_ROUTE) {
       handleSelectionPing(request, response);
       return;
@@ -245,6 +318,11 @@ function startDevHandoffEndpoint() {
 
     if (request.method === 'POST' && request.url === DESENGINE_VISUAL_SNAPSHOT_ROUTE) {
       handleVisualSnapshot(request, response);
+      return;
+    }
+
+    if (request.method === 'POST' && request.url === DESENGINE_EXPLODED_FRAME_ROUTE) {
+      handleExplodedFrameSnapshot(request, response);
       return;
     }
 
@@ -305,6 +383,13 @@ app.on('ready', () => {
     });
 
     return lastFigmaVisualSnapshot;
+  });
+  ipcMain.handle('figma-exploded-frame:get-last', () => {
+    console.log('[desengine:desktop-ipc] renderer requested last exploded frame', {
+      hasSnapshot: Boolean(lastFigmaExplodedFrameSnapshot),
+    });
+
+    return lastFigmaExplodedFrameSnapshot;
   });
   startDevHandoffEndpoint();
   createWindow();

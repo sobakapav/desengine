@@ -1,12 +1,18 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-import type { FigmaSelectionPing, FigmaVisualSnapshot } from '@desengine/protocol';
+import type {
+  FigmaExplodedFrameSnapshot,
+  FigmaSelectionPing,
+  FigmaVisualSnapshot,
+} from '@desengine/protocol';
 
 export interface DesengineDesktopApi {
   getLastFigmaSelectionPing: () => Promise<FigmaSelectionPing | undefined>;
   getLastFigmaVisualSnapshot: () => Promise<FigmaVisualSnapshot | undefined>;
+  getLastFigmaExplodedFrame: () => Promise<FigmaExplodedFrameSnapshot | undefined>;
   onFigmaSelectionPing: (handler: (ping: FigmaSelectionPing) => void) => () => void;
   onFigmaVisualSnapshot: (handler: (snapshot: FigmaVisualSnapshot) => void) => () => void;
+  onFigmaExplodedFrame: (handler: (snapshot: FigmaExplodedFrameSnapshot) => void) => () => void;
 }
 
 const api: DesengineDesktopApi = {
@@ -22,6 +28,13 @@ const api: DesengineDesktopApi = {
 
     return ipcRenderer.invoke('figma-visual-snapshot:get-last') as Promise<
       FigmaVisualSnapshot | undefined
+    >;
+  },
+  getLastFigmaExplodedFrame() {
+    console.log('[desengine:preload] getLastFigmaExplodedFrame called');
+
+    return ipcRenderer.invoke('figma-exploded-frame:get-last') as Promise<
+      FigmaExplodedFrameSnapshot | undefined
     >;
   },
   onFigmaSelectionPing(handler) {
@@ -53,6 +66,24 @@ const api: DesengineDesktopApi = {
     return () => {
       console.log('[desengine:preload] unsubscribing from figma-visual-snapshot');
       ipcRenderer.removeListener('figma-visual-snapshot', listener);
+    };
+  },
+  onFigmaExplodedFrame(handler) {
+    const listener = (_event: Electron.IpcRendererEvent, snapshot: FigmaExplodedFrameSnapshot) => {
+      console.log('[desengine:preload] figma-exploded-frame received', {
+        frameId: snapshot.frame.nodeId,
+        frameName: snapshot.frame.nodeName,
+        cellCount: snapshot.cellCount,
+      });
+      handler(snapshot);
+    };
+
+    console.log('[desengine:preload] subscribing to figma-exploded-frame');
+    ipcRenderer.on('figma-exploded-frame', listener);
+
+    return () => {
+      console.log('[desengine:preload] unsubscribing from figma-exploded-frame');
+      ipcRenderer.removeListener('figma-exploded-frame', listener);
     };
   },
 };

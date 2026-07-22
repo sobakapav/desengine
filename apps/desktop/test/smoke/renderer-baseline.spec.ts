@@ -26,6 +26,14 @@ test('dev handoff связан с Figma plugin и loopback endpoint', async () =
     path.join(process.cwd(), '../figma-plugin/src/visual-snapshot.ts'),
     'utf8',
   );
+  const explodedFrameSource = await fs.readFile(
+    path.join(process.cwd(), '../figma-plugin/src/exploded-frame.ts'),
+    'utf8',
+  );
+  const pluginUiSource = await fs.readFile(
+    path.join(process.cwd(), '../figma-plugin/src/ui.html'),
+    'utf8',
+  );
   const pluginManifest = await fs.readFile(
     path.join(process.cwd(), '../figma-plugin/manifest.json'),
     'utf8',
@@ -44,13 +52,22 @@ test('dev handoff связан с Figma plugin и loopback endpoint', async () =
   expect(protocolSource).toContain(
     "DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE = '/figma/visual-snapshot/latest'",
   );
+  expect(protocolSource).toContain("DESENGINE_EXPLODED_FRAME_ROUTE = '/figma/exploded-frame'");
+  expect(protocolSource).toContain(
+    "DESENGINE_EXPLODED_FRAME_LATEST_ROUTE = '/figma/exploded-frame/latest'",
+  );
+  expect(protocolSource).toContain('DESENGINE_EXPLODED_FRAME_MAX_CELLS = 12');
   expect(protocolSource).toContain('createDevHandoffUrl');
+  expect(protocolSource).toContain('figmaExplodedFrameSnapshotSchema');
   expect(mainSource).toContain('DESENGINE_SELECTION_PING_ROUTE');
   expect(mainSource).toContain('DESENGINE_SELECTION_PING_LATEST_ROUTE');
   expect(mainSource).toContain('DESENGINE_VISUAL_SNAPSHOT_ROUTE');
   expect(mainSource).toContain('DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE');
+  expect(mainSource).toContain('DESENGINE_EXPLODED_FRAME_ROUTE');
+  expect(mainSource).toContain('DESENGINE_EXPLODED_FRAME_LATEST_ROUTE');
   expect(mainSource).toContain('figmaSelectionPingSchema');
   expect(mainSource).toContain('figmaVisualSnapshotSchema');
+  expect(mainSource).toContain('figmaExplodedFrameSnapshotSchema');
   expect(mainSource).toContain('BrowserWindow.getAllWindows()');
   expect(mainSource).toContain('[desengine:desktop-endpoint]');
   expect(mainSource).toContain('[desengine:desktop-ipc]');
@@ -58,10 +75,14 @@ test('dev handoff связан с Figma plugin и loopback endpoint', async () =
   expect(preloadSource).toContain('getLastFigmaSelectionPing');
   expect(preloadSource).toContain('onFigmaVisualSnapshot');
   expect(preloadSource).toContain('getLastFigmaVisualSnapshot');
+  expect(preloadSource).toContain('onFigmaExplodedFrame');
+  expect(preloadSource).toContain('getLastFigmaExplodedFrame');
   expect(preloadSource).toContain('[desengine:preload]');
   expect(appSource).toContain('createDevHandoffUrl');
   expect(appSource).toContain('DESENGINE_SELECTION_PING_LATEST_ROUTE');
   expect(appSource).toContain('DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE');
+  expect(appSource).toContain('DESENGINE_EXPLODED_FRAME_LATEST_ROUTE');
+  expect(appSource).toContain('ExplodedFrameView');
   expect(appSource).toContain('<img');
   expect(forgeSource).toContain('devContentSecurityPolicy');
   expect(forgeSource).toContain('connect-src');
@@ -70,11 +91,19 @@ test('dev handoff связан с Figma plugin и loopback endpoint', async () =
   expect(pluginSource).toContain('createDevHandoffUrl');
   expect(pluginSource).toContain('DESENGINE_SELECTION_PING_ROUTE');
   expect(pluginSource).toContain('DESENGINE_VISUAL_SNAPSHOT_ROUTE');
+  expect(pluginSource).toContain('DESENGINE_EXPLODED_FRAME_ROUTE');
   expect(pluginSource).toContain('exportNodeAsPngVisualSnapshot');
+  expect(pluginSource).toContain('exportAutoLayoutFrameAsExplodedSnapshot');
   expect(pluginSource).toContain('[desengine:figma]');
   expect(visualSnapshotSource).toContain('exportNodeAsPngVisualSnapshot');
   expect(visualSnapshotSource).toContain('exportAsync');
   expect(visualSnapshotSource).toContain('data:image/png;base64');
+  expect(explodedFrameSource).toContain('canExportAutoLayoutFrame');
+  expect(explodedFrameSource).toContain('DESENGINE_EXPLODED_FRAME_MAX_CELLS');
+  expect(explodedFrameSource).toContain('frame.children');
+  expect(explodedFrameSource).toContain('absoluteBoundingBox');
+  expect(pluginUiSource).toContain('Создать взрыв-схему');
+  expect(pluginUiSource).toContain('desengine:create-exploded-frame');
   expect(pluginManifest).toContain('"main": "dist/code.js"');
   expect(pluginManifest).toContain('http://localhost:37645');
 });

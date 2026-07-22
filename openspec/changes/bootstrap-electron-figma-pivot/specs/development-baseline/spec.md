@@ -112,3 +112,17 @@ Desktop UI SHALL использовать Tailwind CSS как styling layer и s
 - **WHEN** Figma plugin или desktop app работает с PNG visual snapshot
 - **THEN** route-константы, URL helper, format, export scale, Zod-схема и TypeScript-тип берутся из `@desengine/protocol`
 - **AND** Figma plugin экспортирует PNG через отдельный helper, принимающий `SceneNode`
+
+#### Scenario: Desktop показывает взрыв-схему auto-layout Frame
+
+- **WHEN** пользователь выбирает Frame с auto-layout
+- **AND** Figma plugin отправляет `POST /figma/exploded-frame` на `127.0.0.1:37645`
+- **THEN** payload содержит PNG самого frame и до 12 PNG видимых children первого уровня
+- **AND** payload содержит относительные координаты children внутри frame
+- **AND** main process валидирует payload через `@desengine/protocol`
+- **AND** renderer показывает frame reference и вынесенные children как визуальную взрыв-схему
+
+#### Scenario: Кнопка взрыв-схемы недоступна для неподходящего выбора
+
+- **WHEN** первый выбранный объект не является auto-layout Frame
+- **THEN** Figma plugin показывает кнопку `Создать взрыв-схему` как недоступную

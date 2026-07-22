@@ -8,8 +8,12 @@ export const DESENGINE_SELECTION_PING_ROUTE = '/figma/selection';
 export const DESENGINE_SELECTION_PING_LATEST_ROUTE = '/figma/selection/latest';
 export const DESENGINE_VISUAL_SNAPSHOT_ROUTE = '/figma/visual-snapshot';
 export const DESENGINE_VISUAL_SNAPSHOT_LATEST_ROUTE = '/figma/visual-snapshot/latest';
+export const DESENGINE_EXPLODED_FRAME_ROUTE = '/figma/exploded-frame';
+export const DESENGINE_EXPLODED_FRAME_LATEST_ROUTE = '/figma/exploded-frame/latest';
 export const DESENGINE_VISUAL_SNAPSHOT_FORMAT = 'png';
 export const DESENGINE_VISUAL_SNAPSHOT_EXPORT_SCALE = 2;
+export const DESENGINE_EXPLODED_FRAME_MAX_CELLS = 12;
+export const DESENGINE_EXPLODED_FRAME_EXPORT_SCALE = 1;
 export function createDevHandoffUrl(route, host = 'localhost') {
     return `http://${host}:${DESENGINE_DEV_HANDOFF_PORT}${route}`;
 }
@@ -48,4 +52,28 @@ export const figmaVisualSnapshotSchema = z.object({
         dataUrl: z.string().startsWith('data:image/png;base64,'),
         scale: z.number().positive(),
     }),
+});
+export const figmaExplodedFrameCellSchema = z.object({
+    index: z.number().int().min(0).max(DESENGINE_EXPLODED_FRAME_MAX_CELLS - 1),
+    nodeId: z.string().min(1).max(200),
+    nodeName: z.string().min(1).max(200),
+    nodeType: z.string().min(1).max(100),
+    x: z.number(),
+    y: z.number(),
+    width: z.number().nonnegative(),
+    height: z.number().nonnegative(),
+    image: z.object({
+        format: z.literal(DESENGINE_VISUAL_SNAPSHOT_FORMAT),
+        dataUrl: z.string().startsWith('data:image/png;base64,'),
+        scale: z.number().positive(),
+    }),
+});
+export const figmaExplodedFrameSnapshotSchema = z.object({
+    protocolVersion: protocolVersionSchema,
+    sessionToken: z.literal(DESENGINE_DEV_SESSION_TOKEN),
+    frame: figmaVisualSnapshotSchema,
+    layoutMode: z.enum(['HORIZONTAL', 'VERTICAL']),
+    cellCount: z.number().int().min(0).max(DESENGINE_EXPLODED_FRAME_MAX_CELLS),
+    cells: z.array(figmaExplodedFrameCellSchema).max(DESENGINE_EXPLODED_FRAME_MAX_CELLS),
+    exportedAt: z.string().datetime(),
 });

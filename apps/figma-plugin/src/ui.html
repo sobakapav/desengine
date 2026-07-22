@@ -48,6 +48,13 @@
         background: white;
         color: #334155;
       }
+
+      button:disabled {
+        border-color: #cbd5e1;
+        background: #e2e8f0;
+        color: #94a3b8;
+        cursor: not-allowed;
+      }
     </style>
   </head>
   <body>
@@ -56,6 +63,7 @@
       <p id="selection">Выберите компонент или variant set в Figma.</p>
       <p id="status">Готов к dev handoff на localhost:37645.</p>
       <div class="actions">
+        <button disabled id="create-exploded" type="button">Создать взрыв-схему</button>
         <button id="send" type="button">Отправить выбор</button>
         <button class="secondary" id="close" type="button">Закрыть</button>
       </div>
@@ -63,15 +71,16 @@
     <script>
       const selection = document.getElementById('selection');
       const status = document.getElementById('status');
+      const createExploded = document.getElementById('create-exploded');
 
       window.onmessage = (event) => {
         const message = event.data.pluginMessage;
 
         if (message?.type === 'desengine:selection-summary') {
-          selection.textContent =
-            message.selectionCount > 0
-              ? `Выбрано объектов: ${message.selectionCount}.`
-              : 'Выберите компонент или variant set в Figma.';
+          createExploded.disabled = !message.canCreateExplodedFrame;
+          selection.textContent = message.canCreateExplodedFrame
+            ? `Auto-layout Frame: ${message.firstNodeName}.`
+            : 'Выберите auto-layout Frame в Figma.';
         }
 
         if (message?.type === 'desengine:send-result') {
@@ -83,6 +92,12 @@
         console.log('[desengine:figma-ui] send button clicked');
         status.textContent = 'Отправка...';
         parent.postMessage({ pluginMessage: { type: 'desengine:send-selection' } }, '*');
+      });
+
+      createExploded.addEventListener('click', () => {
+        console.log('[desengine:figma-ui] create exploded frame button clicked');
+        status.textContent = 'Создаю взрыв-схему...';
+        parent.postMessage({ pluginMessage: { type: 'desengine:create-exploded-frame' } }, '*');
       });
 
       document.getElementById('close').addEventListener('click', () => {

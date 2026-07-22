@@ -90,6 +90,15 @@ PNG visual snapshot оформлен как повторно используе�
 - Figma plugin использует `exportNodeAsPngVisualSnapshot(node)` для экспорта любого переданного `SceneNode` в PNG snapshot;
 - desktop endpoint и renderer используют общие route-константы вместо ручного дублирования URL.
 
+Первая осмысленная функция поверх этого handoff - взрыв-схема auto-layout frame. Пользователь выбирает один Frame с auto-layout и нажимает `Создать взрыв-схему`. Plugin отправляет `POST /figma/exploded-frame`:
+
+- snapshot самого frame как reference;
+- до 12 видимых children первого уровня как отдельные прозрачные PNG;
+- относительные координаты и размеры каждого child внутри frame;
+- layout mode frame.
+
+MVP не мутирует Figma-документ и не пытается извлекать semantic layout beyond first-level auto-layout children.
+
 Пример состава:
 
 - protocolVersion;
