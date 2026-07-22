@@ -1,0 +1,20 @@
+{
+  "name": "@desengine/figma-plugin",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Figma plugin entrypoint for desengine handoff",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "esbuild src/code.ts --bundle --outfile=dist/code.js --format=iife --target=es2020"
+  },
+  "author": "Sobaka Pavlova",
+  "license": "MIT",
+  "dependencies": {
+    "@desengine/protocol": "^0.0.1"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.131.0",
+    "esbuild": "^0.28.1",
+    "typescript": "^5.9.3"
+  }
+}

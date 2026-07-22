@@ -9,6 +9,7 @@
 ```bash
 npm run typecheck
 npm run build
+npm run test:smoke
 ```
 
 `npm run build` в корне не должен собирать Electron package. Он собирает кодовые пакеты, которые должны работать без GUI и без desktop packaging.
@@ -42,6 +43,52 @@ npm run build --workspace @desengine/protocol
 
 Этот пакет должен оставаться общим источником контрактов для Figma plugin и desktop app. Форматы сообщений нельзя дублировать вручную в разных приложениях.
 
+## UI baseline
+
+Desktop renderer использует React, Tailwind CSS и локальные shadcn/ui-compatible компоненты внутри `apps/desktop`.
+
+Команды:
+
+```bash
+npm run test:smoke
+npm run test:smoke --workspace @desengine/desktop
+```
+
+`test:smoke` сейчас проверяет renderer contract: связь React entrypoint, Tailwind CSS и `@desengine/protocol`. Это не заменяет desktop launch smoke.
+
+## Desktop smoke
+
+Packaged desktop smoke запускается отдельно, когда есть готовый executable:
+
+```bash
+DESENGINE_DESKTOP_EXECUTABLE=<path> npm run test:desktop --workspace @desengine/desktop
+```
+
+Этот smoke использует Playwright Electron automation и не считается базовой SSH-friendly проверкой.
+
+## Figma dev handoff
+
+Минимальная локальная проверка связи Figma и desktop:
+
+```bash
+npm run build
+npm start --workspace @desengine/desktop
+```
+
+В Figma Desktop App:
+
+1. открыть `Plugins -> Development -> Import plugin from manifest...`;
+2. выбрать `apps/figma-plugin/manifest.json`;
+3. выбрать auto-layout Frame на странице;
+4. запустить plugin `desengine`;
+5. нажать `Создать взрыв-схему`.
+
+Если desktop app запущено, renderer покажет взрыв-схему выбранного Frame. Plugin рекурсивно раскрывает auto-layout Frame до глубины 4, останавливается на instance, не-auto-layout frame или не-frame node и отправляет до 100 PNG leaf-элементов с координатами относительно root frame.
+
+Кнопка `Отправить выбор` остаётся диагностическим действием: она отправляет selection ping и PNG выбранного объекта как базовую проверку handoff.
+
+Figma manifest использует `http://localhost:37645`, а Electron endpoint слушает loopback. Этот handoff использует фиксированный dev token и не является production pairing.
+
 ## Workspace
 
 Корневой `package.json` использует npm workspaces:
@@ -65,5 +112,6 @@ npm install @desengine/protocol@0.0.1 --workspace @desengine/desktop
 
 - `npm run typecheck` проходит;
 - `npm run build` проходит;
+- `npm run test:smoke` проходит, если изменение затрагивает renderer baseline;
 - изменения отражены в документации или OpenSpec, если поменялось поведение системы;
 - `git status --short` показывает ожидаемые изменения.

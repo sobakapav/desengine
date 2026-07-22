@@ -10,9 +10,11 @@
   ],
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "build": "npm run build --workspace @desengine/protocol",
+    "build": "npm run build --workspace @desengine/protocol && npm run build --workspace @desengine/figma-plugin",
+    "test:smoke": "npm run test:smoke --workspace @desengine/desktop",
     "package:desktop": "npm run package --workspace @desengine/desktop",
-    "make:desktop": "npm run make --workspace @desengine/desktop"
+    "make:desktop": "npm run make --workspace @desengine/desktop",
+    "app": "git pull && npm install && npm run build && npm start --workspace @desengine/desktop"
   },
   "repository": {
     "type": "git",
@@ -23,5 +25,9 @@
   "bugs": {
     "url": "https://github.com/sobakapav/desengine/issues"
   },
-  "homepage": "https://github.com/sobakapav/desengine#readme"
+  "homepage": "https://github.com/sobakapav/desengine#readme",
+  "allowScripts": {
+    "electron-winstaller@5.4.4": true,
+    "esbuild@0.28.1": true
+  }
 }

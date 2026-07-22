@@ -12,8 +12,24 @@
 - [x] Зафиксировать handoff-документацию для продолжения.
 - [x] Зафиксировать текущий уровень проверки: `npm run typecheck`, `npm run build`, `npm audit --omit=dev`, GitHub Actions `Checks`, GitHub Actions `Desktop Package`.
 - [x] Зафиксировать, что мок-данные и live credentials для текущего bootstrap-этапа не нужны.
-- [ ] Перевести Electron renderer на React.
-- [ ] Подключить `@desengine/protocol` к desktop UI.
-- [ ] Показать минимальный экран с версией протокола.
-- [ ] Обсудить первый пользовательский workflow.
+- [x] Перевести Electron renderer на React.
+- [x] Подключить `@desengine/protocol` к desktop UI.
+- [x] Показать минимальный экран с версией протокола.
+- [x] Подключить Tailwind CSS к существующему Webpack renderer без смены сборщика.
+- [x] Добавить shadcn/ui-compatible заготовки: `components.json`, `cn` и первый локальный UI-компонент.
+- [x] Добавить минимальный Zod status-контракт в `@desengine/protocol`.
+- [ ] Создать workspace-заготовки `@desengine/figma-adapter` и `@desengine/behavior-model` после утверждения первого workflow.
+- [x] Создать минимальный TypeScript Figma plugin skeleton для dev handoff smoke.
+- [x] Поднять dev-only loopback endpoint `127.0.0.1:37645` в Electron main process.
+- [x] Показать последний Figma selection ping в desktop renderer.
+- [x] Экспортировать выбранный Figma node в PNG и показать его в desktop renderer.
+- [x] Оформить PNG visual snapshot как повторно используемый handoff-слой через `@desengine/protocol` и Figma helper.
+- [x] Добавить MVP взрыв-схемы auto-layout Frame на основе рекурсивного PNG-сбора leaf-элементов.
+- [x] Расширить рабочую область desktop renderer для просмотра больших взрыв-схем.
+- [x] Выделить instance leaf-элементы фиолетовой рамкой через отдельную функцию стилизации.
+- [x] Добавить Playwright smoke skeleton и команды запуска.
+- [x] Обсудить первый пользовательский workflow: визуальная взрыв-схема Figma auto-layout Frame.
+- [ ] Спроектировать source binding между Figma node и desengine object.
+- [ ] Спроектировать обратный запрос Figma plugin -> desengine для JSON-данных и генерации вариантов.
 - [ ] После утверждения workflow добавить delta specs по пользовательскому поведению.
+- [ ] Выполнить внешнюю проверку нового baseline другим агентом или пользователем.
