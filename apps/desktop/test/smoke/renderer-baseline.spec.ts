@@ -56,7 +56,12 @@ test('dev handoff связан с Figma plugin и loopback endpoint', async () =
   expect(protocolSource).toContain(
     "DESENGINE_EXPLODED_FRAME_LATEST_ROUTE = '/figma/exploded-frame/latest'",
   );
-  expect(protocolSource).toContain('DESENGINE_EXPLODED_FRAME_MAX_CELLS = 12');
+  expect(protocolSource).toContain('DESENGINE_EXPLODED_FRAME_MAX_CELLS = 100');
+  expect(protocolSource).toContain('DESENGINE_EXPLODED_FRAME_MAX_DEPTH = 4');
+  expect(protocolSource).toContain('stopReason');
+  expect(protocolSource).toContain('parentNodeId');
+  expect(protocolSource).toContain('depth');
+  expect(protocolSource).toContain('path');
   expect(protocolSource).toContain('createDevHandoffUrl');
   expect(protocolSource).toContain('figmaExplodedFrameSnapshotSchema');
   expect(mainSource).toContain('DESENGINE_SELECTION_PING_ROUTE');
@@ -100,6 +105,9 @@ test('dev handoff связан с Figma plugin и loopback endpoint', async () =
   expect(visualSnapshotSource).toContain('data:image/png;base64');
   expect(explodedFrameSource).toContain('canExportAutoLayoutFrame');
   expect(explodedFrameSource).toContain('DESENGINE_EXPLODED_FRAME_MAX_CELLS');
+  expect(explodedFrameSource).toContain('DESENGINE_EXPLODED_FRAME_MAX_DEPTH');
+  expect(explodedFrameSource).toContain('collectExplodedLeaves');
+  expect(explodedFrameSource).toContain('stopReason');
   expect(explodedFrameSource).toContain('frame.children');
   expect(explodedFrameSource).toContain('absoluteBoundingBox');
   expect(pluginUiSource).toContain('Создать взрыв-схему');

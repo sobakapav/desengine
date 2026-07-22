@@ -93,11 +93,14 @@ PNG visual snapshot оформлен как повторно используе�
 Первая осмысленная функция поверх этого handoff - взрыв-схема auto-layout frame. Пользователь выбирает один Frame с auto-layout и нажимает `Создать взрыв-схему`. Plugin отправляет `POST /figma/exploded-frame`:
 
 - snapshot самого frame как reference;
-- до 12 видимых children первого уровня как отдельные прозрачные PNG;
-- относительные координаты и размеры каждого child внутри frame;
+- до 100 leaf-элементов как отдельные прозрачные PNG;
+- рекурсивный обход auto-layout Frame до глубины 4;
+- остановку на instance, не-auto-layout frame, не-frame node или принудительном max depth;
+- относительные координаты и размеры каждого leaf-элемента внутри root frame;
+- depth, parent node id, path и stop reason каждого leaf-элемента;
 - layout mode frame.
 
-MVP не мутирует Figma-документ и не пытается извлекать semantic layout beyond first-level auto-layout children.
+MVP не мутирует Figma-документ и не пытается извлекать semantic layout beyond recursive auto-layout structure.
 
 Пример состава:
 

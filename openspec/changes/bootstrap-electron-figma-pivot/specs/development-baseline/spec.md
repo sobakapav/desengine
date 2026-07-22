@@ -117,8 +117,11 @@ Desktop UI SHALL использовать Tailwind CSS как styling layer и s
 
 - **WHEN** пользователь выбирает Frame с auto-layout
 - **AND** Figma plugin отправляет `POST /figma/exploded-frame` на `127.0.0.1:37645`
-- **THEN** payload содержит PNG самого frame и до 12 PNG видимых children первого уровня
-- **AND** payload содержит относительные координаты children внутри frame
+- **THEN** payload содержит PNG самого frame и до 100 PNG leaf-элементов
+- **AND** plugin рекурсивно раскрывает auto-layout Frame до глубины 4
+- **AND** plugin останавливается на instance, не-auto-layout frame, не-frame node или max depth
+- **AND** payload содержит относительные координаты leaf-элементов внутри root frame
+- **AND** payload содержит depth, parent node id, path и stop reason leaf-элемента
 - **AND** main process валидирует payload через `@desengine/protocol`
 - **AND** renderer показывает frame reference и вынесенные children как визуальную взрыв-схему
 

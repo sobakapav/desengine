@@ -1,6 +1,6 @@
 import { z } from 'zod';
 export declare const DESENGINE_PROTOCOL_VERSION = "0.0.1";
-export declare const DESENGINE_MAX_MESSAGE_BYTES = 8000000;
+export declare const DESENGINE_MAX_MESSAGE_BYTES = 80000000;
 export declare const DESENGINE_DEV_HANDOFF_PORT = 37645;
 export declare const DESENGINE_DEV_SESSION_TOKEN = "desengine-dev-session";
 export declare const DESENGINE_HEALTH_ROUTE = "/health";
@@ -12,7 +12,8 @@ export declare const DESENGINE_EXPLODED_FRAME_ROUTE = "/figma/exploded-frame";
 export declare const DESENGINE_EXPLODED_FRAME_LATEST_ROUTE = "/figma/exploded-frame/latest";
 export declare const DESENGINE_VISUAL_SNAPSHOT_FORMAT = "png";
 export declare const DESENGINE_VISUAL_SNAPSHOT_EXPORT_SCALE = 2;
-export declare const DESENGINE_EXPLODED_FRAME_MAX_CELLS = 12;
+export declare const DESENGINE_EXPLODED_FRAME_MAX_CELLS = 100;
+export declare const DESENGINE_EXPLODED_FRAME_MAX_DEPTH = 4;
 export declare const DESENGINE_EXPLODED_FRAME_EXPORT_SCALE = 1;
 export declare function createDevHandoffUrl(route: string, host?: string): string;
 export declare const protocolVersionSchema: z.ZodLiteral<"0.0.1">;
@@ -57,8 +58,17 @@ export type FigmaVisualSnapshot = z.infer<typeof figmaVisualSnapshotSchema>;
 export declare const figmaExplodedFrameCellSchema: z.ZodObject<{
     index: z.ZodNumber;
     nodeId: z.ZodString;
+    parentNodeId: z.ZodNullable<z.ZodString>;
     nodeName: z.ZodString;
     nodeType: z.ZodString;
+    depth: z.ZodNumber;
+    path: z.ZodArray<z.ZodString>;
+    stopReason: z.ZodEnum<{
+        instance: "instance";
+        "non-auto-layout-frame": "non-auto-layout-frame";
+        "max-depth": "max-depth";
+        "non-frame-node": "non-frame-node";
+    }>;
     x: z.ZodNumber;
     y: z.ZodNumber;
     width: z.ZodNumber;
@@ -96,8 +106,17 @@ export declare const figmaExplodedFrameSnapshotSchema: z.ZodObject<{
     cells: z.ZodArray<z.ZodObject<{
         index: z.ZodNumber;
         nodeId: z.ZodString;
+        parentNodeId: z.ZodNullable<z.ZodString>;
         nodeName: z.ZodString;
         nodeType: z.ZodString;
+        depth: z.ZodNumber;
+        path: z.ZodArray<z.ZodString>;
+        stopReason: z.ZodEnum<{
+            instance: "instance";
+            "non-auto-layout-frame": "non-auto-layout-frame";
+            "max-depth": "max-depth";
+            "non-frame-node": "non-frame-node";
+        }>;
         x: z.ZodNumber;
         y: z.ZodNumber;
         width: z.ZodNumber;

@@ -24,7 +24,7 @@
 - [x] Показать последний Figma selection ping в desktop renderer.
 - [x] Экспортировать выбранный Figma node в PNG и показать его в desktop renderer.
 - [x] Оформить PNG visual snapshot как повторно используемый handoff-слой через `@desengine/protocol` и Figma helper.
-- [x] Добавить MVP взрыв-схемы auto-layout Frame на основе PNG children первого уровня.
+- [x] Добавить MVP взрыв-схемы auto-layout Frame на основе рекурсивного PNG-сбора leaf-элементов.
 - [x] Добавить Playwright smoke skeleton и команды запуска.
 - [ ] Обсудить первый пользовательский workflow.
 - [ ] После утверждения workflow добавить delta specs по пользовательскому поведению.

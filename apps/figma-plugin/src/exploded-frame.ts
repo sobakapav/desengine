@@ -2,6 +2,7 @@ import {
   DESENGINE_DEV_SESSION_TOKEN,
   DESENGINE_EXPLODED_FRAME_EXPORT_SCALE,
   DESENGINE_EXPLODED_FRAME_MAX_CELLS,
+  DESENGINE_EXPLODED_FRAME_MAX_DEPTH,
   DESENGINE_PROTOCOL_VERSION,
   DESENGINE_VISUAL_SNAPSHOT_FORMAT,
   type FigmaExplodedFrameCell,
@@ -26,9 +27,17 @@ function isVisibleSceneNode(node: SceneNode) {
   return node.visible !== false;
 }
 
-function getRelativeNodeBox(node: SceneNode, frame: FrameNode) {
+function hasChildren(node: SceneNode): node is SceneNode & ChildrenMixin {
+  return 'children' in node;
+}
+
+function isAutoLayoutFrame(node: SceneNode): node is FrameNode {
+  return node.type === 'FRAME' && node.layoutMode !== 'NONE';
+}
+
+function getRelativeNodeBox(node: SceneNode, rootFrame: FrameNode) {
   const nodeBounds = 'absoluteBoundingBox' in node ? node.absoluteBoundingBox : undefined;
-  const frameBounds = frame.absoluteBoundingBox;
+  const frameBounds = rootFrame.absoluteBoundingBox;
 
   if (!nodeBounds || !frameBounds) {
     return {
@@ -47,7 +56,89 @@ function getRelativeNodeBox(node: SceneNode, frame: FrameNode) {
   };
 }
 
-async function exportCell(node: SceneNode, frame: FrameNode, index: number) {
+type ExplodedLeaf = {
+  node: SceneNode;
+  parentNodeId: string | null;
+  depth: number;
+  path: string[];
+  stopReason: FigmaExplodedFrameCell['stopReason'];
+};
+
+function getStopReason(node: SceneNode, depth: number): FigmaExplodedFrameCell['stopReason'] | null {
+  if (node.type === 'INSTANCE') {
+    return 'instance';
+  }
+
+  if (node.type === 'FRAME' && node.layoutMode === 'NONE') {
+    return 'non-auto-layout-frame';
+  }
+
+  if (depth >= DESENGINE_EXPLODED_FRAME_MAX_DEPTH) {
+    return 'max-depth';
+  }
+
+  if (!isAutoLayoutFrame(node)) {
+    return 'non-frame-node';
+  }
+
+  return null;
+}
+
+function collectExplodedLeaves(rootFrame: FrameNode) {
+  const leaves: ExplodedLeaf[] = [];
+
+  function visit(node: SceneNode, parentNodeId: string | null, depth: number, path: string[]) {
+    if (leaves.length >= DESENGINE_EXPLODED_FRAME_MAX_CELLS || !isVisibleSceneNode(node)) {
+      return;
+    }
+
+    const stopReason = getStopReason(node, depth);
+
+    if (stopReason) {
+      leaves.push({
+        node,
+        parentNodeId,
+        depth,
+        path,
+        stopReason,
+      });
+      return;
+    }
+
+    if (!hasChildren(node)) {
+      leaves.push({
+        node,
+        parentNodeId,
+        depth,
+        path,
+        stopReason: 'non-frame-node',
+      });
+      return;
+    }
+
+    for (const child of node.children) {
+      if (leaves.length >= DESENGINE_EXPLODED_FRAME_MAX_CELLS) {
+        return;
+      }
+
+      visit(child, node.id, depth + 1, [...path, child.name]);
+    }
+  }
+
+  for (const child of rootFrame.children) {
+    if (leaves.length >= DESENGINE_EXPLODED_FRAME_MAX_CELLS) {
+      break;
+    }
+
+    visit(child, rootFrame.id, 1, [rootFrame.name, child.name]);
+  }
+
+  return leaves;
+}
+
+async function exportCell(leaf: ExplodedLeaf, rootFrame: FrameNode, index: number) {
+  const { node } = leaf;
+
   if (!('exportAsync' in node)) {
     throw new Error('node-not-exportable');
   }
@@ -59,13 +150,17 @@ async function exportCell(node: SceneNode, frame: FrameNode, index: number) {
     },
     format: 'PNG',
   });
-  const box = getRelativeNodeBox(node, frame);
+  const box = getRelativeNodeBox(node, rootFrame);
 
   return {
     index,
     nodeId: node.id,
+    parentNodeId: leaf.parentNodeId,
     nodeName: node.name,
     nodeType: node.type,
+    depth: leaf.depth,
+    path: leaf.path,
+    stopReason: leaf.stopReason,
     x: box.x,
     y: box.y,
     width: box.width,
@@ -79,7 +174,7 @@ async function exportCell(node: SceneNode, frame: FrameNode, index: number) {
 }
 
 export function canExportAutoLayoutFrame(node: SceneNode | undefined): node is FrameNode {
-  return Boolean(node && node.type === 'FRAME' && node.layoutMode !== 'NONE');
+  return Boolean(node && isAutoLayoutFrame(node));
 }
 
 export async function exportAutoLayoutFrameAsExplodedSnapshot(
@@ -89,24 +184,24 @@ export async function exportAutoLayoutFrameAsExplodedSnapshot(
     throw new Error('frame-not-auto-layout');
   }
 
-  const children = frame.children
-    .filter(isVisibleSceneNode)
-    .slice(0, DESENGINE_EXPLODED_FRAME_MAX_CELLS);
+  const leaves = collectExplodedLeaves(frame);
   const layoutMode = frame.layoutMode === 'HORIZONTAL' ? 'HORIZONTAL' : 'VERTICAL';
 
   console.log('[desengine:figma] exporting auto-layout frame as exploded snapshot', {
     frameId: frame.id,
     frameName: frame.name,
     layoutMode,
-    exportedChildren: children.length,
+    exportedLeaves: leaves.length,
     totalChildren: frame.children.length,
+    maxDepth: DESENGINE_EXPLODED_FRAME_MAX_DEPTH,
+    maxCells: DESENGINE_EXPLODED_FRAME_MAX_CELLS,
   });
 
   const frameSnapshot = await exportNodeAsPngVisualSnapshot(frame, {
     scale: DESENGINE_EXPLODED_FRAME_EXPORT_SCALE,
   });
   const cells = await Promise.all(
-    children.map((child, index) => exportCell(child, frame, index)),
+    leaves.map((leaf, index) => exportCell(leaf, frame, index)),
   );
 
   const snapshot: FigmaExplodedFrameSnapshot = {

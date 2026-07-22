@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const DESENGINE_PROTOCOL_VERSION = '0.0.1';
-export const DESENGINE_MAX_MESSAGE_BYTES = 8_000_000;
+export const DESENGINE_MAX_MESSAGE_BYTES = 80_000_000;
 export const DESENGINE_DEV_HANDOFF_PORT = 37645;
 export const DESENGINE_DEV_SESSION_TOKEN = 'desengine-dev-session';
 export const DESENGINE_HEALTH_ROUTE = '/health';
@@ -13,7 +13,8 @@ export const DESENGINE_EXPLODED_FRAME_ROUTE = '/figma/exploded-frame';
 export const DESENGINE_EXPLODED_FRAME_LATEST_ROUTE = '/figma/exploded-frame/latest';
 export const DESENGINE_VISUAL_SNAPSHOT_FORMAT = 'png';
 export const DESENGINE_VISUAL_SNAPSHOT_EXPORT_SCALE = 2;
-export const DESENGINE_EXPLODED_FRAME_MAX_CELLS = 12;
+export const DESENGINE_EXPLODED_FRAME_MAX_CELLS = 100;
+export const DESENGINE_EXPLODED_FRAME_MAX_DEPTH = 4;
 export const DESENGINE_EXPLODED_FRAME_EXPORT_SCALE = 1;
 
 export function createDevHandoffUrl(route: string, host = 'localhost') {
@@ -69,8 +70,17 @@ export type FigmaVisualSnapshot = z.infer<typeof figmaVisualSnapshotSchema>;
 export const figmaExplodedFrameCellSchema = z.object({
   index: z.number().int().min(0).max(DESENGINE_EXPLODED_FRAME_MAX_CELLS - 1),
   nodeId: z.string().min(1).max(200),
+  parentNodeId: z.string().min(1).max(200).nullable(),
   nodeName: z.string().min(1).max(200),
   nodeType: z.string().min(1).max(100),
+  depth: z.number().int().min(1).max(DESENGINE_EXPLODED_FRAME_MAX_DEPTH),
+  path: z.array(z.string().min(1).max(200)).min(1).max(DESENGINE_EXPLODED_FRAME_MAX_DEPTH + 1),
+  stopReason: z.enum([
+    'instance',
+    'non-auto-layout-frame',
+    'max-depth',
+    'non-frame-node',
+  ]),
   x: z.number(),
   y: z.number(),
   width: z.number().nonnegative(),

@@ -36,8 +36,11 @@ function ExplodedFrameView({ snapshot }: { snapshot: FigmaExplodedFrameSnapshot 
   const frameWidth = Math.max(snapshot.frame.width, 1);
   const frameHeight = Math.max(snapshot.frame.height, 1);
   const scale = Math.min(1, 400 / frameWidth, 440 / frameHeight);
-  const stageWidth = Math.max(260, frameWidth * scale + snapshot.cells.length * 28 + 48);
-  const stageHeight = Math.max(260, frameHeight * scale + snapshot.cells.length * 16 + 48);
+  const maxCellRight = Math.max(...snapshot.cells.map((cell) => cell.x + cell.width), frameWidth);
+  const maxCellBottom = Math.max(...snapshot.cells.map((cell) => cell.y + cell.height), frameHeight);
+  const maxDepth = Math.max(...snapshot.cells.map((cell) => cell.depth), 1);
+  const stageWidth = Math.max(260, maxCellRight * scale + maxDepth * 44 + 48);
+  const stageHeight = Math.max(260, maxCellBottom * scale + Math.min(snapshot.cells.length * 5, 200) + 48);
 
   return (
     <div className="grid h-full w-full gap-6 lg:grid-cols-[0.8fr_1.2fr]">
@@ -74,8 +77,8 @@ function ExplodedFrameView({ snapshot }: { snapshot: FigmaExplodedFrameSnapshot 
               src={cell.image.dataUrl}
               style={{
                 height: Math.max(cell.height * scale, 1),
-                left: 12 + cell.x * scale + cell.index * 28,
-                top: 12 + cell.y * scale + cell.index * 16,
+                left: 12 + cell.x * scale + cell.depth * 34,
+                top: 12 + cell.y * scale + cell.index * 5,
                 width: Math.max(cell.width * scale, 1),
                 zIndex: cell.index + 1,
               }}
