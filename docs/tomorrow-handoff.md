@@ -91,7 +91,7 @@ npm run build
 - shadcn/ui-compatible `components.json`, `cn` и первый локальный UI-компонент;
 - минимальный Zod status-контракт и dev selection ping в `@desengine/protocol`;
 - TypeScript Figma plugin skeleton для живого dev handoff;
-- Electron loopback endpoint `127.0.0.1:37645`;
+- Electron loopback endpoint `localhost:37645`;
 - Playwright smoke skeleton.
 
 Дальше:

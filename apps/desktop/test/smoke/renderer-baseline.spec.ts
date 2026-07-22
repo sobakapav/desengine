@@ -30,5 +30,7 @@ test('dev handoff связан с Figma plugin и loopback endpoint', async () =
   expect(mainSource).toContain('figmaSelectionPingSchema');
   expect(preloadSource).toContain('onFigmaSelectionPing');
   expect(pluginSource).toContain('DESENGINE_DEV_HANDOFF_PORT');
+  expect(pluginSource).toContain('http://localhost');
   expect(pluginManifest).toContain('"main": "dist/code.js"');
+  expect(pluginManifest).toContain('http://localhost:37645');
 });

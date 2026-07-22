@@ -67,7 +67,7 @@ Figma plugin должен явно декларировать сетевые д�
 - selectedNodeNames;
 - sentAt.
 
-Этот ping нужен только для проверки живой связи Figma plugin -> local endpoint -> desktop renderer.
+Этот ping нужен только для проверки живой связи Figma plugin -> local endpoint -> desktop renderer. В development manifest используется `http://localhost:37645`, потому что Figma валидирует local dev domains в формате `localhost`.
 
 Пример состава:
 

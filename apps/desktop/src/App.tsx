@@ -92,7 +92,7 @@ export function App() {
                 </div>
               ) : (
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Ожидаю ping от Figma plugin на 127.0.0.1:37645.
+                  Ожидаю ping от Figma plugin на localhost:37645.
                 </p>
               )}
             </div>

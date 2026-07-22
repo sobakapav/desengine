@@ -8,7 +8,7 @@ import {
 
 declare const __html__: string;
 
-const endpointUrl = `http://127.0.0.1:${DESENGINE_DEV_HANDOFF_PORT}/figma/selection`;
+const endpointUrl = `http://localhost:${DESENGINE_DEV_HANDOFF_PORT}/figma/selection`;
 
 function readSelectionPing(): FigmaSelectionPing {
   const selectedNodeNames = figma.currentPage.selection.map((node) => node.name);
@@ -68,7 +68,7 @@ figma.ui.onmessage = async (message) => {
     figma.ui.postMessage({
       type: 'desengine:send-result',
       ok: false,
-      message: 'Desktop-приложение desengine не отвечает на 127.0.0.1:37645.',
+      message: 'Desktop-приложение desengine не отвечает на localhost:37645.',
     });
   }
 };
