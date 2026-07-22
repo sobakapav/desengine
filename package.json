@@ -13,7 +13,8 @@
     "build": "npm run build --workspace @desengine/protocol",
     "test:smoke": "npm run test:smoke --workspace @desengine/desktop",
     "package:desktop": "npm run package --workspace @desengine/desktop",
-    "make:desktop": "npm run make --workspace @desengine/desktop"
+    "make:desktop": "npm run make --workspace @desengine/desktop",
+    "app": "git pull && npm install && npm start --workspace @desengine/desktop"
   },
   "repository": {
     "type": "git",
