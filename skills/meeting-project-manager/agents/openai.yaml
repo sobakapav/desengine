@@ -1,0 +1,3 @@
+interface:
+  display_name: "Meeting Project Manager"
+  short_description: "Разбирает встречи, решения, задачи и вводные заказчика"
